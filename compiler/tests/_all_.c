@@ -147,7 +147,7 @@ int main()
     // test_symbol_table_push_scope_single();
     // test_symbol_table_push_scope_nested();
     // test_symbol_table_push_scope_expand();
-    test_symbol_table_pop_scope_beyond_global();
+    // test_symbol_table_pop_scope_beyond_global();
     // test_symbol_table_pop_scope_offset_propagation();
     // test_symbol_table_begin_function_scope();
     // test_symbol_table_add_symbol_local_basic();
@@ -160,8 +160,9 @@ int main()
     // test_symbol_table_lookup_token_variations();
     // test_symbol_table_lookup_nulls();
     // test_symbol_table_get_symbol_offset();
+    
     // test_symbol_table_offsets_alignment();
-    // test_symbol_table_add_symbol_type_clone();
+    test_symbol_table_add_symbol_type_clone();
     // test_symbol_table_add_symbol_arena_exhaust();
     // test_symbol_table_add_many_symbols();
     // test_symbol_table_add_symbol_token_dup();

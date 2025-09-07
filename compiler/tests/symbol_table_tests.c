@@ -286,7 +286,6 @@ void test_symbol_table_add_symbol_local_basic() {
     DEBUG_INFO("Finished test_symbol_table_add_symbol_local_basic");
 }
 
-// Test adding param symbol with kind
 void test_symbol_table_add_symbol_param() {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_param");
     printf("Testing symbol_table_add_symbol_with_kind param...\n");
@@ -294,6 +293,7 @@ void test_symbol_table_add_symbol_param() {
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
+    symbol_table_init(&arena, &table);  // Fix: Initialize the symbol table with the arena
     symbol_table_begin_function_scope(&table);  // Function scope
 
     Type *int_type = create_int_type(&arena);
@@ -582,6 +582,7 @@ void test_symbol_table_offsets_alignment() {
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
+    symbol_table_init(&arena, &table);
     symbol_table_begin_function_scope(&table);  // For params/locals
 
     // Char (1 byte, align to 8 -> 8)
