@@ -119,7 +119,7 @@ int main()
     test_empty_program_parsing();
     test_var_decl_parsing();
     test_function_no_params_parsing();
-    test_if_statement_parsing(); // NOT sure about this one, needs more debugging
+    test_if_statement_parsing(); 
     test_simple_program_parsing();
     test_while_loop_parsing();
     test_for_loop_parsing();
@@ -127,6 +127,16 @@ int main()
     test_literal_types_parsing();
     test_recursive_function_parsing();
     test_full_program_parsing();
+    test_array_declaration_parsing();
+    test_array_literal_parsing();
+    test_array_member_access_parsing();
+    test_array_method_call_push_parsing();
+    test_array_method_call_clear_parsing();
+    test_array_method_call_concat_parsing();
+    test_array_method_call_pop_parsing();
+    test_array_print_and_interpolated_parsing();
+    test_array_function_params_and_return_parsing();
+    test_array_access_parsing();
 
     // *** Token ***
 

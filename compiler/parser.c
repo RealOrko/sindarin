@@ -290,23 +290,54 @@ static void synchronize(Parser *parser)
 
 Type *parser_type(Parser *parser)
 {
-    if (parser_match(parser, TOKEN_INT))
-        return ast_create_primitive_type(parser->arena, TYPE_INT);
-    if (parser_match(parser, TOKEN_LONG))
-        return ast_create_primitive_type(parser->arena, TYPE_LONG);
-    if (parser_match(parser, TOKEN_DOUBLE))
-        return ast_create_primitive_type(parser->arena, TYPE_DOUBLE);
-    if (parser_match(parser, TOKEN_CHAR))
-        return ast_create_primitive_type(parser->arena, TYPE_CHAR);
-    if (parser_match(parser, TOKEN_STR))
-        return ast_create_primitive_type(parser->arena, TYPE_STRING);
-    if (parser_match(parser, TOKEN_BOOL))
-        return ast_create_primitive_type(parser->arena, TYPE_BOOL);
-    if (parser_match(parser, TOKEN_VOID))
-        return ast_create_primitive_type(parser->arena, TYPE_VOID);
+    Type *type = NULL;
 
-    parser_error_at_current(parser, "Expected type");
-    return ast_create_primitive_type(parser->arena, TYPE_NIL);
+    if (parser_match(parser, TOKEN_INT))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_INT);
+    }
+    else if (parser_match(parser, TOKEN_LONG))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_LONG);
+    }
+    else if (parser_match(parser, TOKEN_DOUBLE))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_DOUBLE);
+    }
+    else if (parser_match(parser, TOKEN_CHAR))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_CHAR);
+    }
+    else if (parser_match(parser, TOKEN_STR))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_STRING);
+    }
+    else if (parser_match(parser, TOKEN_BOOL))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_BOOL);
+    }
+    else if (parser_match(parser, TOKEN_VOID))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_VOID);
+    }
+    else
+    {
+        parser_error_at_current(parser, "Expected type");
+        return ast_create_primitive_type(parser->arena, TYPE_NIL);
+    }
+
+    // Handle array types: zero or more `[]` suffixes
+    while (parser_match(parser, TOKEN_LEFT_BRACKET))
+    {
+        if (!parser_match(parser, TOKEN_RIGHT_BRACKET))
+        {
+            parser_error_at_current(parser, "Expected ']' after '['");
+            return type;  // Return the base type on error to avoid cascading issues
+        }
+        type = ast_create_array_type(parser->arena, type);
+    }
+
+    return type;
 }
 
 Expr *parser_expression(Parser *parser)
@@ -448,6 +479,17 @@ Expr *parser_postfix(Parser *parser)
         {
             expr = parser_array_access(parser, expr);
         }
+        else if (parser_match(parser, TOKEN_DOT))
+        {
+            Token dot = parser->previous;
+            if (!parser_check(parser, TOKEN_IDENTIFIER))
+            {
+                parser_error_at_current(parser, "Expected identifier after '.'");
+            }
+            Token member_name = parser->current;
+            parser_advance(parser);
+            expr = ast_create_member_expr(parser->arena, expr, member_name, &dot);
+        }
         else if (parser_match(parser, TOKEN_PLUS_PLUS))
         {
             expr = ast_create_increment_expr(parser->arena, expr, &parser->previous);
@@ -519,6 +561,44 @@ Expr *parser_primary(Parser *parser)
         Expr *expr = parser_expression(parser);
         parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after expression");
         return expr;
+    }
+
+    if (parser_match(parser, TOKEN_LEFT_BRACE))
+    {
+        Token left_brace = parser->previous;
+        Expr **elements = NULL;
+        int count = 0;
+        int capacity = 0;
+
+        if (!parser_check(parser, TOKEN_RIGHT_BRACE))
+        {
+            do
+            {
+                Expr *elem = parser_expression(parser);
+                if (elem != NULL)
+                {
+                    if (count >= capacity)
+                    {
+                        capacity = capacity == 0 ? 8 : capacity * 2;
+                        Expr **new_elements = arena_alloc(parser->arena, sizeof(Expr *) * capacity);
+                        if (new_elements == NULL)
+                        {
+                            parser_error(parser, "Out of memory");
+                            return NULL;
+                        }
+                        if (elements != NULL && count > 0)
+                        {
+                            memcpy(new_elements, elements, sizeof(Expr *) * count);
+                        }
+                        elements = new_elements;
+                    }
+                    elements[count++] = elem;
+                }
+            } while (parser_match(parser, TOKEN_COMMA));
+        }
+
+        parser_consume(parser, TOKEN_RIGHT_BRACE, "Expected '}' after array elements");
+        return ast_create_array_expr(parser->arena, elements, count, &left_brace);
     }
 
     if (parser_match(parser, TOKEN_INTERPOL_STRING))
