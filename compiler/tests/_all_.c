@@ -184,7 +184,7 @@ int main()
     test_type_check_array_literal_empty();
     test_type_check_array_literal_heterogeneous();
     test_type_check_array_access_valid();
-    // test_type_check_array_access_non_array();
+    test_type_check_array_access_non_array();
     // test_type_check_array_access_invalid_index();
     // test_type_check_array_assignment_matching();
     // test_type_check_array_assignment_mismatch();
