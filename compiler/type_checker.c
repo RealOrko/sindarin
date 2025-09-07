@@ -286,11 +286,21 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
                 }
                 if (elem_type == NULL) {
                     elem_type = et;
-                } else if (!ast_type_equals(elem_type, et)) {
-                    type_error(expr->token, "Array elements must have the same type");
-                    valid = false;
-                    t = NULL;
-                    break;
+                } else {
+                    bool equal = false;
+                    if (elem_type->kind == et->kind) {
+                        if (elem_type->kind == TYPE_ARRAY || elem_type->kind == TYPE_FUNCTION) {
+                            equal = ast_type_equals(elem_type, et);
+                        } else {
+                            equal = true;
+                        }
+                    }
+                    if (!equal) {
+                        type_error(expr->token, "Array elements must have the same type");
+                        valid = false;
+                        t = NULL;
+                        break;
+                    }
                 }
             }
             if (valid && elem_type != NULL) {
@@ -342,8 +352,20 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
         t = type_check_interpolated(expr, table);
         break;
     case EXPR_MEMBER:
-        t = ast_create_primitive_type(table->arena, TYPE_NIL);
+    {
+        Type *object_type = type_check_expr(expr->as.member.object, table);
+        if (object_type == NULL) {
+            t = NULL;
+            break;
+        }
+        if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "length") == 0) {
+            t = ast_create_primitive_type(table->arena, TYPE_INT);
+        } else {
+            type_error(expr->token, "Invalid member access");
+            t = NULL;
+        }
         break;
+    }
     }
     expr->expr_type = t;
     return t;
@@ -352,6 +374,9 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
 static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     (void)return_type;
+    // Always add the symbol with the declared type, regardless of initializer
+    symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name,
+                                      stmt->as.var_decl.type, SYMBOL_LOCAL);
     if (stmt->as.var_decl.initializer)
     {
         Type *init_type = type_check_expr(stmt->as.var_decl.initializer, table);
@@ -362,9 +387,6 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
             type_error(&stmt->as.var_decl.name, "Initializer type does not match variable type");
         }
     }
-    // Always add the symbol with the declared type, regardless of initializer
-    symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name,
-                                      stmt->as.var_decl.type, SYMBOL_LOCAL);
 }
 
 static void type_check_function(Stmt *stmt, SymbolTable *table)
