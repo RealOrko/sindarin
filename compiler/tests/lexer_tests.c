@@ -8,6 +8,49 @@
 #include "../lexer.h"
 #include "../token.h"
 
+void test_lexer_main()
+{
+    test_lexer_array_empty();
+    test_lexer_array_single_element();
+    test_lexer_array_multi_element();
+    test_lexer_inline_array_expression();
+    test_lexer_array_assignment();
+    test_lexer_array_method_calls();
+    test_lexer_unmatched_brace_error();
+    test_lexer_array_with_indentation();
+    test_lexer_array_at_line_start();
+    test_lexer_empty_source();
+    test_lexer_only_whitespace();
+    test_lexer_single_identifier();
+    test_lexer_keywords();
+    test_lexer_bool_literals();
+    test_lexer_int_literal();
+    test_lexer_long_literal();
+    test_lexer_double_literal_decimal();
+    test_lexer_double_literal_with_d();
+    test_lexer_string_literal();
+    test_lexer_string_with_escapes();
+    test_lexer_unterminated_string();
+    test_lexer_interpolated_string();
+    test_lexer_char_literal();
+    test_lexer_char_escape();
+    test_lexer_unterminated_char();
+    test_lexer_operators_single();
+    test_lexer_operators_compound();
+    test_lexer_operators_logical();
+    test_lexer_brackets_parens_braces();
+    test_lexer_punctuation();
+    test_lexer_comments();
+    test_lexer_indentation_basic();
+    test_lexer_indentation_nested();
+    test_lexer_indentation_error_inconsistent();
+    test_lexer_multiple_newlines();
+    test_lexer_line_with_only_comment();
+    test_lexer_unexpected_character();
+    test_lexer_mixed_tokens();
+    test_lexer_tabs_as_indent();
+}
+
 // Existing tests (copied and preserved for completeness)
 void test_lexer_array_empty()
 {

@@ -14,6 +14,19 @@ static const char *empty_file_path = "empty_file.txt";
 static const char *large_file_path = "large_file.txt";
 static const char *nonexistent_path = "nonexistent_file.txt";
 
+void test_file_main()
+{
+    test_file_read_null_arena();
+    test_file_read_null_path();
+    test_file_read_nonexistent_file();
+    test_file_read_empty_file();
+    test_file_read_small_file();
+    test_file_read_large_file();
+    test_file_read_seek_failure();
+    test_file_read_read_failure();
+    test_file_read_special_characters();
+}
+
 void create_test_file(const char *path, const char *content)
 {
     FILE *file = fopen(path, "wb");

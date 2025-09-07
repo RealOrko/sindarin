@@ -10,6 +10,32 @@
 #include "../debug.h"
 #include "../symbol_table.h"
 
+void test_parser_main()
+{
+    test_empty_program_parsing();
+    test_var_decl_parsing();
+    test_function_no_params_parsing();
+    test_if_statement_parsing(); 
+    test_simple_program_parsing();
+    test_while_loop_parsing();
+    test_for_loop_parsing();
+    test_interpolated_string_parsing();
+    test_literal_types_parsing();
+    test_recursive_function_parsing();
+    test_full_program_parsing();
+    test_array_declaration_parsing();
+    test_array_literal_parsing();
+    test_array_member_access_parsing();
+    test_array_method_call_push_parsing();
+    test_array_method_call_clear_parsing();
+    test_array_method_call_concat_parsing();
+    test_array_method_call_pop_parsing();
+    test_array_print_and_interpolated_parsing();
+    test_array_print_and_interpolated_parsing_no_trailing_literal();
+    test_array_function_params_and_return_parsing();
+    test_array_access_parsing();
+}
+
 static void setup_parser(Arena *arena, Lexer *lexer, Parser *parser, SymbolTable *symbol_table, const char *source)
 {
     arena_init(arena, 4096);

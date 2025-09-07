@@ -14,6 +14,46 @@ static const char *multi_element_content = "1, 2, 3";
 static const char *test_string = "hello";
 static const char *filename = "test.sn";
 
+void test_token_main() 
+{
+    test_token_init_array_literal();
+    test_token_init_int_literal();
+    test_token_init_non_literal();
+    test_token_init_zero_length();
+    test_token_set_array_literal_null();
+    test_token_set_array_literal_empty();
+    test_token_set_array_literal_single();
+    test_token_set_array_literal_multi();
+    test_token_set_int_literal();
+    test_token_set_long_literal();
+    test_token_set_double_literal();
+    test_token_set_char_literal();
+    test_token_set_string_literal();
+    test_token_set_interpol_string();
+    test_token_set_bool_literal_true();
+    test_token_set_bool_literal_false();
+    test_token_type_to_string_array();
+    test_token_type_to_string_all_literals();
+    test_token_type_to_string_keywords();
+    test_token_type_to_string_operators();
+    test_token_type_to_string_special();
+    test_token_type_to_string_invalid();
+    test_token_print_array_integration();
+    test_token_print_int_literal();
+    test_token_print_long_literal();
+    test_token_print_double_literal();
+    test_token_print_char_literal();
+    test_token_print_string_literal();
+    test_token_print_interpol_string();
+    test_token_print_bool_literal();
+    test_token_print_non_literal();
+    test_token_print_empty_lexeme();
+    test_token_init_invalid_type();
+    test_token_print_invalid_type();
+    test_token_init_invalid_type();
+
+}
+
 void cleanup_temp_data(char *data)
 {
     if (data)

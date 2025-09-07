@@ -8,6 +8,18 @@
 #include "../arena.h"
 #include "../debug.h"
 
+void test_arena_main()
+{
+    test_arena_init();
+    test_arena_alloc_small();
+    test_arena_alloc_large();
+    test_arena_alloc_larger_than_double();
+    test_arena_alloc_zero();
+    test_arena_strdup();
+    test_arena_strndup();
+    test_arena_free();
+}
+
 void test_arena_init()
 {
     DEBUG_INFO("Starting test_arena_init");
