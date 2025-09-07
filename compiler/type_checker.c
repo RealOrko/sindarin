@@ -75,21 +75,21 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
             type_error(expr->token, "Invalid types for arithmetic operator");
             return NULL;
         }
-        return ast_clone_type(table->arena, left);
+        return left;
     }
     else if (op == TOKEN_PLUS)
     {
         if (is_numeric_type(left) && ast_type_equals(left, right))
         {
-            return ast_clone_type(table->arena, left);
+            return left;
         }
         else if (left->kind == TYPE_STRING && is_printable_type(right))
         {
-            return ast_clone_type(table->arena, left);
+            return left;
         }
         else if (is_printable_type(left) && right->kind == TYPE_STRING)
         {
-            return ast_clone_type(table->arena, right);
+            return right;
         }
         else
         {
@@ -119,7 +119,7 @@ static Type *type_check_unary(Expr *expr, SymbolTable *table)
             type_error(expr->token, "Unary minus on non-numeric");
             return NULL;
         }
-        return ast_clone_type(table->arena, operand);
+        return operand;
     }
     else if (expr->as.unary.operator == TOKEN_BANG)
     {
@@ -128,7 +128,7 @@ static Type *type_check_unary(Expr *expr, SymbolTable *table)
             type_error(expr->token, "Unary ! on non-bool");
             return NULL;
         }
-        return ast_clone_type(table->arena, operand);
+        return operand;
     }
     type_error(expr->token, "Invalid unary operator");
     return NULL;
@@ -156,7 +156,7 @@ static Type *type_check_interpolated(Expr *expr, SymbolTable *table)
 static Type *type_check_literal(Expr *expr, SymbolTable *table)
 {
     (void)table;
-    return ast_clone_type(table->arena, expr->as.literal.type);
+    return expr->as.literal.type;
 }
 
 static Type *type_check_variable(Expr *expr, SymbolTable *table)
@@ -172,7 +172,7 @@ static Type *type_check_variable(Expr *expr, SymbolTable *table)
         type_error(&expr->as.variable.name, "Symbol has no type");
         return NULL;
     }
-    return ast_clone_type(table->arena, sym->type);
+    return sym->type;
 }
 
 static Type *type_check_assign(Expr *expr, SymbolTable *table)
@@ -194,7 +194,7 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
         type_error(&expr->as.assign.name, "Type mismatch in assignment");
         return NULL;
     }
-    return ast_clone_type(table->arena, sym->type);
+    return sym->type;
 }
 
 static Type *type_check_call(Expr *expr, SymbolTable *table)
@@ -241,7 +241,7 @@ static Type *type_check_call(Expr *expr, SymbolTable *table)
             }
         }
     }
-    return ast_clone_type(table->arena, callee_type->as.function.return_type);
+    return callee_type->as.function.return_type;
 }
 
 static Type *type_check_expr(Expr *expr, SymbolTable *table)
@@ -294,7 +294,7 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
                 }
             }
             if (valid && elem_type != NULL) {
-                t = ast_create_array_type(table->arena, ast_clone_type(table->arena, elem_type));
+                t = ast_create_array_type(table->arena, elem_type);
             } else {
                 t = NULL;
             }
@@ -302,13 +302,35 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     }
     case EXPR_ARRAY_ACCESS:
-        t = ast_create_primitive_type(table->arena, TYPE_NIL);
+    {
+        Type *array_t = type_check_expr(expr->as.array_access.array, table);
+        if (array_t == NULL) {
+            t = NULL;
+            break;
+        }
+        if (array_t->kind != TYPE_ARRAY) {
+            type_error(expr->token, "Cannot access non-array");
+            t = NULL;
+            break;
+        }
+        Type *index_t = type_check_expr(expr->as.array_access.index, table);
+        if (index_t == NULL) {
+            t = NULL;
+            break;
+        }
+        if (!is_numeric_type(index_t)) {
+            type_error(expr->token, "Array index must be numeric type");
+            t = NULL;
+            break;
+        }
+        t = array_t->as.array.element_type;
         break;
+    }
     case EXPR_INCREMENT:
     case EXPR_DECREMENT:
     {
         Type *operand_type = type_check_expr(expr->as.operand, table);
-        t = ast_clone_type(table->arena, operand_type);
+        t = operand_type;
         if (operand_type == NULL || !is_numeric_type(operand_type))
         {
             type_error(expr->token, "Increment/decrement on non-numeric type");
