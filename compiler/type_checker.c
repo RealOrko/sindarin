@@ -1,4 +1,3 @@
-// type_checker.c
 #include "type_checker.h"
 #include "debug.h"
 #include "lexer.h"
@@ -23,34 +22,44 @@ static void type_error(Token *token, const char *msg)
         snprintf(error_buffer, sizeof(error_buffer), "Type error: %s", msg);
     }
     DEBUG_ERROR("%s", error_buffer);
+    DEBUG_VERBOSE("Type error occurred: %s", error_buffer);
     had_type_error = 1;
 }
 
 static bool is_numeric_type(Type *type)
 {
-    return type && (type->kind == TYPE_INT || type->kind == TYPE_LONG || type->kind == TYPE_DOUBLE);
+    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG || type->kind == TYPE_DOUBLE);
+    DEBUG_VERBOSE("Checking if type is numeric: %s", result ? "true" : "false");
+    return result;
 }
 
 static bool is_comparison_operator(TokenType op)
 {
-    return op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL || op == TOKEN_LESS || 
-           op == TOKEN_LESS_EQUAL || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL;
+    bool result = op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL || op == TOKEN_LESS || 
+                  op == TOKEN_LESS_EQUAL || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL;
+    DEBUG_VERBOSE("Checking if operator is comparison: %s (op: %d)", result ? "true" : "false", op);
+    return result;
 }
 
 static bool is_arithmetic_operator(TokenType op)
 {
-    return op == TOKEN_MINUS || op == TOKEN_STAR || op == TOKEN_SLASH || op == TOKEN_MODULO;
+    bool result = op == TOKEN_MINUS || op == TOKEN_STAR || op == TOKEN_SLASH || op == TOKEN_MODULO;
+    DEBUG_VERBOSE("Checking if operator is arithmetic: %s (op: %d)", result ? "true" : "false", op);
+    return result;
 }
 
 static bool is_printable_type(Type *type)
 {
-    return type && (type->kind == TYPE_INT || type->kind == TYPE_LONG || 
-                    type->kind == TYPE_DOUBLE || type->kind == TYPE_CHAR || 
-                    type->kind == TYPE_STRING || type->kind == TYPE_BOOL);
+    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG || 
+                           type->kind == TYPE_DOUBLE || type->kind == TYPE_CHAR || 
+                           type->kind == TYPE_STRING || type->kind == TYPE_BOOL);
+    DEBUG_VERBOSE("Checking if type is printable: %s", result ? "true" : "false");
+    return result;
 }
 
 static Type *type_check_binary(Expr *expr, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Type checking binary expression with operator: %d", expr->as.binary.operator);
     Type *left = type_check_expr(expr->as.binary.left, table);
     Type *right = type_check_expr(expr->as.binary.right, table);
     if (left == NULL || right == NULL)
@@ -66,6 +75,7 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
             type_error(expr->token, "Type mismatch in comparison");
             return NULL;
         }
+        DEBUG_VERBOSE("Returning BOOL type for comparison operator");
         return ast_create_primitive_type(table->arena, TYPE_BOOL);
     }
     else if (is_arithmetic_operator(op))
@@ -75,20 +85,24 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
             type_error(expr->token, "Invalid types for arithmetic operator");
             return NULL;
         }
+        DEBUG_VERBOSE("Returning left operand type for arithmetic operator");
         return left;
     }
     else if (op == TOKEN_PLUS)
     {
         if (is_numeric_type(left) && ast_type_equals(left, right))
         {
+            DEBUG_VERBOSE("Returning left operand type for numeric + operator");
             return left;
         }
         else if (left->kind == TYPE_STRING && is_printable_type(right))
         {
+            DEBUG_VERBOSE("Returning STRING type for string + printable");
             return left;
         }
         else if (is_printable_type(left) && right->kind == TYPE_STRING)
         {
+            DEBUG_VERBOSE("Returning STRING type for printable + string");
             return right;
         }
         else
@@ -106,6 +120,7 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
 
 static Type *type_check_unary(Expr *expr, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Type checking unary expression with operator: %d", expr->as.unary.operator);
     Type *operand = type_check_expr(expr->as.unary.operand, table);
     if (operand == NULL)
     {
@@ -119,6 +134,7 @@ static Type *type_check_unary(Expr *expr, SymbolTable *table)
             type_error(expr->token, "Unary minus on non-numeric");
             return NULL;
         }
+        DEBUG_VERBOSE("Returning operand type for unary minus");
         return operand;
     }
     else if (expr->as.unary.operator == TOKEN_BANG)
@@ -128,6 +144,7 @@ static Type *type_check_unary(Expr *expr, SymbolTable *table)
             type_error(expr->token, "Unary ! on non-bool");
             return NULL;
         }
+        DEBUG_VERBOSE("Returning operand type for unary !");
         return operand;
     }
     type_error(expr->token, "Invalid unary operator");
@@ -136,6 +153,7 @@ static Type *type_check_unary(Expr *expr, SymbolTable *table)
 
 static Type *type_check_interpolated(Expr *expr, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Type checking interpolated string with %d parts", expr->as.interpol.part_count);
     for (int i = 0; i < expr->as.interpol.part_count; i++)
     {
         Type *part_type = type_check_expr(expr->as.interpol.parts[i], table);
@@ -150,17 +168,20 @@ static Type *type_check_interpolated(Expr *expr, SymbolTable *table)
             return NULL;
         }
     }
+    DEBUG_VERBOSE("Returning STRING type for interpolated string");
     return ast_create_primitive_type(table->arena, TYPE_STRING);
 }
 
 static Type *type_check_literal(Expr *expr, SymbolTable *table)
 {
     (void)table;
+    DEBUG_VERBOSE("Type checking literal expression");
     return expr->as.literal.type;
 }
 
 static Type *type_check_variable(Expr *expr, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Type checking variable: %.*s", expr->as.variable.name.length, expr->as.variable.name.start);
     Symbol *sym = symbol_table_lookup_symbol(table, expr->as.variable.name);
     if (sym == NULL)
     {
@@ -172,11 +193,13 @@ static Type *type_check_variable(Expr *expr, SymbolTable *table)
         type_error(&expr->as.variable.name, "Symbol has no type");
         return NULL;
     }
+    DEBUG_VERBOSE("Variable type found: %d", sym->type->kind);
     return sym->type;
 }
 
 static Type *type_check_assign(Expr *expr, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Type checking assignment to variable: %.*s", expr->as.assign.name.length, expr->as.assign.name.start);
     Type *value_type = type_check_expr(expr->as.assign.value, table);
     if (value_type == NULL)
     {
@@ -194,11 +217,13 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
         type_error(&expr->as.assign.name, "Type mismatch in assignment");
         return NULL;
     }
+    DEBUG_VERBOSE("Assignment type matches: %d", sym->type->kind);
     return sym->type;
 }
 
 static Type *type_check_call(Expr *expr, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Type checking function call with %d arguments", expr->as.call.arg_count);
     Type *callee_type = type_check_expr(expr->as.call.callee, table);
     if (callee_type == NULL)
     {
@@ -241,16 +266,24 @@ static Type *type_check_call(Expr *expr, SymbolTable *table)
             }
         }
     }
+    DEBUG_VERBOSE("Returning function return type: %d", callee_type->as.function.return_type->kind);
     return callee_type->as.function.return_type;
 }
 
 static Type *type_check_expr(Expr *expr, SymbolTable *table)
 {
     if (expr == NULL)
+    {
+        DEBUG_VERBOSE("Expression is NULL");
         return NULL;
+    }
     if (expr->expr_type)
+    {
+        DEBUG_VERBOSE("Using cached expression type: %d", expr->expr_type->kind);
         return expr->expr_type;
+    }
     Type *t = NULL;
+    DEBUG_VERBOSE("Type checking expression type: %d", expr->type);
     switch (expr->type)
     {
     case EXPR_BINARY:
@@ -273,8 +306,10 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_ARRAY:
     {
+        DEBUG_VERBOSE("Type checking array with %d elements", expr->as.array.element_count);
         if (expr->as.array.element_count == 0) {
             t = ast_create_array_type(table->arena, ast_create_primitive_type(table->arena, TYPE_NIL));
+            DEBUG_VERBOSE("Empty array, returning NIL element type");
         } else {
             Type *elem_type = NULL;
             bool valid = true;
@@ -286,6 +321,7 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
                 }
                 if (elem_type == NULL) {
                     elem_type = et;
+                    DEBUG_VERBOSE("First array element type: %d", elem_type->kind);
                 } else {
                     bool equal = false;
                     if (elem_type->kind == et->kind) {
@@ -305,6 +341,7 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
             }
             if (valid && elem_type != NULL) {
                 t = ast_create_array_type(table->arena, elem_type);
+                DEBUG_VERBOSE("Returning array type with element type: %d", elem_type->kind);
             } else {
                 t = NULL;
             }
@@ -313,6 +350,7 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
     }
     case EXPR_ARRAY_ACCESS:
     {
+        DEBUG_VERBOSE("Type checking array access");
         Type *array_t = type_check_expr(expr->as.array_access.array, table);
         if (array_t == NULL) {
             t = NULL;
@@ -334,11 +372,13 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
             break;
         }
         t = array_t->as.array.element_type;
+        DEBUG_VERBOSE("Returning array element type: %d", t->kind);
         break;
     }
     case EXPR_INCREMENT:
     case EXPR_DECREMENT:
     {
+        DEBUG_VERBOSE("Type checking %s expression", expr->type == EXPR_INCREMENT ? "increment" : "decrement");
         Type *operand_type = type_check_expr(expr->as.operand, table);
         t = operand_type;
         if (operand_type == NULL || !is_numeric_type(operand_type))
@@ -353,6 +393,7 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_MEMBER:
     {
+        DEBUG_VERBOSE("Type checking member access: %s", expr->as.member.member_name.start);
         Type *object_type = type_check_expr(expr->as.member.object, table);
         if (object_type == NULL) {
             t = NULL;
@@ -360,6 +401,7 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
         }
         if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "length") == 0) {
             t = ast_create_primitive_type(table->arena, TYPE_INT);
+            DEBUG_VERBOSE("Returning INT type for array length access");
         } else {
             type_error(expr->token, "Invalid member access");
             t = NULL;
@@ -368,12 +410,18 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
     }
     }
     expr->expr_type = t;
+    if (t != NULL) {
+        DEBUG_VERBOSE("Expression type check result: %d", t->kind);
+    } else {
+        DEBUG_VERBOSE("Expression type check failed: NULL type");
+    }
     return t;
 }
 
 static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     (void)return_type;
+    DEBUG_VERBOSE("Type checking variable declaration: %.*s", stmt->as.var_decl.name.length, stmt->as.var_decl.name.start);
     Type *decl_type = stmt->as.var_decl.type;
     Type *init_type = NULL;
     if (stmt->as.var_decl.initializer)
@@ -394,11 +442,13 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
 
 static void type_check_function(Stmt *stmt, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Type checking function with %d parameters", stmt->as.function.param_count);
     symbol_table_push_scope(table);
     
     for (int i = 0; i < stmt->as.function.param_count; i++)
     {
         Parameter param = stmt->as.function.params[i];
+        DEBUG_VERBOSE("Adding parameter %d: %.*s", i, param.name.length, param.name.start);
         symbol_table_add_symbol_with_kind(table, param.name, param.type, SYMBOL_PARAM);
     }
     
@@ -413,6 +463,7 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
 
 static void type_check_return(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
+    DEBUG_VERBOSE("Type checking return statement");
     Type *value_type;
     if (stmt->as.return_stmt.value)
     {
@@ -432,6 +483,7 @@ static void type_check_return(Stmt *stmt, SymbolTable *table, Type *return_type)
 
 static void type_check_block(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
+    DEBUG_VERBOSE("Type checking block with %d statements", stmt->as.block.count);
     symbol_table_push_scope(table);
     for (int i = 0; i < stmt->as.block.count; i++)
     {
@@ -442,6 +494,7 @@ static void type_check_block(Stmt *stmt, SymbolTable *table, Type *return_type)
 
 static void type_check_if(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
+    DEBUG_VERBOSE("Type checking if statement");
     Type *cond_type = type_check_expr(stmt->as.if_stmt.condition, table);
     if (cond_type && cond_type->kind != TYPE_BOOL)
     {
@@ -450,12 +503,14 @@ static void type_check_if(Stmt *stmt, SymbolTable *table, Type *return_type)
     type_check_stmt(stmt->as.if_stmt.then_branch, table, return_type);
     if (stmt->as.if_stmt.else_branch)
     {
+        DEBUG_VERBOSE("Type checking else branch");
         type_check_stmt(stmt->as.if_stmt.else_branch, table, return_type);
     }
 }
 
 static void type_check_while(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
+    DEBUG_VERBOSE("Type checking while statement");
     Type *cond_type = type_check_expr(stmt->as.while_stmt.condition, table);
     if (cond_type && cond_type->kind != TYPE_BOOL)
     {
@@ -466,6 +521,7 @@ static void type_check_while(Stmt *stmt, SymbolTable *table, Type *return_type)
 
 static void type_check_for(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
+    DEBUG_VERBOSE("Type checking for statement");
     symbol_table_push_scope(table);
     if (stmt->as.for_stmt.initializer)
     {
@@ -490,7 +546,11 @@ static void type_check_for(Stmt *stmt, SymbolTable *table, Type *return_type)
 static void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     if (stmt == NULL)
+    {
+        DEBUG_VERBOSE("Statement is NULL");
         return;
+    }
+    DEBUG_VERBOSE("Type checking statement type: %d", stmt->type);
     switch (stmt->type)
     {
     case STMT_EXPR:
@@ -518,16 +578,19 @@ static void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
         type_check_for(stmt, table, return_type);
         break;
     case STMT_IMPORT:
+        DEBUG_VERBOSE("Skipping type check for import statement");
         break;
     }
 }
 
 int type_check_module(Module *module, SymbolTable *table)
 {
+    DEBUG_VERBOSE("Starting type checking for module with %d statements", module->count);
     had_type_error = 0;
     for (int i = 0; i < module->count; i++)
     {
         type_check_stmt(module->statements[i], table, NULL);
     }
+    DEBUG_VERBOSE("Type checking completed, had_type_error: %d", had_type_error);
     return !had_type_error;
 }

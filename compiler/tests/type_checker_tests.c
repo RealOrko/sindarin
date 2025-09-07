@@ -1,4 +1,4 @@
-// tests/type_checker_array_tests.c
+// tests/type_checker_tests.c
 
 #include <assert.h>
 #include <stdio.h>
@@ -12,12 +12,16 @@
 #include "../type_checker.h"
 #include "../symbol_table.h"
 
-static void setup_token(Token *token, TokenType type, const char *lexeme_str, int line, const char *filename, Arena *arena)
-{
-    token->type = type;
-    token->start = arena_strdup(arena, lexeme_str);
-    token->line = line;
-    token->filename = arena_strdup(arena, filename);
+void setup_token(Token *tok, TokenType type, const char *lexeme, int line, const char *filename, Arena *arena) {
+    tok->type = type;
+    tok->line = line;
+    size_t lex_len = strlen(lexeme);
+    char *allocated_lexeme = (char *)arena_alloc(arena, lex_len + 1);
+    memcpy(allocated_lexeme, lexeme, lex_len + 1);
+    tok->start = allocated_lexeme;
+    tok->length = (int)lex_len;
+    // Also copy filename if needed (assuming it's const and safe to assign directly; otherwise allocate/copy similarly)
+    tok->filename = filename;
 }
 
 static void setup_literal_token(Token *token, TokenType type, const char *lexeme_str, int line, const char *filename, Arena *arena)
