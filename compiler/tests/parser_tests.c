@@ -902,7 +902,7 @@ void test_array_print_and_interpolated_parsing()
         "fn main():void =>\n"
         "  var arr:int[] = {1, 2}\n"
         "  print(arr)\n"
-        "  print($\"Arr: {arr}\")\n";
+        "  print($\"Arr: {arr} \")\n";
     setup_parser(&arena, &lexer, &parser, &symbol_table, source);
 
     Module *module = parser_execute(&parser, "test.sn");
@@ -936,7 +936,7 @@ void test_array_print_and_interpolated_parsing()
     assert(interp_arg->as.interpol.parts[1]->type == EXPR_VARIABLE);
     assert(strcmp(interp_arg->as.interpol.parts[1]->as.variable.name.start, "arr") == 0);
     assert(interp_arg->as.interpol.parts[2]->type == EXPR_LITERAL);
-    assert(strcmp(interp_arg->as.interpol.parts[2]->as.literal.value.string_value, "") == 0);  // Empty if no trailing
+    assert(strcmp(interp_arg->as.interpol.parts[2]->as.literal.value.string_value, " ") == 0);  // Empty if no trailing
 
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }

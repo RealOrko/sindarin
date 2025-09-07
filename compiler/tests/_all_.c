@@ -9,8 +9,8 @@ int main()
 {
 
     // *** Debugging ***
-    printf("Running tests with debug level: %d\n", DEBUG_LEVEL_ERROR);
-    init_debug(DEBUG_LEVEL_ERROR);
+    printf("Running tests with debug level: %d\n", DEBUG_LEVEL_VERBOSE);
+    init_debug(DEBUG_LEVEL_VERBOSE);
 
     // *** Arena ***
 
@@ -69,8 +69,6 @@ int main()
     test_file_read_seek_failure();
     test_file_read_read_failure();
     test_file_read_special_characters();
-
-    // *** Lexer ***
 
     // *** Lexer ***
 
