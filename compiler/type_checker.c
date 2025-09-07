@@ -244,7 +244,7 @@ static Type *type_check_call(Expr *expr, SymbolTable *table)
     return ast_clone_type(table->arena, callee_type->as.function.return_type);
 }
 
-Type *type_check_expr(Expr *expr, SymbolTable *table)
+static Type *type_check_expr(Expr *expr, SymbolTable *table)
 {
     if (expr == NULL)
         return NULL;
@@ -272,8 +272,35 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         t = type_check_call(expr, table);
         break;
     case EXPR_ARRAY:
-        t = ast_create_array_type(table->arena, ast_create_primitive_type(table->arena, TYPE_NIL));
+    {
+        if (expr->as.array.element_count == 0) {
+            t = ast_create_array_type(table->arena, ast_create_primitive_type(table->arena, TYPE_NIL));
+        } else {
+            Type *elem_type = NULL;
+            bool valid = true;
+            for (int i = 0; i < expr->as.array.element_count; i++) {
+                Type *et = type_check_expr(expr->as.array.elements[i], table);
+                if (et == NULL) {
+                    valid = false;
+                    continue;
+                }
+                if (elem_type == NULL) {
+                    elem_type = et;
+                } else if (!ast_type_equals(elem_type, et)) {
+                    type_error(expr->token, "Array elements must have the same type");
+                    valid = false;
+                    t = NULL;
+                    break;
+                }
+            }
+            if (valid && elem_type != NULL) {
+                t = ast_create_array_type(table->arena, ast_clone_type(table->arena, elem_type));
+            } else {
+                t = NULL;
+            }
+        }
         break;
+    }
     case EXPR_ARRAY_ACCESS:
         t = ast_create_primitive_type(table->arena, TYPE_NIL);
         break;
@@ -291,6 +318,9 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
     }
     case EXPR_INTERPOLATED:
         t = type_check_interpolated(expr, table);
+        break;
+    case EXPR_MEMBER:
+        t = ast_create_primitive_type(table->arena, TYPE_NIL);
         break;
     }
     expr->expr_type = t;
