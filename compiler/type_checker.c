@@ -300,21 +300,17 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
 static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     (void)return_type;
-    Type *init_type;
     if (stmt->as.var_decl.initializer)
     {
-        init_type = type_check_expr(stmt->as.var_decl.initializer, table);
+        Type *init_type = type_check_expr(stmt->as.var_decl.initializer, table);
         if (init_type == NULL)
             return;
+        if (!ast_type_equals(init_type, stmt->as.var_decl.type))
+        {
+            type_error(&stmt->as.var_decl.name, "Initializer type does not match variable type");
+        }
     }
-    else
-    {
-        init_type = ast_create_primitive_type(table->arena, TYPE_NIL);
-    }
-    if (!ast_type_equals(init_type, stmt->as.var_decl.type))
-    {
-        type_error(&stmt->as.var_decl.name, "Initializer type does not match variable type");
-    }
+    // Always add the symbol with the declared type, regardless of initializer
     symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name,
                                       stmt->as.var_decl.type, SYMBOL_LOCAL);
 }
