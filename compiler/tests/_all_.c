@@ -189,6 +189,7 @@ int main()
     // test_type_check_array_assignment_matching();
     // test_type_check_array_assignment_mismatch();
     // test_type_check_nested_array();
+
     test_type_check_array_member_length();
     // test_type_check_array_member_invalid();
 
