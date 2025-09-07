@@ -4,6 +4,7 @@
 #include "lexer_tests.c"
 #include "parser_tests.c"
 #include "token_tests.c"
+#include "type_checker_tests.c"
 
 int main()
 {
@@ -174,6 +175,22 @@ int main()
     test_token_init_invalid_type();
     test_token_print_invalid_type();
     test_token_init_invalid_type();
+
+    // *** Type Checker ***
+
+    test_type_check_array_decl_no_init();
+    test_type_check_array_decl_with_init_matching();
+    test_type_check_array_decl_with_init_mismatch();
+    test_type_check_array_literal_empty();
+    test_type_check_array_literal_heterogeneous();
+    test_type_check_array_access_valid();
+    test_type_check_array_access_non_array();
+    test_type_check_array_access_invalid_index();
+    test_type_check_array_assignment_matching();
+    test_type_check_array_assignment_mismatch();
+    test_type_check_nested_array();
+    test_type_check_array_member_length();
+    test_type_check_array_member_invalid();
 
     printf("All tests passed!\n");
 
