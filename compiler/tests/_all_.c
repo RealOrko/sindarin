@@ -42,6 +42,7 @@ int main()
     test_ast_create_increment_expr();
     test_ast_create_decrement_expr();
     test_ast_create_interpolated_expr();
+    test_ast_create_member_expr();
     test_ast_create_comparison_expr();
     test_ast_create_expr_stmt();
     test_ast_create_var_decl_stmt();

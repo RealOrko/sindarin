@@ -741,6 +741,54 @@ void test_ast_create_interpolated_expr()
     cleanup_arena(&arena);
 }
 
+void test_ast_create_member_expr()
+{
+    printf("Testing ast_create_member_expr...\n");
+    Arena arena;
+    setup_arena(&arena);
+
+    Token temp_token = create_dummy_token(&arena, "loc");
+    Token *loc = ast_clone_token(&arena, &temp_token);
+    Token obj_tok = create_dummy_token(&arena, "arr");
+    Expr *obj = ast_create_variable_expr(&arena, obj_tok, loc);
+    Token member_tok = create_dummy_token(&arena, "length");
+    Expr *mem = ast_create_member_expr(&arena, obj, member_tok, loc);
+    assert(mem != NULL);
+    assert(mem->type == EXPR_MEMBER);
+    assert(mem->as.member.object == obj);
+    assert(strcmp(mem->as.member.member_name.start, "length") == 0);
+    assert(mem->as.member.member_name.length == 6);
+    assert(mem->as.member.member_name.line == 1);
+    assert(mem->as.member.member_name.type == TOKEN_IDENTIFIER);
+    assert(strcmp(mem->as.member.member_name.filename, "test.sn") == 0);
+    assert(mem->expr_type == NULL);
+    assert(tokens_equal(mem->token, loc));
+
+    // Empty member name
+    Token empty_member = create_dummy_token(&arena, "");
+    Expr *mem_empty = ast_create_member_expr(&arena, obj, empty_member, loc);
+    assert(mem_empty != NULL);
+    assert(mem_empty->as.member.member_name.length == 0);
+    assert(mem_empty->as.member.member_name.start != NULL);  // Allocated empty string
+
+    // NULL object
+    assert(ast_create_member_expr(&arena, NULL, member_tok, loc) == NULL);
+
+    // NULL loc_token
+    Expr *mem_null_loc = ast_create_member_expr(&arena, obj, member_tok, NULL);
+    assert(mem_null_loc != NULL);
+    assert(mem_null_loc->token == NULL);
+
+    // Different token type for member (e.g., if parser uses different type)
+    Token member_kw_tok = member_tok;
+    member_kw_tok.type = TOKEN_FN;
+    Expr *mem_kw = ast_create_member_expr(&arena, obj, member_kw_tok, loc);
+    assert(mem_kw != NULL);
+    assert(mem_kw->as.member.member_name.type == TOKEN_FN);
+
+    cleanup_arena(&arena);
+}
+
 void test_ast_create_comparison_expr()
 {
     printf("Testing ast_create_comparison_expr...\n");
@@ -1234,6 +1282,17 @@ void test_ast_print()
     // Complex stmt
     Stmt *func = ast_create_function_stmt(&arena, create_dummy_token(&arena, "func"), NULL, 0, ast_create_primitive_type(&arena, TYPE_VOID), NULL, 0, loc);
     ast_print_stmt(&arena, func, 0);
+
+    // Test member access printing
+    Token arr_tok = create_dummy_token(&arena, "arr");
+    Expr *arr_var = ast_create_variable_expr(&arena, arr_tok, loc);
+    Token push_tok = create_dummy_token(&arena, "push");
+    Expr *member = ast_create_member_expr(&arena, arr_var, push_tok, loc);
+    ast_print_expr(&arena, member, 0);  // Should print "Member Access: push" and recurse on "arr"
+
+    // Member with NULL object (should not crash, but skipped in print)
+    Expr *member_null = ast_create_member_expr(&arena, NULL, push_tok, loc);
+    ast_print_expr(&arena, member_null, 0);  // Prints only member name, no object
 
     cleanup_arena(&arena);
 }

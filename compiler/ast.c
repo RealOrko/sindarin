@@ -222,6 +222,14 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
             ast_print_expr(arena, expr->as.interpol.parts[i], indent_level + 1);
         }
         break;
+
+    case EXPR_MEMBER:
+        DEBUG_VERBOSE_INDENT(indent_level, "Member Access: %.*s",
+                             expr->as.member.member_name.length,
+                             expr->as.member.member_name.start);
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Object:");
+        ast_print_expr(arena, expr->as.member.object, indent_level + 2);
+        break;
     }
 }
 
@@ -752,6 +760,37 @@ Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, c
     expr->as.interpol.part_count = part_count;
     expr->expr_type = NULL;
     expr->token = ast_dup_token(arena, loc_token);
+    return expr;
+}
+
+Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, const Token *loc_token)
+{
+    if (object == NULL)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_MEMBER;
+    expr->as.member.object = object;
+    char *new_start = arena_strndup(arena, member_name.start, member_name.length);
+    if (new_start == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    expr->as.member.member_name.start = new_start;
+    expr->as.member.member_name.length = member_name.length;
+    expr->as.member.member_name.line = member_name.line;
+    expr->as.member.member_name.type = member_name.type;
+    expr->as.member.member_name.filename = member_name.filename;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
     return expr;
 }
 

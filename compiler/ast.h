@@ -58,7 +58,8 @@ typedef enum
     EXPR_ARRAY_ACCESS,
     EXPR_INCREMENT,
     EXPR_DECREMENT,
-    EXPR_INTERPOLATED
+    EXPR_INTERPOLATED,
+    EXPR_MEMBER
 } ExprType;
 
 typedef struct
@@ -117,6 +118,12 @@ typedef struct
     int part_count;
 } InterpolExpr;
 
+typedef struct
+{
+    Expr *object;
+    Token member_name;
+} MemberExpr;
+
 struct Expr
 {
     ExprType type;
@@ -133,6 +140,7 @@ struct Expr
         ArrayExpr array;
         ArrayAccessExpr array_access;
         Expr *operand;
+        MemberExpr member;
         InterpolExpr interpol;
     } as;
 
@@ -268,6 +276,7 @@ Expr *ast_create_array_access_expr(Arena *arena, Expr *array, Expr *index, const
 Expr *ast_create_increment_expr(Arena *arena, Expr *operand, const Token *loc_token);
 Expr *ast_create_decrement_expr(Arena *arena, Expr *operand, const Token *loc_token);
 Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, const Token *loc_token);
+Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, const Token *loc_token);
 Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenType comparison_type, const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
