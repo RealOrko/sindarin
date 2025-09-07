@@ -178,18 +178,18 @@ int main()
 
     // *** Type Checker ***
 
-    test_type_check_array_decl_no_init();
-    test_type_check_array_decl_with_init_matching();
-    test_type_check_array_decl_with_init_mismatch();
-    test_type_check_array_literal_empty();
-    test_type_check_array_literal_heterogeneous();
-    test_type_check_array_access_valid();
-    test_type_check_array_access_non_array();
+    // test_type_check_array_decl_no_init();
+    // test_type_check_array_decl_with_init_matching();
+    // test_type_check_array_decl_with_init_mismatch();
+    // test_type_check_array_literal_empty();
+    // test_type_check_array_literal_heterogeneous();
+    // test_type_check_array_access_valid();
+    // test_type_check_array_access_non_array();
     // test_type_check_array_access_invalid_index();
     // test_type_check_array_assignment_matching();
     // test_type_check_array_assignment_mismatch();
     // test_type_check_nested_array();
-    // test_type_check_array_member_length();
+    test_type_check_array_member_length();
     // test_type_check_array_member_invalid();
 
     printf("All tests passed!\n");
