@@ -542,6 +542,15 @@ Token lexer_scan_token(Lexer *lexer)
     DEBUG_VERBOSE("Line %d: Skipping whitespace within the line", lexer->line);
     lexer_skip_whitespace(lexer);
     lexer->start = lexer->current;
+    
+    if (!lexer_is_at_end(lexer) && lexer_peek(lexer) == '\n') {
+        lexer_advance(lexer);
+        lexer->line++;
+        lexer->at_line_start = 1;
+        DEBUG_VERBOSE("Line %d: Emitting NEWLINE after skip", lexer->line - 1);
+        return lexer_make_token(lexer, TOKEN_NEWLINE);
+    }
+
     if (lexer_is_at_end(lexer))
     {
         DEBUG_VERBOSE("Line %d: End of file reached", lexer->line);
@@ -570,6 +579,14 @@ Token lexer_scan_token(Lexer *lexer)
     }
     switch (c)
     {
+    case '&':
+        if (lexer_match(lexer, '&'))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting AND", lexer->line);
+            return lexer_make_token(lexer, TOKEN_AND);
+        }
+        DEBUG_VERBOSE("Line %d: Emitting AND (single)", lexer->line);
+        return lexer_make_token(lexer, TOKEN_AND);
     case '%':
         DEBUG_VERBOSE("Line %d: Emitting MODULO", lexer->line);
         return lexer_make_token(lexer, TOKEN_MODULO);
@@ -667,6 +684,22 @@ Token lexer_scan_token(Lexer *lexer)
         Token char_token = lexer_scan_char(lexer);
         DEBUG_VERBOSE("Line %d: Emitting CHAR_LITERAL", lexer->line);
         return char_token;
+    case '|':
+        if (lexer_match(lexer, '|'))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting OR", lexer->line);
+            return lexer_make_token(lexer, TOKEN_OR);
+        }
+        DEBUG_VERBOSE("Line %d: Emitting OR (single)", lexer->line);
+        return lexer_make_token(lexer, TOKEN_OR);
+    case '!':
+        if (lexer_match(lexer, '='))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting BANG_EQUAL", lexer->line);
+            return lexer_make_token(lexer, TOKEN_BANG_EQUAL);
+        }
+        DEBUG_VERBOSE("Line %d: Emitting BANG", lexer->line);
+        return lexer_make_token(lexer, TOKEN_BANG);    
     case '$':
         if (lexer_peek(lexer) == '"')
         {

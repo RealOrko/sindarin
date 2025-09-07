@@ -16,7 +16,8 @@ static const char *filename = "test.sn";
 
 void cleanup_temp_data(char *data)
 {
-    if (data) free(data);
+    if (data)
+        free(data);
 }
 
 void test_token_init_array_literal()
@@ -32,10 +33,10 @@ void test_token_init_array_literal()
     assert(token.length == (int)strlen(dummy_source));
     assert(token.line == 1);
     assert(token.filename == filename);
-    assert(token.literal.int_value == 0);  // Zero-initialized
-    assert(token.literal.string_value == NULL);  // Pointer zero
+    assert(token.literal.int_value == 0);       // Zero-initialized
+    assert(token.literal.string_value == NULL); // Pointer zero
 
-    token_print(&token);  // Visual: Should print lexeme without value yet
+    token_print(&token); // Visual: Should print lexeme without value yet
 
     DEBUG_INFO("Finished test_token_init_array_literal");
 }
@@ -75,7 +76,7 @@ void test_token_init_non_literal()
     assert(token.filename == filename);
     assert(token.literal.int_value == 0);
 
-    token_print(&token);  // Should not print value
+    token_print(&token); // Should not print value
 
     DEBUG_INFO("Finished test_token_init_non_literal");
 }
@@ -95,7 +96,7 @@ void test_token_init_zero_length()
     assert(token.filename == filename);
     assert(token.literal.int_value == 0);
 
-    token_print(&token);  // Edge case: empty lexeme
+    token_print(&token); // Edge case: empty lexeme
 
     DEBUG_INFO("Finished test_token_init_zero_length");
 }
@@ -111,7 +112,7 @@ void test_token_set_array_literal_null()
 
     assert(token.literal.string_value == NULL);
 
-    token_print(&token);  // Visual: value: {}
+    token_print(&token); // Visual: value: {}
 
     DEBUG_INFO("Finished test_token_set_array_literal_null");
 }
@@ -128,7 +129,7 @@ void test_token_set_array_literal_empty()
     assert(token.literal.string_value == empty_string_content);
     assert(strcmp(token.literal.string_value, "") == 0);
 
-    token_print(&token);  // Visual: value: {}
+    token_print(&token); // Visual: value: {}
 
     DEBUG_INFO("Finished test_token_set_array_literal_empty");
 }
@@ -145,7 +146,7 @@ void test_token_set_array_literal_single()
     assert(token.literal.string_value == single_element_content);
     assert(strcmp(token.literal.string_value, "42") == 0);
 
-    token_print(&token);  // Visual: value: {42}
+    token_print(&token); // Visual: value: {42}
 
     DEBUG_INFO("Finished test_token_set_array_literal_single");
 }
@@ -162,7 +163,7 @@ void test_token_set_array_literal_multi()
     assert(token.literal.string_value == multi_element_content);
     assert(strcmp(token.literal.string_value, "1, 2, 3") == 0);
 
-    token_print(&token);  // Visual: value: {1, 2, 3}
+    token_print(&token); // Visual: value: {1, 2, 3}
 
     DEBUG_INFO("Finished test_token_set_array_literal_multi");
 }
@@ -178,7 +179,7 @@ void test_token_set_int_literal()
 
     assert(token.literal.int_value == 42);
 
-    token_print(&token);  // Visual: value: 42
+    token_print(&token); // Visual: value: 42
 
     DEBUG_INFO("Finished test_token_set_int_literal");
 }
@@ -190,11 +191,11 @@ void test_token_set_long_literal()
 
     Token token;
     token_init(&token, TOKEN_LONG_LITERAL, "42l", 3, 1, filename);
-    token_set_int_literal(&token, 42LL);  // Note: Uses same setter as int
+    token_set_int_literal(&token, 42LL); // Note: Uses same setter as int
 
     assert(token.literal.int_value == 42LL);
 
-    token_print(&token);  // Visual: value: 42l (print formats as %ldl)
+    token_print(&token); // Visual: value: 42l (print formats as %ldl)
 
     DEBUG_INFO("Finished test_token_set_long_literal");
 }
@@ -210,7 +211,7 @@ void test_token_set_double_literal()
 
     assert(token.literal.double_value == 3.14);
 
-    token_print(&token);  // Visual: value: 3.140000d
+    token_print(&token); // Visual: value: 3.140000d
 
     DEBUG_INFO("Finished test_token_set_double_literal");
 }
@@ -226,7 +227,7 @@ void test_token_set_char_literal()
 
     assert(token.literal.char_value == 'a');
 
-    token_print(&token);  // Visual: value: 'a'
+    token_print(&token); // Visual: value: 'a'
 
     DEBUG_INFO("Finished test_token_set_char_literal");
 }
@@ -243,7 +244,7 @@ void test_token_set_string_literal()
     assert(token.literal.string_value == test_string);
     assert(strcmp(token.literal.string_value, "hello") == 0);
 
-    token_print(&token);  // Visual: value: "hello"
+    token_print(&token); // Visual: value: "hello"
 
     DEBUG_INFO("Finished test_token_set_string_literal");
 }
@@ -259,7 +260,7 @@ void test_token_set_interpol_string()
 
     assert(token.literal.string_value == test_string);
 
-    token_print(&token);  // Visual: value: "hello" (uses string print)
+    token_print(&token); // Visual: value: "hello" (uses string print)
 
     DEBUG_INFO("Finished test_token_set_interpol_string");
 }
@@ -275,7 +276,7 @@ void test_token_set_bool_literal_true()
 
     assert(token.literal.bool_value == 1);
 
-    token_print(&token);  // Visual: value: true
+    token_print(&token); // Visual: value: true
 
     DEBUG_INFO("Finished test_token_set_bool_literal_true");
 }
@@ -291,7 +292,7 @@ void test_token_set_bool_literal_false()
 
     assert(token.literal.bool_value == 0);
 
-    token_print(&token);  // Visual: value: false
+    token_print(&token); // Visual: value: false
 
     DEBUG_INFO("Finished test_token_set_bool_literal_false");
 }
@@ -411,10 +412,10 @@ void test_token_type_to_string_invalid()
     assert(strcmp(result, "INVALID") == 0);
 
     result = token_type_to_string((TokenType)999);
-    assert(strcmp(result, "INVALID") == 0);  // Out of range
+    assert(strcmp(result, "INVALID") == 0); // Out of range
 
     result = token_type_to_string(TOKEN_ERROR);
-    assert(strcmp(result, "ERROR") == 0);  // Valid but error
+    assert(strcmp(result, "ERROR") == 0); // Valid but error
 
     DEBUG_INFO("Finished test_token_type_to_string_invalid");
 }
@@ -434,7 +435,7 @@ void test_token_print_array_integration()
     assert(token.length == 5);
     assert(strcmp(token.literal.string_value, "1,2") == 0);
 
-    token_print(&token);  // Visual: Token { type: ARRAY_LITERAL, lexeme: '{1,2}', line: 42, value: {1,2} }
+    token_print(&token); // Visual: Token { type: ARRAY_LITERAL, lexeme: '{1,2}', line: 42, value: {1,2} }
 
     free(lexeme);
 
@@ -450,7 +451,7 @@ void test_token_print_int_literal()
     token_init(&token, TOKEN_INT_LITERAL, "42", 2, 1, filename);
     token_set_int_literal(&token, 42);
 
-    token_print(&token);  // Visual: value: 42
+    token_print(&token); // Visual: value: 42
 
     DEBUG_INFO("Finished test_token_print_int_literal");
 }
@@ -464,7 +465,7 @@ void test_token_print_long_literal()
     token_init(&token, TOKEN_LONG_LITERAL, "42l", 3, 1, filename);
     token_set_int_literal(&token, 42LL);
 
-    token_print(&token);  // Visual: value: 42l
+    token_print(&token); // Visual: value: 42l
 
     DEBUG_INFO("Finished test_token_print_long_literal");
 }
@@ -478,7 +479,7 @@ void test_token_print_double_literal()
     token_init(&token, TOKEN_DOUBLE_LITERAL, "3.14", 4, 1, filename);
     token_set_double_literal(&token, 3.14);
 
-    token_print(&token);  // Visual: value: 3.140000d
+    token_print(&token); // Visual: value: 3.140000d
 
     DEBUG_INFO("Finished test_token_print_double_literal");
 }
@@ -492,7 +493,7 @@ void test_token_print_char_literal()
     token_init(&token, TOKEN_CHAR_LITERAL, "'a'", 3, 1, filename);
     token_set_char_literal(&token, 'a');
 
-    token_print(&token);  // Visual: value: 'a'
+    token_print(&token); // Visual: value: 'a'
 
     DEBUG_INFO("Finished test_token_print_char_literal");
 }
@@ -506,7 +507,7 @@ void test_token_print_string_literal()
     token_init(&token, TOKEN_STRING_LITERAL, "\"hello\"", 7, 1, filename);
     token_set_string_literal(&token, test_string);
 
-    token_print(&token);  // Visual: value: "hello"
+    token_print(&token); // Visual: value: "hello"
 
     DEBUG_INFO("Finished test_token_print_string_literal");
 }
@@ -520,7 +521,7 @@ void test_token_print_interpol_string()
     token_init(&token, TOKEN_INTERPOL_STRING, "\"hello ${var}\"", 13, 1, filename);
     token_set_string_literal(&token, test_string);
 
-    token_print(&token);  // Visual: value: "hello"
+    token_print(&token); // Visual: value: "hello"
 
     DEBUG_INFO("Finished test_token_print_interpol_string");
 }
@@ -533,12 +534,12 @@ void test_token_print_bool_literal()
     Token token_true;
     token_init(&token_true, TOKEN_BOOL_LITERAL, "true", 4, 1, filename);
     token_set_bool_literal(&token_true, 1);
-    token_print(&token_true);  // Visual: value: true
+    token_print(&token_true); // Visual: value: true
 
     Token token_false;
     token_init(&token_false, TOKEN_BOOL_LITERAL, "false", 5, 1, filename);
     token_set_bool_literal(&token_false, 0);
-    token_print(&token_false);  // Visual: value: false
+    token_print(&token_false); // Visual: value: false
 
     DEBUG_INFO("Finished test_token_print_bool_literal");
 }
@@ -551,7 +552,7 @@ void test_token_print_non_literal()
     Token token;
     token_init(&token, TOKEN_PLUS, "+", 1, 1, filename);
 
-    token_print(&token);  // No value printed
+    token_print(&token); // No value printed
 
     DEBUG_INFO("Finished test_token_print_non_literal");
 }
@@ -564,7 +565,7 @@ void test_token_print_empty_lexeme()
     Token token;
     token_init(&token, TOKEN_NEWLINE, "", 0, 1, filename);
 
-    token_print(&token);  // lexeme: ''
+    token_print(&token); // lexeme: ''
 
     DEBUG_INFO("Finished test_token_print_empty_lexeme");
 }
@@ -581,7 +582,7 @@ void test_token_init_invalid_type()
     const char *type_str = token_type_to_string(token.type);
     assert(strcmp(type_str, "INVALID") == 0);
 
-    token_print(&token);  // Visual: type: INVALID
+    token_print(&token); // Visual: type: INVALID
 
     DEBUG_INFO("Finished test_token_init_invalid_type");
 }
@@ -594,7 +595,7 @@ void test_token_print_invalid_type()
     Token token;
     token_init(&token, (TokenType)999, dummy_source, (int)strlen(dummy_source), 1, filename);
 
-    token_print(&token);  // type: INVALID, no value
+    token_print(&token); // type: INVALID, no value
 
     DEBUG_INFO("Finished test_token_print_invalid_type");
 }
