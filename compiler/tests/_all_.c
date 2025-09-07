@@ -1,13 +1,15 @@
 #include "arena_tests.c"
 #include "ast_tests.c"
 #include "file_tests.c"
+#include "lexer_tests.c"
 #include "parser_tests.c"
+#include "token_tests.c"
 
 int main()
 {
 
     // *** Debugging ***
-    printf("Running tests with debug level: %d\n", DEBUG_LEVEL_VERBOSE);
+    printf("Running tests with debug level: %d\n", DEBUG_LEVEL_ERROR);
     init_debug(DEBUG_LEVEL_ERROR);
 
     // *** Arena ***
@@ -67,6 +69,18 @@ int main()
     test_file_read_read_failure();
     test_file_read_special_characters();
 
+    // *** Lexer ***
+
+    test_lexer_array_empty();
+    test_lexer_array_single_element();
+    test_lexer_array_multi_element();
+    test_lexer_inline_array_expression();
+    test_lexer_array_assignment();
+    test_lexer_array_method_calls();
+    test_lexer_unmatched_brace_error();
+    test_lexer_array_with_indentation();
+    test_lexer_array_at_line_start();
+    
     // *** Parser ***
 
     test_empty_program_parsing();
@@ -80,6 +94,44 @@ int main()
     test_literal_types_parsing();
     test_recursive_function_parsing();
     test_full_program_parsing();
+
+    // *** Token ***
+
+    test_token_init_array_literal();
+    test_token_init_int_literal();
+    test_token_init_non_literal();
+    test_token_init_zero_length();
+    test_token_set_array_literal_null();
+    test_token_set_array_literal_empty();
+    test_token_set_array_literal_single();
+    test_token_set_array_literal_multi();
+    test_token_set_int_literal();
+    test_token_set_long_literal();
+    test_token_set_double_literal();
+    test_token_set_char_literal();
+    test_token_set_string_literal();
+    test_token_set_interpol_string();
+    test_token_set_bool_literal_true();
+    test_token_set_bool_literal_false();
+    test_token_type_to_string_array();
+    test_token_type_to_string_all_literals();
+    test_token_type_to_string_keywords();
+    test_token_type_to_string_operators();
+    test_token_type_to_string_special();
+    test_token_type_to_string_invalid();
+    test_token_print_array_integration();
+    test_token_print_int_literal();
+    test_token_print_long_literal();
+    test_token_print_double_literal();
+    test_token_print_char_literal();
+    test_token_print_string_literal();
+    test_token_print_interpol_string();
+    test_token_print_bool_literal();
+    test_token_print_non_literal();
+    test_token_print_empty_lexeme();
+    test_token_init_invalid_type();
+    test_token_print_invalid_type();
+    test_token_init_invalid_type(); 
 
     printf("All tests passed!\n");
 

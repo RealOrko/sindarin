@@ -62,6 +62,7 @@ fn print_void(): void =>
 
 fn declare_basic_int_array(): int[] =>
   var int_arr: int[] = {1, 2, 3}
+  return int_arr
 
 fn print_basic_int_array(arr: int[]): void =>
   print($"Int Array: {arr}")

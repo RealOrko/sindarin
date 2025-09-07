@@ -29,7 +29,7 @@ fn main(): void =>
   arr.clear()
   print(arr) //Answer should be {}
 
-  arr.push({1, 2})
+  arr.concat({1, 2})
   print(arr) // Answer should be {1, 2}
   print($"Arr Length: {arr.length}") // Answer should be 2
 

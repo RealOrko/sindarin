@@ -9,6 +9,7 @@ You give full functions in valid C when recommending changes with explanations.
 You always follow best practices in modern day C programming.
 You also follow the practice of using an arena for tracking all memory allocations, all code output is optimised for this.  
 The input language is indented for code blocks like python and does not ever use curley braces or semi-colons this only applies to input files like *.sn.
+Do not make changes to the input language, only the C code.
 
 ### INPUTS:
 
@@ -22,53 +23,8 @@ The input program has the following import (./samples/main.library.sn):
 ${INPUT_CODE_IMPORT}
 ```
 
-The makefile is the following (./compiler/Makefile):
-```
-${MAKE_FILE}
-```
-
-The main build shell script is the following (./scripts/build.sh):
-```
-${BUILD_SCRIPT}
-```
-
-The main test shell script is the following (./scripts/test.sh):
-```
-${TEST_SCRIPT}
-```
-
-The main run shell script is the following (./scripts/run.sh):
-```
-${RUN_SCRIPT}
-```
-
-### OUTPUT:
-
-log/build-output.log:
-```
-${BUILD_OUTPUT}
-```
-
-log/test-output.log:
-```
-${TEST_OUTPUT}
-```
-
-log/run-output.log:
-```
-${RUN_OUTPUT}
-```
-
-log/gcc-output.log:
-```
-${GCC_OUTPUT}
-```
-
-log/hello-world-output.log:
-```
-${HELLO_WORLD_OUTPUT}
-```
-
 ### QUESTION:
 
-Thing?
+Take a look at the input program, study the arrays carefully.
+Change the C source code to deal with arrays comprehensively.
+Also give changes to tests.  

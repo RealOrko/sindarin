@@ -644,6 +644,21 @@ Token lexer_scan_token(Lexer *lexer)
     case ';':
         DEBUG_VERBOSE("Line %d: Emitting SEMICOLON", lexer->line);
         return lexer_make_token(lexer, TOKEN_SEMICOLON);
+    case '.':
+        DEBUG_VERBOSE("Line %d: Emitting DOT", lexer->line);
+        return lexer_make_token(lexer, TOKEN_DOT);
+    case '[':
+        DEBUG_VERBOSE("Line %d: Emitting LEFT_BRACKET", lexer->line);
+        return lexer_make_token(lexer, TOKEN_LEFT_BRACKET);
+    case ']':
+        DEBUG_VERBOSE("Line %d: Emitting RIGHT_BRACKET", lexer->line);
+        return lexer_make_token(lexer, TOKEN_RIGHT_BRACKET);
+    case '{':
+        DEBUG_VERBOSE("Line %d: Emitting LEFT_BRACE", lexer->line);
+        return lexer_make_token(lexer, TOKEN_LEFT_BRACE);
+    case '}':
+        DEBUG_VERBOSE("Line %d: Emitting RIGHT_BRACE", lexer->line);
+        return lexer_make_token(lexer, TOKEN_RIGHT_BRACE);
     case '"':
         Token string_token = lexer_scan_string(lexer);
         DEBUG_VERBOSE("Line %d: Emitting STRING_LITERAL", lexer->line);

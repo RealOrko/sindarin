@@ -34,6 +34,11 @@ void token_set_string_literal(Token *token, const char *value)
     token->literal.string_value = value;
 }
 
+void token_set_array_literal(Token *token, const char *value)
+{
+    token->literal.string_value = value;
+}
+
 void token_set_bool_literal(Token *token, int value)
 {
     token->literal.bool_value = value;
@@ -41,7 +46,7 @@ void token_set_bool_literal(Token *token, int value)
 
 const char *token_type_to_string(TokenType type)
 {
-    if (type < 0 || type >= TOKEN_ERROR)
+    if (type < 0 || type > TOKEN_ERROR)
     {
         DEBUG_ERROR("Invalid TokenType: %d", type);
         return "INVALID";
@@ -63,6 +68,8 @@ const char *token_type_to_string(TokenType type)
         return "STRING_LITERAL";
     case TOKEN_INTERPOL_STRING:
         return "INTERPOL_STRING";
+    case TOKEN_ARRAY_LITERAL:
+        return "ARRAY_LITERAL";
     case TOKEN_BOOL_LITERAL:
         return "BOOL_LITERAL";
     case TOKEN_IDENTIFIER:
@@ -194,6 +201,9 @@ void token_print(Token *token)
     case TOKEN_STRING_LITERAL:
     case TOKEN_INTERPOL_STRING:
         printf(", value: \"%s\"", token->literal.string_value);
+        break;
+    case TOKEN_ARRAY_LITERAL:
+        printf(", value: {%s}", token->literal.string_value ? token->literal.string_value : "");
         break;
     case TOKEN_BOOL_LITERAL:
         printf(", value: %s", token->literal.bool_value ? "true" : "false");
