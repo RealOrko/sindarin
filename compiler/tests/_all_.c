@@ -133,6 +133,7 @@ int main()
     test_array_method_call_concat_parsing();
     test_array_method_call_pop_parsing();
     test_array_print_and_interpolated_parsing();
+    test_array_print_and_interpolated_parsing_no_trailing_literal();
     test_array_function_params_and_return_parsing();
     test_array_access_parsing();
 

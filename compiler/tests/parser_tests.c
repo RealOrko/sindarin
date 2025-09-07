@@ -941,6 +941,55 @@ void test_array_print_and_interpolated_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_array_print_and_interpolated_parsing_no_trailing_literal()
+{
+    printf("Testing parser_execute printing arrays and interpolated arrays...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main():void =>\n"
+        "  var arr:int[] = {1, 2}\n"
+        "  print(arr)\n"
+        "  print($\"Arr: {arr}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 3);
+
+    // First print: print(arr)
+    Stmt *print_arr = fn->as.function.body[1];
+    assert(print_arr->type == STMT_EXPR);
+    Expr *call1 = print_arr->as.expression.expression;
+    assert(call1->type == EXPR_CALL);
+    assert(call1->as.call.arg_count == 1);
+    assert(call1->as.call.arguments[0]->type == EXPR_VARIABLE);
+    assert(strcmp(call1->as.call.arguments[0]->as.variable.name.start, "arr") == 0);
+
+    // Second print: print($"Arr: {arr}")
+    Stmt *print_interp = fn->as.function.body[2];
+    assert(print_interp->type == STMT_EXPR);
+    Expr *call2 = print_interp->as.expression.expression;
+    assert(call2->type == EXPR_CALL);
+    assert(call2->as.call.arg_count == 1);
+    Expr *interp_arg = call2->as.call.arguments[0];
+    assert(interp_arg->type == EXPR_INTERPOLATED);
+    assert(interp_arg->as.interpol.part_count == 2);
+    assert(interp_arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(interp_arg->as.interpol.parts[0]->as.literal.value.string_value, "Arr: ") == 0);
+    assert(interp_arg->as.interpol.parts[1]->type == EXPR_VARIABLE);
+    assert(strcmp(interp_arg->as.interpol.parts[1]->as.variable.name.start, "arr") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_array_function_params_and_return_parsing()
 {
     printf("Testing parser_execute array function params and return...\n");
