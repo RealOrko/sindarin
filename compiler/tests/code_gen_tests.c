@@ -254,10 +254,9 @@ void test_code_gen_variable_expression()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
 
     Module module;
@@ -306,10 +305,9 @@ void test_code_gen_binary_expression_int_add()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
 
     Module module;
@@ -368,12 +366,10 @@ void test_code_gen_binary_expression_string_concat()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -387,16 +383,18 @@ void test_code_gen_binary_expression_string_concat()
     token_set_string_literal(&left_tok, "hello");
     LiteralValue lval = {.string_value = "hello"};
     Expr *left = ast_create_literal_expr(&arena, lval, str_type, false, &left_tok);
+    left->expr_type = str_type;
 
     Token right_tok;
     setup_basic_token(&right_tok, TOKEN_STRING_LITERAL, "\"world\"");
     token_set_string_literal(&right_tok, "world");
     LiteralValue rval = {.string_value = "world"};
     Expr *right = ast_create_literal_expr(&arena, rval, str_type, false, &right_tok);
+    right->expr_type = str_type;
 
     Expr *bin_expr = ast_create_binary_expr(&arena, left, TOKEN_PLUS, right, &token);
+    bin_expr->expr_type = str_type;    
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, bin_expr, &token);
-
     ast_module_add_statement(&arena, &module, expr_stmt);
 
     code_gen_module(&gen, &module);
@@ -411,7 +409,7 @@ void test_code_gen_binary_expression_string_concat()
                                   "    char *_tmp = rt_str_concat(\"hello\", \"world\");\n"
                                   "    (void)_tmp;\n"
                                   "    rt_free_string(_tmp);\n"
-                                  "}\n\n"
+                                  "}\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1253,8 +1251,8 @@ void test_code_gen_main()
     // test_code_gen_headers_and_externs();
     // test_code_gen_literal_expression();
     // test_code_gen_variable_expression();
-    test_code_gen_binary_expression_int_add();
-    // test_code_gen_binary_expression_string_concat();
+    // test_code_gen_binary_expression_int_add();
+    test_code_gen_binary_expression_string_concat();
     // test_code_gen_unary_expression_negate();
     // test_code_gen_assign_expression();
     // test_code_gen_call_expression_simple();

@@ -347,8 +347,8 @@ static bool expression_produces_temp(Expr *expr)
     {
     case EXPR_VARIABLE:
     case EXPR_ASSIGN:
-        return false;
     case EXPR_LITERAL:
+        return false;
     case EXPR_BINARY:
     case EXPR_CALL:
     case EXPR_INTERPOLATED:
@@ -379,6 +379,12 @@ static char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
     {
         bool free_left = expression_produces_temp(expr->left);
         bool free_right = expression_produces_temp(expr->right);
+        // Optimization: Direct call if no temps (common for literals/variables).
+        if (!free_left && !free_right)
+        {
+            return arena_sprintf(gen->arena, "rt_str_concat(%s, %s)", left_str, right_str);
+        }
+        // Otherwise, use temps/block for safe freeing.
         char *free_l_str = free_left ? "rt_free_string(_left); " : "";
         char *free_r_str = free_right ? "rt_free_string(_right); " : "";
         return arena_sprintf(gen->arena, "({ char *_left = %s; char *_right = %s; char *_res = rt_str_concat(_left, _right); %s%s _res; })",
@@ -429,8 +435,10 @@ static char *code_gen_literal_expression(CodeGen *gen, LiteralExpr *expr)
         return arena_sprintf(gen->arena, "%ldL", (long)(unsigned char)expr->value.char_value);
     case TYPE_STRING:
     {
-        char *escaped = escape_c_string(gen->arena, expr->value.string_value);
-        return arena_sprintf(gen->arena, "rt_to_string_string(%s)", escaped);
+        // This might break string interpolation
+        /*char *escaped = escape_c_string(gen->arena, expr->value.string_value);
+        return arena_sprintf(gen->arena, "rt_to_string_string(%s)", escaped);*/
+        return escape_c_string(gen->arena, expr->value.string_value);
     }
     case TYPE_BOOL:
         return arena_sprintf(gen->arena, "%ldL", expr->value.bool_value ? 1L : 0L);
