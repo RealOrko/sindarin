@@ -207,12 +207,10 @@ void test_code_gen_literal_expression()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -223,6 +221,7 @@ void test_code_gen_literal_expression()
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
     LiteralValue val = {.int_value = 42};
     Expr *lit_expr = ast_create_literal_expr(&arena, val, int_type, false, &token);
+    lit_expr->expr_type = int_type;
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, lit_expr, &token);
 
     ast_module_add_statement(&arena, &module, expr_stmt);
@@ -233,7 +232,7 @@ void test_code_gen_literal_expression()
     symbol_table_cleanup(&sym_table);
 
     char *expected = get_expected(&arena,
-                                  "42L;\n\n"
+                                  "42L;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1246,8 +1245,8 @@ void test_code_gen_module_no_main_adds_dummy()
 void test_code_gen_main()
 {
     // test_code_gen_cleanup_null_output();
-    test_code_gen_headers_and_externs();
-    // test_code_gen_literal_expression();
+    // test_code_gen_headers_and_externs();
+    test_code_gen_literal_expression();
     // test_code_gen_variable_expression();
     // test_code_gen_binary_expression_int_add();
     // test_code_gen_binary_expression_string_concat();
