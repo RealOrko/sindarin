@@ -27,7 +27,7 @@ void create_test_file(const char *path, const char *content)
     fclose(file);
 }
 
-void remove_test_file(const char *path)
+void file_test_remove_test_file(const char *path)
 {
     remove(path);
 }
@@ -87,7 +87,7 @@ void test_file_read_empty_file()
     arena_free(&arena);
 
     // Cleanup
-    remove_test_file(empty_file_path);
+    file_test_remove_test_file(empty_file_path);
 
     DEBUG_INFO("Finished test_file_read_empty_file");
 }
@@ -107,7 +107,7 @@ void test_file_read_small_file()
     assert(strcmp(result, content) == 0);
     arena_free(&arena);
 
-    remove_test_file(test_file_path);
+    file_test_remove_test_file(test_file_path);
 
     DEBUG_INFO("Finished test_file_read_small_file");
 }
@@ -142,7 +142,7 @@ void test_file_read_large_file()
     arena_free(&arena);
 
     free(large_content);
-    remove_test_file(large_file_path);
+    file_test_remove_test_file(large_file_path);
 
     DEBUG_INFO("Finished test_file_read_large_file");
 }
@@ -166,7 +166,7 @@ void test_file_read_seek_failure()
     assert(result != NULL); // Should succeed, no seek failure
     arena_free(&arena);
 
-    remove_test_file(test_file_path);
+    file_test_remove_test_file(test_file_path);
 
     // To simulate failure, advanced: create a pipe, but complex in C unit test.
     // Consider this test as placeholder; in practice, check errno after fseek in code.
@@ -192,7 +192,7 @@ void test_file_read_read_failure()
     assert(strcmp(result, content) == 0);
     arena_free(&arena);
 
-    remove_test_file(test_file_path);
+    file_test_remove_test_file(test_file_path);
 
     // For real failure, perhaps chmod to no read, but platform-dependent.
     // Assume covered by return NULL on fread < size.
@@ -222,7 +222,7 @@ void test_file_read_special_characters()
     assert(result[data_len] == '\0');
     arena_free(&arena);
 
-    remove_test_file(test_file_path);
+    file_test_remove_test_file(test_file_path);
 
     DEBUG_INFO("Finished test_file_read_special_characters");
 }
