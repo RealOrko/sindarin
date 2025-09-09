@@ -325,13 +325,17 @@ void test_code_gen_binary_expression_int_add()
     token_set_int_literal(&left_tok, 1);
     LiteralValue lval = {.int_value = 1};
     Expr *left = ast_create_literal_expr(&arena, lval, int_type, false, &left_tok);
+    left->expr_type = int_type;
 
     setup_basic_token(&right_tok, TOKEN_INT_LITERAL, "2");
     token_set_int_literal(&right_tok, 2);
     LiteralValue rval = {.int_value = 2};
     Expr *right = ast_create_literal_expr(&arena, rval, int_type, false, &right_tok);
+    right->expr_type = int_type;
 
     Expr *bin_expr = ast_create_binary_expr(&arena, left, TOKEN_PLUS, right, &token);
+    bin_expr->expr_type = int_type;
+
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, bin_expr, &token);
 
     ast_module_add_statement(&arena, &module, expr_stmt);
@@ -342,7 +346,7 @@ void test_code_gen_binary_expression_int_add()
     symbol_table_cleanup(&sym_table);
 
     char *expected = get_expected(&arena,
-                                  "rt_add_long(1L, 2L);\n\n"
+                                  "rt_add_long(1L, 2L);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1248,8 +1252,8 @@ void test_code_gen_main()
     // test_code_gen_cleanup_null_output();
     // test_code_gen_headers_and_externs();
     // test_code_gen_literal_expression();
-    test_code_gen_variable_expression();
-    // test_code_gen_binary_expression_int_add();
+    // test_code_gen_variable_expression();
+    test_code_gen_binary_expression_int_add();
     // test_code_gen_binary_expression_string_concat();
     // test_code_gen_unary_expression_negate();
     // test_code_gen_assign_expression();
