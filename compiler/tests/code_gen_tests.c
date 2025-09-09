@@ -886,12 +886,10 @@ void test_code_gen_while_statement()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -904,10 +902,13 @@ void test_code_gen_while_statement()
     token_set_bool_literal(&cond_tok, 1);
     LiteralValue bval = {.bool_value = 1};
     Expr *cond = ast_create_literal_expr(&arena, bval, bool_type, false, &cond_tok);
+    cond->expr_type = bool_type;
 
     Token body_tok;
     setup_basic_token(&body_tok, TOKEN_IDENTIFIER, "print");
     Expr *body_expr = ast_create_variable_expr(&arena, body_tok, &body_tok);
+    body_expr->expr_type = bool_type;
+
     Stmt *body = ast_create_expr_stmt(&arena, body_expr, &body_tok);
 
     Stmt *while_stmt = ast_create_while_stmt(&arena, cond, body, &while_tok);
@@ -922,7 +923,7 @@ void test_code_gen_while_statement()
     char *expected = get_expected(&arena,
                                   "while (1L) {\n"
                                   "    print;\n"
-                                  "}\n\n"
+                                  "}\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1262,9 +1263,9 @@ void test_code_gen_main()
     // test_code_gen_function_with_params_and_return();
     // test_code_gen_main_function_special_case();
     // test_code_gen_block_statement();
+    // test_code_gen_if_statement();
     
-    test_code_gen_if_statement();
-    // test_code_gen_while_statement();
+    test_code_gen_while_statement();
     // test_code_gen_for_statement();
     // test_code_gen_string_free_in_block();
     // test_code_gen_increment_decrement();
