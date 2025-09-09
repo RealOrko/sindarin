@@ -545,12 +545,10 @@ void test_code_gen_call_expression_simple()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -559,11 +557,14 @@ void test_code_gen_call_expression_simple()
 
     Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
     Expr *callee = ast_create_variable_expr(&arena, callee_tok, &callee_tok);
+    callee->expr_type = void_type;
 
     Expr **args = NULL;
     int arg_count = 0;
 
     Expr *call_expr = ast_create_call_expr(&arena, callee, args, arg_count, &callee_tok);
+    call_expr->expr_type = void_type;
+
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, call_expr, &callee_tok);
 
     ast_module_add_statement(&arena, &module, expr_stmt);
@@ -574,7 +575,7 @@ void test_code_gen_call_expression_simple()
     symbol_table_cleanup(&sym_table);
 
     char *expected = get_expected(&arena,
-                                  "print();\n\n"
+                                  "rt_print_string();\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1258,8 +1259,8 @@ void test_code_gen_main()
     // test_code_gen_binary_expression_int_add();
     // test_code_gen_binary_expression_string_concat();
     // test_code_gen_unary_expression_negate();
-    test_code_gen_assign_expression();
-    // test_code_gen_call_expression_simple();
+    // test_code_gen_assign_expression();
+    test_code_gen_call_expression_simple();
     // test_code_gen_function_simple_void();
     // test_code_gen_function_with_params_and_return();
     // test_code_gen_main_function_special_case();
