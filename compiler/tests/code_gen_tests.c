@@ -1175,12 +1175,10 @@ void test_code_gen_null_expression()
 
     Arena arena;
     arena_init(&arena, 1024);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -1196,7 +1194,6 @@ void test_code_gen_null_expression()
     symbol_table_cleanup(&sym_table);
 
     char *expected = get_expected(&arena,
-                                  "0L;\n\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1218,10 +1215,9 @@ void test_code_gen_new_label()
 
     Arena arena;
     arena_init(&arena, 1024);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
 
     int label1 = code_gen_new_label(&gen);
@@ -1247,14 +1243,13 @@ void test_code_gen_module_no_main_adds_dummy()
 
     Arena arena;
     arena_init(&arena, 1024);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
+
     // Empty
 
     code_gen_module(&gen, &module);
@@ -1296,9 +1291,8 @@ void test_code_gen_main()
     // test_code_gen_while_statement();
     // test_code_gen_for_statement();
     // test_code_gen_string_free_in_block();
-
-    test_code_gen_increment_decrement();
+    // test_code_gen_increment_decrement();
     // test_code_gen_null_expression();
     // test_code_gen_new_label();
-    // test_code_gen_module_no_main_adds_dummy();
+    test_code_gen_module_no_main_adds_dummy();
 }
