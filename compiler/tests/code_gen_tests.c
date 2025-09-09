@@ -450,8 +450,11 @@ void test_code_gen_unary_expression_negate()
     token_set_int_literal(&op_tok, 5);
     LiteralValue val = {.int_value = 5};
     Expr *operand = ast_create_literal_expr(&arena, val, int_type, false, &op_tok);
+    operand->expr_type = int_type;
 
     Expr *unary_expr = ast_create_unary_expr(&arena, TOKEN_MINUS, operand, &token);
+    unary_expr->expr_type = int_type;
+
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, unary_expr, &token);
 
     ast_module_add_statement(&arena, &module, expr_stmt);
@@ -462,7 +465,7 @@ void test_code_gen_unary_expression_negate()
     symbol_table_cleanup(&sym_table);
 
     char *expected = get_expected(&arena,
-                                  "rt_neg_long(5L);\n\n"
+                                  "rt_neg_long(5L);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1252,8 +1255,8 @@ void test_code_gen_main()
     // test_code_gen_literal_expression();
     // test_code_gen_variable_expression();
     // test_code_gen_binary_expression_int_add();
-    test_code_gen_binary_expression_string_concat();
-    // test_code_gen_unary_expression_negate();
+    // test_code_gen_binary_expression_string_concat();
+    test_code_gen_unary_expression_negate();
     // test_code_gen_assign_expression();
     // test_code_gen_call_expression_simple();
     // test_code_gen_function_simple_void();
