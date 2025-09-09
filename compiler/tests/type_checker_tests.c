@@ -1051,6 +1051,192 @@ void test_type_check_function_return_array()
     DEBUG_INFO("Finished test_type_check_function_return_array");
 }
 
+void test_type_check_var_decl_function_call_array()
+{
+    DEBUG_INFO("Starting test_type_check_var_decl_function_call_array");
+    printf("Testing type check for variable declaration with function call returning array...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable table;
+    symbol_table_init(&arena, &table);
+
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+    Type *arr_type = ast_create_array_type(&arena, int_type);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    Type *string_type = ast_create_primitive_type(&arena, TYPE_STRING);
+
+    // FIX: Setup print_tok early for reuse in built-in symbol and call.
+    Token print_tok;
+    setup_token(&print_tok, TOKEN_IDENTIFIER, "print", 5, "test.sn", &arena);  // length=5 (fixed)
+
+    // FIX: Add built-in print symbol before building module/AST.
+    // fn print(s: string): void
+    Type *print_arg_types[1] = {string_type};
+    Type *print_func_type = ast_create_function_type(&arena, void_type, print_arg_types, 1);
+    symbol_table_add_symbol_with_kind(&table, print_tok, print_func_type, SYMBOL_LOCAL);  // Use SYMBOL_GLOBAL if available
+
+    // Function: fn declare_basic_int_array(): int[] =>
+    //   var int_arr: int[] = {1, 2, 3}
+    //   return int_arr
+    Parameter *declare_params = NULL;
+    int declare_param_count = 0;
+
+    // Array literal {1, 2, 3} for init
+    Token lit1_tok;
+    setup_literal_token(&lit1_tok, TOKEN_INT_LITERAL, "1", 1, "test.sn", &arena);  // length=1 (fixed)
+    LiteralValue v1 = {.int_value = 1};
+    Expr *e1 = ast_create_literal_expr(&arena, v1, int_type, false, &lit1_tok);
+
+    Token lit2_tok;
+    setup_literal_token(&lit2_tok, TOKEN_INT_LITERAL, "2", 1, "test.sn", &arena);  // length=1 (fixed)
+    LiteralValue v2 = {.int_value = 2};
+    Expr *e2 = ast_create_literal_expr(&arena, v2, int_type, false, &lit2_tok);
+
+    Token lit3_tok;
+    setup_literal_token(&lit3_tok, TOKEN_INT_LITERAL, "3", 1, "test.sn", &arena);  // length=1 (fixed)
+    LiteralValue v3 = {.int_value = 3};
+    Expr *e3 = ast_create_literal_expr(&arena, v3, int_type, false, &lit3_tok);
+
+    Expr *elements[3] = {e1, e2, e3};
+    Token arr_lit_tok;
+    setup_token(&arr_lit_tok, TOKEN_LEFT_BRACE, "{", 1, "test.sn", &arena);  // length=1 (fixed)
+    Expr *arr_lit = ast_create_array_expr(&arena, elements, 3, &arr_lit_tok);
+
+    // var int_arr: int[] = {1, 2, 3}
+    Token int_arr_tok;
+    setup_token(&int_arr_tok, TOKEN_IDENTIFIER, "int_arr", 7, "test.sn", &arena);  // length=7 (fixed)
+    Stmt *int_arr_decl = ast_create_var_decl_stmt(&arena, int_arr_tok, arr_type, arr_lit, NULL);
+
+    // return int_arr
+    Token ret_tok;
+    setup_token(&ret_tok, TOKEN_RETURN, "return", 6, "test.sn", &arena);  // length=6 (fixed)
+    Expr *int_arr_var = ast_create_variable_expr(&arena, int_arr_tok, NULL);
+    Stmt *ret_stmt = ast_create_return_stmt(&arena, ret_tok, int_arr_var, &ret_tok);
+
+    Stmt *declare_body[2] = {int_arr_decl, ret_stmt};
+    Token declare_name_tok;
+    setup_token(&declare_name_tok, TOKEN_IDENTIFIER, "declare_basic_int_array", 22, "test.sn", &arena);  // length=22 (fixed)
+    Stmt *declare_func = ast_create_function_stmt(&arena, declare_name_tok, declare_params, declare_param_count, arr_type, declare_body, 2, &declare_name_tok);
+
+    // Function: fn print_basic_int_array(arr: int[]): void =>
+    //   print($"Int Array: {arr}")
+    // FIX: Allocate array of Parameter structs (not array of pointers).
+    int print_param_count = 1;
+    Parameter *print_params = (Parameter *)arena_alloc(&arena, sizeof(Parameter) * print_param_count);
+    // FIX: Set fields directly on print_params[0] (no separate print_param).
+    print_params[0].name.type = TOKEN_IDENTIFIER;
+    print_params[0].name.start = arena_strdup(&arena, "arr");
+    print_params[0].name.length = 3;
+    print_params[0].name.line = 5;
+    print_params[0].name.filename = "test.sn";
+    print_params[0].type = arr_type;
+
+    // Interpolated: $"Int Array: {arr}"
+    // FIX: For realism, add a string literal part (optional, but improves test; type-check still passes without it).
+    Token str_lit_tok;
+    setup_literal_token(&str_lit_tok, TOKEN_STRING_LITERAL, "\"Int Array: \"", 13, "test.sn", &arena);  // length=13 (fixed, approx)
+    LiteralValue str_val = {.string_value = arena_strdup(&arena, "Int Array: ")};
+    Expr *str_part = ast_create_literal_expr(&arena, str_val, string_type, false, &str_lit_tok);
+
+    Token interp_tok;
+    setup_token(&interp_tok, TOKEN_INTERPOL_STRING, "$\"Int Array: {arr}\"", 18, "test.sn", &arena);  // length=18 (fixed, approx)
+    Expr *arr_param_var = ast_create_variable_expr(&arena, print_params[0].name, NULL);  // FIX: Use print_params[0].name
+    // FIX: Now 2 parts: string literal + arr var.
+    Expr *interp_parts[2] = {str_part, arr_param_var};
+    Expr *interp = ast_create_interpolated_expr(&arena, interp_parts, 2, &interp_tok);
+
+    // Call: print(interp)
+    // Reuse early print_tok for callee.
+    Expr *print_callee = ast_create_variable_expr(&arena, print_tok, NULL);
+    Expr *print_args[1] = {interp};
+    Stmt *print_call_stmt = ast_create_expr_stmt(&arena, ast_create_call_expr(&arena, print_callee, print_args, 1, &print_tok), &print_tok);
+
+    Stmt *print_body[1] = {print_call_stmt};
+    Token print_name_tok;
+    setup_token(&print_name_tok, TOKEN_IDENTIFIER, "print_basic_int_array", 20, "test.sn", &arena);  // length=20 (fixed)
+    Stmt *print_func = ast_create_function_stmt(&arena, print_name_tok, print_params, print_param_count, void_type, print_body, 1, &print_name_tok);
+
+    // Function: fn main(): void =>
+    //   var arr: int[] = declare_basic_int_array()
+    //   print_basic_int_array(arr)
+    Parameter *main_params = NULL;
+    int main_param_count = 0;
+
+    // var arr: int[] = declare_basic_int_array()
+    Token main_arr_tok;
+    setup_token(&main_arr_tok, TOKEN_IDENTIFIER, "arr", 3, "test.sn", &arena);  // length=3 (fixed)
+    Token main_call_name_tok;
+    setup_token(&main_call_name_tok, TOKEN_IDENTIFIER, "declare_basic_int_array", 22, "test.sn", &arena);  // length=22 (fixed)
+    Expr *main_callee = ast_create_variable_expr(&arena, main_call_name_tok, NULL);
+    Expr **main_call_args = NULL;
+    int main_call_arg_count = 0;
+    Expr *main_call = ast_create_call_expr(&arena, main_callee, main_call_args, main_call_arg_count, &main_call_name_tok);
+    Stmt *main_arr_decl = ast_create_var_decl_stmt(&arena, main_arr_tok, arr_type, main_call, NULL);
+
+    // print_basic_int_array(arr)
+    Token main_print_name_tok;
+    setup_token(&main_print_name_tok, TOKEN_IDENTIFIER, "print_basic_int_array", 20, "test.sn", &arena);  // length=20 (fixed)
+    Expr *main_print_callee = ast_create_variable_expr(&arena, main_print_name_tok, NULL);
+    Expr *main_print_args[1] = {ast_create_variable_expr(&arena, main_arr_tok, NULL)};
+    Expr *main_print_call = ast_create_call_expr(&arena, main_print_callee, main_print_args, 1, &main_print_name_tok);
+    Stmt *main_print_stmt = ast_create_expr_stmt(&arena, main_print_call, &main_print_name_tok);
+
+    Stmt *main_body[2] = {main_arr_decl, main_print_stmt};
+    Token main_name_tok;
+    setup_token(&main_name_tok, TOKEN_IDENTIFIER, "main", 4, "test.sn", &arena);  // length=4 (fixed)
+    Stmt *main_func = ast_create_function_stmt(&arena, main_name_tok, main_params, main_param_count, void_type, main_body, 2, &main_name_tok);
+
+    // Add all functions to module
+    ast_module_add_statement(&arena, &module, declare_func);
+    ast_module_add_statement(&arena, &module, print_func);
+    ast_module_add_statement(&arena, &module, main_func);
+
+    int no_error = type_check_module(&module, &table);
+    assert(no_error == 1);  // Should pass: all types match, array printable in interpolated, functions resolve correctly (incl. built-in print)
+
+    // Verify declare function symbol
+    Symbol *declare_sym = symbol_table_lookup_symbol(&table, declare_name_tok);
+    assert(declare_sym != NULL);
+    assert(declare_sym->type->kind == TYPE_FUNCTION);
+    assert(ast_type_equals(declare_sym->type->as.function.return_type, arr_type));
+    assert(declare_sym->type->as.function.param_count == 0);
+
+    // Verify print function symbol
+    Symbol *print_sym = symbol_table_lookup_symbol(&table, print_name_tok);
+    assert(print_sym != NULL);
+    assert(print_sym->type->kind == TYPE_FUNCTION);
+    assert(ast_type_equals(print_sym->type->as.function.return_type, void_type));
+    assert(print_sym->type->as.function.param_count == 1);
+    assert(ast_type_equals(print_sym->type->as.function.param_types[0], arr_type));
+
+    // Verify main function symbol
+    Symbol *main_sym = symbol_table_lookup_symbol(&table, main_name_tok);
+    assert(main_sym != NULL);
+    assert(main_sym->type->kind == TYPE_FUNCTION);
+    assert(ast_type_equals(main_sym->type->as.function.return_type, void_type));
+    assert(main_sym->type->as.function.param_count == 0);
+
+    // In main, verify call to declare returns arr_type
+    assert(main_call->expr_type != NULL);
+    assert(ast_type_equals(main_call->expr_type, arr_type));
+
+    // Verify interpolated type is string
+    assert(interp->expr_type != NULL);
+    assert(interp->expr_type->kind == TYPE_STRING);
+
+    // Assuming print is handled as built-in taking string -> void, but since not verified here, skip deep check
+
+    symbol_table_cleanup(&table);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_type_check_var_decl_function_call_array");
+}
+
 void test_type_checker_main() 
 {
     test_type_check_array_decl_no_init();
@@ -1072,4 +1258,5 @@ void test_type_checker_main()
     test_type_check_array_member_concat();
     test_type_check_array_printable();
     test_type_check_function_return_array();
+    test_type_check_var_decl_function_call_array();
 }
