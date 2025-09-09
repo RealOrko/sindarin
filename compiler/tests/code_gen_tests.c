@@ -271,6 +271,7 @@ void test_code_gen_variable_expression()
     Stmt *var_decl = ast_create_var_decl_stmt(&arena, var_token, int_type, init_expr, &var_token);
 
     Expr *var_expr = ast_create_variable_expr(&arena, var_token, &var_token);
+    var_expr->expr_type = int_type;
     Stmt *use_stmt = ast_create_expr_stmt(&arena, var_expr, &var_token);
 
     ast_module_add_statement(&arena, &module, var_decl);
@@ -283,7 +284,7 @@ void test_code_gen_variable_expression()
 
     char *expected = get_expected(&arena,
                                   "long x = 0;\n"
-                                  "x;\n\n"
+                                  "x;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1246,8 +1247,8 @@ void test_code_gen_main()
 {
     // test_code_gen_cleanup_null_output();
     // test_code_gen_headers_and_externs();
-    test_code_gen_literal_expression();
-    // test_code_gen_variable_expression();
+    // test_code_gen_literal_expression();
+    test_code_gen_variable_expression();
     // test_code_gen_binary_expression_int_add();
     // test_code_gen_binary_expression_string_concat();
     // test_code_gen_unary_expression_negate();
