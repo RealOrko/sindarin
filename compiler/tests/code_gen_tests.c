@@ -431,10 +431,9 @@ void test_code_gen_unary_expression_negate()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
 
     Module module;
@@ -487,12 +486,10 @@ void test_code_gen_assign_expression()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -507,9 +504,13 @@ void test_code_gen_assign_expression()
     setup_basic_token(&val_tok, TOKEN_INT_LITERAL, "10");
     token_set_int_literal(&val_tok, 10);
     LiteralValue val = {.int_value = 10};
+
     Expr *value = ast_create_literal_expr(&arena, val, int_type, false, &val_tok);
+    value->expr_type = int_type;
 
     Expr *assign_expr = ast_create_assign_expr(&arena, name_tok, value, &name_tok);
+    assign_expr->expr_type = int_type;
+
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, assign_expr, &name_tok);
 
     ast_module_add_statement(&arena, &module, var_decl);
@@ -522,7 +523,7 @@ void test_code_gen_assign_expression()
 
     char *expected = get_expected(&arena,
                                   "long x = 0;\n"
-                                  "x = 10L;\n\n"
+                                  "(x = 10L);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1256,8 +1257,8 @@ void test_code_gen_main()
     // test_code_gen_variable_expression();
     // test_code_gen_binary_expression_int_add();
     // test_code_gen_binary_expression_string_concat();
-    test_code_gen_unary_expression_negate();
-    // test_code_gen_assign_expression();
+    // test_code_gen_unary_expression_negate();
+    test_code_gen_assign_expression();
     // test_code_gen_call_expression_simple();
     // test_code_gen_function_simple_void();
     // test_code_gen_function_with_params_and_return();
