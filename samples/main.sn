@@ -46,7 +46,7 @@ fn main(): void =>
   var arr3: int[] = arr1.concat(arr2)
   print($"Concat: {arr3}") // Answer should be {1, 2, 3, 4}
 
-  var arr: int[] = declare_basic_int_arr()
+  var arr: int[] = declare_basic_int_array()
   print_basic_int_array(arr) // Answer should be Int Array: {1, 2, 3}
 
   print("Complete main method ... \n")
