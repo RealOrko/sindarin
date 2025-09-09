@@ -1123,12 +1123,10 @@ void test_code_gen_increment_decrement()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -1140,7 +1138,9 @@ void test_code_gen_increment_decrement()
     Stmt *decl = ast_create_var_decl_stmt(&arena, var_tok, int_type, NULL, &var_tok);
 
     Expr *var_expr = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    var_expr->expr_type = int_type;
     Expr *inc_expr = ast_create_increment_expr(&arena, var_expr, &var_tok);
+    inc_expr->expr_type = int_type;
     Stmt *inc_stmt = ast_create_expr_stmt(&arena, inc_expr, &var_tok);
 
     ast_module_add_statement(&arena, &module, decl);
@@ -1153,7 +1153,7 @@ void test_code_gen_increment_decrement()
 
     char *expected = get_expected(&arena,
                                   "long counter = 0;\n"
-                                  "rt_post_inc_long(&counter);\n\n"
+                                  "rt_post_inc_long(&counter);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1295,9 +1295,9 @@ void test_code_gen_main()
     // test_code_gen_if_statement();
     // test_code_gen_while_statement();
     // test_code_gen_for_statement();
-    
-    test_code_gen_string_free_in_block();
-    // test_code_gen_increment_decrement();
+    // test_code_gen_string_free_in_block();
+
+    test_code_gen_increment_decrement();
     // test_code_gen_null_expression();
     // test_code_gen_new_label();
     // test_code_gen_module_no_main_adds_dummy();
