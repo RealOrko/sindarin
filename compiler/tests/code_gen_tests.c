@@ -1274,25 +1274,25 @@ void test_code_gen_module_no_main_adds_dummy()
 
 void test_code_gen_main()
 {
-    // test_code_gen_cleanup_null_output();
-    // test_code_gen_headers_and_externs();
-    // test_code_gen_literal_expression();
-    // test_code_gen_variable_expression();
-    // test_code_gen_binary_expression_int_add();
-    // test_code_gen_binary_expression_string_concat();
-    // test_code_gen_unary_expression_negate();
-    // test_code_gen_assign_expression();
-    // test_code_gen_call_expression_simple();
-    // test_code_gen_function_simple_void();
-    // test_code_gen_function_with_params_and_return();
-    // test_code_gen_main_function_special_case();
-    // test_code_gen_block_statement();
-    // test_code_gen_if_statement();
-    // test_code_gen_while_statement();
-    // test_code_gen_for_statement();
-    // test_code_gen_string_free_in_block();
-    // test_code_gen_increment_decrement();
-    // test_code_gen_null_expression();
-    // test_code_gen_new_label();
+    test_code_gen_cleanup_null_output();
+    test_code_gen_headers_and_externs();
+    test_code_gen_literal_expression();
+    test_code_gen_variable_expression();
+    test_code_gen_binary_expression_int_add();
+    test_code_gen_binary_expression_string_concat();
+    test_code_gen_unary_expression_negate();
+    test_code_gen_assign_expression();
+    test_code_gen_call_expression_simple();
+    test_code_gen_function_simple_void();
+    test_code_gen_function_with_params_and_return();
+    test_code_gen_main_function_special_case();
+    test_code_gen_block_statement();
+    test_code_gen_if_statement();
+    test_code_gen_while_statement();
+    test_code_gen_for_statement();
+    test_code_gen_string_free_in_block();
+    test_code_gen_increment_decrement();
+    test_code_gen_null_expression();
+    test_code_gen_new_label();
     test_code_gen_module_no_main_adds_dummy();
 }
