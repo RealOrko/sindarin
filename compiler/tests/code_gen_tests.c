@@ -556,11 +556,21 @@ void test_code_gen_call_expression_simple()
     setup_basic_token(&callee_tok, TOKEN_IDENTIFIER, "print");
 
     Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    Type *string_type = ast_create_primitive_type(&arena, TYPE_STRING);
+
     Expr *callee = ast_create_variable_expr(&arena, callee_tok, &callee_tok);
     callee->expr_type = void_type;
 
-    Expr **args = NULL;
-    int arg_count = 0;
+    Token string_tok;
+    setup_basic_token(&string_tok, TOKEN_STR, "\"Hello, world!\"");
+    LiteralValue str_value;
+    str_value.string_value = "Hello, world!"; 
+    Expr *string_expr = ast_create_literal_expr(&arena, str_value, string_type, false, &string_tok);
+    string_expr->expr_type = string_type;
+
+    Expr **args = arena_alloc(&arena, sizeof(Expr*) * 1);
+    args[0] = string_expr;
+    int arg_count = 1;
 
     Expr *call_expr = ast_create_call_expr(&arena, callee, args, arg_count, &callee_tok);
     call_expr->expr_type = void_type;
@@ -575,7 +585,7 @@ void test_code_gen_call_expression_simple()
     symbol_table_cleanup(&sym_table);
 
     char *expected = get_expected(&arena,
-                                  "rt_print_string();\n"
+                                  "rt_print_string(\"Hello, world!\");\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -945,12 +955,10 @@ void test_code_gen_for_statement()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -966,32 +974,55 @@ void test_code_gen_for_statement()
     token_set_int_literal(&init_val_tok, 0);
     LiteralValue ival = {.int_value = 0};
     Expr *init_val = ast_create_literal_expr(&arena, ival, int_type, false, &init_val_tok);
+    init_val->expr_type = int_type;
+
     Stmt *init_stmt = ast_create_var_decl_stmt(&arena, init_var_tok, int_type, init_val, &init_var_tok);
 
     // Condition: k < 5
     Token cond_left_tok;
     setup_basic_token(&cond_left_tok, TOKEN_IDENTIFIER, "k");
     Expr *cond_left = ast_create_variable_expr(&arena, cond_left_tok, &cond_left_tok);
+    cond_left->expr_type = int_type;
     Token cond_right_tok;
     setup_basic_token(&cond_right_tok, TOKEN_INT_LITERAL, "5");
     token_set_int_literal(&cond_right_tok, 5);
     LiteralValue cval = {.int_value = 5};
     Expr *cond_right = ast_create_literal_expr(&arena, cval, int_type, false, &cond_right_tok);
+    cond_right->expr_type = int_type;
     Token cond_op_tok;
     setup_basic_token(&cond_op_tok, TOKEN_LESS, "<");
     Expr *cond = ast_create_binary_expr(&arena, cond_left, TOKEN_LESS, cond_right, &cond_op_tok);
+    Type *bool_type = ast_create_primitive_type(&arena, TYPE_BOOL);
+    cond->expr_type = bool_type;
 
     // Increment: k++
     Token inc_tok;
     setup_basic_token(&inc_tok, TOKEN_IDENTIFIER, "k");
     Expr *inc_var = ast_create_variable_expr(&arena, inc_tok, &inc_tok);
+    inc_var->expr_type = int_type;
     Expr *inc_expr = ast_create_increment_expr(&arena, inc_var, &inc_tok);
+    inc_expr->expr_type = int_type;
 
-    // Body: simple print
+    // Body: print(k)  [call to builtin print with arg k]
     Token body_tok;
     setup_basic_token(&body_tok, TOKEN_IDENTIFIER, "print");
-    Expr *body_expr = ast_create_variable_expr(&arena, body_tok, &body_tok);
-    Stmt *body = ast_create_expr_stmt(&arena, body_expr, &body_tok);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    Expr *callee_print = ast_create_variable_expr(&arena, body_tok, &body_tok);
+    // Type callee as function: void print(int)
+    Type *print_param_types[1] = {int_type};
+    Type *print_func_type = ast_create_function_type(&arena, void_type, print_param_types, 1);
+    callee_print->expr_type = print_func_type;
+    
+    // Arg: k
+    Token arg_k_tok;
+    setup_basic_token(&arg_k_tok, TOKEN_IDENTIFIER, "k");
+    Expr *arg_k = ast_create_variable_expr(&arena, arg_k_tok, &arg_k_tok);
+    arg_k->expr_type = int_type;
+    
+    Expr *print_call = ast_create_call_expr(&arena, callee_print, &arg_k, 1, &body_tok);
+    print_call->expr_type = void_type;
+    
+    Stmt *body = ast_create_expr_stmt(&arena, print_call, &body_tok);
 
     Stmt *for_stmt = ast_create_for_stmt(&arena, init_stmt, cond, inc_expr, body, &for_tok);
 
@@ -1006,10 +1037,10 @@ void test_code_gen_for_statement()
                                   "{\n"
                                   "    long k = 0L;\n"
                                   "    while (rt_lt_long(k, 5L)) {\n"
-                                  "        print;\n"
+                                  "        rt_print_long(k);\n"
                                   "        rt_post_inc_long(&k);\n"
                                   "    }\n"
-                                  "}\n\n"
+                                  "}\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1250,23 +1281,24 @@ void test_code_gen_module_no_main_adds_dummy()
 
 void test_code_gen_main()
 {
-    // test_code_gen_cleanup_null_output();
-    // test_code_gen_headers_and_externs();
-    // test_code_gen_literal_expression();
-    // test_code_gen_variable_expression();
-    // test_code_gen_binary_expression_int_add();
-    // test_code_gen_binary_expression_string_concat();
-    // test_code_gen_unary_expression_negate();
-    // test_code_gen_assign_expression();
-    // test_code_gen_call_expression_simple();
-    // test_code_gen_function_simple_void();
-    // test_code_gen_function_with_params_and_return();
-    // test_code_gen_main_function_special_case();
-    // test_code_gen_block_statement();
-    // test_code_gen_if_statement();
-    
+    test_code_gen_cleanup_null_output();
+    test_code_gen_headers_and_externs();
+    test_code_gen_literal_expression();
+    test_code_gen_variable_expression();
+    test_code_gen_binary_expression_int_add();
+    test_code_gen_binary_expression_string_concat();
+    test_code_gen_unary_expression_negate();
+    test_code_gen_assign_expression();
+    test_code_gen_call_expression_simple();
+    test_code_gen_function_simple_void();
+    test_code_gen_function_with_params_and_return();
+    test_code_gen_main_function_special_case();
+    test_code_gen_block_statement();
+    test_code_gen_if_statement();
     test_code_gen_while_statement();
-    // test_code_gen_for_statement();
+    
+    test_code_gen_for_statement();
+    
     // test_code_gen_string_free_in_block();
     // test_code_gen_increment_decrement();
     // test_code_gen_null_expression();

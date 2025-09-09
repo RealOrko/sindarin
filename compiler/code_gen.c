@@ -479,74 +479,139 @@ static char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
     char **part_strs = arena_alloc(gen->arena, count * sizeof(char *));
     Type **part_types = arena_alloc(gen->arena, count * sizeof(Type *));
     bool *free_parts = arena_alloc(gen->arena, count * sizeof(bool));
+    int non_string_count = 0;
     for (int i = 0; i < count; i++)
     {
         part_strs[i] = code_gen_expression(gen, expr->parts[i]);
         part_types[i] = expr->parts[i]->expr_type;
-        free_parts[i] = (part_types[i]->kind == TYPE_STRING ? expression_produces_temp(expr->parts[i]) : true);
+        free_parts[i] = expression_produces_temp(expr->parts[i]);
+        if (part_types[i]->kind != TYPE_STRING)
+        {
+            non_string_count++;
+        }
     }
-    char *result = arena_sprintf(gen->arena, "({ ");
-    char *first_str;
-    if (part_types[0]->kind == TYPE_STRING)
+    if (non_string_count == 0)
     {
-        first_str = part_strs[0];
+        // All strings, concat directly.
+        char *concat = arena_strdup(gen->arena, "");
+        for (int i = 0; i < count; i++)
+        {
+            if (i > 0)
+            {
+                concat = arena_sprintf(gen->arena, "%s, ", concat);
+            }
+            if (free_parts[i])
+            {
+                concat = arena_sprintf(gen->arena, "%s_tmp%d", concat, i);
+            }
+            else
+            {
+                concat = arena_sprintf(gen->arena, "%spart_strs[i]", concat);
+            }
+        }
+        return arena_sprintf(gen->arena, "rt_str_concat_multiple(%s)", concat);
     }
     else
     {
-        const char *to_str_func = get_rt_to_string_func(part_types[0]->kind);
-        first_str = arena_sprintf(gen->arena, "%s(%s)", to_str_func, part_strs[0]);
+        // Mix, convert non-strings to strings.
+        char *result = arena_strdup(gen->arena, "({ char *");
+        for (int i = 0; i < count; i++)
+        {
+            if (i > 0)
+            {
+                result = arena_sprintf(gen->arena, "%s, *", result);
+            }
+            result = arena_sprintf(gen->arena, "%s_tmp%d", result, i);
+        }
+        result = arena_sprintf(gen->arena, "%s = {", result);
+        for (int i = 0; i < count; i++)
+        {
+            if (i > 0)
+            {
+                result = arena_sprintf(gen->arena, "%s, ", result);
+            }
+            if (part_types[i]->kind == TYPE_STRING)
+            {
+                if (free_parts[i])
+                {
+                    result = arena_sprintf(gen->arena, "%s_tmp%d = %s", result, i, part_strs[i]);
+                }
+                else
+                {
+                    result = arena_sprintf(gen->arena, "%s_tmp%d = rt_to_string_string(%s)", result, i, part_strs[i]);
+                }
+            }
+            else
+            {
+                const char *to_str = get_rt_to_string_func(part_types[i]->kind);
+                result = arena_sprintf(gen->arena, "%s_tmp%d = %s(%s)", result, i, to_str, part_strs[i]);
+            }
+        }
+        result = arena_sprintf(gen->arena, "%s}; char *_res = ", result);
+        char *concat = arena_strdup(gen->arena, "_tmp0");
+        for (int i = 1; i < count; i++)
+        {
+            concat = arena_sprintf(gen->arena, "rt_str_concat(%s, _tmp%d)", concat, i);
+        }
+        result = arena_sprintf(gen->arena, "%s%s; ", result, concat);
+        for (int i = 0; i < count; i++)
+        {
+            result = arena_sprintf(gen->arena, "%srt_free_string(_tmp%d); ", result, i);
+        }
+        result = arena_sprintf(gen->arena, "%s_res; })", result);
+        return result;
     }
-    result = arena_sprintf(gen->arena, "%schar *_res = %s; ", result, first_str);
-    for (int i = 1; i < count; i++)
-    {
-        char *next_str;
-        if (part_types[i]->kind == TYPE_STRING)
-        {
-            next_str = part_strs[i];
-        }
-        else
-        {
-            const char *to_str_func = get_rt_to_string_func(part_types[i]->kind);
-            next_str = arena_sprintf(gen->arena, "%s(%s)", to_str_func, part_strs[i]);
-        }
-        result = arena_sprintf(gen->arena, "%schar *_next%d = %s; char *_new%d = rt_str_concat(_res, _next%d); rt_free_string(_res); ",
-                               result, i, next_str, i, i);
-        if (free_parts[i])
-        {
-            result = arena_sprintf(gen->arena, "%srt_free_string(_next%d); ", result, i);
-        }
-        result = arena_sprintf(gen->arena, "%s_res = _new%d; ", result, i);
-    }
-    result = arena_sprintf(gen->arena, "%s_res; })", result);
-    return result;
 }
 
-static char *code_gen_call_expression(CodeGen *gen, Expr *expr) {
+static char *code_gen_call_expression(CodeGen *gen, Expr *expr)
+{
     DEBUG_VERBOSE("Entering code_gen_call_expression");
     CallExpr *call = &expr->as.call;
     char *callee_str = code_gen_expression(gen, call->callee);
 
-    // Special case for builtin 'print': map to rt_print_string if callee is VariableExpr named "print".
-    // Assume type-checker ensured 1 arg of type string.
-    if (call->callee->type == EXPR_VARIABLE) {
-        char *callee_name = get_var_name(gen->arena, call->callee->as.variable.name);
-        if (strcmp(callee_name, "print") == 0) {
-            callee_str = arena_strdup(gen->arena, "rt_print_string");
-        }
-    }
-
-    // Determine if return type is void.
-    bool returns_void = (expr->expr_type && expr->expr_type->kind == TYPE_VOID);
-
-    // Build arg strings and track temps that need freeing (strings from expressions that allocate).
-    char **arg_strs = arena_alloc(gen->arena, sizeof(char *) * call->arg_count);
-    bool *arg_is_temp = arena_alloc(gen->arena, sizeof(bool) * call->arg_count);
+    char **arg_strs = arena_alloc(gen->arena, call->arg_count * sizeof(char *));
+    bool *arg_is_temp = arena_alloc(gen->arena, call->arg_count * sizeof(bool));
     bool has_temps = false;
     for (int i = 0; i < call->arg_count; i++) {
         arg_strs[i] = code_gen_expression(gen, call->arguments[i]);
         arg_is_temp[i] = (call->arguments[i]->expr_type && call->arguments[i]->expr_type->kind == TYPE_STRING &&
                           expression_produces_temp(call->arguments[i]));
         if (arg_is_temp[i]) has_temps = true;
+    }
+
+    // Special case for builtin 'print': error if wrong arg count, else map to appropriate rt_print_* based on arg type.
+    if (call->callee->type == EXPR_VARIABLE) {
+        char *callee_name = get_var_name(gen->arena, call->callee->as.variable.name);
+        if (strcmp(callee_name, "print") == 0) {
+            if (call->arg_count != 1) {
+                fprintf(stderr, "Error: print expects exactly one argument\n");
+                exit(1);
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            const char *print_func = NULL;
+            switch (arg_type->kind) {
+                case TYPE_INT:
+                case TYPE_LONG:
+                    print_func = "rt_print_long";
+                    break;
+                case TYPE_DOUBLE:
+                    print_func = "rt_print_double";
+                    break;
+                case TYPE_CHAR:
+                    print_func = "rt_print_char";
+                    break;
+                case TYPE_BOOL:
+                    print_func = "rt_print_bool";
+                    break;
+                case TYPE_STRING:
+                    print_func = "rt_print_string";
+                    break;
+                default:
+                    fprintf(stderr, "Error: unsupported type for print\n");
+                    exit(1);
+            }
+            callee_str = arena_strdup(gen->arena, print_func);
+        }
     }
 
     // Collect arg names for the call: use temp var if temp, else original str.
@@ -569,9 +634,16 @@ static char *code_gen_call_expression(CodeGen *gen, Expr *expr) {
         args_list = new_args;
     }
 
+    // Determine if the call returns void (affects statement expression).
+    bool returns_void = (expr->expr_type && expr->expr_type->kind == TYPE_VOID);
+
     // If no temps, simple call (no statement expression needed).
     if (!has_temps) {
-        return arena_sprintf(gen->arena, "%s(%s)", callee_str, args_list);
+        if (returns_void) {
+            return arena_sprintf(gen->arena, "%s(%s);", callee_str, args_list);
+        } else {
+            return arena_sprintf(gen->arena, "%s(%s)", callee_str, args_list);
+        }
     }
 
     // Temps present: continue building statement expression.
@@ -582,9 +654,9 @@ static char *code_gen_call_expression(CodeGen *gen, Expr *expr) {
         result = arena_sprintf(gen->arena, "%s%s _res = %s(%s); ", result, ret_c, callee_str, args_list);
     }
 
-    // Free temps.
+    // Free temps (only strings).
     for (int i = 0; i < call->arg_count; i++) {
-        if (arg_is_temp[i] && call->arguments[i]->expr_type->kind == TYPE_STRING) {
+        if (arg_is_temp[i]) {
             result = arena_sprintf(gen->arena, "%srt_free_string(%s); ", result, arg_names[i]);
         }
     }
@@ -685,6 +757,10 @@ static void code_gen_expression_statement(CodeGen *gen, ExprStmt *stmt, int inde
         indented_fprintf(gen, indent + 1, "(void)_tmp;\n");
         indented_fprintf(gen, indent + 1, "rt_free_string(_tmp);\n");
         indented_fprintf(gen, indent, "}\n");
+    }
+    else if (stmt->expression->type == EXPR_CALL && stmt->expression->expr_type->kind == TYPE_VOID)
+    {
+        indented_fprintf(gen, indent, "%s\n", expr_str);
     }
     else
     {
