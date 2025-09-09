@@ -94,12 +94,27 @@ void remove_test_file(const char *path)
 
 void compare_output_files(const char *actual_path, const char *expected_path)
 {
+    DEBUG_VERBOSE("Entering compare_output_files with actual_path=%s, expected_path=%s", actual_path, expected_path);
+    
     Arena read_arena;
+    DEBUG_VERBOSE("Initializing arena with size=1MB");
     arena_init(&read_arena, 1024 * 1024);
+    
+    DEBUG_VERBOSE("Reading actual file: %s", actual_path);
     char *actual = file_read(&read_arena, actual_path);
+    DEBUG_VERBOSE("Actual file contents: %s", actual ? actual : "NULL");
+    
+    DEBUG_VERBOSE("Reading expected file: %s", expected_path);
     char *expected = file_read(&read_arena, expected_path);
+    DEBUG_VERBOSE("Expected file contents: %s", expected ? expected : "NULL");
+    
+    DEBUG_VERBOSE("Checking if file contents are non-null");
     assert(actual != NULL && expected != NULL);
+    
+    DEBUG_VERBOSE("Comparing file contents");
     assert(strcmp(actual, expected) == 0);
+    
+    DEBUG_VERBOSE("Freeing arena");
     arena_free(&read_arena);
 }
 
@@ -172,13 +187,14 @@ void test_code_gen_headers_and_externs()
                                   "    return 0;\n"
                                   "}\n");
 
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
     create_expected_file(expected_output_path, expected);
     compare_output_files(test_output_path, expected_output_path);
     remove_test_file(test_output_path);
     remove_test_file(expected_output_path);
 
-    code_gen_cleanup(&gen);
-    symbol_table_cleanup(&sym_table);
     arena_free(&arena);
 
     DEBUG_INFO("Finished test_code_gen_headers_and_externs");
