@@ -624,7 +624,7 @@ void test_code_gen_function_simple_void()
 
     char *expected = get_expected(&arena,
                                   "void myfn() {\n"
-                                  "goto myfn_return;\n"
+                                  "    goto myfn_return;\n"
                                   "myfn_return:\n"
                                   "    return;\n"
                                   "}\n\n"
@@ -649,12 +649,10 @@ void test_code_gen_function_with_params_and_return()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -679,6 +677,8 @@ void test_code_gen_function_with_params_and_return()
     setup_basic_token(&ret_tok, TOKEN_RETURN, "return");
 
     Expr *var_expr = ast_create_variable_expr(&arena, param_tok, &param_tok);
+    var_expr->expr_type = int_type;
+
     Stmt *ret_stmt = ast_create_return_stmt(&arena, ret_tok, var_expr, &ret_tok);
 
     Stmt **body = arena_alloc(&arena, sizeof(Stmt *));
@@ -723,12 +723,10 @@ void test_code_gen_main_function_special_case()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -775,12 +773,10 @@ void test_code_gen_block_statement()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -809,7 +805,7 @@ void test_code_gen_block_statement()
     char *expected = get_expected(&arena,
                                   "{\n"
                                   "    long block_var = 0;\n"
-                                  "}\n\n"
+                                  "}\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1252,19 +1248,19 @@ void test_code_gen_module_no_main_adds_dummy()
 
 void test_code_gen_main()
 {
-    // test_code_gen_cleanup_null_output();
-    // test_code_gen_headers_and_externs();
-    // test_code_gen_literal_expression();
-    // test_code_gen_variable_expression();
-    // test_code_gen_binary_expression_int_add();
-    // test_code_gen_binary_expression_string_concat();
-    // test_code_gen_unary_expression_negate();
-    // test_code_gen_assign_expression();
-    // test_code_gen_call_expression_simple();
+    test_code_gen_cleanup_null_output();
+    test_code_gen_headers_and_externs();
+    test_code_gen_literal_expression();
+    test_code_gen_variable_expression();
+    test_code_gen_binary_expression_int_add();
+    test_code_gen_binary_expression_string_concat();
+    test_code_gen_unary_expression_negate();
+    test_code_gen_assign_expression();
+    test_code_gen_call_expression_simple();
     test_code_gen_function_simple_void();
-    // test_code_gen_function_with_params_and_return();
-    // test_code_gen_main_function_special_case();
-    // test_code_gen_block_statement();
+    test_code_gen_function_with_params_and_return();
+    test_code_gen_main_function_special_case();
+    test_code_gen_block_statement();
     // test_code_gen_if_statement();
     // test_code_gen_while_statement();
     // test_code_gen_for_statement();

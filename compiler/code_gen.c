@@ -1,4 +1,3 @@
-// code_gen.c
 #include "code_gen.h"
 #include "debug.h"
 #include "parser.h"
@@ -717,7 +716,7 @@ static void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt)
     {
         init_str = arena_strdup(gen->arena, get_default_value(stmt->type));
     }
-    fprintf(gen->output, "%s %s = %s;\n", type_c, var_name, init_str);
+    fprintf(gen->output, "    %s %s = %s;\n", type_c, var_name, init_str);
 }
 
 static void code_gen_free_locals(CodeGen *gen, Scope *scope, bool is_function)
@@ -760,7 +759,6 @@ void code_gen_block(CodeGen *gen, BlockStmt *stmt)
     symbol_table_pop_scope(gen->symbol_table);
 }
 
-// code_gen.c (updated code_gen_function, without 'static')
 void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
 {
     DEBUG_VERBOSE("Entering code_gen_function");
@@ -796,11 +794,19 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
         const char *default_val = is_main ? "0" : get_default_value(gen->current_return_type);
         fprintf(gen->output, "    %s _return_value = %s;\n", ret_c, default_val);
     }
+    bool has_return = false;
+    if (stmt->body_count > 0 && stmt->body[stmt->body_count - 1]->type == STMT_RETURN)
+    {
+        has_return = true;
+    }
     for (int i = 0; i < stmt->body_count; i++)
     {
         code_gen_statement(gen, stmt->body[i]);
     }
-    fprintf(gen->output, "goto %s_return;\n", gen->current_function);
+    if (!has_return)
+    {
+        fprintf(gen->output, "    goto %s_return;\n", gen->current_function);
+    }
     fprintf(gen->output, "%s_return:\n", gen->current_function);
     code_gen_free_locals(gen, gen->symbol_table->current, true);
     // Return _return_value only if needed; otherwise, plain return.
@@ -824,9 +830,9 @@ void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt)
     if (stmt->value)
     {
         char *value_str = code_gen_expression(gen, stmt->value);
-        fprintf(gen->output, "_return_value = %s;\n", value_str);
+        fprintf(gen->output, "    _return_value = %s;\n", value_str);
     }
-    fprintf(gen->output, "goto %s_return;\n", gen->current_function);
+    fprintf(gen->output, "    goto %s_return;\n", gen->current_function);
 }
 
 void code_gen_if_statement(CodeGen *gen, IfStmt *stmt)
