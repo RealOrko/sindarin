@@ -24,7 +24,7 @@ static void indented_fprintf(CodeGen *gen, int indent, const char *fmt, ...);
 
 static char *arena_vsprintf(Arena *arena, const char *fmt, va_list args)
 {
-    DEBUG_VERBOSE("Entering arena_vsprintf");
+    //DEBUG_VERBOSE("Entering arena_vsprintf");
     va_list args_copy;
     va_copy(args_copy, args);
     int size = vsnprintf(NULL, 0, fmt, args_copy);
@@ -44,7 +44,7 @@ static char *arena_vsprintf(Arena *arena, const char *fmt, va_list args)
 
 static char *arena_sprintf(Arena *arena, const char *fmt, ...)
 {
-    DEBUG_VERBOSE("Entering arena_sprintf");
+    //DEBUG_VERBOSE("Entering arena_sprintf");
     va_list args;
     va_start(args, fmt);
     char *result = arena_vsprintf(arena, fmt, args);
@@ -101,32 +101,66 @@ static char *escape_c_string(Arena *arena, const char *str)
     return buf;
 }
 
-static const char *get_c_type(Type *type)
+static const char *get_c_type(Arena *arena, Type *type)
 {
     DEBUG_VERBOSE("Entering get_c_type");
-    if (type == NULL)
-    {
-        return "void";
+    
+    if (type == NULL) {
+        return arena_strdup(arena, "void");
     }
-    switch (type->kind)
-    {
+
+    switch (type->kind) {
     case TYPE_INT:
     case TYPE_LONG:
-    case TYPE_CHAR:
-    case TYPE_BOOL:
-        return "long";
+        return arena_strdup(arena, "long");
     case TYPE_DOUBLE:
-        return "double";
+        return arena_strdup(arena, "double");
+    case TYPE_CHAR:
+        return arena_strdup(arena, "char");
     case TYPE_STRING:
-        return "char *";
-    case TYPE_NIL:
-        return "long";
+        return arena_strdup(arena, "char *");
+    case TYPE_BOOL:
+        return arena_strdup(arena, "bool");
     case TYPE_VOID:
-        return "void";
+        return arena_strdup(arena, "void");
+    case TYPE_NIL:
+        return arena_strdup(arena, "void *");
+    case TYPE_ANY:
+        return arena_strdup(arena, "void *");
+    case TYPE_ARRAY: {
+        const char *element_c_type = get_c_type(arena, type->as.array.element_type);
+        size_t len = strlen(element_c_type) + 4; // For '[]' and null terminator
+        char *result = arena_alloc(arena, len);
+        snprintf(result, len, "%s[]", element_c_type);
+        return result;
+    }
+    case TYPE_FUNCTION: {
+        const char *return_c_type = get_c_type(arena, type->as.function.return_type);
+        size_t len = strlen(return_c_type) + 10; // Base for "(*)(...)"
+        for (int i = 0; i < type->as.function.param_count; i++) {
+            len += strlen(get_c_type(arena, type->as.function.param_types[i]));
+            if (i < type->as.function.param_count - 1) {
+                len += 2; // For ", "
+            }
+        }
+        char *result = arena_alloc(arena, len);
+        char *current = result;
+        current += sprintf(current, "%s (*)(", return_c_type);
+        for (int i = 0; i < type->as.function.param_count; i++) {
+            current += sprintf(current, "%s", get_c_type(arena, type->as.function.param_types[i]));
+            if (i < type->as.function.param_count - 1) {
+                current += sprintf(current, ", ");
+            }
+        }
+        sprintf(current, ")");
+        return result;
+    }
     default:
+        fprintf(stderr, "Error: Unknown type kind %d\n", type->kind);
         exit(1);
     }
-    return NULL;
+    
+    return NULL; // Unreachable
 }
 
 static const char *get_rt_to_string_func(TypeKind kind)
@@ -647,7 +681,7 @@ static char *code_gen_call_expression(CodeGen *gen, Expr *expr)
     }
 
     // Temps present: continue building statement expression.
-    const char *ret_c = get_c_type(expr->expr_type);
+    const char *ret_c = get_c_type(gen->arena, expr->expr_type);
     if (returns_void) {
         result = arena_sprintf(gen->arena, "%s%s(%s); ", result, callee_str, args_list);
     } else {
@@ -772,7 +806,7 @@ static void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent
 {
     DEBUG_VERBOSE("Entering code_gen_var_declaration");
     symbol_table_add_symbol_with_kind(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL);
-    const char *type_c = get_c_type(stmt->type);
+    const char *type_c = get_c_type(gen->arena, stmt->type);
     char *var_name = get_var_name(gen->arena, stmt->name);
     char *init_str;
     if (stmt->initializer)
@@ -835,7 +869,7 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     gen->current_return_type = stmt->return_type;
     bool is_main = strcmp(gen->current_function, "main") == 0;
     // Special case for main: always use "int" return type in C for standard entry point.
-    const char *ret_c = is_main ? "int" : get_c_type(gen->current_return_type);
+    const char *ret_c = is_main ? "int" : get_c_type(gen->arena, gen->current_return_type);
     // Determine if we need a _return_value variable: only for non-void or main.
     bool has_return_value = (gen->current_return_type && gen->current_return_type->kind != TYPE_VOID) || is_main;
     symbol_table_push_scope(gen->symbol_table);
@@ -846,7 +880,7 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     indented_fprintf(gen, 0, "%s %s(", ret_c, gen->current_function);
     for (int i = 0; i < stmt->param_count; i++)
     {
-        const char *param_type_c = get_c_type(stmt->params[i].type);
+        const char *param_type_c = get_c_type(gen->arena, stmt->params[i].type);
         char *param_name = get_var_name(gen->arena, stmt->params[i].name);
         fprintf(gen->output, "%s %s", param_type_c, param_name);
         if (i < stmt->param_count - 1)
