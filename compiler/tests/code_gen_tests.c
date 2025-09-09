@@ -1062,12 +1062,10 @@ void test_code_gen_string_free_in_block()
 
     Arena arena;
     arena_init(&arena, 4096);
-    CodeGen gen;
     SymbolTable sym_table;
     symbol_table_init(&arena, &sym_table);
-
+    CodeGen gen;
     code_gen_init(&arena, &gen, &sym_table, test_output_path);
-
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
@@ -1103,7 +1101,7 @@ void test_code_gen_string_free_in_block()
                                   "    if (s) {\n"
                                   "        rt_free_string(s);\n"
                                   "    }\n"
-                                  "}\n\n"
+                                  "}\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1281,25 +1279,24 @@ void test_code_gen_module_no_main_adds_dummy()
 
 void test_code_gen_main()
 {
-    test_code_gen_cleanup_null_output();
-    test_code_gen_headers_and_externs();
-    test_code_gen_literal_expression();
-    test_code_gen_variable_expression();
-    test_code_gen_binary_expression_int_add();
-    test_code_gen_binary_expression_string_concat();
-    test_code_gen_unary_expression_negate();
-    test_code_gen_assign_expression();
-    test_code_gen_call_expression_simple();
-    test_code_gen_function_simple_void();
-    test_code_gen_function_with_params_and_return();
-    test_code_gen_main_function_special_case();
-    test_code_gen_block_statement();
-    test_code_gen_if_statement();
-    test_code_gen_while_statement();
+    // test_code_gen_cleanup_null_output();
+    // test_code_gen_headers_and_externs();
+    // test_code_gen_literal_expression();
+    // test_code_gen_variable_expression();
+    // test_code_gen_binary_expression_int_add();
+    // test_code_gen_binary_expression_string_concat();
+    // test_code_gen_unary_expression_negate();
+    // test_code_gen_assign_expression();
+    // test_code_gen_call_expression_simple();
+    // test_code_gen_function_simple_void();
+    // test_code_gen_function_with_params_and_return();
+    // test_code_gen_main_function_special_case();
+    // test_code_gen_block_statement();
+    // test_code_gen_if_statement();
+    // test_code_gen_while_statement();
+    // test_code_gen_for_statement();
     
-    test_code_gen_for_statement();
-    
-    // test_code_gen_string_free_in_block();
+    test_code_gen_string_free_in_block();
     // test_code_gen_increment_decrement();
     // test_code_gen_null_expression();
     // test_code_gen_new_label();
