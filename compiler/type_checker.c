@@ -15,10 +15,13 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table);
 static void type_error(Token *token, const char *msg)
 {
     char error_buffer[256];
-    if (token && token->line > 0 && token->filename) {
-        snprintf(error_buffer, sizeof(error_buffer), "%s:%d: Type error: %s", 
+    if (token && token->line > 0 && token->filename)
+    {
+        snprintf(error_buffer, sizeof(error_buffer), "%s:%d: Type error: %s",
                  token->filename, token->line, msg);
-    } else {
+    }
+    else
+    {
         snprintf(error_buffer, sizeof(error_buffer), "Type error: %s", msg);
     }
     DEBUG_ERROR("%s", error_buffer);
@@ -35,7 +38,7 @@ static bool is_numeric_type(Type *type)
 
 static bool is_comparison_operator(TokenType op)
 {
-    bool result = op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL || op == TOKEN_LESS || 
+    bool result = op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL || op == TOKEN_LESS ||
                   op == TOKEN_LESS_EQUAL || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL;
     DEBUG_VERBOSE("Checking if operator is comparison: %s (op: %d)", result ? "true" : "false", op);
     return result;
@@ -50,8 +53,8 @@ static bool is_arithmetic_operator(TokenType op)
 
 static bool is_printable_type(Type *type)
 {
-    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG || 
-                           type->kind == TYPE_DOUBLE || type->kind == TYPE_CHAR || 
+    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG ||
+                           type->kind == TYPE_DOUBLE || type->kind == TYPE_CHAR ||
                            type->kind == TYPE_STRING || type->kind == TYPE_BOOL);
     DEBUG_VERBOSE("Checking if type is printable: %s", result ? "true" : "false");
     return result;
@@ -307,31 +310,44 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
     case EXPR_ARRAY:
     {
         DEBUG_VERBOSE("Type checking array with %d elements", expr->as.array.element_count);
-        if (expr->as.array.element_count == 0) {
+        if (expr->as.array.element_count == 0)
+        {
             t = ast_create_array_type(table->arena, ast_create_primitive_type(table->arena, TYPE_NIL));
             DEBUG_VERBOSE("Empty array, returning NIL element type");
-        } else {
+        }
+        else
+        {
             Type *elem_type = NULL;
             bool valid = true;
-            for (int i = 0; i < expr->as.array.element_count; i++) {
+            for (int i = 0; i < expr->as.array.element_count; i++)
+            {
                 Type *et = type_check_expr(expr->as.array.elements[i], table);
-                if (et == NULL) {
+                if (et == NULL)
+                {
                     valid = false;
                     continue;
                 }
-                if (elem_type == NULL) {
+                if (elem_type == NULL)
+                {
                     elem_type = et;
                     DEBUG_VERBOSE("First array element type: %d", elem_type->kind);
-                } else {
+                }
+                else
+                {
                     bool equal = false;
-                    if (elem_type->kind == et->kind) {
-                        if (elem_type->kind == TYPE_ARRAY || elem_type->kind == TYPE_FUNCTION) {
+                    if (elem_type->kind == et->kind)
+                    {
+                        if (elem_type->kind == TYPE_ARRAY || elem_type->kind == TYPE_FUNCTION)
+                        {
                             equal = ast_type_equals(elem_type, et);
-                        } else {
+                        }
+                        else
+                        {
                             equal = true;
                         }
                     }
-                    if (!equal) {
+                    if (!equal)
+                    {
                         type_error(expr->token, "Array elements must have the same type");
                         valid = false;
                         t = NULL;
@@ -339,10 +355,13 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
                     }
                 }
             }
-            if (valid && elem_type != NULL) {
+            if (valid && elem_type != NULL)
+            {
                 t = ast_create_array_type(table->arena, elem_type);
                 DEBUG_VERBOSE("Returning array type with element type: %d", elem_type->kind);
-            } else {
+            }
+            else
+            {
                 t = NULL;
             }
         }
@@ -352,21 +371,25 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
     {
         DEBUG_VERBOSE("Type checking array access");
         Type *array_t = type_check_expr(expr->as.array_access.array, table);
-        if (array_t == NULL) {
+        if (array_t == NULL)
+        {
             t = NULL;
             break;
         }
-        if (array_t->kind != TYPE_ARRAY) {
+        if (array_t->kind != TYPE_ARRAY)
+        {
             type_error(expr->token, "Cannot access non-array");
             t = NULL;
             break;
         }
         Type *index_t = type_check_expr(expr->as.array_access.index, table);
-        if (index_t == NULL) {
+        if (index_t == NULL)
+        {
             t = NULL;
             break;
         }
-        if (!is_numeric_type(index_t)) {
+        if (!is_numeric_type(index_t))
+        {
             type_error(expr->token, "Array index must be numeric type");
             t = NULL;
             break;
@@ -395,14 +418,47 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
     {
         DEBUG_VERBOSE("Type checking member access: %s", expr->as.member.member_name.start);
         Type *object_type = type_check_expr(expr->as.member.object, table);
-        if (object_type == NULL) {
+        if (object_type == NULL)
+        {
             t = NULL;
             break;
         }
-        if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "length") == 0) {
+        if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "length") == 0)
+        {
             t = ast_create_primitive_type(table->arena, TYPE_INT);
             DEBUG_VERBOSE("Returning INT type for array length access");
-        } else {
+        }
+        else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "push") == 0)
+        {
+            Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+            Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+            Type *param_types[1] = {int_type};
+            t = ast_create_function_type(table->arena, void_type, param_types, 1);
+            DEBUG_VERBOSE("Returning function type for array push method");
+        }
+        else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "pop") == 0)
+        {
+            Type *param_types[] = {NULL};
+            t = ast_create_function_type(table->arena, object_type->as.array.element_type, param_types, 0);
+            DEBUG_VERBOSE("Returning function type for array pop method");
+        }
+        else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "clear") == 0)
+        {
+            Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+            Type *param_types[] = {NULL};
+            t = ast_create_function_type(table->arena, void_type, param_types, 0);
+            DEBUG_VERBOSE("Returning function type for array clear method");
+        }
+        else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "concat") == 0)
+        {
+            Type *element_type = object_type->as.array.element_type;
+            Type *param_array_type = ast_create_array_type(table->arena, element_type);
+            Type *param_types[1] = {param_array_type};
+            t = ast_create_function_type(table->arena, object_type, param_types, 1); // Return same array type as object
+            DEBUG_VERBOSE("Returning function type for array concat method");
+        }
+        else
+        {
             type_error(expr->token, "Invalid member access");
             t = NULL;
         }
@@ -410,9 +466,12 @@ static Type *type_check_expr(Expr *expr, SymbolTable *table)
     }
     }
     expr->expr_type = t;
-    if (t != NULL) {
+    if (t != NULL)
+    {
         DEBUG_VERBOSE("Expression type check result: %d", t->kind);
-    } else {
+    }
+    else
+    {
         DEBUG_VERBOSE("Expression type check failed: NULL type");
     }
     return t;
@@ -444,16 +503,16 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking function with %d parameters", stmt->as.function.param_count);
     symbol_table_push_scope(table);
-    
+
     for (int i = 0; i < stmt->as.function.param_count; i++)
     {
         Parameter param = stmt->as.function.params[i];
         DEBUG_VERBOSE("Adding parameter %d: %.*s", i, param.name.length, param.name.start);
         symbol_table_add_symbol_with_kind(table, param.name, param.type, SYMBOL_PARAM);
     }
-    
+
     table->current->next_local_offset = table->current->next_param_offset;
-    
+
     for (int i = 0; i < stmt->as.function.body_count; i++)
     {
         type_check_stmt(stmt->as.function.body[i], table, stmt->as.function.return_type);

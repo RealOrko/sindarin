@@ -24,6 +24,11 @@ The input program has the following import (./samples/main.library.sn):
 ${INPUT_CODE_IMPORT}
 ```
 
+log/run-output.log:
+```
+${RUN_OUTPUT}
+```
+
 ### QUESTION:
 
 Take a look at the input program, study the arrays carefully.

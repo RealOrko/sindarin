@@ -9,42 +9,6 @@
 #include "../debug.h"
 #include "../token.h"
 
-void test_ast_main()
-{
-    test_ast_create_primitive_type();
-    test_ast_create_array_type();
-    test_ast_create_function_type();
-    test_ast_clone_type();
-    test_ast_type_equals();
-    test_ast_type_to_string();
-    test_ast_create_binary_expr();
-    test_ast_create_unary_expr();
-    test_ast_create_literal_expr();
-    test_ast_create_variable_expr();
-    test_ast_create_assign_expr();
-    test_ast_create_call_expr();
-    test_ast_create_array_expr();
-    test_ast_create_array_access_expr();
-    test_ast_create_increment_expr();
-    test_ast_create_decrement_expr();
-    test_ast_create_interpolated_expr();
-    test_ast_create_member_expr();
-    test_ast_create_comparison_expr();
-    test_ast_create_expr_stmt();
-    test_ast_create_var_decl_stmt();
-    test_ast_create_function_stmt();
-    test_ast_create_return_stmt();
-    test_ast_create_block_stmt();
-    test_ast_create_if_stmt();
-    test_ast_create_while_stmt();
-    test_ast_create_for_stmt();
-    test_ast_create_import_stmt();
-    test_ast_init_module();
-    test_ast_module_add_statement();
-    test_ast_clone_token();
-    test_ast_print();
-}
-
 static void setup_arena(Arena *arena)
 {
     arena_init(arena, 4096);
@@ -1331,4 +1295,40 @@ void test_ast_print()
     ast_print_expr(&arena, member_null, 0);  // Prints only member name, no object
 
     cleanup_arena(&arena);
+}
+
+void test_ast_main()
+{
+    test_ast_create_primitive_type();
+    test_ast_create_array_type();
+    test_ast_create_function_type();
+    test_ast_clone_type();
+    test_ast_type_equals();
+    test_ast_type_to_string();
+    test_ast_create_binary_expr();
+    test_ast_create_unary_expr();
+    test_ast_create_literal_expr();
+    test_ast_create_variable_expr();
+    test_ast_create_assign_expr();
+    test_ast_create_call_expr();
+    test_ast_create_array_expr();
+    test_ast_create_array_access_expr();
+    test_ast_create_increment_expr();
+    test_ast_create_decrement_expr();
+    test_ast_create_interpolated_expr();
+    test_ast_create_member_expr();
+    test_ast_create_comparison_expr();
+    test_ast_create_expr_stmt();
+    test_ast_create_var_decl_stmt();
+    test_ast_create_function_stmt();
+    test_ast_create_return_stmt();
+    test_ast_create_block_stmt();
+    test_ast_create_if_stmt();
+    test_ast_create_while_stmt();
+    test_ast_create_for_stmt();
+    test_ast_create_import_stmt();
+    test_ast_init_module();
+    test_ast_module_add_statement();
+    test_ast_clone_token();
+    test_ast_print();
 }
