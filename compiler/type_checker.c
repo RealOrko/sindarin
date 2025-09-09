@@ -55,7 +55,8 @@ static bool is_printable_type(Type *type)
 {
     bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG ||
                            type->kind == TYPE_DOUBLE || type->kind == TYPE_CHAR ||
-                           type->kind == TYPE_STRING || type->kind == TYPE_BOOL);
+                           type->kind == TYPE_STRING || type->kind == TYPE_BOOL ||
+                           type->kind == TYPE_ARRAY);
     DEBUG_VERBOSE("Checking if type is printable: %s", result ? "true" : "false");
     return result;
 }
@@ -502,6 +503,18 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
 static void type_check_function(Stmt *stmt, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking function with %d parameters", stmt->as.function.param_count);
+
+    // Create function type from declaration
+    Arena *arena = table->arena;
+    Type **param_types = (Type **)arena_alloc(arena, sizeof(Type *) * stmt->as.function.param_count);
+    for (int i = 0; i < stmt->as.function.param_count; i++) {
+        param_types[i] = stmt->as.function.params[i].type;
+    }
+    Type *func_type = ast_create_function_type(arena, stmt->as.function.return_type, param_types, stmt->as.function.param_count);
+
+    // Add function symbol to current scope (e.g., global)
+    symbol_table_add_symbol_with_kind(table, stmt->as.function.name, func_type, SYMBOL_LOCAL);
+
     symbol_table_push_scope(table);
 
     for (int i = 0; i < stmt->as.function.param_count; i++)
