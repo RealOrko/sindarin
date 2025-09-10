@@ -57,6 +57,21 @@ char *rt_to_string_string(const char *val)
     return strdup(val);
 }
 
+char *rt_to_string_void(void)
+{
+    return strdup("void");
+}
+
+char *rt_to_string_pointer(void *p)
+{
+    if (p == NULL) {
+        return strdup("nil");
+    }
+    char buf[32];
+    snprintf(buf, sizeof(buf), "%p", p);
+    return strdup(buf);
+}
+
 void rt_print_long(long val)
 {
     printf("%ld", val);

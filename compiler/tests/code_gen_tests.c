@@ -59,6 +59,8 @@ const char *get_expected(Arena *arena, const char *expected)
         "extern char *rt_to_string_char(long);\n"
         "extern char *rt_to_string_bool(long);\n"
         "extern char *rt_to_string_string(char *);\n"
+        "extern char *rt_to_string_void(void);\n"
+        "extern char *rt_to_string_pointer(void *);\n"
         "extern long rt_eq_string(char *, char *);\n"
         "extern long rt_ne_string(char *, char *);\n"
         "extern long rt_lt_string(char *, char *);\n"

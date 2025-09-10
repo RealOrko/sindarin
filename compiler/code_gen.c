@@ -193,8 +193,17 @@ static const char *get_rt_to_string_func(TypeKind kind)
         return "rt_to_string_double";
     case TYPE_CHAR:
         return "rt_to_string_char";
+    case TYPE_STRING:
+        return "rt_to_string_string";
     case TYPE_BOOL:
         return "rt_to_string_bool";
+    case TYPE_VOID:
+        return "rt_to_string_void";
+    case TYPE_NIL:
+    case TYPE_ANY:
+    case TYPE_ARRAY:
+    case TYPE_FUNCTION:
+        return "rt_to_string_pointer";
     default:
         exit(1);
     }
@@ -319,6 +328,8 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char *rt_to_string_char(long);\n");
     indented_fprintf(gen, 0, "extern char *rt_to_string_bool(long);\n");
     indented_fprintf(gen, 0, "extern char *rt_to_string_string(char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_to_string_void(void);\n");
+    indented_fprintf(gen, 0, "extern char *rt_to_string_pointer(void *);\n");
     indented_fprintf(gen, 0, "extern long rt_eq_string(char *, char *);\n");
     indented_fprintf(gen, 0, "extern long rt_ne_string(char *, char *);\n");
     indented_fprintf(gen, 0, "extern long rt_lt_string(char *, char *);\n");

@@ -9,6 +9,8 @@ char *rt_to_string_double(double val);
 char *rt_to_string_char(char val);
 char *rt_to_string_bool(int val);
 char *rt_to_string_string(const char *val);
+char *rt_to_string_void(void);
+char *rt_to_string_pointer(void *);
 void rt_print_long(long val);
 void rt_print_double(double val);
 void rt_print_char(long c);
