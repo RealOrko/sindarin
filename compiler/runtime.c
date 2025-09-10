@@ -339,7 +339,7 @@ long *rt_array_push_long(long *arr, long element) {
         // Initial case: create a new array with capacity 4
         meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(long));
         if (meta == NULL) {
-            fprintf(stderr, "rt_array_push: memory allocation failed\n");
+            fprintf(stderr, "rt_array_push_long: memory allocation failed\n");
             exit(1);
         }
         meta->size = 1;
@@ -356,16 +356,228 @@ long *rt_array_push_long(long *arr, long element) {
         // Resize array: double the capacity
         new_capacity = meta->capacity * 2;
         if (new_capacity < meta->capacity) { // Check for overflow
-            fprintf(stderr, "rt_array_push: capacity overflow\n");
+            fprintf(stderr, "rt_array_push_long: capacity overflow\n");
             exit(1);
         }
         meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(long));
         if (meta == NULL) {
-            fprintf(stderr, "rt_array_push: memory allocation failed\n");
+            fprintf(stderr, "rt_array_push_long: memory allocation failed\n");
             exit(1);
         }
         meta->capacity = new_capacity;
         new_arr = (long *)(meta + 1);
+    } else {
+        new_arr = arr;
+    }
+
+    // Add the new element
+    new_arr[meta->size] = element;
+    meta->size++;
+
+    return new_arr;
+}
+
+double *rt_array_push_double(double *arr, double element) {
+    // Structure to store array metadata (size and capacity) before the array data
+    struct array_metadata {
+        size_t size;     // Number of elements currently in the array
+        size_t capacity; // Total allocated space for elements
+    };
+
+    struct array_metadata *meta;
+    double *new_arr;
+    size_t new_capacity;
+
+    if (arr == NULL) {
+        // Initial case: create a new array with capacity 4
+        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(double));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_double: memory allocation failed\n");
+            exit(1);
+        }
+        meta->size = 1;
+        meta->capacity = 4;
+        new_arr = (double *)(meta + 1);
+        new_arr[0] = element;
+        return new_arr;
+    }
+
+    // Get metadata (stored just before the array)
+    meta = ((struct array_metadata *)arr) - 1;
+
+    if (meta->size >= meta->capacity) {
+        // Resize array: double the capacity
+        new_capacity = meta->capacity * 2;
+        if (new_capacity < meta->capacity) { // Check for overflow
+            fprintf(stderr, "rt_array_push_double: capacity overflow\n");
+            exit(1);
+        }
+        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(double));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_double: memory allocation failed\n");
+            exit(1);
+        }
+        meta->capacity = new_capacity;
+        new_arr = (double *)(meta + 1);
+    } else {
+        new_arr = arr;
+    }
+
+    // Add the new element
+    new_arr[meta->size] = element;
+    meta->size++;
+
+    return new_arr;
+}
+
+char *rt_array_push_char(char *arr, char element) {
+    // Structure to store array metadata (size and capacity) before the array data
+    struct array_metadata {
+        size_t size;     // Number of elements currently in the array
+        size_t capacity; // Total allocated space for elements
+    };
+
+    struct array_metadata *meta;
+    char *new_arr;
+    size_t new_capacity;
+
+    if (arr == NULL) {
+        // Initial case: create a new array with capacity 4
+        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(char));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_char: memory allocation failed\n");
+            exit(1);
+        }
+        meta->size = 1;
+        meta->capacity = 4;
+        new_arr = (char *)(meta + 1);
+        new_arr[0] = element;
+        return new_arr;
+    }
+
+    // Get metadata (stored just before the array)
+    meta = ((struct array_metadata *)arr) - 1;
+
+    if (meta->size >= meta->capacity) {
+        // Resize array: double the capacity
+        new_capacity = meta->capacity * 2;
+        if (new_capacity < meta->capacity) { // Check for overflow
+            fprintf(stderr, "rt_array_push_char: capacity overflow\n");
+            exit(1);
+        }
+        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(char));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_char: memory allocation failed\n");
+            exit(1);
+        }
+        meta->capacity = new_capacity;
+        new_arr = (char *)(meta + 1);
+    } else {
+        new_arr = arr;
+    }
+
+    // Add the new element
+    new_arr[meta->size] = element;
+    meta->size++;
+
+    return new_arr;
+}
+
+char **rt_array_push_string(char **arr, const char *element) {
+    // Structure to store array metadata (size and capacity) before the array data
+    struct array_metadata {
+        size_t size;     // Number of elements currently in the array
+        size_t capacity; // Total allocated space for elements
+    };
+
+    struct array_metadata *meta;
+    char **new_arr;
+    size_t new_capacity;
+
+    if (arr == NULL) {
+        // Initial case: create a new array with capacity 4
+        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(char *));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_string: memory allocation failed\n");
+            exit(1);
+        }
+        meta->size = 1;
+        meta->capacity = 4;
+        new_arr = (char **)(meta + 1);
+        new_arr[0] = element ? strdup(element) : NULL;
+        return new_arr;
+    }
+
+    // Get metadata (stored just before the array)
+    meta = ((struct array_metadata *)arr) - 1;
+
+    if (meta->size >= meta->capacity) {
+        // Resize array: double the capacity
+        new_capacity = meta->capacity * 2;
+        if (new_capacity < meta->capacity) { // Check for overflow
+            fprintf(stderr, "rt_array_push_string: capacity overflow\n");
+            exit(1);
+        }
+        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(char *));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_string: memory allocation failed\n");
+            exit(1);
+        }
+        meta->capacity = new_capacity;
+        new_arr = (char **)(meta + 1);
+    } else {
+        new_arr = arr;
+    }
+
+    // Add the new element (duplicate the string to manage memory)
+    new_arr[meta->size] = element ? strdup(element) : NULL;
+    meta->size++;
+
+    return new_arr;
+}
+
+int *rt_array_push_bool(int *arr, int element) {
+    // Structure to store array metadata (size and capacity) before the array data
+    struct array_metadata {
+        size_t size;     // Number of elements currently in the array
+        size_t capacity; // Total allocated space for elements
+    };
+
+    struct array_metadata *meta;
+    int *new_arr;
+    size_t new_capacity;
+
+    if (arr == NULL) {
+        // Initial case: create a new array with capacity 4
+        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(int));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_bool: memory allocation failed\n");
+            exit(1);
+        }
+        meta->size = 1;
+        meta->capacity = 4;
+        new_arr = (int *)(meta + 1);
+        new_arr[0] = element;
+        return new_arr;
+    }
+
+    // Get metadata (stored just before the array)
+    meta = ((struct array_metadata *)arr) - 1;
+
+    if (meta->size >= meta->capacity) {
+        // Resize array: double the capacity
+        new_capacity = meta->capacity * 2;
+        if (new_capacity < meta->capacity) { // Check for overflow
+            fprintf(stderr, "rt_array_push_bool: capacity overflow\n");
+            exit(1);
+        }
+        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(int));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_push_bool: memory allocation failed\n");
+            exit(1);
+        }
+        meta->capacity = new_capacity;
+        new_arr = (int *)(meta + 1);
     } else {
         new_arr = arr;
     }

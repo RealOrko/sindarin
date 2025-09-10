@@ -43,6 +43,10 @@ int rt_not_bool(int a);
 long rt_post_inc_long(long *p);
 long rt_post_dec_long(long *p);
 long *rt_array_push_long(long *arr, long element);
+double *rt_array_push_double(double *arr, double element);
+char *rt_array_push_char(char *arr, char element);
+char **rt_array_push_string(char **arr, const char *element);
+int *rt_array_push_bool(int *arr, int element);
 void rt_free_string(char *s);
 
 #endif
