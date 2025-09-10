@@ -759,9 +759,9 @@ static char *code_gen_array_expression(CodeGen *gen, ArrayExpr *expr)
 static char *code_gen_array_access_expression(CodeGen *gen, ArrayAccessExpr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_array_access_expression");
-    (void)gen;
-    (void)expr;
-    return arena_strdup(gen->arena, "0L");
+    char *array_str = code_gen_expression(gen, expr->array);
+    char *index_str = code_gen_expression(gen, expr->index);
+    return arena_sprintf(gen->arena, "%s[%s]", array_str, index_str);
 }
 
 static char *code_gen_increment_expression(CodeGen *gen, Expr *expr)

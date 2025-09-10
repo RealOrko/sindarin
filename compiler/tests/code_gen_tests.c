@@ -1558,7 +1558,7 @@ void test_code_gen_array_access()
     // Expected: long * arr = (long[]){10L, 20L, 30L}; arr[1];
     char *expected = get_expected(&arena,
                                   "long * arr = (long[]){10L, 20L, 30L};\n"
-                                  "arr[1];\n"
+                                  "arr[1L];\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
