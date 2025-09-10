@@ -52,6 +52,32 @@ static char *arena_sprintf(Arena *arena, const char *fmt, ...)
     return result;
 }
 
+static char *escape_char_literal(Arena *arena, char ch)
+{
+    DEBUG_VERBOSE("Entering escape_char_literal");
+    char buf[16];
+    if (ch == '\'') {
+        sprintf(buf, "'\\''");
+    } else if (ch == '\\') {
+        sprintf(buf, "'\\\\'");
+    } else if (ch == '\n') {
+        sprintf(buf, "'\\n'");
+    } else if (ch == '\t') {
+        sprintf(buf, "'\\t'");
+    } else if (ch == '\r') {
+        sprintf(buf, "'\\r'");
+    } else if (ch == '\0') {
+        sprintf(buf, "'\\0'");
+    } else if ((unsigned char)ch >= 0x80 || ch < 0) {
+        sprintf(buf, "'\\x%02x'", (unsigned char)ch);
+    } else if (ch < ' ' || ch > '~') {
+        sprintf(buf, "'\\x%02x'", (unsigned char)ch);
+    } else {
+        sprintf(buf, "'%c'", ch);
+    }
+    return arena_strdup(arena, buf);
+}
+
 static char *escape_c_string(Arena *arena, const char *str)
 {
     DEBUG_VERBOSE("Entering escape_c_string");
@@ -337,6 +363,10 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern long rt_gt_string(char *, char *);\n");
     indented_fprintf(gen, 0, "extern long rt_ge_string(char *, char *);\n");
     indented_fprintf(gen, 0, "extern void rt_array_push_long(long *, long);\n");
+    indented_fprintf(gen, 0, "extern void rt_array_push_double(long *, long);\n");
+    indented_fprintf(gen, 0, "extern void rt_array_push_char(long *, long);\n");
+    indented_fprintf(gen, 0, "extern void rt_array_push_string(long *, long);\n");
+    indented_fprintf(gen, 0, "extern void rt_array_push_bool(long *, long);\n");
     indented_fprintf(gen, 0, "extern void rt_free_string(char *);\n\n");
 }
 
@@ -485,9 +515,16 @@ static char *code_gen_literal_expression(CodeGen *gen, LiteralExpr *expr)
     case TYPE_LONG:
         return arena_sprintf(gen->arena, "%ldL", expr->value.int_value);
     case TYPE_DOUBLE:
-        return arena_sprintf(gen->arena, "%.17g", expr->value.double_value);
+    {
+        char *str = arena_sprintf(gen->arena, "%.17g", expr->value.double_value);
+        if (strchr(str, '.') == NULL && strchr(str, 'e') == NULL && strchr(str, 'E') == NULL)
+        {
+            str = arena_sprintf(gen->arena, "%s.0", str);
+        }
+        return str;
+    }
     case TYPE_CHAR:
-        return arena_sprintf(gen->arena, "%ldL", (long)(unsigned char)expr->value.char_value);
+        return escape_char_literal(gen->arena, expr->value.char_value);
     case TYPE_STRING:
     {
         // This might break string interpolation
@@ -642,8 +679,39 @@ static char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             call->arg_count == 1) {
             char *object_str = code_gen_expression(gen, member->object);
             char *arg_str = code_gen_expression(gen, call->arguments[0]);
+            Type *element_type = object_type->as.array.element_type;
+            Type *arg_type = call->arguments[0]->expr_type;
+
+            // Validate argument type matches array element type
+            if (!ast_type_equals(element_type, arg_type)) {
+                fprintf(stderr, "Error: Argument type does not match array element type\n");
+                exit(1);
+            }
+
+            const char *push_func = NULL;
+            switch (element_type->kind) {
+                case TYPE_LONG:
+                case TYPE_INT:
+                    push_func = "rt_array_push_long";
+                    break;
+                case TYPE_DOUBLE:
+                    push_func = "rt_array_push_double";
+                    break;
+                case TYPE_CHAR:
+                    push_func = "rt_array_push_char";
+                    break;
+                case TYPE_STRING:
+                    push_func = "rt_array_push_string";
+                    break;
+                case TYPE_BOOL:
+                    push_func = "rt_array_push_bool";
+                    break;
+                default:
+                    fprintf(stderr, "Error: Unsupported array element type for push\n");
+                    exit(1);
+            }
             // Assuming no temps needed for this simple case (arrays and primitives don't produce temps)
-            return arena_sprintf(gen->arena, "rt_array_push_long(%s, %s);", object_str, arg_str);
+            return arena_sprintf(gen->arena, "%s(%s, %s);", push_func, object_str, arg_str);
         }
     }
     
@@ -789,7 +857,8 @@ static char *code_gen_array_expression(CodeGen *gen, Expr *e)
     if (elem_type->kind == TYPE_ARRAY) {
         literal_type = arena_sprintf(gen->arena, "%s (*)[]", elem_c);
     } else {
-        literal_type = arena_sprintf(gen->arena, "%s []", elem_c);
+        // Use pointer-to-pointer notation instead of array notation
+        literal_type = arena_sprintf(gen->arena, "%s *", elem_c);
     }
     char *inits = arena_strdup(gen->arena, "");
     for (int i = 0; i < arr->element_count; i++) {

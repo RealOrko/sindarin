@@ -68,6 +68,10 @@ const char *get_expected(Arena *arena, const char *expected)
         "extern long rt_gt_string(char *, char *);\n"
         "extern long rt_ge_string(char *, char *);\n"
         "extern void rt_array_push_long(long *, long);\n"
+        "extern void rt_array_push_double(long *, long);\n"
+        "extern void rt_array_push_char(long *, long);\n"
+        "extern void rt_array_push_string(long *, long);\n"
+        "extern void rt_array_push_bool(long *, long);\n"
         "extern void rt_free_string(char *);\n\n";
 
     size_t total_len = strlen(header) + strlen(expected) + 1;
@@ -185,7 +189,7 @@ void test_code_gen_headers_and_externs()
     code_gen_module(&gen, &module);
 
     // Expected with full headers and externs + dummy main
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -234,7 +238,7 @@ void test_code_gen_literal_expression()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "42L;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -284,7 +288,7 @@ void test_code_gen_variable_expression()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "long x = 0;\n"
                                   "x;\n"
                                   "int main() {\n"
@@ -346,7 +350,7 @@ void test_code_gen_binary_expression_int_add()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "rt_add_long(1L, 2L);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -407,7 +411,7 @@ void test_code_gen_binary_expression_string_concat()
 
     // Note: Assuming the exact format from code_gen_binary_expression for strings uses rt_str_concat with temps and frees
     // For this test, using a placeholder based on the provided code snippet; adjust if full implementation differs
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "{\n"
                                   "    char *_tmp = rt_str_concat(\"hello\", \"world\");\n"
                                   "    (void)_tmp;\n"
@@ -466,7 +470,7 @@ void test_code_gen_unary_expression_negate()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "rt_neg_long(5L);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -524,7 +528,7 @@ void test_code_gen_assign_expression()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "long x = 0;\n"
                                   "(x = 10L);\n"
                                   "int main() {\n"
@@ -587,7 +591,7 @@ void test_code_gen_call_expression_simple()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "rt_print_string(\"Hello, world!\");\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -635,7 +639,7 @@ void test_code_gen_function_simple_void()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "void myfn() {\n"
                                   "    goto myfn_return;\n"
                                   "myfn_return:\n"
@@ -707,7 +711,7 @@ void test_code_gen_function_with_params_and_return()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "long add(long a) {\n"
                                   "    long _return_value = 0;\n"
                                   "    _return_value = a;\n"
@@ -761,7 +765,7 @@ void test_code_gen_main_function_special_case()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "int main() {\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
@@ -815,7 +819,7 @@ void test_code_gen_block_statement()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "{\n"
                                   "    long block_var = 0;\n"
                                   "}\n"
@@ -874,7 +878,7 @@ void test_code_gen_if_statement()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "if (1L) {\n"
                                   "    print;\n"
                                   "}\n"
@@ -933,7 +937,7 @@ void test_code_gen_while_statement()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "while (1L) {\n"
                                   "    print;\n"
                                   "}\n"
@@ -1036,7 +1040,7 @@ void test_code_gen_for_statement()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "{\n"
                                   "    long k = 0L;\n"
                                   "    while (rt_lt_long(k, 5L)) {\n"
@@ -1098,7 +1102,7 @@ void test_code_gen_string_free_in_block()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "{\n"
                                   "    char * s = \"test\";\n"
                                   "    if (s) {\n"
@@ -1154,7 +1158,7 @@ void test_code_gen_increment_decrement()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "long counter = 0;\n"
                                   "rt_post_inc_long(&counter);\n"
                                   "int main() {\n"
@@ -1196,7 +1200,7 @@ void test_code_gen_null_expression()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1260,7 +1264,7 @@ void test_code_gen_module_no_main_adds_dummy()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1329,8 +1333,8 @@ void test_code_gen_array_literal()
 
     // Assuming code_gen_array_expression generates something like "(long[]){1L, 2L}"
     // Adjust expected based on actual implementation; here assuming pointer cast for dynamic array.
-    char *expected = get_expected(&arena,
-                                  "(long []){1L, 2L};\n"
+    const char *expected = get_expected(&arena,
+                                  "(long *){1L, 2L};\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1408,8 +1412,8 @@ void test_code_gen_array_var_declaration_with_init()
 
     // Expected: long * arr = (long[]){3L, 4L}; arr; (adjust based on actual get_c_type and init)
     // Assuming "long * arr = (long[]){3L, 4L};" for dynamic array simulation.
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){3L, 4L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){3L, 4L};\n"
                                   "arr;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1462,7 +1466,7 @@ void test_code_gen_array_var_declaration_without_init()
     symbol_table_cleanup(&sym_table);
 
     // Expected: long * empty_arr = NULL; empty_arr;
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "long * empty_arr = NULL;\n"
                                   "empty_arr;\n"
                                   "int main() {\n"
@@ -1559,8 +1563,8 @@ void test_code_gen_array_access()
     symbol_table_cleanup(&sym_table);
 
     // Expected: long * arr = (long[]){10L, 20L, 30L}; arr[1];
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){10L, 20L, 30L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){10L, 20L, 30L};\n"
                                   "arr[1L];\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1664,8 +1668,8 @@ void test_code_gen_array_access_in_expression()
     symbol_table_cleanup(&sym_table);
 
     // Expected: long * arr = (long[]){5L, 10L}; rt_add_long(arr[0], arr[1]);
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){5L, 10L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){5L, 10L};\n"
                                   "rt_add_long(arr[0L], arr[1L]);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1726,7 +1730,7 @@ void test_code_gen_array_type_in_function_param()
     symbol_table_cleanup(&sym_table);
 
     // Expected: void print_arr(long * arr) { ... }
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "void print_arr(long * print_arr) {\n"
                                   "    goto print_arr_return;\n"
                                   "print_arr_return:\n"
@@ -1791,7 +1795,7 @@ void test_code_gen_array_of_arrays()
 
     // Expected: long * (*)[] nested = (long * (*)[]){}; nested; (adjust for nested pointer types)
     // get_c_type for array of array: ((long[])[]) or long * (*)[]
-    char *expected = get_expected(&arena,
+    const char *expected = get_expected(&arena,
                                   "long * (*)[] nested = (long * (*)[]){};\n"
                                   "nested;\n"
                                   "int main() {\n"
@@ -1808,7 +1812,7 @@ void test_code_gen_array_of_arrays()
     DEBUG_INFO("Finished test_code_gen_array_of_arrays");
 }
 
-void test_code_gen_array_push()
+void test_code_gen_array_push_long()
 {
     DEBUG_INFO("Starting test_code_gen_array_push");
     printf("Testing code_gen for array push operation...\n");
@@ -1880,8 +1884,8 @@ void test_code_gen_array_push()
 
     // Expected: Assuming rt_array_push(arr, 1L); arr;
     // But since member not handled, will crash; expected for fixed version
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){};\n"
                                   "rt_array_push_long(arr, 1L);\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -1896,6 +1900,456 @@ void test_code_gen_array_push()
     arena_free(&arena);
 
     DEBUG_INFO("Finished test_code_gen_array_push");
+}
+
+void test_code_gen_array_push_int()
+{
+    DEBUG_INFO("Starting test_code_gen_array_push_int");
+    printf("Testing code_gen for int array push operation...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Token var_tok;
+    setup_basic_token(&var_tok, TOKEN_IDENTIFIER, "arr");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+    Type *arr_type = ast_create_array_type(&arena, int_type);
+
+    // Declare arr: int[] = {} (empty)
+    Token init_tok;
+    setup_basic_token(&init_tok, TOKEN_ARRAY_LITERAL, "{}");
+    Expr **empty_elements = NULL;
+    int empty_count = 0;
+    Expr *empty_init = ast_create_array_expr(&arena, empty_elements, empty_count, &init_tok);
+    empty_init->expr_type = arr_type;
+
+    Stmt *var_decl = ast_create_var_decl_stmt(&arena, var_tok, arr_type, empty_init, &var_tok);
+
+    // arr.push(1)
+    Token push_tok;
+    setup_basic_token(&push_tok, TOKEN_IDENTIFIER, "push");
+
+    Expr *arr_var = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    arr_var->expr_type = arr_type;
+
+    Expr *member = ast_create_member_expr(&arena, arr_var, push_tok, &push_tok);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    member->expr_type = ast_create_function_type(&arena, void_type, NULL, 0);
+
+    Token arg_tok;
+    setup_basic_token(&arg_tok, TOKEN_INT_LITERAL, "1");
+    token_set_int_literal(&arg_tok, 1);
+    LiteralValue arg_val = {.int_value = 1};
+    Expr *arg_expr = ast_create_literal_expr(&arena, arg_val, int_type, false, &arg_tok);
+    arg_expr->expr_type = int_type;
+
+    Expr **args = arena_alloc(&arena, sizeof(Expr *));
+    args[0] = arg_expr;
+    int arg_count = 1;
+
+    Expr *push_call = ast_create_call_expr(&arena, member, args, arg_count, &push_tok);
+    push_call->expr_type = void_type;
+
+    Stmt *push_stmt = ast_create_expr_stmt(&arena, push_call, &push_tok);
+
+    // Use arr in print or something, but for simplicity, just the push
+    Expr *use_arr = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    use_arr->expr_type = arr_type;
+    Stmt *use_stmt = ast_create_expr_stmt(&arena, use_arr, &var_tok);
+
+    ast_module_add_statement(&arena, &module, var_decl);
+    ast_module_add_statement(&arena, &module, push_stmt);
+    ast_module_add_statement(&arena, &module, use_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    // Expected: Assuming rt_array_push_long(arr, 1L); arr;
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){};\n"
+                                  "rt_array_push_long(arr, 1L);\n"
+                                  "arr;\n"
+                                  "int main() {\n"
+                                  "    return 0;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_array_push_int");
+}
+
+void test_code_gen_array_push_double()
+{
+    DEBUG_INFO("Starting test_code_gen_array_push_double");
+    printf("Testing code_gen for double array push operation...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Token var_tok;
+    setup_basic_token(&var_tok, TOKEN_IDENTIFIER, "arr");
+
+    Type *double_type = ast_create_primitive_type(&arena, TYPE_DOUBLE);
+    Type *arr_type = ast_create_array_type(&arena, double_type);
+
+    // Declare arr: double[] = {} (empty)
+    Token init_tok;
+    setup_basic_token(&init_tok, TOKEN_ARRAY_LITERAL, "{}");
+    Expr **empty_elements = NULL;
+    int empty_count = 0;
+    Expr *empty_init = ast_create_array_expr(&arena, empty_elements, empty_count, &init_tok);
+    empty_init->expr_type = arr_type;
+
+    Stmt *var_decl = ast_create_var_decl_stmt(&arena, var_tok, arr_type, empty_init, &var_tok);
+
+    // arr.push(1.0)
+    Token push_tok;
+    setup_basic_token(&push_tok, TOKEN_IDENTIFIER, "push");
+
+    Expr *arr_var = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    arr_var->expr_type = arr_type;
+
+    Expr *member = ast_create_member_expr(&arena, arr_var, push_tok, &push_tok);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    member->expr_type = ast_create_function_type(&arena, void_type, NULL, 0);
+
+    Token arg_tok;
+    setup_basic_token(&arg_tok, TOKEN_DOUBLE_LITERAL, "1.0");
+    token_set_double_literal(&arg_tok, 1.0);
+    LiteralValue arg_val = {.double_value = 1.0};
+    Expr *arg_expr = ast_create_literal_expr(&arena, arg_val, double_type, false, &arg_tok);
+    arg_expr->expr_type = double_type;
+
+    Expr **args = arena_alloc(&arena, sizeof(Expr *));
+    args[0] = arg_expr;
+    int arg_count = 1;
+
+    Expr *push_call = ast_create_call_expr(&arena, member, args, arg_count, &push_tok);
+    push_call->expr_type = void_type;
+
+    Stmt *push_stmt = ast_create_expr_stmt(&arena, push_call, &push_tok);
+
+    // Use arr in print or something, but for simplicity, just the push
+    Expr *use_arr = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    use_arr->expr_type = arr_type;
+    Stmt *use_stmt = ast_create_expr_stmt(&arena, use_arr, &var_tok);
+
+    ast_module_add_statement(&arena, &module, var_decl);
+    ast_module_add_statement(&arena, &module, push_stmt);
+    ast_module_add_statement(&arena, &module, use_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    // Expected: double * arr = (double []){}; rt_array_push_double(arr, 1.0); arr;
+    const char *expected = get_expected(&arena,
+                                  "double * arr = (double *){};\n"
+                                  "rt_array_push_double(arr, 1.0);\n"
+                                  "arr;\n"
+                                  "int main() {\n"
+                                  "    return 0;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_array_push_double");
+}
+
+void test_code_gen_array_push_char()
+{
+    DEBUG_INFO("Starting test_code_gen_array_push_char");
+    printf("Testing code_gen for char array push operation...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Token var_tok;
+    setup_basic_token(&var_tok, TOKEN_IDENTIFIER, "arr");
+
+    Type *char_type = ast_create_primitive_type(&arena, TYPE_CHAR);
+    Type *arr_type = ast_create_array_type(&arena, char_type);
+
+    // Declare arr: char[] = {} (empty)
+    Token init_tok;
+    setup_basic_token(&init_tok, TOKEN_ARRAY_LITERAL, "{}");
+    Expr **empty_elements = NULL;
+    int empty_count = 0;
+    Expr *empty_init = ast_create_array_expr(&arena, empty_elements, empty_count, &init_tok);
+    empty_init->expr_type = arr_type;
+
+    Stmt *var_decl = ast_create_var_decl_stmt(&arena, var_tok, arr_type, empty_init, &var_tok);
+
+    // arr.push('a')
+    Token push_tok;
+    setup_basic_token(&push_tok, TOKEN_IDENTIFIER, "push");
+
+    Expr *arr_var = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    arr_var->expr_type = arr_type;
+
+    Expr *member = ast_create_member_expr(&arena, arr_var, push_tok, &push_tok);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    member->expr_type = ast_create_function_type(&arena, void_type, NULL, 0);
+
+    Token arg_tok;
+    setup_basic_token(&arg_tok, TOKEN_CHAR_LITERAL, "'a'");
+    token_set_char_literal(&arg_tok, 'a');
+    LiteralValue arg_val = {.char_value = 'a'};
+    Expr *arg_expr = ast_create_literal_expr(&arena, arg_val, char_type, false, &arg_tok);
+    arg_expr->expr_type = char_type;
+
+    Expr **args = arena_alloc(&arena, sizeof(Expr *));
+    args[0] = arg_expr;
+    int arg_count = 1;
+
+    Expr *push_call = ast_create_call_expr(&arena, member, args, arg_count, &push_tok);
+    push_call->expr_type = void_type;
+
+    Stmt *push_stmt = ast_create_expr_stmt(&arena, push_call, &push_tok);
+
+    // Use arr in print or something, but for simplicity, just the push
+    Expr *use_arr = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    use_arr->expr_type = arr_type;
+    Stmt *use_stmt = ast_create_expr_stmt(&arena, use_arr, &var_tok);
+
+    ast_module_add_statement(&arena, &module, var_decl);
+    ast_module_add_statement(&arena, &module, push_stmt);
+    ast_module_add_statement(&arena, &module, use_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    // Expected: char * arr = (char []){}; rt_array_push_char(arr, 'a'); arr;
+    const char *expected = get_expected(&arena,
+                                  "char * arr = (char *){};\n"
+                                  "rt_array_push_char(arr, 'a');\n"
+                                  "arr;\n"
+                                  "int main() {\n"
+                                  "    return 0;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_array_push_char");
+}
+
+void test_code_gen_array_push_bool()
+{
+    DEBUG_INFO("Starting test_code_gen_array_push_bool");
+    printf("Testing code_gen for bool array push operation...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Token var_tok;
+    setup_basic_token(&var_tok, TOKEN_IDENTIFIER, "arr");
+
+    Type *bool_type = ast_create_primitive_type(&arena, TYPE_BOOL);
+    Type *arr_type = ast_create_array_type(&arena, bool_type);
+
+    // Declare arr: bool[] = {} (empty)
+    Token init_tok;
+    setup_basic_token(&init_tok, TOKEN_ARRAY_LITERAL, "{}");
+    Expr **empty_elements = NULL;
+    int empty_count = 0;
+    Expr *empty_init = ast_create_array_expr(&arena, empty_elements, empty_count, &init_tok);
+    empty_init->expr_type = arr_type;
+
+    Stmt *var_decl = ast_create_var_decl_stmt(&arena, var_tok, arr_type, empty_init, &var_tok);
+
+    // arr.push(true)
+    Token push_tok;
+    setup_basic_token(&push_tok, TOKEN_IDENTIFIER, "push");
+
+    Expr *arr_var = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    arr_var->expr_type = arr_type;
+
+    Expr *member = ast_create_member_expr(&arena, arr_var, push_tok, &push_tok);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    member->expr_type = ast_create_function_type(&arena, void_type, NULL, 0);
+
+    Token arg_tok;
+    setup_basic_token(&arg_tok, TOKEN_BOOL_LITERAL, "true");
+    token_set_bool_literal(&arg_tok, true);
+    LiteralValue arg_val = {.bool_value = true};
+    Expr *arg_expr = ast_create_literal_expr(&arena, arg_val, bool_type, false, &arg_tok);
+    arg_expr->expr_type = bool_type;
+
+    Expr **args = arena_alloc(&arena, sizeof(Expr *));
+    args[0] = arg_expr;
+    int arg_count = 1;
+
+    Expr *push_call = ast_create_call_expr(&arena, member, args, arg_count, &push_tok);
+    push_call->expr_type = void_type;
+
+    Stmt *push_stmt = ast_create_expr_stmt(&arena, push_call, &push_tok);
+
+    // Use arr in print or something, but for simplicity, just the push
+    Expr *use_arr = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    use_arr->expr_type = arr_type;
+    Stmt *use_stmt = ast_create_expr_stmt(&arena, use_arr, &var_tok);
+
+    ast_module_add_statement(&arena, &module, var_decl);
+    ast_module_add_statement(&arena, &module, push_stmt);
+    ast_module_add_statement(&arena, &module, use_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    // Expected: int * arr = (int []){}; rt_array_push_bool(arr, 1); arr;
+    const char *expected = get_expected(&arena,
+                                  "bool * arr = (bool *){};\n"
+                                  "rt_array_push_bool(arr, 1L);\n"
+                                  "arr;\n"
+                                  "int main() {\n"
+                                  "    return 0;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_array_push_bool");
+}
+
+void test_code_gen_array_push_string()
+{
+    DEBUG_INFO("Starting test_code_gen_array_push_string");
+    printf("Testing code_gen for string array push operation...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Token var_tok;
+    setup_basic_token(&var_tok, TOKEN_IDENTIFIER, "arr");
+
+    Type *string_type = ast_create_primitive_type(&arena, TYPE_STRING);
+    Type *arr_type = ast_create_array_type(&arena, string_type);
+
+    // Declare arr: string[] = {} (empty)
+    Token init_tok;
+    setup_basic_token(&init_tok, TOKEN_ARRAY_LITERAL, "{}");
+    Expr **empty_elements = NULL;
+    int empty_count = 0;
+    Expr *empty_init = ast_create_array_expr(&arena, empty_elements, empty_count, &init_tok);
+    empty_init->expr_type = arr_type;
+
+    Stmt *var_decl = ast_create_var_decl_stmt(&arena, var_tok, arr_type, empty_init, &var_tok);
+
+    // arr.push("hello")
+    Token push_tok;
+    setup_basic_token(&push_tok, TOKEN_IDENTIFIER, "push");
+
+    Expr *arr_var = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    arr_var->expr_type = arr_type;
+
+    Expr *member = ast_create_member_expr(&arena, arr_var, push_tok, &push_tok);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+    member->expr_type = ast_create_function_type(&arena, void_type, NULL, 0);
+
+    Token arg_tok;
+    setup_basic_token(&arg_tok, TOKEN_STRING_LITERAL, "\"hello\"");
+    token_set_string_literal(&arg_tok, "hello");
+    LiteralValue arg_val = {.string_value = "hello"};
+    Expr *arg_expr = ast_create_literal_expr(&arena, arg_val, string_type, false, &arg_tok);
+    arg_expr->expr_type = string_type;
+
+    Expr **args = arena_alloc(&arena, sizeof(Expr *));
+    args[0] = arg_expr;
+    int arg_count = 1;
+
+    Expr *push_call = ast_create_call_expr(&arena, member, args, arg_count, &push_tok);
+    push_call->expr_type = void_type;
+
+    Stmt *push_stmt = ast_create_expr_stmt(&arena, push_call, &push_tok);
+
+    // Use arr in print or something, but for simplicity, just the push
+    Expr *use_arr = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    use_arr->expr_type = arr_type;
+    Stmt *use_stmt = ast_create_expr_stmt(&arena, use_arr, &var_tok);
+
+    ast_module_add_statement(&arena, &module, var_decl);
+    ast_module_add_statement(&arena, &module, push_stmt);
+    ast_module_add_statement(&arena, &module, use_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    // Expected: char ** arr = (char **){}; rt_array_push_string(arr, "hello"); arr;
+    const char *expected = get_expected(&arena,
+                                  "char * * arr = (char * *){};\n"
+                                  "rt_array_push_string(arr, \"hello\");\n"
+                                  "arr;\n"
+                                  "int main() {\n"
+                                  "    return 0;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_array_push_string");
 }
 
 void test_code_gen_array_clear()
@@ -1977,8 +2431,8 @@ void test_code_gen_array_clear()
     symbol_table_cleanup(&sym_table);
 
     // Expected: rt_array_clear(arr); arr;
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){1L, 2L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){1L, 2L};\n"
                                   "rt_array_clear(arr);\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -2104,10 +2558,10 @@ void test_code_gen_array_concat()
     symbol_table_cleanup(&sym_table);
 
     // Expected: long * result = rt_array_concat(arr, (long[]){2L, 3L}); result;
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){1L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){1L};\n"
                                   "long * result = NULL;\n"
-                                  "result = rt_array_concat(arr, (long []){2L, 3L});\n"
+                                  "result = rt_array_concat(arr, (long *){2L, 3L});\n"
                                   "result;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -2196,8 +2650,8 @@ void test_code_gen_array_length()
     symbol_table_cleanup(&sym_table);
 
     // Expected: arr->length; or rt_array_length(arr);
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){1L, 2L, 3L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){1L, 2L, 3L};\n"
                                   "rt_array_length(arr);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -2306,8 +2760,8 @@ void test_code_gen_array_pop()
     symbol_table_cleanup(&sym_table);
 
     // Expected: long result = rt_array_pop(arr); result; arr;
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){1L, 2L, 3L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){1L, 2L, 3L};\n"
                                   "long result = rt_array_pop(arr);\n"
                                   "result;\n"
                                   "arr;\n"
@@ -2402,8 +2856,8 @@ void test_code_gen_array_print()
     symbol_table_cleanup(&sym_table);
 
     // Expected: rt_print_pointer(arr); or similar, but since print is extern, assuming rt_print_array(arr);
-    char *expected = get_expected(&arena,
-                                  "long * arr = (long []){1L, 2L};\n"
+    const char *expected = get_expected(&arena,
+                                  "long * arr = (long *){1L, 2L};\n"
                                   "rt_print_array(arr);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -2421,35 +2875,40 @@ void test_code_gen_array_print()
 
 void test_code_gen_main()
 {
-    // test_code_gen_cleanup_null_output();
-    // test_code_gen_headers_and_externs();
-    // test_code_gen_literal_expression();
-    // test_code_gen_variable_expression();
-    // test_code_gen_binary_expression_int_add();
-    // test_code_gen_binary_expression_string_concat();
-    // test_code_gen_unary_expression_negate();
-    // test_code_gen_assign_expression();
-    // test_code_gen_call_expression_simple();
-    // test_code_gen_function_simple_void();
-    // test_code_gen_function_with_params_and_return();
-    // test_code_gen_main_function_special_case();
-    // test_code_gen_block_statement();
-    // test_code_gen_if_statement();
-    // test_code_gen_while_statement();
-    // test_code_gen_for_statement();
-    // test_code_gen_string_free_in_block();
-    // test_code_gen_increment_decrement();
-    // test_code_gen_null_expression();
-    // test_code_gen_new_label();
-    // test_code_gen_module_no_main_adds_dummy();
-    // test_code_gen_array_literal();
-    // test_code_gen_array_var_declaration_with_init();
-    // test_code_gen_array_var_declaration_without_init();
-    // test_code_gen_array_access();
-    // test_code_gen_array_access_in_expression();
-    // test_code_gen_array_type_in_function_param();
-    // test_code_gen_array_of_arrays();
-    test_code_gen_array_push();
+    test_code_gen_cleanup_null_output();
+    test_code_gen_headers_and_externs();
+    test_code_gen_literal_expression();
+    test_code_gen_variable_expression();
+    test_code_gen_binary_expression_int_add();
+    test_code_gen_binary_expression_string_concat();
+    test_code_gen_unary_expression_negate();
+    test_code_gen_assign_expression();
+    test_code_gen_call_expression_simple();
+    test_code_gen_function_simple_void();
+    test_code_gen_function_with_params_and_return();
+    test_code_gen_main_function_special_case();
+    test_code_gen_block_statement();
+    test_code_gen_if_statement();
+    test_code_gen_while_statement();
+    test_code_gen_for_statement();
+    test_code_gen_string_free_in_block();
+    test_code_gen_increment_decrement();
+    test_code_gen_null_expression();
+    test_code_gen_new_label();
+    test_code_gen_module_no_main_adds_dummy();
+    test_code_gen_array_literal();
+    test_code_gen_array_var_declaration_with_init();
+    test_code_gen_array_var_declaration_without_init();
+    test_code_gen_array_access();
+    test_code_gen_array_access_in_expression();
+    test_code_gen_array_type_in_function_param();
+    test_code_gen_array_of_arrays();
+    test_code_gen_array_push_long();
+    test_code_gen_array_push_int();
+    test_code_gen_array_push_double();
+    test_code_gen_array_push_char();
+    test_code_gen_array_push_string();
+    test_code_gen_array_push_bool();
     //test_code_gen_array_clear();
     //test_code_gen_array_concat();
     //test_code_gen_array_length();
