@@ -1327,7 +1327,7 @@ void test_code_gen_array_literal()
     // Assuming code_gen_array_expression generates something like "(long[]){1L, 2L}"
     // Adjust expected based on actual implementation; here assuming pointer cast for dynamic array.
     char *expected = get_expected(&arena,
-                                  "(long[]){1L, 2L};\n"
+                                  "(long []){1L, 2L};\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -1406,7 +1406,7 @@ void test_code_gen_array_var_declaration_with_init()
     // Expected: long * arr = (long[]){3L, 4L}; arr; (adjust based on actual get_c_type and init)
     // Assuming "long * arr = (long[]){3L, 4L};" for dynamic array simulation.
     char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){3L, 4L};\n"
+                                  "long * arr = (long []){3L, 4L};\n"
                                   "arr;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1557,7 +1557,7 @@ void test_code_gen_array_access()
 
     // Expected: long * arr = (long[]){10L, 20L, 30L}; arr[1];
     char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){10L, 20L, 30L};\n"
+                                  "long * arr = (long []){10L, 20L, 30L};\n"
                                   "arr[1L];\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1662,7 +1662,7 @@ void test_code_gen_array_access_in_expression()
 
     // Expected: long * arr = (long[]){5L, 10L}; rt_add_long(arr[0], arr[1]);
     char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){5L, 10L};\n"
+                                  "long * arr = (long []){5L, 10L};\n"
                                   "rt_add_long(arr[0L], arr[1L]);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1807,32 +1807,32 @@ void test_code_gen_array_of_arrays()
 
 void test_code_gen_main()
 {
-    // test_code_gen_cleanup_null_output();
-    // test_code_gen_headers_and_externs();
-    // test_code_gen_literal_expression();
-    // test_code_gen_variable_expression();
-    // test_code_gen_binary_expression_int_add();
-    // test_code_gen_binary_expression_string_concat();
-    // test_code_gen_unary_expression_negate();
-    // test_code_gen_assign_expression();
-    // test_code_gen_call_expression_simple();
-    // test_code_gen_function_simple_void();
-    // test_code_gen_function_with_params_and_return();
-    // test_code_gen_main_function_special_case();
-    // test_code_gen_block_statement();
-    // test_code_gen_if_statement();
-    // test_code_gen_while_statement();
-    // test_code_gen_for_statement();
-    // test_code_gen_string_free_in_block();
-    // test_code_gen_increment_decrement();
-    // test_code_gen_null_expression();
-    // test_code_gen_new_label();
-    // test_code_gen_module_no_main_adds_dummy();
-    // test_code_gen_array_literal();
-    // test_code_gen_array_var_declaration_with_init();
-    // test_code_gen_array_var_declaration_without_init();
-    // test_code_gen_array_access();
-    // test_code_gen_array_access_in_expression();
+    test_code_gen_cleanup_null_output();
+    test_code_gen_headers_and_externs();
+    test_code_gen_literal_expression();
+    test_code_gen_variable_expression();
+    test_code_gen_binary_expression_int_add();
+    test_code_gen_binary_expression_string_concat();
+    test_code_gen_unary_expression_negate();
+    test_code_gen_assign_expression();
+    test_code_gen_call_expression_simple();
+    test_code_gen_function_simple_void();
+    test_code_gen_function_with_params_and_return();
+    test_code_gen_main_function_special_case();
+    test_code_gen_block_statement();
+    test_code_gen_if_statement();
+    test_code_gen_while_statement();
+    test_code_gen_for_statement();
+    test_code_gen_string_free_in_block();
+    test_code_gen_increment_decrement();
+    test_code_gen_null_expression();
+    test_code_gen_new_label();
+    test_code_gen_module_no_main_adds_dummy();
+    test_code_gen_array_literal();
+    test_code_gen_array_var_declaration_with_init();
+    test_code_gen_array_var_declaration_without_init();
+    test_code_gen_array_access();
+    test_code_gen_array_access_in_expression();
     test_code_gen_array_type_in_function_param();
-    // test_code_gen_array_of_arrays();
+    test_code_gen_array_of_arrays();
 }

@@ -14,7 +14,7 @@ static char *code_gen_variable_expression(CodeGen *gen, VariableExpr *expr);
 static char *code_gen_assign_expression(CodeGen *gen, AssignExpr *expr);
 static char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr);
 static char *code_gen_call_expression(CodeGen *gen, Expr *expr);
-static char *code_gen_array_expression(CodeGen *gen, ArrayExpr *expr);
+static char *code_gen_array_expression(CodeGen *gen, Expr *expr);
 static char *code_gen_array_access_expression(CodeGen *gen, ArrayAccessExpr *expr);
 static char *code_gen_increment_expression(CodeGen *gen, Expr *expr);
 static char *code_gen_decrement_expression(CodeGen *gen, Expr *expr);
@@ -132,10 +132,20 @@ static const char *get_c_type(Arena *arena, Type *type)
     case TYPE_ARRAY:
     {
         const char *element_c_type = get_c_type(arena, type->as.array.element_type);
-        size_t len = strlen(element_c_type) + 3; // For ' *' and null terminator
-        char *result = arena_alloc(arena, len);
-        snprintf(result, len, "%s *", element_c_type);
-        return result;
+        if (type->as.array.element_type->kind == TYPE_ARRAY)
+        {
+            size_t len = strlen(element_c_type) + 10; // For " (*)[]" and null terminator
+            char *result = arena_alloc(arena, len);
+            snprintf(result, len, "%s (*)[]", element_c_type);
+            return result;
+        }
+        else
+        {
+            size_t len = strlen(element_c_type) + 3; // For ' *' and null terminator
+            char *result = arena_alloc(arena, len);
+            snprintf(result, len, "%s *", element_c_type);
+            return result;
+        }
     }
     case TYPE_FUNCTION:
     {
@@ -737,23 +747,30 @@ static char *code_gen_call_expression(CodeGen *gen, Expr *expr)
     return result;
 }
 
-static char *code_gen_array_expression(CodeGen *gen, ArrayExpr *expr)
+static char *code_gen_array_expression(CodeGen *gen, Expr *e)
 {
+    ArrayExpr *arr = &e->as.array;
     DEBUG_VERBOSE("Entering code_gen_array_expression");
-    if (expr->element_count == 0)
-    {
-        return arena_strdup(gen->arena, "(long[]){}");
+    Type *arr_type = e->expr_type;
+    if (arr_type->kind != TYPE_ARRAY) {
+        fprintf(stderr, "Error: Expected array type\n");
+        exit(1);
     }
-    Type *elem_t = expr->elements[0]->expr_type;
-    const char *elem_c = get_c_type(gen->arena, elem_t);
+    Type *elem_type = arr_type->as.array.element_type;
+    const char *elem_c = get_c_type(gen->arena, elem_type);
+    char *literal_type;
+    if (elem_type->kind == TYPE_ARRAY) {
+        literal_type = arena_sprintf(gen->arena, "%s (*)[]", elem_c);
+    } else {
+        literal_type = arena_sprintf(gen->arena, "%s []", elem_c);
+    }
     char *inits = arena_strdup(gen->arena, "");
-    for (int i = 0; i < expr->element_count; i++)
-    {
-        char *e = code_gen_expression(gen, expr->elements[i]);
+    for (int i = 0; i < arr->element_count; i++) {
+        char *el = code_gen_expression(gen, arr->elements[i]);
         char *sep = i > 0 ? ", " : "";
-        inits = arena_sprintf(gen->arena, "%s%s%s", inits, sep, e);
+        inits = arena_sprintf(gen->arena, "%s%s%s", inits, sep, el);
     }
-    return arena_sprintf(gen->arena, "(%s[]){%s}", elem_c, inits);
+    return arena_sprintf(gen->arena, "(%s){%s}", literal_type, inits);
 }
 
 static char *code_gen_array_access_expression(CodeGen *gen, ArrayAccessExpr *expr)
@@ -808,7 +825,7 @@ static char *code_gen_expression(CodeGen *gen, Expr *expr)
     case EXPR_CALL:
         return code_gen_call_expression(gen, expr);
     case EXPR_ARRAY:
-        return code_gen_array_expression(gen, &expr->as.array);
+        return code_gen_array_expression(gen, expr);
     case EXPR_ARRAY_ACCESS:
         return code_gen_array_access_expression(gen, &expr->as.array_access);
     case EXPR_INCREMENT:
