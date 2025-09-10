@@ -643,7 +643,7 @@ static char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             char *object_str = code_gen_expression(gen, member->object);
             char *arg_str = code_gen_expression(gen, call->arguments[0]);
             // Assuming no temps needed for this simple case (arrays and primitives don't produce temps)
-            return arena_sprintf(gen->arena, "rt_array_push(%s, %s)", object_str, arg_str);
+            return arena_sprintf(gen->arena, "rt_array_push(%s, %s);", object_str, arg_str);
         }
     }
     
