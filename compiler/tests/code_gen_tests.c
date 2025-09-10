@@ -67,7 +67,7 @@ const char *get_expected(Arena *arena, const char *expected)
         "extern long rt_le_string(char *, char *);\n"
         "extern long rt_gt_string(char *, char *);\n"
         "extern long rt_ge_string(char *, char *);\n"
-        "extern void rt_array_push(long *, long);\n"
+        "extern void rt_array_push_long(long *, long);\n"
         "extern void rt_free_string(char *);\n\n";
 
     size_t total_len = strlen(header) + strlen(expected) + 1;
@@ -1882,7 +1882,7 @@ void test_code_gen_array_push()
     // But since member not handled, will crash; expected for fixed version
     char *expected = get_expected(&arena,
                                   "long * arr = (long []){};\n"
-                                  "rt_array_push(arr, 1L);\n"
+                                  "rt_array_push_long(arr, 1L);\n"
                                   "arr;\n"
                                   "int main() {\n"
                                   "    return 0;\n"

@@ -324,7 +324,7 @@ int rt_ge_string(const char *a, const char *b) {
     return strcmp(a, b) >= 0;
 }
 
-long *rt_array_push(long *arr, long element) {
+long *rt_array_push_long(long *arr, long element) {
     // Structure to store array metadata (size and capacity) before the array data
     struct array_metadata {
         size_t size;     // Number of elements currently in the array

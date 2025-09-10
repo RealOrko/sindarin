@@ -42,7 +42,7 @@ double rt_neg_double(double a);
 int rt_not_bool(int a);
 long rt_post_inc_long(long *p);
 long rt_post_dec_long(long *p);
-long *rt_array_push(long *arr, long element);
+long *rt_array_push_long(long *arr, long element);
 void rt_free_string(char *s);
 
 #endif
