@@ -336,6 +336,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern long rt_le_string(char *, char *);\n");
     indented_fprintf(gen, 0, "extern long rt_gt_string(char *, char *);\n");
     indented_fprintf(gen, 0, "extern long rt_ge_string(char *, char *);\n");
+    indented_fprintf(gen, 0, "extern void rt_array_push(long *, long);\n");
     indented_fprintf(gen, 0, "extern void rt_free_string(char *);\n\n");
 }
 
@@ -631,6 +632,21 @@ static char *code_gen_call_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_call_expression");
     CallExpr *call = &expr->as.call;
+    
+    if (call->callee->type == EXPR_MEMBER) {
+        MemberExpr *member = &call->callee->as.member;
+        char *member_name_str = get_var_name(gen->arena, member->member_name);
+        Type *object_type = member->object->expr_type;
+        if (strcmp(member_name_str, "push") == 0 &&
+            object_type->kind == TYPE_ARRAY &&
+            call->arg_count == 1) {
+            char *object_str = code_gen_expression(gen, member->object);
+            char *arg_str = code_gen_expression(gen, call->arguments[0]);
+            // Assuming no temps needed for this simple case (arrays and primitives don't produce temps)
+            return arena_sprintf(gen->arena, "rt_array_push(%s, %s)", object_str, arg_str);
+        }
+    }
+    
     char *callee_str = code_gen_expression(gen, call->callee);
 
     char **arg_strs = arena_alloc(gen->arena, call->arg_count * sizeof(char *));
