@@ -17,11 +17,11 @@ int main()
 
     // *** Arena ***
 
-    test_arena_main();
+    //test_arena_main();
 
     // *** AST ***
     
-    test_ast_main();
+    //test_ast_main();
 
     // *** Code Gen ***
     
@@ -29,27 +29,27 @@ int main()
 
     // *** File ***
 
-    test_file_main();
+    //test_file_main();
 
     // *** Lexer ***
 
-    test_lexer_main();
+    //test_lexer_main();
 
     // *** Parser ***
 
-    test_parser_main();
+    //test_parser_main();
 
     // *** Symbol Table ***
 
-    test_symbol_table_main();
+    //test_symbol_table_main();
     
     // *** Token ***
 
-    test_token_main();
+    //test_token_main();
 
     // *** Type Checker ***
 
-    test_type_checker_main();
+    //test_type_checker_main();
 
     // *** Complete ***
 

@@ -47,6 +47,7 @@ extern long rt_gt_string(char *, char *);
 extern long rt_ge_string(char *, char *);
 extern void rt_free_string(char *);
 
+long * arr = (long[]){10L, 20L, 30L};
 0L;
 int main() {
     return 0;
