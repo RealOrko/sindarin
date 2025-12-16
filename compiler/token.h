@@ -37,6 +37,12 @@ typedef enum
     TOKEN_STR,
     TOKEN_BOOL,
     TOKEN_VOID,
+    // Memory management keywords
+    TOKEN_SHARED,
+    TOKEN_PRIVATE,
+    TOKEN_AS,
+    TOKEN_VAL,
+    TOKEN_REF,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,

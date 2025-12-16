@@ -13,6 +13,7 @@
 #include "lexer_tests_literal.c"
 #include "lexer_tests_operator.c"
 #include "lexer_tests_indent.c"
+#include "lexer_tests_memory.c"
 
 void test_lexer_main()
 {
@@ -20,4 +21,5 @@ void test_lexer_main()
     test_lexer_literal_main();
     test_lexer_operator_main();
     test_lexer_indent_main();
+    test_lexer_memory_main();
 }
