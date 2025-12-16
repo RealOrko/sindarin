@@ -310,3 +310,44 @@ Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *
     expr->token = ast_clone_token(arena, loc_token);
     return expr;
 }
+
+Expr *ast_create_range_expr(Arena *arena, Expr *start, Expr *end, const Token *loc_token)
+{
+    if (start == NULL || end == NULL)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_RANGE;
+    expr->as.range.start = start;
+    expr->as.range.end = end;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}
+
+Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token)
+{
+    if (array == NULL)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_SPREAD;
+    expr->as.spread.array = array;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}

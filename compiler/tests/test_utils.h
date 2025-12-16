@@ -246,6 +246,8 @@ static const char *CODE_GEN_RUNTIME_HEADER =
     "extern int rt_array_eq_char(char *, char *);\n"
     "extern int rt_array_eq_bool(int *, int *);\n"
     "extern int rt_array_eq_string(char **, char **);\n\n"
+    "/* Runtime range creation */\n"
+    "extern long *rt_array_range(long, long);\n\n"
     "/* Forward declarations */\n";
 
 /*

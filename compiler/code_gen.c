@@ -237,6 +237,9 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_array_eq_char(char *, char *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_eq_bool(int *, int *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_eq_string(char **, char **);\n\n");
+
+    indented_fprintf(gen, 0, "/* Runtime range creation */\n");
+    indented_fprintf(gen, 0, "extern long *rt_array_range(long, long);\n\n");
 }
 
 static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)

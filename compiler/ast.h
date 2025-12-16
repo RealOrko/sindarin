@@ -60,7 +60,9 @@ typedef enum
     EXPR_DECREMENT,
     EXPR_INTERPOLATED,
     EXPR_MEMBER,
-    EXPR_ARRAY_SLICE
+    EXPR_ARRAY_SLICE,
+    EXPR_RANGE,
+    EXPR_SPREAD
 } ExprType;
 
 typedef struct
@@ -123,6 +125,17 @@ typedef struct
 
 typedef struct
 {
+    Expr *start;  // Start of range (required)
+    Expr *end;    // End of range (required)
+} RangeExpr;
+
+typedef struct
+{
+    Expr *array;  // The array being spread
+} SpreadExpr;
+
+typedef struct
+{
     Expr **parts;
     int part_count;
 } InterpolExpr;
@@ -149,6 +162,8 @@ struct Expr
         ArrayExpr array;
         ArrayAccessExpr array_access;
         ArraySliceExpr array_slice;
+        RangeExpr range;
+        SpreadExpr spread;
         Expr *operand;
         MemberExpr member;
         InterpolExpr interpol;
@@ -300,6 +315,8 @@ Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, c
 Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, const Token *loc_token);
 Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenType comparison_type, const Token *loc_token);
 Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *end, Expr *step, const Token *loc_token);
+Expr *ast_create_range_expr(Arena *arena, Expr *start, Expr *end, const Token *loc_token);
+Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token);

@@ -168,6 +168,8 @@ const char *token_type_to_string(TokenType type)
         return "DOT";
     case TOKEN_RANGE:
         return "RANGE";
+    case TOKEN_SPREAD:
+        return "SPREAD";
     case TOKEN_ARROW:
         return "ARROW";
     case TOKEN_INDENT:

@@ -269,25 +269,40 @@ static Type *type_check_array(Expr *expr, SymbolTable *table)
     bool valid = true;
     for (int i = 0; i < expr->as.array.element_count; i++)
     {
-        Type *et = type_check_expr(expr->as.array.elements[i], table);
+        Expr *element = expr->as.array.elements[i];
+        Type *et = type_check_expr(element, table);
         if (et == NULL)
         {
             valid = false;
             continue;
         }
+
+        // For spread expressions, the type returned is the element type
+        // For range expressions, the type returned is int[] (an array)
+        // For regular expressions, we use the type directly
+        Type *actual_elem_type = et;
+
+        // If this is a range expression, get the element type of the resulting array
+        if (element->type == EXPR_RANGE)
+        {
+            // Range returns int[], so element type is int
+            actual_elem_type = et->as.array.element_type;
+        }
+        // Spread already returns the element type from type_check_spread
+
         if (elem_type == NULL)
         {
-            elem_type = et;
+            elem_type = actual_elem_type;
             DEBUG_VERBOSE("First array element type: %d", elem_type->kind);
         }
         else
         {
             bool equal = false;
-            if (elem_type->kind == et->kind)
+            if (elem_type->kind == actual_elem_type->kind)
             {
                 if (elem_type->kind == TYPE_ARRAY || elem_type->kind == TYPE_FUNCTION)
                 {
-                    equal = ast_type_equals(elem_type, et);
+                    equal = ast_type_equals(elem_type, actual_elem_type);
                 }
                 else
                 {
@@ -393,6 +408,55 @@ static Type *type_check_array_slice(Expr *expr, SymbolTable *table)
     DEBUG_VERBOSE("Returning array type for slice: %d", array_t->kind);
     // Slicing an array returns an array of the same element type
     return array_t;
+}
+
+static Type *type_check_range(Expr *expr, SymbolTable *table)
+{
+    DEBUG_VERBOSE("Type checking range expression");
+    Type *start_t = type_check_expr(expr->as.range.start, table);
+    if (start_t == NULL)
+    {
+        type_error(expr->token, "Invalid start expression in range");
+        return NULL;
+    }
+    if (!is_numeric_type(start_t))
+    {
+        type_error(expr->token, "Range start must be numeric type");
+        return NULL;
+    }
+    Type *end_t = type_check_expr(expr->as.range.end, table);
+    if (end_t == NULL)
+    {
+        type_error(expr->token, "Invalid end expression in range");
+        return NULL;
+    }
+    if (!is_numeric_type(end_t))
+    {
+        type_error(expr->token, "Range end must be numeric type");
+        return NULL;
+    }
+    // Range always produces an int[] array
+    DEBUG_VERBOSE("Returning int[] type for range");
+    return ast_create_array_type(table->arena, ast_create_primitive_type(table->arena, TYPE_INT));
+}
+
+static Type *type_check_spread(Expr *expr, SymbolTable *table)
+{
+    DEBUG_VERBOSE("Type checking spread expression");
+    Type *array_t = type_check_expr(expr->as.spread.array, table);
+    if (array_t == NULL)
+    {
+        type_error(expr->token, "Invalid expression in spread");
+        return NULL;
+    }
+    if (array_t->kind != TYPE_ARRAY)
+    {
+        type_error(expr->token, "Spread operator requires an array");
+        return NULL;
+    }
+    // Spread returns the element type (for type checking in array literals)
+    DEBUG_VERBOSE("Returning element type for spread: %d", array_t->as.array.element_type->kind);
+    return array_t->as.array.element_type;
 }
 
 static Type *type_check_member(Expr *expr, SymbolTable *table)
@@ -639,6 +703,12 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_ARRAY_SLICE:
         t = type_check_array_slice(expr, table);
+        break;
+    case EXPR_RANGE:
+        t = type_check_range(expr, table);
+        break;
+    case EXPR_SPREAD:
+        t = type_check_spread(expr, table);
         break;
     }
     expr->expr_type = t;

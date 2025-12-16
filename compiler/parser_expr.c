@@ -94,15 +94,30 @@ Expr *parser_equality(Parser *parser)
 
 Expr *parser_comparison(Parser *parser)
 {
-    Expr *expr = parser_term(parser);
+    Expr *expr = parser_range(parser);
     while (parser_match(parser, TOKEN_LESS) || parser_match(parser, TOKEN_LESS_EQUAL) ||
            parser_match(parser, TOKEN_GREATER) || parser_match(parser, TOKEN_GREATER_EQUAL))
     {
         Token op = parser->previous;
         TokenType operator = op.type;
-        Expr *right = parser_term(parser);
+        Expr *right = parser_range(parser);
         expr = ast_create_binary_expr(parser->arena, expr, operator, right, &op);
     }
+    return expr;
+}
+
+Expr *parser_range(Parser *parser)
+{
+    Expr *expr = parser_term(parser);
+
+    // Check for range operator: expr..end
+    if (parser_match(parser, TOKEN_RANGE))
+    {
+        Token range_token = parser->previous;
+        Expr *end = parser_term(parser);
+        return ast_create_range_expr(parser->arena, expr, end, &range_token);
+    }
+
     return expr;
 }
 
@@ -252,7 +267,19 @@ Expr *parser_primary(Parser *parser)
         {
             do
             {
-                Expr *elem = parser_expression(parser);
+                Expr *elem;
+                // Check for spread operator: ...expr
+                if (parser_match(parser, TOKEN_SPREAD))
+                {
+                    Token spread_token = parser->previous;
+                    Expr *spread_array = parser_expression(parser);
+                    elem = ast_create_spread_expr(parser->arena, spread_array, &spread_token);
+                }
+                else
+                {
+                    elem = parser_expression(parser);
+                }
+
                 if (elem != NULL)
                 {
                     if (count >= capacity)
@@ -471,19 +498,21 @@ Expr *parser_array_access(Parser *parser, Expr *array)
         // This is a slice from the beginning: arr[..] or arr[..end] or arr[..end:step]
         if (!parser_check(parser, TOKEN_RIGHT_BRACKET) && !parser_check(parser, TOKEN_COLON))
         {
-            end = parser_expression(parser);
+            // Use parser_term to avoid consuming range operator in nested expressions
+            end = parser_term(parser);
         }
         // Check for step: arr[..end:step] or arr[..:step]
         if (parser_match(parser, TOKEN_COLON))
         {
-            step = parser_expression(parser);
+            step = parser_term(parser);
         }
         parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after slice");
         return ast_create_array_slice_expr(parser->arena, array, NULL, end, step, &bracket);
     }
 
     // Parse the first expression (could be index or slice start)
-    Expr *first = parser_expression(parser);
+    // Use parser_term to avoid consuming range operator - we handle it explicitly below
+    Expr *first = parser_term(parser);
 
     // Check if this is a slice with start: arr[start..] or arr[start..end] or arr[start..end:step]
     if (parser_match(parser, TOKEN_RANGE))
@@ -492,12 +521,12 @@ Expr *parser_array_access(Parser *parser, Expr *array)
         // Check if there's an end expression
         if (!parser_check(parser, TOKEN_RIGHT_BRACKET) && !parser_check(parser, TOKEN_COLON))
         {
-            end = parser_expression(parser);
+            end = parser_term(parser);
         }
         // Check for step: arr[start..end:step] or arr[start..:step]
         if (parser_match(parser, TOKEN_COLON))
         {
-            step = parser_expression(parser);
+            step = parser_term(parser);
         }
         parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after slice");
         return ast_create_array_slice_expr(parser->arena, array, start, end, step, &bracket);

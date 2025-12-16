@@ -1300,6 +1300,47 @@ int rt_array_eq_string(char **a, char **b) {
     return 1;
 }
 
+/* Range creation - creates int[] from start to end (exclusive) */
+long *rt_array_range(long start, long end) {
+    /* Calculate count, handle both ascending and descending ranges */
+    long count;
+    if (end >= start) {
+        count = end - start;
+    } else {
+        /* Descending range: empty for now (future: could support negative step) */
+        count = 0;
+    }
+
+    if (count <= 0) {
+        /* Empty range */
+        size_t capacity = 4;
+        ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(long));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_array_range: allocation failed\n");
+            exit(1);
+        }
+        meta->size = 0;
+        meta->capacity = capacity;
+        return (long *)(meta + 1);
+    }
+
+    size_t capacity = (size_t)count > 4 ? (size_t)count : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(long));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_range: allocation failed\n");
+        exit(1);
+    }
+    meta->size = (size_t)count;
+    meta->capacity = capacity;
+    long *arr = (long *)(meta + 1);
+
+    for (long i = 0; i < count; i++) {
+        arr[i] = start + i;
+    }
+
+    return arr;
+}
+
 /* ============================================================
    String Manipulation Functions
    ============================================================ */
