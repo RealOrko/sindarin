@@ -376,5 +376,18 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
             DEBUG_VERBOSE_INDENT(indent_level + 1, "End: (end)");
         }
         break;
+
+    case EXPR_RANGE:
+        DEBUG_VERBOSE_INDENT(indent_level, "Range:");
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Start:");
+        ast_print_expr(arena, expr->as.range.start, indent_level + 2);
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "End:");
+        ast_print_expr(arena, expr->as.range.end, indent_level + 2);
+        break;
+
+    case EXPR_SPREAD:
+        DEBUG_VERBOSE_INDENT(indent_level, "Spread:");
+        ast_print_expr(arena, expr->as.spread.array, indent_level + 1);
+        break;
     }
 }

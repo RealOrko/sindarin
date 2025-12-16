@@ -247,6 +247,12 @@ skip_indent_processing:
     case '.':
         if (lexer_match(lexer, '.'))
         {
+            // Check for third dot (spread operator)
+            if (lexer_match(lexer, '.'))
+            {
+                DEBUG_VERBOSE("Line %d: Emitting SPREAD", lexer->line);
+                return lexer_make_token(lexer, TOKEN_SPREAD);
+            }
             DEBUG_VERBOSE("Line %d: Emitting RANGE", lexer->line);
             return lexer_make_token(lexer, TOKEN_RANGE);
         }

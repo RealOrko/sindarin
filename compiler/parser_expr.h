@@ -11,6 +11,7 @@ Expr *parser_logical_or(Parser *parser);
 Expr *parser_logical_and(Parser *parser);
 Expr *parser_equality(Parser *parser);
 Expr *parser_comparison(Parser *parser);
+Expr *parser_range(Parser *parser);
 Expr *parser_term(Parser *parser);
 Expr *parser_factor(Parser *parser);
 Expr *parser_unary(Parser *parser);

@@ -71,6 +71,7 @@ typedef enum
     TOKEN_COMMA,
     TOKEN_DOT,
     TOKEN_RANGE,
+    TOKEN_SPREAD,
     TOKEN_ARROW,
     TOKEN_ERROR
 } TokenType;

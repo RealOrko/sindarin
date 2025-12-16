@@ -5,6 +5,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
+
+/* Forward declarations */
+char *code_gen_range_expression(CodeGen *gen, Expr *expr);
 
 bool expression_produces_temp(Expr *expr)
 {
@@ -1044,12 +1048,13 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
     Type *elem_type = arr_type->as.array.element_type;
     const char *elem_c = get_c_type(gen->arena, elem_type);
 
-    // Build the element list
-    char *inits = arena_strdup(gen->arena, "");
+    // Check if we have any spread or range elements
+    bool has_complex = false;
     for (int i = 0; i < arr->element_count; i++) {
-        char *el = code_gen_expression(gen, arr->elements[i]);
-        char *sep = i > 0 ? ", " : "";
-        inits = arena_sprintf(gen->arena, "%s%s%s", inits, sep, el);
+        if (arr->elements[i]->type == EXPR_SPREAD || arr->elements[i]->type == EXPR_RANGE) {
+            has_complex = true;
+            break;
+        }
     }
 
     // Determine the runtime function suffix based on element type
@@ -1060,10 +1065,58 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
         case TYPE_CHAR: suffix = "char"; break;
         case TYPE_BOOL: suffix = "bool"; break;
         case TYPE_STRING: suffix = "string"; break;
-        default:
-            // For unsupported element types (like nested arrays), fall back to
-            // compound literal without runtime wrapper
-            return arena_sprintf(gen->arena, "(%s[]){%s}", elem_c, inits);
+        default: suffix = NULL; break;
+    }
+
+    // If we have spread or range elements, generate concatenation code
+    if (has_complex && suffix != NULL) {
+        // Start with empty array or first element
+        char *result = NULL;
+
+        for (int i = 0; i < arr->element_count; i++) {
+            Expr *elem = arr->elements[i];
+            char *elem_str;
+
+            if (elem->type == EXPR_SPREAD) {
+                // Spread: clone the array to avoid aliasing issues
+                char *arr_str = code_gen_expression(gen, elem->as.spread.array);
+                elem_str = arena_sprintf(gen->arena, "rt_array_clone_%s(%s)", suffix, arr_str);
+            } else if (elem->type == EXPR_RANGE) {
+                // Range: concat the range result
+                elem_str = code_gen_range_expression(gen, elem);
+            } else {
+                // Regular element: create single-element array
+                char *val = code_gen_expression(gen, elem);
+                const char *literal_type = (elem_type->kind == TYPE_BOOL) ? "int" : elem_c;
+                elem_str = arena_sprintf(gen->arena, "rt_array_create_%s(1, (%s[]){%s})",
+                                        suffix, literal_type, val);
+            }
+
+            if (result == NULL) {
+                result = elem_str;
+            } else {
+                // Concat with previous result
+                result = arena_sprintf(gen->arena, "rt_array_concat_%s(%s, %s)",
+                                      suffix, result, elem_str);
+            }
+        }
+
+        return result ? result : arena_sprintf(gen->arena, "rt_array_create_%s(0, NULL)", suffix);
+    }
+
+    // Simple case: no spread or range elements
+    // Build the element list
+    char *inits = arena_strdup(gen->arena, "");
+    for (int i = 0; i < arr->element_count; i++) {
+        char *el = code_gen_expression(gen, arr->elements[i]);
+        char *sep = i > 0 ? ", " : "";
+        inits = arena_sprintf(gen->arena, "%s%s%s", inits, sep, el);
+    }
+
+    if (suffix == NULL) {
+        // For unsupported element types (like nested arrays), fall back to
+        // compound literal without runtime wrapper
+        return arena_sprintf(gen->arena, "(%s[]){%s}", elem_c, inits);
     }
 
     // Generate: rt_array_create_<suffix>(count, (elem_type[]){...})
@@ -1144,6 +1197,25 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
     exit(1);
 }
 
+char *code_gen_range_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_range_expression");
+    RangeExpr *range = &expr->as.range;
+
+    char *start_str = code_gen_expression(gen, range->start);
+    char *end_str = code_gen_expression(gen, range->end);
+
+    return arena_sprintf(gen->arena, "rt_array_range(%s, %s)", start_str, end_str);
+}
+
+char *code_gen_spread_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_spread_expression");
+    // Spread expressions are typically handled in array literal context
+    // but if used standalone, just return the array
+    return code_gen_expression(gen, expr->as.spread.array);
+}
+
 char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_array_slice_expression");
@@ -1221,6 +1293,10 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_member_expression(gen, expr);
     case EXPR_ARRAY_SLICE:
         return code_gen_array_slice_expression(gen, expr);
+    case EXPR_RANGE:
+        return code_gen_range_expression(gen, expr);
+    case EXPR_SPREAD:
+        return code_gen_spread_expression(gen, expr);
     default:
         exit(1);
     }

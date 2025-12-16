@@ -246,6 +246,8 @@ static const char *CODE_GEN_RUNTIME_HEADER =
     "extern int rt_array_eq_char(char *, char *);\n"
     "extern int rt_array_eq_bool(int *, int *);\n"
     "extern int rt_array_eq_string(char **, char **);\n\n"
+    "/* Runtime range creation */\n"
+    "extern long *rt_array_range(long, long);\n\n"
     "/* Runtime arena operations */\n"
     "typedef struct RtArena RtArena;\n"
     "extern RtArena *rt_arena_create(RtArena *parent);\n"

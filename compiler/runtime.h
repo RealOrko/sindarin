@@ -249,4 +249,7 @@ int rt_array_eq_char(char *a, char *b);
 int rt_array_eq_bool(int *a, int *b);
 int rt_array_eq_string(char **a, char **b);
 
+/* Range creation - creates int[] from start to end (exclusive) */
+long *rt_array_range(long start, long end);
+
 #endif /* RUNTIME_H */
