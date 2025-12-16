@@ -4,6 +4,7 @@
 #include "file_tests.c"
 #include "lexer_tests.c"
 #include "parser_tests.c"
+#include "runtime_arena_tests.c"
 #include "symbol_table_tests.c"
 #include "token_tests.c"
 #include "type_checker_tests.c"
@@ -18,6 +19,10 @@ int main()
     // *** Arena ***
 
     test_arena_main();
+
+    // *** Runtime Arena ***
+
+    test_rt_arena_main();
 
     // *** AST ***
     
