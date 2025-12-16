@@ -5,6 +5,41 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Parse optional "as val" or "as ref" memory qualifier */
+static MemoryQualifier parse_memory_qualifier(Parser *parser)
+{
+    if (parser_match(parser, TOKEN_AS))
+    {
+        if (parser_match(parser, TOKEN_VAL))
+        {
+            return MEM_AS_VAL;
+        }
+        else if (parser_match(parser, TOKEN_REF))
+        {
+            return MEM_AS_REF;
+        }
+        else
+        {
+            parser_error_at_current(parser, "Expected 'val' or 'ref' after 'as'");
+        }
+    }
+    return MEM_DEFAULT;
+}
+
+/* Parse optional "shared" or "private" function modifier */
+static FunctionModifier parse_function_modifier(Parser *parser)
+{
+    if (parser_match(parser, TOKEN_SHARED))
+    {
+        return FUNC_SHARED;
+    }
+    else if (parser_match(parser, TOKEN_PRIVATE))
+    {
+        return FUNC_PRIVATE;
+    }
+    return FUNC_DEFAULT;
+}
+
 int is_at_function_boundary(Parser *parser)
 {
     if (parser_check(parser, TOKEN_DEDENT))
@@ -110,11 +145,11 @@ Stmt *parser_statement(Parser *parser)
     }
     if (parser_match(parser, TOKEN_WHILE))
     {
-        return parser_while_statement(parser);
+        return parser_while_statement(parser, false);
     }
     if (parser_match(parser, TOKEN_FOR))
     {
-        return parser_for_statement(parser);
+        return parser_for_statement(parser, false);
     }
     if (parser_match(parser, TOKEN_BREAK))
     {
@@ -141,6 +176,53 @@ Stmt *parser_statement(Parser *parser)
     if (parser_match(parser, TOKEN_LEFT_BRACE))
     {
         return parser_block_statement(parser);
+    }
+
+    // Parse shared => block, shared while, shared for, or private => block
+    if (parser_check(parser, TOKEN_SHARED))
+    {
+        Token block_token = parser->current;
+        parser_advance(parser);  // consume shared
+
+        // Check if followed by while or for (shared loop)
+        if (parser_match(parser, TOKEN_WHILE))
+        {
+            return parser_while_statement(parser, true);
+        }
+        if (parser_match(parser, TOKEN_FOR))
+        {
+            return parser_for_statement(parser, true);
+        }
+
+        // Otherwise it's a shared block
+        parser_consume(parser, TOKEN_ARROW, "Expected '=>' after shared");
+        skip_newlines(parser);
+
+        Stmt *block = parser_indented_block(parser);
+        if (block == NULL)
+        {
+            block = ast_create_block_stmt(parser->arena, NULL, 0, &block_token);
+        }
+        block->as.block.modifier = BLOCK_SHARED;
+        return block;
+    }
+
+    // Parse private => block
+    if (parser_check(parser, TOKEN_PRIVATE))
+    {
+        Token block_token = parser->current;
+        parser_advance(parser);  // consume private
+
+        parser_consume(parser, TOKEN_ARROW, "Expected '=>' after private");
+        skip_newlines(parser);
+
+        Stmt *block = parser_indented_block(parser);
+        if (block == NULL)
+        {
+            block = ast_create_block_stmt(parser->arena, NULL, 0, &block_token);
+        }
+        block->as.block.modifier = BLOCK_PRIVATE;
+        return block;
     }
 
     return parser_expression_statement(parser);
@@ -204,9 +286,12 @@ Stmt *parser_var_declaration(Parser *parser)
 
     // Type annotation is optional if there's an initializer (type inference)
     Type *type = NULL;
+    MemoryQualifier mem_qualifier = MEM_DEFAULT;
     if (parser_match(parser, TOKEN_COLON))
     {
         type = parser_type(parser);
+        // Parse optional "as val" or "as ref" after type
+        mem_qualifier = parse_memory_qualifier(parser);
     }
 
     Expr *initializer = NULL;
@@ -226,7 +311,12 @@ Stmt *parser_var_declaration(Parser *parser)
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after variable declaration");
     }
 
-    return ast_create_var_decl_stmt(parser->arena, name, type, initializer, &var_token);
+    Stmt *stmt = ast_create_var_decl_stmt(parser->arena, name, type, initializer, &var_token);
+    if (stmt != NULL)
+    {
+        stmt->as.var_decl.mem_qualifier = mem_qualifier;
+    }
+    return stmt;
 }
 
 Stmt *parser_function_declaration(Parser *parser)
@@ -297,6 +387,8 @@ Stmt *parser_function_declaration(Parser *parser)
                 }
                 parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
                 Type *param_type = parser_type(parser);
+                // Parse optional "as val" for parameter
+                MemoryQualifier param_qualifier = parse_memory_qualifier(parser);
 
                 if (param_count >= param_capacity)
                 {
@@ -314,11 +406,15 @@ Stmt *parser_function_declaration(Parser *parser)
                 }
                 params[param_count].name = param_name;
                 params[param_count].type = param_type;
+                params[param_count].mem_qualifier = param_qualifier;
                 param_count++;
             } while (parser_match(parser, TOKEN_COMMA));
         }
         parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after parameters");
     }
+
+    // Parse optional function modifier (shared/private) before return type
+    FunctionModifier func_modifier = parse_function_modifier(parser);
 
     Type *return_type = ast_create_primitive_type(parser->arena, TYPE_VOID);
     if (parser_match(parser, TOKEN_COLON))
@@ -352,7 +448,12 @@ Stmt *parser_function_declaration(Parser *parser)
     int stmt_count = body->as.block.count;
     body->as.block.statements = NULL;
 
-    return ast_create_function_stmt(parser->arena, name, params, param_count, return_type, stmts, stmt_count, &fn_token);
+    Stmt *func_stmt = ast_create_function_stmt(parser->arena, name, params, param_count, return_type, stmts, stmt_count, &fn_token);
+    if (func_stmt != NULL)
+    {
+        func_stmt->as.function.modifier = func_modifier;
+    }
+    return func_stmt;
 }
 
 Stmt *parser_return_statement(Parser *parser)
@@ -444,7 +545,7 @@ Stmt *parser_if_statement(Parser *parser)
     return ast_create_if_stmt(parser->arena, condition, then_branch, else_branch, &if_token);
 }
 
-Stmt *parser_while_statement(Parser *parser)
+Stmt *parser_while_statement(Parser *parser, bool is_shared)
 {
     Token while_token = parser->previous;
     Expr *condition = parser_expression(parser);
@@ -474,10 +575,15 @@ Stmt *parser_while_statement(Parser *parser)
         }
     }
 
-    return ast_create_while_stmt(parser->arena, condition, body, &while_token);
+    Stmt *stmt = ast_create_while_stmt(parser->arena, condition, body, &while_token);
+    if (stmt != NULL)
+    {
+        stmt->as.while_stmt.is_shared = is_shared;
+    }
+    return stmt;
 }
 
-Stmt *parser_for_statement(Parser *parser)
+Stmt *parser_for_statement(Parser *parser, bool is_shared)
 {
     Token for_token = parser->previous;
 
@@ -526,7 +632,12 @@ Stmt *parser_for_statement(Parser *parser)
                 }
             }
 
-            return ast_create_for_each_stmt(parser->arena, var_name, iterable, body, &for_token);
+            Stmt *stmt = ast_create_for_each_stmt(parser->arena, var_name, iterable, body, &for_token);
+            if (stmt != NULL)
+            {
+                stmt->as.for_each_stmt.is_shared = is_shared;
+            }
+            return stmt;
         }
         else
         {
@@ -596,7 +707,12 @@ Stmt *parser_for_statement(Parser *parser)
                 }
             }
 
-            return ast_create_for_stmt(parser->arena, initializer, condition, increment, body, &for_token);
+            Stmt *stmt = ast_create_for_stmt(parser->arena, initializer, condition, increment, body, &for_token);
+            if (stmt != NULL)
+            {
+                stmt->as.for_stmt.is_shared = is_shared;
+            }
+            return stmt;
         }
     }
 
@@ -683,7 +799,12 @@ Stmt *parser_for_statement(Parser *parser)
         }
     }
 
-    return ast_create_for_stmt(parser->arena, initializer, condition, increment, body, &for_token);
+    Stmt *stmt = ast_create_for_stmt(parser->arena, initializer, condition, increment, body, &for_token);
+    if (stmt != NULL)
+    {
+        stmt->as.for_stmt.is_shared = is_shared;
+    }
+    return stmt;
 }
 
 Stmt *parser_block_statement(Parser *parser)

@@ -31,6 +31,7 @@ static void cleanup_parser(Arena *arena, Lexer *lexer, Parser *parser, SymbolTab
 #include "parser_tests_control.c"
 #include "parser_tests_program.c"
 #include "parser_tests_array.c"
+#include "parser_tests_memory.c"
 
 void test_parser_main()
 {
@@ -38,4 +39,5 @@ void test_parser_main()
     test_parser_control_main();
     test_parser_program_main();
     test_parser_array_main();
+    test_parser_memory_main();
 }
