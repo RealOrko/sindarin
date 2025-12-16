@@ -217,12 +217,28 @@ var sub: str = text[1..3]   // "cb"
 ## 📁 Project Structure
 
 ```
-├── compiler/
-│   ├── src/           # Compiler source (lexer, parser, etc.)
-│   └── tests/         # Unit & integration tests
-├── samples/           # Example .sn programs
-├── scripts/           # Build & run scripts
-└── bin/               # Compiled binaries
+├── compiler/              # 🔧 Compiler source code
+│   ├── main.c             # Entry point
+│   ├── lexer.c/h          # Tokenizer
+│   ├── parser.c/h         # AST builder
+│   ├── type_checker.c/h   # Static type checking
+│   ├── code_gen.c/h       # C code generator
+│   ├── runtime.c/h        # Runtime library
+│   ├── arena.c/h          # Memory management
+│   └── tests/             # Unit tests
+│       └── integration/   # Integration tests (.sn files)
+├── samples/               # 📝 Example .sn programs
+├── scripts/               # 🛠️ Build & run scripts
+│   ├── build.sh           # Full build + tests
+│   ├── run.sh             # Run main.sn
+│   ├── test.sh            # Unit tests
+│   └── integration_test.sh
+├── bin/                   # 📦 Compiled outputs
+│   ├── sn                 # Compiler binary
+│   ├── tests              # Test runner
+│   ├── *.o                # Object files for linking
+│   └── *.d                # Dependency files
+└── CLAUDE.md              # Project instructions
 ```
 
 ## 📜 Example Program
