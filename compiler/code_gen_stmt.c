@@ -13,11 +13,19 @@ void code_gen_expression_statement(CodeGen *gen, ExprStmt *stmt, int indent)
     char *expr_str = code_gen_expression(gen, stmt->expression);
     if (stmt->expression->expr_type->kind == TYPE_STRING && expression_produces_temp(stmt->expression))
     {
-        indented_fprintf(gen, indent, "{\n");
-        indented_fprintf(gen, indent + 1, "char *_tmp = %s;\n", expr_str);
-        indented_fprintf(gen, indent + 1, "(void)_tmp;\n");
-        indented_fprintf(gen, indent + 1, "rt_free_string(_tmp);\n");
-        indented_fprintf(gen, indent, "}\n");
+        // Skip freeing in arena context - arena handles cleanup
+        if (gen->current_arena_var == NULL)
+        {
+            indented_fprintf(gen, indent, "{\n");
+            indented_fprintf(gen, indent + 1, "char *_tmp = %s;\n", expr_str);
+            indented_fprintf(gen, indent + 1, "(void)_tmp;\n");
+            indented_fprintf(gen, indent + 1, "rt_free_string(_tmp);\n");
+            indented_fprintf(gen, indent, "}\n");
+        }
+        else
+        {
+            indented_fprintf(gen, indent, "%s;\n", expr_str);
+        }
     }
     else if (stmt->expression->type == EXPR_CALL && stmt->expression->expr_type->kind == TYPE_VOID)
     {
@@ -44,7 +52,7 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
         // This is needed because string variables may be freed/reassigned later
         if (stmt->type->kind == TYPE_STRING && stmt->initializer->type == EXPR_LITERAL)
         {
-            init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s)", init_str);
+            init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s, %s)", ARENA_VAR(gen), init_str);
         }
 
         // Handle 'as val' - create a copy for arrays and strings
@@ -55,11 +63,11 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
                 // Get element type suffix for the clone function
                 Type *elem_type = stmt->type->as.array.element_type;
                 const char *suffix = code_gen_type_suffix(elem_type);
-                init_str = arena_sprintf(gen->arena, "rt_array_clone_%s(%s)", suffix, init_str);
+                init_str = arena_sprintf(gen->arena, "rt_array_clone_%s(%s, %s)", suffix, ARENA_VAR(gen), init_str);
             }
             else if (stmt->type->kind == TYPE_STRING)
             {
-                init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s)", init_str);
+                init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s, %s)", ARENA_VAR(gen), init_str);
             }
         }
     }
@@ -73,6 +81,13 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
 void code_gen_free_locals(CodeGen *gen, Scope *scope, bool is_function, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_free_locals");
+
+    // Skip manual freeing when in arena context - arena handles all deallocation
+    if (gen->current_arena_var != NULL)
+    {
+        return;
+    }
+
     Symbol *sym = scope->symbols;
     while (sym)
     {
@@ -203,11 +218,14 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
 
     bool is_main = strcmp(gen->current_function, "main") == 0;
     bool is_private = stmt->modifier == FUNC_PRIVATE;
+    bool is_shared = stmt->modifier == FUNC_SHARED;
+    // All functions have their own arena except shared (which uses caller's arena)
+    bool needs_arena = is_main || !is_shared;
 
-    // Private functions have their own arena context
-    if (is_private)
+    // Non-shared functions and main have their own arena context
+    if (needs_arena)
     {
-        gen->in_private_context = true;
+        if (is_private) gen->in_private_context = true;
         gen->arena_depth++;
         gen->current_arena_var = arena_sprintf(gen->arena, "__arena_%d__", gen->arena_depth);
     }
@@ -218,8 +236,8 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool has_return_value = (gen->current_return_type && gen->current_return_type->kind != TYPE_VOID) || is_main;
     symbol_table_push_scope(gen->symbol_table);
 
-    // For private functions, enter arena scope in symbol table
-    if (is_private)
+    // For private functions and main, enter arena scope in symbol table
+    if (needs_arena)
     {
         symbol_table_enter_arena(gen->symbol_table);
     }
@@ -241,8 +259,8 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     }
     indented_fprintf(gen, 0, ") {\n");
 
-    // For private functions, create a local arena
-    if (is_private)
+    // For private functions and main, create a local arena
+    if (needs_arena)
     {
         indented_fprintf(gen, 1, "RtArena *%s = rt_arena_create(NULL);\n", gen->current_arena_var);
     }
@@ -269,8 +287,8 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     indented_fprintf(gen, 0, "%s_return:\n", gen->current_function);
     code_gen_free_locals(gen, gen->symbol_table->current, true, 1);
 
-    // For private functions, destroy the arena before returning
-    if (is_private)
+    // For private functions and main, destroy the arena before returning
+    if (needs_arena)
     {
         indented_fprintf(gen, 1, "rt_arena_destroy(%s);\n", gen->current_arena_var);
     }
@@ -286,8 +304,8 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     }
     indented_fprintf(gen, 0, "}\n\n");
 
-    // Exit arena scope in symbol table for private functions
-    if (is_private)
+    // Exit arena scope in symbol table for private functions and main
+    if (needs_arena)
     {
         symbol_table_exit_arena(gen->symbol_table);
     }

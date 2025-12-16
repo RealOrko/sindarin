@@ -72,25 +72,24 @@ size_t rt_arena_total_allocated(RtArena *arena);
  * String operations
  * ============================================================================ */
 
-/* String operations (legacy - use malloc) */
-char *rt_str_concat(const char *left, const char *right);
-void rt_free_string(char *s);
+/* String concatenation - allocates from arena */
+char *rt_str_concat(RtArena *arena, const char *left, const char *right);
 
-/* Print functions */
+/* Print functions (no allocation) */
 void rt_print_long(long val);
 void rt_print_double(double val);
 void rt_print_char(long c);
 void rt_print_string(const char *s);
 void rt_print_bool(long b);
 
-/* Type conversion to string */
-char *rt_to_string_long(long val);
-char *rt_to_string_double(double val);
-char *rt_to_string_char(char val);
-char *rt_to_string_bool(int val);
-char *rt_to_string_string(const char *val);
-char *rt_to_string_void(void);
-char *rt_to_string_pointer(void *p);
+/* Type conversion to string - allocates from arena */
+char *rt_to_string_long(RtArena *arena, long val);
+char *rt_to_string_double(RtArena *arena, double val);
+char *rt_to_string_char(RtArena *arena, char val);
+char *rt_to_string_bool(RtArena *arena, int val);
+char *rt_to_string_string(RtArena *arena, const char *val);
+char *rt_to_string_void(RtArena *arena);
+char *rt_to_string_pointer(RtArena *arena, void *p);
 
 /* Long arithmetic (with overflow checking) */
 long rt_add_long(long a, long b);
@@ -138,12 +137,12 @@ int rt_le_string(const char *a, const char *b);
 int rt_gt_string(const char *a, const char *b);
 int rt_ge_string(const char *a, const char *b);
 
-/* Array operations */
-long *rt_array_push_long(long *arr, long element);
-double *rt_array_push_double(double *arr, double element);
-char *rt_array_push_char(char *arr, char element);
-char **rt_array_push_string(char **arr, const char *element);
-int *rt_array_push_bool(int *arr, int element);
+/* Array operations - allocate from arena */
+long *rt_array_push_long(RtArena *arena, long *arr, long element);
+double *rt_array_push_double(RtArena *arena, double *arr, double element);
+char *rt_array_push_char(RtArena *arena, char *arr, char element);
+char **rt_array_push_string(RtArena *arena, char **arr, const char *element);
+int *rt_array_push_bool(RtArena *arena, int *arr, int element);
 
 /* Array length */
 size_t rt_array_length(void *arr);
@@ -165,47 +164,47 @@ char rt_array_pop_char(char *arr);
 int rt_array_pop_bool(int *arr);
 char *rt_array_pop_string(char **arr);
 
-/* Array concat functions */
-long *rt_array_concat_long(long *dest, long *src);
-double *rt_array_concat_double(double *dest, double *src);
-char *rt_array_concat_char(char *dest, char *src);
-int *rt_array_concat_bool(int *dest, int *src);
-char **rt_array_concat_string(char **dest, char **src);
+/* Array concat functions - allocate from arena */
+long *rt_array_concat_long(RtArena *arena, long *dest, long *src);
+double *rt_array_concat_double(RtArena *arena, double *dest, double *src);
+char *rt_array_concat_char(RtArena *arena, char *dest, char *src);
+int *rt_array_concat_bool(RtArena *arena, int *dest, int *src);
+char **rt_array_concat_string(RtArena *arena, char **dest, char **src);
 
-/* Array slice functions - step defaults to 1 if LONG_MIN */
-long *rt_array_slice_long(long *arr, long start, long end, long step);
-double *rt_array_slice_double(double *arr, long start, long end, long step);
-char *rt_array_slice_char(char *arr, long start, long end, long step);
-int *rt_array_slice_bool(int *arr, long start, long end, long step);
-char **rt_array_slice_string(char **arr, long start, long end, long step);
+/* Array slice functions - step defaults to 1 if LONG_MIN, allocate from arena */
+long *rt_array_slice_long(RtArena *arena, long *arr, long start, long end, long step);
+double *rt_array_slice_double(RtArena *arena, double *arr, long start, long end, long step);
+char *rt_array_slice_char(RtArena *arena, char *arr, long start, long end, long step);
+int *rt_array_slice_bool(RtArena *arena, int *arr, long start, long end, long step);
+char **rt_array_slice_string(RtArena *arena, char **arr, long start, long end, long step);
 
-/* Array reverse functions */
-long *rt_array_rev_long(long *arr);
-double *rt_array_rev_double(double *arr);
-char *rt_array_rev_char(char *arr);
-int *rt_array_rev_bool(int *arr);
-char **rt_array_rev_string(char **arr);
+/* Array reverse functions - allocate from arena */
+long *rt_array_rev_long(RtArena *arena, long *arr);
+double *rt_array_rev_double(RtArena *arena, double *arr);
+char *rt_array_rev_char(RtArena *arena, char *arr);
+int *rt_array_rev_bool(RtArena *arena, int *arr);
+char **rt_array_rev_string(RtArena *arena, char **arr);
 
-/* Array remove at index functions */
-long *rt_array_rem_long(long *arr, long index);
-double *rt_array_rem_double(double *arr, long index);
-char *rt_array_rem_char(char *arr, long index);
-int *rt_array_rem_bool(int *arr, long index);
-char **rt_array_rem_string(char **arr, long index);
+/* Array remove at index functions - allocate from arena */
+long *rt_array_rem_long(RtArena *arena, long *arr, long index);
+double *rt_array_rem_double(RtArena *arena, double *arr, long index);
+char *rt_array_rem_char(RtArena *arena, char *arr, long index);
+int *rt_array_rem_bool(RtArena *arena, int *arr, long index);
+char **rt_array_rem_string(RtArena *arena, char **arr, long index);
 
-/* Array insert at index functions */
-long *rt_array_ins_long(long *arr, long elem, long index);
-double *rt_array_ins_double(double *arr, double elem, long index);
-char *rt_array_ins_char(char *arr, char elem, long index);
-int *rt_array_ins_bool(int *arr, int elem, long index);
-char **rt_array_ins_string(char **arr, const char *elem, long index);
+/* Array insert at index functions - allocate from arena */
+long *rt_array_ins_long(RtArena *arena, long *arr, long elem, long index);
+double *rt_array_ins_double(RtArena *arena, double *arr, double elem, long index);
+char *rt_array_ins_char(RtArena *arena, char *arr, char elem, long index);
+int *rt_array_ins_bool(RtArena *arena, int *arr, int elem, long index);
+char **rt_array_ins_string(RtArena *arena, char **arr, const char *elem, long index);
 
-/* Array push (copy) functions - return NEW array with element appended */
-long *rt_array_push_copy_long(long *arr, long elem);
-double *rt_array_push_copy_double(double *arr, double elem);
-char *rt_array_push_copy_char(char *arr, char elem);
-int *rt_array_push_copy_bool(int *arr, int elem);
-char **rt_array_push_copy_string(char **arr, const char *elem);
+/* Array push (copy) functions - return NEW array with element appended, allocate from arena */
+long *rt_array_push_copy_long(RtArena *arena, long *arr, long elem);
+double *rt_array_push_copy_double(RtArena *arena, double *arr, double elem);
+char *rt_array_push_copy_char(RtArena *arena, char *arr, char elem);
+int *rt_array_push_copy_bool(RtArena *arena, int *arr, int elem);
+char **rt_array_push_copy_string(RtArena *arena, char **arr, const char *elem);
 
 /* Array indexOf functions - find first index of element, returns -1 if not found */
 long rt_array_indexOf_long(long *arr, long elem);
@@ -221,26 +220,26 @@ int rt_array_contains_char(char *arr, char elem);
 int rt_array_contains_bool(int *arr, int elem);
 int rt_array_contains_string(char **arr, const char *elem);
 
-/* Array clone functions - create deep copy */
-long *rt_array_clone_long(long *arr);
-double *rt_array_clone_double(double *arr);
-char *rt_array_clone_char(char *arr);
-int *rt_array_clone_bool(int *arr);
-char **rt_array_clone_string(char **arr);
+/* Array clone functions - create deep copy, allocate from arena */
+long *rt_array_clone_long(RtArena *arena, long *arr);
+double *rt_array_clone_double(RtArena *arena, double *arr);
+char *rt_array_clone_char(RtArena *arena, char *arr);
+int *rt_array_clone_bool(RtArena *arena, int *arr);
+char **rt_array_clone_string(RtArena *arena, char **arr);
 
-/* Array join functions - join elements into string with separator */
-char *rt_array_join_long(long *arr, const char *separator);
-char *rt_array_join_double(double *arr, const char *separator);
-char *rt_array_join_char(char *arr, const char *separator);
-char *rt_array_join_bool(int *arr, const char *separator);
-char *rt_array_join_string(char **arr, const char *separator);
+/* Array join functions - join elements into string with separator, allocate from arena */
+char *rt_array_join_long(RtArena *arena, long *arr, const char *separator);
+char *rt_array_join_double(RtArena *arena, double *arr, const char *separator);
+char *rt_array_join_char(RtArena *arena, char *arr, const char *separator);
+char *rt_array_join_bool(RtArena *arena, int *arr, const char *separator);
+char *rt_array_join_string(RtArena *arena, char **arr, const char *separator);
 
-/* Array create from static data - creates runtime array with metadata */
-long *rt_array_create_long(size_t count, const long *data);
-double *rt_array_create_double(size_t count, const double *data);
-char *rt_array_create_char(size_t count, const char *data);
-int *rt_array_create_bool(size_t count, const int *data);
-char **rt_array_create_string(size_t count, const char **data);
+/* Array create from static data - creates runtime array with metadata, allocate from arena */
+long *rt_array_create_long(RtArena *arena, size_t count, const long *data);
+double *rt_array_create_double(RtArena *arena, size_t count, const double *data);
+char *rt_array_create_char(RtArena *arena, size_t count, const char *data);
+int *rt_array_create_bool(RtArena *arena, size_t count, const int *data);
+char **rt_array_create_string(RtArena *arena, size_t count, const char **data);
 
 /* Array equality functions - compare arrays element by element */
 int rt_array_eq_long(long *a, long *b);
@@ -249,7 +248,7 @@ int rt_array_eq_char(char *a, char *b);
 int rt_array_eq_bool(int *a, int *b);
 int rt_array_eq_string(char **a, char **b);
 
-/* Range creation - creates int[] from start to end (exclusive) */
-long *rt_array_range(long start, long end);
+/* Range creation - creates int[] from start to end (exclusive), allocate from arena */
+long *rt_array_range(RtArena *arena, long start, long end);
 
 #endif /* RUNTIME_H */

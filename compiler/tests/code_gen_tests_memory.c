@@ -70,7 +70,12 @@ void test_code_gen_private_function()
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"
-                                        "    return 0;\n"
+                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                        "    int _return_value = 0;\n"
+                                        "    goto main_return;\n"
+                                        "main_return:\n"
+                                        "    rt_arena_destroy(__arena_1__);\n"
+                                        "    return _return_value;\n"
                                         "}\n");
 
     code_gen_cleanup(&gen);
@@ -130,7 +135,12 @@ void test_code_gen_shared_function()
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"
-                                        "    return 0;\n"
+                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                        "    int _return_value = 0;\n"
+                                        "    goto main_return;\n"
+                                        "main_return:\n"
+                                        "    rt_arena_destroy(__arena_1__);\n"
+                                        "    return _return_value;\n"
                                         "}\n");
 
     code_gen_cleanup(&gen);
@@ -146,7 +156,7 @@ void test_code_gen_shared_function()
 
 void test_code_gen_default_function()
 {
-    printf("Testing code_gen for default function (no arena lifecycle)...\n");
+    printf("Testing code_gen for default function (has arena lifecycle)...\n");
 
     Arena arena;
     arena_init(&arena, 8192);
@@ -178,19 +188,26 @@ void test_code_gen_default_function()
     ast_module_add_statement(&arena, &module, func_decl);
     code_gen_module(&gen, &module);
 
-    // Expected: default function should NOT have arena_init/arena_free
+    // Expected: default function DOES have arena lifecycle (like private)
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
                                         "long regular(void);\n\n"
                                         "long regular() {\n"
+                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                         "    long _return_value = 0;\n"
                                         "    _return_value = 5L;\n"
                                         "    goto regular_return;\n"
                                         "regular_return:\n"
+                                        "    rt_arena_destroy(__arena_1__);\n"
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"
-                                        "    return 0;\n"
+                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                        "    int _return_value = 0;\n"
+                                        "    goto main_return;\n"
+                                        "main_return:\n"
+                                        "    rt_arena_destroy(__arena_1__);\n"
+                                        "    return _return_value;\n"
                                         "}\n");
 
     code_gen_cleanup(&gen);

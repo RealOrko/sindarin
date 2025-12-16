@@ -54,9 +54,14 @@ void test_code_gen_array_literal()
 
     // code_gen_array_expression generates rt_array_create_* for runtime arrays
     const char *expected = get_expected(&arena,
-                                  "rt_array_create_long(2, (long[]){1L, 2L});\n"
+                                  "rt_array_create_long(NULL, 2, (long[]){1L, 2L});\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -130,12 +135,17 @@ void test_code_gen_array_var_declaration_with_init()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * arr = rt_array_create_long(2, (long[]){3L, 4L}); arr;
+    // Expected: long * arr = rt_array_create_long(NULL, 2, (long[]){3L, 4L}); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(2, (long[]){3L, 4L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 2, (long[]){3L, 4L});\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -189,7 +199,12 @@ void test_code_gen_array_var_declaration_without_init()
                                   "long * empty_arr = NULL;\n"
                                   "empty_arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -281,12 +296,17 @@ void test_code_gen_array_access()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * arr = rt_array_create_long(3, (long[]){10L, 20L, 30L}); arr[1];
+    // Expected: long * arr = rt_array_create_long(NULL, 3, (long[]){10L, 20L, 30L}); arr[1];
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(3, (long[]){10L, 20L, 30L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 3, (long[]){10L, 20L, 30L});\n"
                                   "arr[1L];\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -386,12 +406,17 @@ void test_code_gen_array_access_in_expression()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * arr = rt_array_create_long(2, (long[]){5L, 10L}); rt_add_long(arr[0], arr[1]);
+    // Expected: long * arr = rt_array_create_long(NULL, 2, (long[]){5L, 10L}); rt_add_long(arr[0], arr[1]);
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(2, (long[]){5L, 10L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 2, (long[]){5L, 10L});\n"
                                   "rt_add_long(arr[0L], arr[1L]);\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -452,12 +477,19 @@ void test_code_gen_array_type_in_function_param()
     const char *expected = get_expected(&arena,
                                   "void print_arr(long *);\n\n"
                                   "void print_arr(long * print_arr) {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    goto print_arr_return;\n"
                                   "print_arr_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
                                   "    return;\n"
                                   "}\n\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -519,7 +551,12 @@ void test_code_gen_array_of_arrays()
                                   "long * (*)[] nested = (long *[]){};\n"
                                   "nested;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -604,11 +641,16 @@ void test_code_gen_array_push_long()
 
     // Expected: rt_array_push(arr, 1L); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(0, (long[]){});\n"
-                                  "(arr = rt_array_push_long(arr, 1L));\n"
+                                  "long * arr = rt_array_create_long(NULL, 0, (long[]){});\n"
+                                  "(arr = rt_array_push_long(NULL, arr, 1L));\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -692,13 +734,18 @@ void test_code_gen_array_push_int()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: (arr = rt_array_push_long(arr, 1L)); arr;
+    // Expected: (arr = rt_array_push_long(NULL, arr, 1L)); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(0, (long[]){});\n"
-                                  "(arr = rt_array_push_long(arr, 1L));\n"
+                                  "long * arr = rt_array_create_long(NULL, 0, (long[]){});\n"
+                                  "(arr = rt_array_push_long(NULL, arr, 1L));\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -782,13 +829,18 @@ void test_code_gen_array_push_double()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: double * arr = rt_array_create_double(0, (double[]){}); (arr = rt_array_push_double(arr, 1.0)); arr;
+    // Expected: double * arr = rt_array_create_double(NULL, 0, (double[]){}); (arr = rt_array_push_double(NULL, arr, 1.0)); arr;
     const char *expected = get_expected(&arena,
-                                  "double * arr = rt_array_create_double(0, (double[]){});\n"
-                                  "(arr = rt_array_push_double(arr, 1.0));\n"
+                                  "double * arr = rt_array_create_double(NULL, 0, (double[]){});\n"
+                                  "(arr = rt_array_push_double(NULL, arr, 1.0));\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -872,13 +924,18 @@ void test_code_gen_array_push_char()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: char * arr = rt_array_create_char(0, (char[]){}); (arr = rt_array_push_char(arr, 'a')); arr;
+    // Expected: char * arr = rt_array_create_char(NULL, 0, (char[]){}); (arr = rt_array_push_char(NULL, arr, 'a')); arr;
     const char *expected = get_expected(&arena,
-                                  "char * arr = rt_array_create_char(0, (char[]){});\n"
-                                  "(arr = rt_array_push_char(arr, 'a'));\n"
+                                  "char * arr = rt_array_create_char(NULL, 0, (char[]){});\n"
+                                  "(arr = rt_array_push_char(NULL, arr, 'a'));\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -962,14 +1019,19 @@ void test_code_gen_array_push_bool()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: int * arr = rt_array_create_bool(0, (int[]){}); (arr = rt_array_push_bool(arr, 1)); arr;
+    // Expected: int * arr = rt_array_create_bool(NULL, 0, (int[]){}); (arr = rt_array_push_bool(NULL, arr, 1)); arr;
     // Note: bool arrays use int* internally in runtime
     const char *expected = get_expected(&arena,
-                                  "int * arr = rt_array_create_bool(0, (int[]){});\n"
-                                  "(arr = rt_array_push_bool(arr, 1L));\n"
+                                  "int * arr = rt_array_create_bool(NULL, 0, (int[]){});\n"
+                                  "(arr = rt_array_push_bool(NULL, arr, 1L));\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -1053,13 +1115,18 @@ void test_code_gen_array_push_string()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: char ** arr = rt_array_create_string(0, (char *[]){}); (arr = rt_array_push_string(arr, "hello")); arr;
+    // Expected: char ** arr = rt_array_create_string(NULL, 0, (char *[]){}); (arr = rt_array_push_string(NULL, arr, "hello")); arr;
     const char *expected = get_expected(&arena,
-                                  "char * * arr = rt_array_create_string(0, (char *[]){});\n"
-                                  "(arr = rt_array_push_string(arr, \"hello\"));\n"
+                                  "char * * arr = rt_array_create_string(NULL, 0, (char *[]){});\n"
+                                  "(arr = rt_array_push_string(NULL, arr, \"hello\"));\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -1152,11 +1219,16 @@ void test_code_gen_array_clear()
 
     // Expected: rt_array_clear(arr); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(2, (long[]){1L, 2L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 2, (long[]){1L, 2L});\n"
                                   "rt_array_clear(arr);\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -1277,14 +1349,19 @@ void test_code_gen_array_concat()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * result = rt_array_concat_long(arr, rt_array_create_long(2, (long[]){2L, 3L})); result;
+    // Expected: long * result = rt_array_concat_long(NULL, arr, rt_array_create_long(NULL, 2, (long[]){2L, 3L})); result;
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(1, (long[]){1L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 1, (long[]){1L});\n"
                                   "long * result = NULL;\n"
-                                  "result = rt_array_concat_long(arr, rt_array_create_long(2, (long[]){2L, 3L}));\n"
+                                  "result = rt_array_concat_long(NULL, arr, rt_array_create_long(NULL, 2, (long[]){2L, 3L}));\n"
                                   "result;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -1371,10 +1448,15 @@ void test_code_gen_array_length()
 
     // Expected: arr->length; or rt_array_length(arr);
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(3, (long[]){1L, 2L, 3L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 3, (long[]){1L, 2L, 3L});\n"
                                   "rt_array_length(arr);\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -1481,12 +1563,17 @@ void test_code_gen_array_pop()
 
     // Expected: long result = rt_array_pop_long(arr); result; arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(3, (long[]){1L, 2L, 3L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 3, (long[]){1L, 2L, 3L});\n"
                                   "long result = rt_array_pop_long(arr);\n"
                                   "result;\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -1577,10 +1664,15 @@ void test_code_gen_array_print()
 
     // Expected: rt_print_pointer(arr); or similar, but since print is extern, assuming rt_print_array(arr);
     const char *expected = get_expected(&arena,
-                                  "long * arr = rt_array_create_long(2, (long[]){1L, 2L});\n"
+                                  "long * arr = rt_array_create_long(NULL, 2, (long[]){1L, 2L});\n"
                                   "rt_print_array(arr);\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);

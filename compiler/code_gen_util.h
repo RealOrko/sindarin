@@ -29,4 +29,7 @@ void indented_fprintf(CodeGen *gen, int indent, const char *fmt, ...);
 char *code_gen_binary_op_str(TokenType op);
 char *code_gen_type_suffix(Type *type);
 
+/* Helper macro to get arena var for formatting - returns "NULL" if no arena context */
+#define ARENA_VAR(gen) ((gen)->current_arena_var ? (gen)->current_arena_var : "NULL")
+
 #endif /* CODE_GEN_UTIL_H */

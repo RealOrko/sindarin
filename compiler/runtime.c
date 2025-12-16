@@ -235,7 +235,7 @@ size_t rt_arena_total_allocated(RtArena *arena)
     return arena->total_allocated;
 }
 
-char *rt_str_concat(const char *left, const char *right) {
+char *rt_str_concat(RtArena *arena, const char *left, const char *right) {
     const char *l = left ? left : "";
     const char *r = right ? right : "";
     size_t left_len = strlen(l);
@@ -244,7 +244,7 @@ char *rt_str_concat(const char *left, const char *right) {
     if (new_len > (1UL << 30) - 1) {
         return NULL;
     }
-    char *new_str = malloc(new_len + 1);
+    char *new_str = rt_arena_alloc(arena, new_len + 1);
     if (new_str == NULL) {
         return NULL;
     }
@@ -253,52 +253,52 @@ char *rt_str_concat(const char *left, const char *right) {
     return new_str;
 }
 
-char *rt_to_string_long(long val)
+char *rt_to_string_long(RtArena *arena, long val)
 {
     char buf[32];
     snprintf(buf, sizeof(buf), "%ld", val);
-    return strdup(buf);
+    return rt_arena_strdup(arena, buf);
 }
 
-char *rt_to_string_double(double val)
+char *rt_to_string_double(RtArena *arena, double val)
 {
     char buf[64];
     snprintf(buf, sizeof(buf), "%.5f", val);
-    return strdup(buf);
+    return rt_arena_strdup(arena, buf);
 }
 
-char *rt_to_string_char(char val)
+char *rt_to_string_char(RtArena *arena, char val)
 {
     char buf[2] = {val, '\0'};
-    return strdup(buf);
+    return rt_arena_strdup(arena, buf);
 }
 
-char *rt_to_string_bool(int val)
+char *rt_to_string_bool(RtArena *arena, int val)
 {
-    return strdup(val ? "true" : "false");
+    return rt_arena_strdup(arena, val ? "true" : "false");
 }
 
-char *rt_to_string_string(const char *val)
+char *rt_to_string_string(RtArena *arena, const char *val)
 {
     if (val == NULL) {
         return (char *)null_str;
     }
-    return strdup(val);
+    return rt_arena_strdup(arena, val);
 }
 
-char *rt_to_string_void(void)
+char *rt_to_string_void(RtArena *arena)
 {
-    return strdup("void");
+    return rt_arena_strdup(arena, "void");
 }
 
-char *rt_to_string_pointer(void *p)
+char *rt_to_string_pointer(RtArena *arena, void *p)
 {
     if (p == NULL) {
-        return strdup("nil");
+        return rt_arena_strdup(arena, "nil");
     }
     char buf[32];
     snprintf(buf, sizeof(buf), "%p", p);
-    return strdup(buf);
+    return rt_arena_strdup(arena, buf);
 }
 
 void rt_print_long(long val)
@@ -561,16 +561,16 @@ typedef struct {
 
 /*
  * Macro to generate type-safe array push functions.
- * Reduces code duplication across different element types.
+ * Uses arena allocation - when capacity is exceeded, allocates new array and copies.
  */
 #define DEFINE_ARRAY_PUSH(suffix, elem_type, assign_expr)                      \
-elem_type *rt_array_push_##suffix(elem_type *arr, elem_type element) {         \
+elem_type *rt_array_push_##suffix(RtArena *arena, elem_type *arr, elem_type element) { \
     ArrayMetadata *meta;                                                       \
     elem_type *new_arr;                                                        \
     size_t new_capacity;                                                       \
                                                                                \
     if (arr == NULL) {                                                         \
-        meta = malloc(sizeof(ArrayMetadata) + 4 * sizeof(elem_type));          \
+        meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + 4 * sizeof(elem_type)); \
         if (meta == NULL) {                                                    \
             fprintf(stderr, "rt_array_push_" #suffix ": allocation failed\n"); \
             exit(1);                                                           \
@@ -590,13 +590,16 @@ elem_type *rt_array_push_##suffix(elem_type *arr, elem_type element) {         \
             fprintf(stderr, "rt_array_push_" #suffix ": capacity overflow\n"); \
             exit(1);                                                           \
         }                                                                      \
-        meta = realloc(meta, sizeof(ArrayMetadata) + new_capacity * sizeof(elem_type)); \
-        if (meta == NULL) {                                                    \
+        ArrayMetadata *new_meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + new_capacity * sizeof(elem_type)); \
+        if (new_meta == NULL) {                                                \
             fprintf(stderr, "rt_array_push_" #suffix ": allocation failed\n"); \
             exit(1);                                                           \
         }                                                                      \
-        meta->capacity = new_capacity;                                         \
-        new_arr = (elem_type *)(meta + 1);                                     \
+        new_meta->size = meta->size;                                           \
+        new_meta->capacity = new_capacity;                                     \
+        new_arr = (elem_type *)(new_meta + 1);                                 \
+        memcpy(new_arr, arr, meta->size * sizeof(elem_type));                  \
+        meta = new_meta;                                                       \
     } else {                                                                   \
         new_arr = arr;                                                         \
     }                                                                          \
@@ -613,13 +616,13 @@ DEFINE_ARRAY_PUSH(char, char, element)
 DEFINE_ARRAY_PUSH(bool, int, element)
 
 /* String arrays need special handling for strdup */
-char **rt_array_push_string(char **arr, const char *element) {
+char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
     ArrayMetadata *meta;
     char **new_arr;
     size_t new_capacity;
 
     if (arr == NULL) {
-        meta = malloc(sizeof(ArrayMetadata) + 4 * sizeof(char *));
+        meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + 4 * sizeof(char *));
         if (meta == NULL) {
             fprintf(stderr, "rt_array_push_string: allocation failed\n");
             exit(1);
@@ -627,7 +630,7 @@ char **rt_array_push_string(char **arr, const char *element) {
         meta->size = 1;
         meta->capacity = 4;
         new_arr = (char **)(meta + 1);
-        new_arr[0] = element ? strdup(element) : NULL;
+        new_arr[0] = element ? rt_arena_strdup(arena, element) : NULL;
         return new_arr;
     }
 
@@ -639,27 +642,23 @@ char **rt_array_push_string(char **arr, const char *element) {
             fprintf(stderr, "rt_array_push_string: capacity overflow\n");
             exit(1);
         }
-        meta = realloc(meta, sizeof(ArrayMetadata) + new_capacity * sizeof(char *));
-        if (meta == NULL) {
+        ArrayMetadata *new_meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + new_capacity * sizeof(char *));
+        if (new_meta == NULL) {
             fprintf(stderr, "rt_array_push_string: allocation failed\n");
             exit(1);
         }
-        meta->capacity = new_capacity;
-        new_arr = (char **)(meta + 1);
+        new_meta->size = meta->size;
+        new_meta->capacity = new_capacity;
+        new_arr = (char **)(new_meta + 1);
+        memcpy(new_arr, arr, meta->size * sizeof(char *));
+        meta = new_meta;
     } else {
         new_arr = arr;
     }
 
-    new_arr[meta->size] = element ? strdup(element) : NULL;
+    new_arr[meta->size] = element ? rt_arena_strdup(arena, element) : NULL;
     meta->size++;
     return new_arr;
-}
-
-void rt_free_string(char *s) {
-    if (s == NULL || s == null_str) {
-        return;
-    }
-    free(s);
 }
 
 /* Get array length - returns 0 for NULL arrays */
@@ -778,12 +777,12 @@ char *rt_array_pop_string(char **arr) {
 
 /* Concat functions - return a NEW array containing elements from both arrays (non-mutating) */
 #define DEFINE_ARRAY_CONCAT(suffix, elem_type)                                 \
-elem_type *rt_array_concat_##suffix(elem_type *arr1, elem_type *arr2) {        \
+elem_type *rt_array_concat_##suffix(RtArena *arena, elem_type *arr1, elem_type *arr2) { \
     size_t len1 = arr1 ? rt_array_length(arr1) : 0;                            \
     size_t len2 = arr2 ? rt_array_length(arr2) : 0;                            \
     size_t total = len1 + len2;                                                \
     size_t capacity = total > 4 ? total : 4;                                   \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                        \
         fprintf(stderr, "rt_array_concat_" #suffix ": allocation failed\n");   \
         exit(1);                                                               \
@@ -805,12 +804,12 @@ DEFINE_ARRAY_CONCAT(double, double)
 DEFINE_ARRAY_CONCAT(char, char)
 DEFINE_ARRAY_CONCAT(bool, int)
 
-char **rt_array_concat_string(char **arr1, char **arr2) {
+char **rt_array_concat_string(RtArena *arena, char **arr1, char **arr2) {
     size_t len1 = arr1 ? rt_array_length(arr1) : 0;
     size_t len2 = arr2 ? rt_array_length(arr2) : 0;
     size_t total = len1 + len2;
     size_t capacity = total > 4 ? total : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_concat_string: allocation failed\n");
         exit(1);
@@ -819,35 +818,12 @@ char **rt_array_concat_string(char **arr1, char **arr2) {
     meta->capacity = capacity;
     char **result = (char **)(meta + 1);
     for (size_t i = 0; i < len1; i++) {
-        result[i] = arr1[i] ? strdup(arr1[i]) : NULL;
+        result[i] = arr1[i] ? rt_arena_strdup(arena, arr1[i]) : NULL;
     }
     for (size_t i = 0; i < len2; i++) {
-        result[len1 + i] = arr2[i] ? strdup(arr2[i]) : NULL;
+        result[len1 + i] = arr2[i] ? rt_arena_strdup(arena, arr2[i]) : NULL;
     }
     return result;
-}
-
-/* Free array functions */
-void rt_array_free(void *arr) {
-    if (arr == NULL) {
-        return;
-    }
-    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
-    free(meta);
-}
-
-void rt_array_free_string(char **arr) {
-    if (arr == NULL) {
-        return;
-    }
-    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
-    /* Free each string element first */
-    for (size_t i = 0; i < meta->size; i++) {
-        if (arr[i] != NULL) {
-            free(arr[i]);
-        }
-    }
-    free(meta);
 }
 
 /* Array slice functions - create a new array from a portion of the source
@@ -856,7 +832,7 @@ void rt_array_free_string(char **arr) {
  * step: step size, use LONG_MIN for default step of 1
  */
 #define DEFINE_ARRAY_SLICE(suffix, elem_type)                                   \
-elem_type *rt_array_slice_##suffix(elem_type *arr, long start, long end, long step) { \
+elem_type *rt_array_slice_##suffix(RtArena *arena, elem_type *arr, long start, long end, long step) { \
     if (arr == NULL) {                                                          \
         return NULL;                                                            \
     }                                                                           \
@@ -896,7 +872,7 @@ elem_type *rt_array_slice_##suffix(elem_type *arr, long start, long end, long st
     size_t range = (size_t)(actual_end - actual_start);                         \
     size_t slice_len = (range + (size_t)actual_step - 1) / (size_t)actual_step; \
     size_t capacity = slice_len > 4 ? slice_len : 4;                            \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                         \
         fprintf(stderr, "rt_array_slice_" #suffix ": allocation failed\n");     \
         exit(1);                                                                \
@@ -916,7 +892,7 @@ DEFINE_ARRAY_SLICE(char, char)
 DEFINE_ARRAY_SLICE(bool, int)
 
 /* String slice needs special handling to strdup elements */
-char **rt_array_slice_string(char **arr, long start, long end, long step) {
+char **rt_array_slice_string(RtArena *arena, char **arr, long start, long end, long step) {
     if (arr == NULL) {
         return NULL;
     }
@@ -956,7 +932,7 @@ char **rt_array_slice_string(char **arr, long start, long end, long step) {
     size_t range = (size_t)(actual_end - actual_start);
     size_t slice_len = (range + (size_t)actual_step - 1) / (size_t)actual_step;
     size_t capacity = slice_len > 4 ? slice_len : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_slice_string: allocation failed\n");
         exit(1);
@@ -966,14 +942,14 @@ char **rt_array_slice_string(char **arr, long start, long end, long step) {
     char **new_arr = (char **)(meta + 1);
     for (size_t i = 0; i < slice_len; i++) {
         size_t src_idx = actual_start + i * (size_t)actual_step;
-        new_arr[i] = arr[src_idx] ? strdup(arr[src_idx]) : NULL;
+        new_arr[i] = arr[src_idx] ? rt_arena_strdup(arena, arr[src_idx]) : NULL;
     }
     return new_arr;
 }
 
 /* Array reverse functions - return a new reversed array */
 #define DEFINE_ARRAY_REV(suffix, elem_type)                                     \
-elem_type *rt_array_rev_##suffix(elem_type *arr) {                              \
+elem_type *rt_array_rev_##suffix(RtArena *arena, elem_type *arr) {              \
     if (arr == NULL) {                                                          \
         return NULL;                                                            \
     }                                                                           \
@@ -982,7 +958,7 @@ elem_type *rt_array_rev_##suffix(elem_type *arr) {                              
         return NULL;                                                            \
     }                                                                           \
     size_t capacity = len > 4 ? len : 4;                                        \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                         \
         fprintf(stderr, "rt_array_rev_" #suffix ": allocation failed\n");       \
         exit(1);                                                                \
@@ -1002,7 +978,7 @@ DEFINE_ARRAY_REV(char, char)
 DEFINE_ARRAY_REV(bool, int)
 
 /* String reverse needs special handling to strdup elements */
-char **rt_array_rev_string(char **arr) {
+char **rt_array_rev_string(RtArena *arena, char **arr) {
     if (arr == NULL) {
         return NULL;
     }
@@ -1011,7 +987,7 @@ char **rt_array_rev_string(char **arr) {
         return NULL;
     }
     size_t capacity = len > 4 ? len : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_rev_string: allocation failed\n");
         exit(1);
@@ -1020,14 +996,14 @@ char **rt_array_rev_string(char **arr) {
     meta->capacity = capacity;
     char **new_arr = (char **)(meta + 1);
     for (size_t i = 0; i < len; i++) {
-        new_arr[i] = arr[len - 1 - i] ? strdup(arr[len - 1 - i]) : NULL;
+        new_arr[i] = arr[len - 1 - i] ? rt_arena_strdup(arena, arr[len - 1 - i]) : NULL;
     }
     return new_arr;
 }
 
 /* Array remove at index functions - return a new array without the element */
 #define DEFINE_ARRAY_REM(suffix, elem_type)                                     \
-elem_type *rt_array_rem_##suffix(elem_type *arr, long index) {                  \
+elem_type *rt_array_rem_##suffix(RtArena *arena, elem_type *arr, long index) {  \
     if (arr == NULL) {                                                          \
         return NULL;                                                            \
     }                                                                           \
@@ -1041,7 +1017,7 @@ elem_type *rt_array_rem_##suffix(elem_type *arr, long index) {                  
     }                                                                           \
     size_t new_len = len - 1;                                                   \
     size_t capacity = new_len > 4 ? new_len : 4;                                \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                         \
         fprintf(stderr, "rt_array_rem_" #suffix ": allocation failed\n");       \
         exit(1);                                                                \
@@ -1064,7 +1040,7 @@ DEFINE_ARRAY_REM(char, char)
 DEFINE_ARRAY_REM(bool, int)
 
 /* String remove needs special handling to strdup elements */
-char **rt_array_rem_string(char **arr, long index) {
+char **rt_array_rem_string(RtArena *arena, char **arr, long index) {
     if (arr == NULL) {
         return NULL;
     }
@@ -1078,7 +1054,7 @@ char **rt_array_rem_string(char **arr, long index) {
     }
     size_t new_len = len - 1;
     size_t capacity = new_len > 4 ? new_len : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_rem_string: allocation failed\n");
         exit(1);
@@ -1087,23 +1063,23 @@ char **rt_array_rem_string(char **arr, long index) {
     meta->capacity = capacity;
     char **new_arr = (char **)(meta + 1);
     for (size_t i = 0; i < (size_t)index; i++) {
-        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+        new_arr[i] = arr[i] ? rt_arena_strdup(arena, arr[i]) : NULL;
     }
     for (size_t i = (size_t)index; i < new_len; i++) {
-        new_arr[i] = arr[i + 1] ? strdup(arr[i + 1]) : NULL;
+        new_arr[i] = arr[i + 1] ? rt_arena_strdup(arena, arr[i + 1]) : NULL;
     }
     return new_arr;
 }
 
 /* Array insert at index functions - return a new array with the element inserted */
 #define DEFINE_ARRAY_INS(suffix, elem_type)                                     \
-elem_type *rt_array_ins_##suffix(elem_type *arr, elem_type elem, long index) {  \
+elem_type *rt_array_ins_##suffix(RtArena *arena, elem_type *arr, elem_type elem, long index) { \
     size_t len = arr ? rt_array_length(arr) : 0;                                \
     if (index < 0) index = 0;                                                   \
     if ((size_t)index > len) index = (long)len;                                 \
     size_t new_len = len + 1;                                                   \
     size_t capacity = new_len > 4 ? new_len : 4;                                \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                         \
         fprintf(stderr, "rt_array_ins_" #suffix ": allocation failed\n");       \
         exit(1);                                                                \
@@ -1127,13 +1103,13 @@ DEFINE_ARRAY_INS(char, char)
 DEFINE_ARRAY_INS(bool, int)
 
 /* String insert needs special handling to strdup elements */
-char **rt_array_ins_string(char **arr, const char *elem, long index) {
+char **rt_array_ins_string(RtArena *arena, char **arr, const char *elem, long index) {
     size_t len = arr ? rt_array_length(arr) : 0;
     if (index < 0) index = 0;
     if ((size_t)index > len) index = (long)len;
     size_t new_len = len + 1;
     size_t capacity = new_len > 4 ? new_len : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_ins_string: allocation failed\n");
         exit(1);
@@ -1142,22 +1118,22 @@ char **rt_array_ins_string(char **arr, const char *elem, long index) {
     meta->capacity = capacity;
     char **new_arr = (char **)(meta + 1);
     for (size_t i = 0; i < (size_t)index; i++) {
-        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+        new_arr[i] = arr[i] ? rt_arena_strdup(arena, arr[i]) : NULL;
     }
-    new_arr[index] = elem ? strdup(elem) : NULL;
+    new_arr[index] = elem ? rt_arena_strdup(arena, elem) : NULL;
     for (size_t i = (size_t)index + 1; i < new_len; i++) {
-        new_arr[i] = arr[i - 1] ? strdup(arr[i - 1]) : NULL;
+        new_arr[i] = arr[i - 1] ? rt_arena_strdup(arena, arr[i - 1]) : NULL;
     }
     return new_arr;
 }
 
 /* Array push (copy) functions - create a NEW array with element appended */
 #define DEFINE_ARRAY_PUSH_COPY(suffix, elem_type)                               \
-elem_type *rt_array_push_copy_##suffix(elem_type *arr, elem_type elem) {        \
+elem_type *rt_array_push_copy_##suffix(RtArena *arena, elem_type *arr, elem_type elem) { \
     size_t len = arr ? rt_array_length(arr) : 0;                                \
     size_t new_len = len + 1;                                                   \
     size_t capacity = new_len > 4 ? new_len : 4;                                \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                         \
         fprintf(stderr, "rt_array_push_copy_" #suffix ": allocation failed\n"); \
         exit(1);                                                                \
@@ -1178,11 +1154,11 @@ DEFINE_ARRAY_PUSH_COPY(char, char)
 DEFINE_ARRAY_PUSH_COPY(bool, int)
 
 /* String push copy needs special handling to strdup elements */
-char **rt_array_push_copy_string(char **arr, const char *elem) {
+char **rt_array_push_copy_string(RtArena *arena, char **arr, const char *elem) {
     size_t len = arr ? rt_array_length(arr) : 0;
     size_t new_len = len + 1;
     size_t capacity = new_len > 4 ? new_len : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_push_copy_string: allocation failed\n");
         exit(1);
@@ -1191,9 +1167,9 @@ char **rt_array_push_copy_string(char **arr, const char *elem) {
     meta->capacity = capacity;
     char **new_arr = (char **)(meta + 1);
     for (size_t i = 0; i < len; i++) {
-        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+        new_arr[i] = arr[i] ? rt_arena_strdup(arena, arr[i]) : NULL;
     }
-    new_arr[len] = elem ? strdup(elem) : NULL;
+    new_arr[len] = elem ? rt_arena_strdup(arena, elem) : NULL;
     return new_arr;
 }
 
@@ -1251,7 +1227,7 @@ int rt_array_contains_string(char **arr, const char *elem) {
 
 /* Array clone functions - create a deep copy of the array */
 #define DEFINE_ARRAY_CLONE(suffix, elem_type)                                   \
-elem_type *rt_array_clone_##suffix(elem_type *arr) {                            \
+elem_type *rt_array_clone_##suffix(RtArena *arena, elem_type *arr) {            \
     if (arr == NULL) {                                                          \
         return NULL;                                                            \
     }                                                                           \
@@ -1260,7 +1236,7 @@ elem_type *rt_array_clone_##suffix(elem_type *arr) {                            
         return NULL;                                                            \
     }                                                                           \
     size_t capacity = len > 4 ? len : 4;                                        \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                         \
         fprintf(stderr, "rt_array_clone_" #suffix ": allocation failed\n");     \
         exit(1);                                                                \
@@ -1278,7 +1254,7 @@ DEFINE_ARRAY_CLONE(char, char)
 DEFINE_ARRAY_CLONE(bool, int)
 
 /* String clone needs special handling to strdup elements */
-char **rt_array_clone_string(char **arr) {
+char **rt_array_clone_string(RtArena *arena, char **arr) {
     if (arr == NULL) {
         return NULL;
     }
@@ -1287,7 +1263,7 @@ char **rt_array_clone_string(char **arr) {
         return NULL;
     }
     size_t capacity = len > 4 ? len : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_clone_string: allocation failed\n");
         exit(1);
@@ -1296,22 +1272,22 @@ char **rt_array_clone_string(char **arr) {
     meta->capacity = capacity;
     char **new_arr = (char **)(meta + 1);
     for (size_t i = 0; i < len; i++) {
-        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+        new_arr[i] = arr[i] ? rt_arena_strdup(arena, arr[i]) : NULL;
     }
     return new_arr;
 }
 
 /* Array join function - join elements into a string with separator */
-char *rt_array_join_long(long *arr, const char *separator) {
+char *rt_array_join_long(RtArena *arena, long *arr, const char *separator) {
     if (arr == NULL || rt_array_length(arr) == 0) {
-        return strdup("");
+        return rt_arena_strdup(arena, "");
     }
     size_t len = rt_array_length(arr);
     size_t sep_len = separator ? strlen(separator) : 0;
 
     /* Estimate buffer size: each long can be up to 20 chars + separators */
     size_t buf_size = len * 24 + (len - 1) * sep_len + 1;
-    char *result = malloc(buf_size);
+    char *result = rt_arena_alloc(arena, buf_size);
     if (result == NULL) {
         fprintf(stderr, "rt_array_join_long: allocation failed\n");
         exit(1);
@@ -1327,15 +1303,15 @@ char *rt_array_join_long(long *arr, const char *separator) {
     return result;
 }
 
-char *rt_array_join_double(double *arr, const char *separator) {
+char *rt_array_join_double(RtArena *arena, double *arr, const char *separator) {
     if (arr == NULL || rt_array_length(arr) == 0) {
-        return strdup("");
+        return rt_arena_strdup(arena, "");
     }
     size_t len = rt_array_length(arr);
     size_t sep_len = separator ? strlen(separator) : 0;
 
     size_t buf_size = len * 32 + (len - 1) * sep_len + 1;
-    char *result = malloc(buf_size);
+    char *result = rt_arena_alloc(arena, buf_size);
     if (result == NULL) {
         fprintf(stderr, "rt_array_join_double: allocation failed\n");
         exit(1);
@@ -1351,15 +1327,15 @@ char *rt_array_join_double(double *arr, const char *separator) {
     return result;
 }
 
-char *rt_array_join_char(char *arr, const char *separator) {
+char *rt_array_join_char(RtArena *arena, char *arr, const char *separator) {
     if (arr == NULL || rt_array_length(arr) == 0) {
-        return strdup("");
+        return rt_arena_strdup(arena, "");
     }
     size_t len = rt_array_length(arr);
     size_t sep_len = separator ? strlen(separator) : 0;
 
     size_t buf_size = len + (len - 1) * sep_len + 1;
-    char *result = malloc(buf_size);
+    char *result = rt_arena_alloc(arena, buf_size);
     if (result == NULL) {
         fprintf(stderr, "rt_array_join_char: allocation failed\n");
         exit(1);
@@ -1376,16 +1352,16 @@ char *rt_array_join_char(char *arr, const char *separator) {
     return result;
 }
 
-char *rt_array_join_bool(int *arr, const char *separator) {
+char *rt_array_join_bool(RtArena *arena, int *arr, const char *separator) {
     if (arr == NULL || rt_array_length(arr) == 0) {
-        return strdup("");
+        return rt_arena_strdup(arena, "");
     }
     size_t len = rt_array_length(arr);
     size_t sep_len = separator ? strlen(separator) : 0;
 
     /* "true" or "false" + separators */
     size_t buf_size = len * 6 + (len - 1) * sep_len + 1;
-    char *result = malloc(buf_size);
+    char *result = rt_arena_alloc(arena, buf_size);
     if (result == NULL) {
         fprintf(stderr, "rt_array_join_bool: allocation failed\n");
         exit(1);
@@ -1401,9 +1377,9 @@ char *rt_array_join_bool(int *arr, const char *separator) {
     return result;
 }
 
-char *rt_array_join_string(char **arr, const char *separator) {
+char *rt_array_join_string(RtArena *arena, char **arr, const char *separator) {
     if (arr == NULL || rt_array_length(arr) == 0) {
-        return strdup("");
+        return rt_arena_strdup(arena, "");
     }
     size_t len = rt_array_length(arr);
     size_t sep_len = separator ? strlen(separator) : 0;
@@ -1417,7 +1393,7 @@ char *rt_array_join_string(char **arr, const char *separator) {
     }
     total_len += (len - 1) * sep_len + 1;
 
-    char *result = malloc(total_len);
+    char *result = rt_arena_alloc(arena, total_len);
     if (result == NULL) {
         fprintf(stderr, "rt_array_join_string: allocation failed\n");
         exit(1);
@@ -1442,12 +1418,12 @@ char *rt_array_join_string(char **arr, const char *separator) {
 
 /* Array create functions - create runtime array from static C array */
 #define DEFINE_ARRAY_CREATE(suffix, elem_type)                                  \
-elem_type *rt_array_create_##suffix(size_t count, const elem_type *data) {      \
+elem_type *rt_array_create_##suffix(RtArena *arena, size_t count, const elem_type *data) { \
     if (count == 0 || data == NULL) {                                           \
         return NULL;                                                            \
     }                                                                           \
     size_t capacity = count > 4 ? count : 4;                                    \
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
     if (meta == NULL) {                                                         \
         fprintf(stderr, "rt_array_create_" #suffix ": allocation failed\n");    \
         exit(1);                                                                \
@@ -1467,12 +1443,12 @@ DEFINE_ARRAY_CREATE(char, char)
 DEFINE_ARRAY_CREATE(bool, int)
 
 /* String array create needs special handling for strdup */
-char **rt_array_create_string(size_t count, const char **data) {
+char **rt_array_create_string(RtArena *arena, size_t count, const char **data) {
     if (count == 0 || data == NULL) {
         return NULL;
     }
     size_t capacity = count > 4 ? count : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_create_string: allocation failed\n");
         exit(1);
@@ -1481,7 +1457,7 @@ char **rt_array_create_string(size_t count, const char **data) {
     meta->capacity = capacity;
     char **arr = (char **)(meta + 1);
     for (size_t i = 0; i < count; i++) {
-        arr[i] = data[i] ? strdup(data[i]) : NULL;
+        arr[i] = data[i] ? rt_arena_strdup(arena, data[i]) : NULL;
     }
     return arr;
 }
@@ -1530,7 +1506,7 @@ int rt_array_eq_string(char **a, char **b) {
 }
 
 /* Range creation - creates int[] from start to end (exclusive) */
-long *rt_array_range(long start, long end) {
+long *rt_array_range(RtArena *arena, long start, long end) {
     /* Calculate count, handle both ascending and descending ranges */
     long count;
     if (end >= start) {
@@ -1543,7 +1519,7 @@ long *rt_array_range(long start, long end) {
     if (count <= 0) {
         /* Empty range */
         size_t capacity = 4;
-        ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(long));
+        ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(long));
         if (meta == NULL) {
             fprintf(stderr, "rt_array_range: allocation failed\n");
             exit(1);
@@ -1554,7 +1530,7 @@ long *rt_array_range(long start, long end) {
     }
 
     size_t capacity = (size_t)count > 4 ? (size_t)count : 4;
-    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(long));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(long));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_range: allocation failed\n");
         exit(1);
@@ -1581,8 +1557,8 @@ long rt_str_length(const char *str) {
 }
 
 /* Get substring from start to end (exclusive) */
-char *rt_str_substring(const char *str, long start, long end) {
-    if (str == NULL) return strdup("");
+char *rt_str_substring(RtArena *arena, const char *str, long start, long end) {
+    if (str == NULL) return rt_arena_strdup(arena, "");
     long len = (long)strlen(str);
 
     /* Handle negative indices */
@@ -1592,11 +1568,11 @@ char *rt_str_substring(const char *str, long start, long end) {
     /* Clamp to valid range */
     if (start < 0) start = 0;
     if (end > len) end = len;
-    if (start >= end || start >= len) return strdup("");
+    if (start >= end || start >= len) return rt_arena_strdup(arena, "");
 
     long sub_len = end - start;
-    char *result = malloc(sub_len + 1);
-    if (result == NULL) return strdup("");
+    char *result = rt_arena_alloc(arena, sub_len + 1);
+    if (result == NULL) return rt_arena_strdup(arena, "");
 
     memcpy(result, str + start, sub_len);
     result[sub_len] = '\0';
@@ -1612,31 +1588,34 @@ long rt_str_indexOf(const char *str, const char *search) {
 }
 
 /* Split string by delimiter, returns array of strings */
-char **rt_str_split(const char *str, const char *delimiter) {
+char **rt_str_split(RtArena *arena, const char *str, const char *delimiter) {
     if (str == NULL || delimiter == NULL) {
-        return rt_array_create_string(0, NULL);
+        return NULL;
     }
 
     size_t delim_len = strlen(delimiter);
     if (delim_len == 0) {
         /* Empty delimiter: split into individual characters */
         size_t len = strlen(str);
-        const char **parts = malloc(sizeof(char *) * len);
-        if (parts == NULL) return rt_array_create_string(0, NULL);
+        if (len == 0) return NULL;
+
+        /* Allocate the result array directly */
+        size_t capacity = len > 4 ? len : 4;
+        ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
+        if (meta == NULL) {
+            fprintf(stderr, "rt_str_split: allocation failed\n");
+            exit(1);
+        }
+        meta->size = len;
+        meta->capacity = capacity;
+        char **result = (char **)(meta + 1);
 
         for (size_t i = 0; i < len; i++) {
-            char *ch = malloc(2);
+            char *ch = rt_arena_alloc(arena, 2);
             ch[0] = str[i];
             ch[1] = '\0';
-            parts[i] = ch;
+            result[i] = ch;
         }
-
-        char **result = rt_array_create_string(len, parts);
-        /* Free the original strings since rt_array_create_string made copies */
-        for (size_t i = 0; i < len; i++) {
-            free((void *)parts[i]);
-        }
-        free(parts);
         return result;
     }
 
@@ -1648,9 +1627,16 @@ char **rt_str_split(const char *str, const char *delimiter) {
         p += delim_len;
     }
 
-    /* Allocate array for parts */
-    const char **parts = malloc(sizeof(char *) * count);
-    if (parts == NULL) return rt_array_create_string(0, NULL);
+    /* Allocate the result array */
+    size_t capacity = count > 4 ? count : 4;
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_str_split: allocation failed\n");
+        exit(1);
+    }
+    meta->size = count;
+    meta->capacity = capacity;
+    char **result = (char **)(meta + 1);
 
     /* Split the string */
     const char *start = str;
@@ -1658,35 +1644,29 @@ char **rt_str_split(const char *str, const char *delimiter) {
     p = str;
     while ((p = strstr(p, delimiter)) != NULL) {
         size_t part_len = p - start;
-        char *part = malloc(part_len + 1);
+        char *part = rt_arena_alloc(arena, part_len + 1);
         memcpy(part, start, part_len);
         part[part_len] = '\0';
-        parts[idx++] = part;
+        result[idx++] = part;
         p += delim_len;
         start = p;
     }
     /* Add final part */
-    parts[idx] = strdup(start);
+    result[idx] = rt_arena_strdup(arena, start);
 
-    char **result = rt_array_create_string(count, parts);
-    /* Free the original strings since rt_array_create_string made copies */
-    for (size_t i = 0; i < count; i++) {
-        free((void *)parts[i]);
-    }
-    free(parts);
     return result;
 }
 
 /* Trim whitespace from both ends */
-char *rt_str_trim(const char *str) {
-    if (str == NULL) return strdup("");
+char *rt_str_trim(RtArena *arena, const char *str) {
+    if (str == NULL) return rt_arena_strdup(arena, "");
 
     /* Skip leading whitespace */
     while (*str && (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r')) {
         str++;
     }
 
-    if (*str == '\0') return strdup("");
+    if (*str == '\0') return rt_arena_strdup(arena, "");
 
     /* Find end, skipping trailing whitespace */
     const char *end = str + strlen(str) - 1;
@@ -1695,8 +1675,8 @@ char *rt_str_trim(const char *str) {
     }
 
     size_t len = end - str + 1;
-    char *result = malloc(len + 1);
-    if (result == NULL) return strdup("");
+    char *result = rt_arena_alloc(arena, len + 1);
+    if (result == NULL) return rt_arena_strdup(arena, "");
 
     memcpy(result, str, len);
     result[len] = '\0';
@@ -1704,11 +1684,11 @@ char *rt_str_trim(const char *str) {
 }
 
 /* Convert to uppercase */
-char *rt_str_toUpper(const char *str) {
-    if (str == NULL) return strdup("");
+char *rt_str_toUpper(RtArena *arena, const char *str) {
+    if (str == NULL) return rt_arena_strdup(arena, "");
 
-    char *result = strdup(str);
-    if (result == NULL) return strdup("");
+    char *result = rt_arena_strdup(arena, str);
+    if (result == NULL) return rt_arena_strdup(arena, "");
 
     for (char *p = result; *p; p++) {
         if (*p >= 'a' && *p <= 'z') {
@@ -1719,11 +1699,11 @@ char *rt_str_toUpper(const char *str) {
 }
 
 /* Convert to lowercase */
-char *rt_str_toLower(const char *str) {
-    if (str == NULL) return strdup("");
+char *rt_str_toLower(RtArena *arena, const char *str) {
+    if (str == NULL) return rt_arena_strdup(arena, "");
 
-    char *result = strdup(str);
-    if (result == NULL) return strdup("");
+    char *result = rt_arena_strdup(arena, str);
+    if (result == NULL) return rt_arena_strdup(arena, "");
 
     for (char *p = result; *p; p++) {
         if (*p >= 'A' && *p <= 'Z') {
@@ -1757,11 +1737,11 @@ int rt_str_contains(const char *str, const char *search) {
 }
 
 /* Replace all occurrences of old with new */
-char *rt_str_replace(const char *str, const char *old, const char *new_str) {
-    if (str == NULL || old == NULL || new_str == NULL) return strdup(str ? str : "");
+char *rt_str_replace(RtArena *arena, const char *str, const char *old, const char *new_str) {
+    if (str == NULL || old == NULL || new_str == NULL) return rt_arena_strdup(arena, str ? str : "");
 
     size_t old_len = strlen(old);
-    if (old_len == 0) return strdup(str);
+    if (old_len == 0) return rt_arena_strdup(arena, str);
 
     size_t new_len = strlen(new_str);
 
@@ -1773,14 +1753,14 @@ char *rt_str_replace(const char *str, const char *old, const char *new_str) {
         p += old_len;
     }
 
-    if (count == 0) return strdup(str);
+    if (count == 0) return rt_arena_strdup(arena, str);
 
     /* Calculate new length */
     size_t str_len = strlen(str);
     size_t result_len = str_len + count * (new_len - old_len);
 
-    char *result = malloc(result_len + 1);
-    if (result == NULL) return strdup(str);
+    char *result = rt_arena_alloc(arena, result_len + 1);
+    if (result == NULL) return rt_arena_strdup(arena, str);
 
     /* Build result */
     char *dst = result;

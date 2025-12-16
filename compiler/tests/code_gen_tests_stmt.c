@@ -50,7 +50,12 @@ void test_code_gen_call_expression_simple()
     const char *expected = get_expected(&arena,
                                   "rt_print_string(\"Hello, world!\");\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -98,12 +103,19 @@ void test_code_gen_function_simple_void()
     const char *expected = get_expected(&arena,
                                   "void myfn(void);\n\n"
                                   "void myfn() {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    goto myfn_return;\n"
                                   "myfn_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
                                   "    return;\n"
                                   "}\n\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -171,14 +183,21 @@ void test_code_gen_function_with_params_and_return()
     const char *expected = get_expected(&arena,
                                   "long add(long);\n\n"
                                   "long add(long a) {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    long _return_value = 0;\n"
                                   "    _return_value = a;\n"
                                   "    goto add_return;\n"
                                   "add_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
                                   "    return _return_value;\n"
                                   "}\n\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -225,9 +244,11 @@ void test_code_gen_main_function_special_case()
 
     const char *expected = get_expected(&arena,
                                   "int main() {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
                                   "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
                                   "    return _return_value;\n"
                                   "}\n\n");
 
@@ -281,7 +302,12 @@ void test_code_gen_block_statement()
                                   "    long block_var = 0;\n"
                                   "}\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -340,7 +366,12 @@ void test_code_gen_if_statement()
                                   "    print;\n"
                                   "}\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -399,7 +430,12 @@ void test_code_gen_while_statement()
                                   "    print;\n"
                                   "}\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -505,7 +541,12 @@ void test_code_gen_for_statement()
                                   "    }\n"
                                   "}\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -560,13 +601,18 @@ void test_code_gen_string_free_in_block()
 
     const char *expected = get_expected(&arena,
                                   "{\n"
-                                  "    char * s = rt_to_string_string(\"test\");\n"
+                                  "    char * s = rt_to_string_string(NULL, \"test\");\n"
                                   "    if (s) {\n"
                                   "        rt_free_string(s);\n"
                                   "    }\n"
                                   "}\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -617,7 +663,12 @@ void test_code_gen_increment_decrement()
                                   "long counter = 0;\n"
                                   "rt_post_inc_long(&counter);\n"
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -657,7 +708,12 @@ void test_code_gen_null_expression()
 
     const char *expected = get_expected(&arena,
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
@@ -719,7 +775,12 @@ void test_code_gen_module_no_main_adds_dummy()
 
     const char *expected = get_expected(&arena,
                                   "int main() {\n"
-                                  "    return 0;\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
                                   "}\n");
 
     create_expected_file(expected_output_path, expected);
