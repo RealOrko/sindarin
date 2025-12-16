@@ -260,7 +260,7 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
                 }
                 if (*imported_count > 0)
                 {
-                    memcpy(new_imported, *imported, sizeof(char *) * *imported_count);
+                    memmove(new_imported, *imported, sizeof(char *) * *imported_count);
                 }
                 *imported = new_imported;
             }
@@ -288,11 +288,11 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
                 }
                 if (all_count > 0)
                 {
-                    memcpy(new_statements, all_statements, sizeof(Stmt *) * all_count);
+                    memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
                 }
                 all_statements = new_statements;
             }
-            memcpy(all_statements + all_count, imported_module->statements, sizeof(Stmt *) * imported_module->count);
+            memmove(all_statements + all_count, imported_module->statements, sizeof(Stmt *) * imported_module->count);
             all_count = new_all_count;
 
             memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
@@ -318,11 +318,11 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
         }
         if (all_count > 0)
         {
-            memcpy(new_statements, all_statements, sizeof(Stmt *) * all_count);
+            memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
         }
         all_statements = new_statements;
     }
-    memcpy(all_statements + all_count, module->statements, sizeof(Stmt *) * module->count);
+    memmove(all_statements + all_count, module->statements, sizeof(Stmt *) * module->count);
     all_count = new_all_count;
 
     module->statements = all_statements;

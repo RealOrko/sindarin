@@ -1,0 +1,51 @@
+// ============================================================================
+// strings.sn - String Features in Sindarin
+// ============================================================================
+// Demonstrates: string literals, concatenation, interpolation, escape sequences
+// ============================================================================
+
+// Entry point for string demos
+fn demo_strings(): void =>
+  print("=== Sindarin Strings ===\n\n")
+
+  // 1. String literals
+  print("--- String Literals ---\n")
+  var hello: str = "Hello, World!"
+  print(hello)
+  print("\n")
+  var empty: str = ""
+  print($"Empty string: \"{empty}\"\n")
+
+  // 2. Concatenation
+  print("\n--- Concatenation ---\n")
+  var first: str = "Hello"
+  var second: str = "World"
+  var combined: str = first + " " + second
+  print($"Combined: \"{combined}\"\n")
+
+  // 3. Interpolation
+  print("\n--- Interpolation ---\n")
+  var name: str = "Alice"
+  var age: int = 30
+  print($"Name: {name}, Age: {age}\n")
+
+  var x: int = 5
+  var y: int = 3
+  print($"{x} + {y} = {x + y}\n")
+  print($"{x} * {y} = {x * y}\n")
+
+  // 4. Escape sequences
+  print("\n--- Escape Sequences ---\n")
+  print("Line 1\nLine 2\nLine 3\n")
+  print("Tab:\tValue\n")
+  print("Quote: \"Hello\"\n")
+
+  // 5. String comparisons
+  print("\n--- Comparisons ---\n")
+  var s1: str = "apple"
+  var s2: str = "apple"
+  var s3: str = "banana"
+  print($"apple == apple: {s1 == s2}\n")
+  print($"apple == banana: {s1 == s3}\n")
+
+  print("\n=== Done ===\n")

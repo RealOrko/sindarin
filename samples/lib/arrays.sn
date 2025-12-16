@@ -1,0 +1,86 @@
+// ============================================================================
+// arrays.sn - Array Features in Sindarin
+// ============================================================================
+// Demonstrates: declaration, methods, slicing, negative indexing, for-each
+// ============================================================================
+
+// Entry point for array demos
+fn demo_arrays(): void =>
+  print("=== Sindarin Arrays ===\n\n")
+
+  // 1. Declaration and initialization
+  print("--- Declaration ---\n")
+  var numbers: int[] = {10, 20, 30, 40, 50}
+  print("numbers = ")
+  print(numbers)
+  print("\n")
+  print($"numbers.length = {numbers.length}\n")
+  print($"numbers[0] = {numbers[0]}\n")
+  print($"numbers[2] = {numbers[2]}\n")
+
+  // 2. Array methods
+  print("\n--- Methods ---\n")
+  var arr: int[]
+  arr.push(1)
+  arr.push(2)
+  arr.push(3)
+  print("After push(1,2,3): ")
+  print(arr)
+  print("\n")
+
+  var last: int = arr.pop()
+  print($"pop() returned: {last}\n")
+  print("After pop: ")
+  print(arr)
+  print("\n")
+
+  // 3. Slicing
+  print("\n--- Slicing ---\n")
+  var nums: int[] = {10, 20, 30, 40, 50}
+  var slice1: int[] = nums[1..4]
+  print("nums[1..4] = ")
+  print(slice1)
+  print("\n")
+
+  var slice2: int[] = nums[..3]
+  print("nums[..3] = ")
+  print(slice2)
+  print("\n")
+
+  var slice3: int[] = nums[2..]
+  print("nums[2..] = ")
+  print(slice3)
+  print("\n")
+
+  // 4. Negative indexing
+  print("\n--- Negative Indexing ---\n")
+  print($"nums[-1] = {nums[-1]}\n")
+  print($"nums[-2] = {nums[-2]}\n")
+
+  var last_two: int[] = nums[-2..]
+  print("nums[-2..] = ")
+  print(last_two)
+  print("\n")
+
+  // 5. For-each iteration
+  print("\n--- For-Each ---\n")
+  var items: int[] = {10, 20, 30}
+  print("Iterating: ")
+  for x in items =>
+    print($"{x} ")
+  print("\n")
+
+  var total: int = 0
+  for n in items =>
+    total = total + n
+  print($"Sum = {total}\n")
+
+  // 6. Array equality
+  print("\n--- Equality ---\n")
+  var a1: int[] = {1, 2, 3}
+  var a2: int[] = {1, 2, 3}
+  var a3: int[] = {1, 2, 4}
+  print($"[1,2,3] == [1,2,3]: {a1 == a2}\n")
+  print($"[1,2,3] == [1,2,4]: {a1 == a3}\n")
+
+  print("\n=== Done ===\n")
