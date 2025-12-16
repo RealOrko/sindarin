@@ -35,9 +35,9 @@ void test_symbol_table_init_null_arena() {
     DEBUG_INFO("Starting test_symbol_table_init_null_arena");
     printf("Testing symbol_table_init with NULL arena...\n");
 
-    SymbolTable table;
+    SymbolTable table = {0};  // Zero-initialize to check it stays zeroed
     symbol_table_init(NULL, &table);
-    // Should not crash, but table remains uninitialized (no asserts on internals for now)
+    // Should not crash, and table remains zeroed since arena is NULL
     assert(table.scopes == NULL);
     assert(table.scopes_count == 0);
     assert(table.current == NULL);

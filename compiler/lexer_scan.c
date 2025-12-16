@@ -29,6 +29,8 @@ TokenType lexer_identifier_type(Lexer *lexer)
             {
             case 'o':
                 return lexer_check_keyword(lexer, 2, 2, "ol", TOKEN_BOOL);
+            case 'r':
+                return lexer_check_keyword(lexer, 2, 3, "eak", TOKEN_BREAK);
             }
         }
         break;
@@ -39,6 +41,8 @@ TokenType lexer_identifier_type(Lexer *lexer)
             {
             case 'h':
                 return lexer_check_keyword(lexer, 2, 2, "ar", TOKEN_CHAR);
+            case 'o':
+                return lexer_check_keyword(lexer, 2, 6, "ntinue", TOKEN_CONTINUE);
             }
         }
         break;
@@ -78,6 +82,11 @@ TokenType lexer_identifier_type(Lexer *lexer)
             case 'm':
                 return lexer_check_keyword(lexer, 2, 4, "port", TOKEN_IMPORT);
             case 'n':
+                // Check for "in" (2 chars) vs "int" (3 chars)
+                if (lexer->current - lexer->start == 2)
+                {
+                    return TOKEN_IN;
+                }
                 return lexer_check_keyword(lexer, 2, 1, "t", TOKEN_INT);
             }
         }
@@ -219,42 +228,86 @@ Token lexer_scan_string(Lexer *lexer)
         return lexer_error_token(lexer, error_buffer);
     }
     int buffer_index = 0;
-    while (lexer_peek(lexer) != '"' && !lexer_is_at_end(lexer))
+    int brace_depth = 0;  // Track depth inside {} for interpolated strings
+    int in_nested_string = 0;  // Track if we're inside a string within {}
+
+    while (!lexer_is_at_end(lexer))
     {
-        if (lexer_peek(lexer) == '\n')
+        char c = lexer_peek(lexer);
+
+        // Only stop on " if we're not inside {} interpolation
+        if (c == '"' && brace_depth == 0 && !in_nested_string)
+        {
+            break;
+        }
+
+        if (c == '\n')
         {
             lexer->line++;
         }
-        if (lexer_peek(lexer) == '\\')
+
+        if (c == '\\')
         {
+            buffer[buffer_index++] = c;
             lexer_advance(lexer);
-            switch (lexer_peek(lexer))
+            if (!lexer_is_at_end(lexer))
             {
-            case '\\':
-                buffer[buffer_index++] = '\\';
-                break;
-            case 'n':
-                buffer[buffer_index++] = '\n';
-                break;
-            case 'r':
-                buffer[buffer_index++] = '\r';
-                break;
-            case 't':
-                buffer[buffer_index++] = '\t';
-                break;
-            case '"':
-                buffer[buffer_index++] = '"';
-                break;
-            default:
-                snprintf(error_buffer, sizeof(error_buffer), "Invalid escape sequence");
-                return lexer_error_token(lexer, error_buffer);
+                // Handle escape sequences
+                char escaped = lexer_peek(lexer);
+                if (brace_depth == 0)
+                {
+                    // Outside braces, process escape sequences
+                    switch (escaped)
+                    {
+                    case '\\':
+                        buffer[buffer_index - 1] = '\\';
+                        break;
+                    case 'n':
+                        buffer[buffer_index - 1] = '\n';
+                        break;
+                    case 'r':
+                        buffer[buffer_index - 1] = '\r';
+                        break;
+                    case 't':
+                        buffer[buffer_index - 1] = '\t';
+                        break;
+                    case '"':
+                        buffer[buffer_index - 1] = '"';
+                        break;
+                    default:
+                        snprintf(error_buffer, sizeof(error_buffer), "Invalid escape sequence");
+                        return lexer_error_token(lexer, error_buffer);
+                    }
+                }
+                else
+                {
+                    // Inside braces, keep escape sequence as-is for sub-parser
+                    buffer[buffer_index++] = escaped;
+                }
+                lexer_advance(lexer);
             }
         }
         else
         {
-            buffer[buffer_index++] = lexer_peek(lexer);
+            // Track brace depth for interpolation
+            if (c == '{' && !in_nested_string)
+            {
+                brace_depth++;
+            }
+            else if (c == '}' && !in_nested_string)
+            {
+                if (brace_depth > 0) brace_depth--;
+            }
+            // Track nested strings inside braces
+            else if (c == '"' && brace_depth > 0)
+            {
+                in_nested_string = !in_nested_string;
+            }
+
+            buffer[buffer_index++] = c;
+            lexer_advance(lexer);
         }
-        lexer_advance(lexer);
+
         if (buffer_index >= buffer_size - 1)
         {
             buffer_size *= 2;

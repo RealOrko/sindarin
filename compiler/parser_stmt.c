@@ -116,6 +116,24 @@ Stmt *parser_statement(Parser *parser)
     {
         return parser_for_statement(parser);
     }
+    if (parser_match(parser, TOKEN_BREAK))
+    {
+        Token keyword = parser->previous;
+        if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_match(parser, TOKEN_NEWLINE))
+        {
+            parser_consume(parser, TOKEN_NEWLINE, "Expected newline after 'break'");
+        }
+        return ast_create_break_stmt(parser->arena, &keyword);
+    }
+    if (parser_match(parser, TOKEN_CONTINUE))
+    {
+        Token keyword = parser->previous;
+        if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_match(parser, TOKEN_NEWLINE))
+        {
+            parser_consume(parser, TOKEN_NEWLINE, "Expected newline after 'continue'");
+        }
+        return ast_create_continue_stmt(parser->arena, &keyword);
+    }
     if (parser_match(parser, TOKEN_RETURN))
     {
         return parser_return_statement(parser);
@@ -184,13 +202,23 @@ Stmt *parser_var_declaration(Parser *parser)
         }
     }
 
-    parser_consume(parser, TOKEN_COLON, "Expected ':' after variable name");
-    Type *type = parser_type(parser);
+    // Type annotation is optional if there's an initializer (type inference)
+    Type *type = NULL;
+    if (parser_match(parser, TOKEN_COLON))
+    {
+        type = parser_type(parser);
+    }
 
     Expr *initializer = NULL;
     if (parser_match(parser, TOKEN_EQUAL))
     {
         initializer = parser_expression(parser);
+    }
+
+    // Must have either type annotation or initializer (or both)
+    if (type == NULL && initializer == NULL)
+    {
+        parser_error_at_current(parser, "Variable declaration requires type annotation or initializer");
     }
 
     if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_match(parser, TOKEN_NEWLINE))
@@ -378,7 +406,8 @@ Stmt *parser_if_statement(Parser *parser)
                 exit(1);
             }
             block_stmts[0] = then_branch;
-            block_stmts[1] = parser_indented_block(parser);
+            Stmt *indented = parser_indented_block(parser);
+            block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
             then_branch = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
         }
     }
@@ -405,7 +434,8 @@ Stmt *parser_if_statement(Parser *parser)
                     exit(1);
                 }
                 block_stmts[0] = else_branch;
-                block_stmts[1] = parser_indented_block(parser);
+                Stmt *indented = parser_indented_block(parser);
+                block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
                 else_branch = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
             }
         }
@@ -438,7 +468,8 @@ Stmt *parser_while_statement(Parser *parser)
                 exit(1);
             }
             block_stmts[0] = body;
-            block_stmts[1] = parser_indented_block(parser);
+            Stmt *indented = parser_indented_block(parser);
+            block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
             body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
         }
     }
@@ -449,6 +480,127 @@ Stmt *parser_while_statement(Parser *parser)
 Stmt *parser_for_statement(Parser *parser)
 {
     Token for_token = parser->previous;
+
+    // Check for for-each syntax: for x in arr =>
+    // We need to look ahead: if we see IDENTIFIER followed by IN, it's for-each
+    if (parser_check(parser, TOKEN_IDENTIFIER))
+    {
+        Token var_name = parser->current;
+        parser_advance(parser);
+
+        if (parser_check(parser, TOKEN_IN))
+        {
+            // This is a for-each loop
+            parser_advance(parser); // consume 'in'
+            var_name.start = arena_strndup(parser->arena, var_name.start, var_name.length);
+            if (var_name.start == NULL)
+            {
+                parser_error_at_current(parser, "Out of memory");
+                return NULL;
+            }
+
+            Expr *iterable = parser_expression(parser);
+            parser_consume(parser, TOKEN_ARROW, "Expected '=>' after for-each iterable");
+            skip_newlines(parser);
+
+            Stmt *body;
+            if (parser_check(parser, TOKEN_INDENT))
+            {
+                body = parser_indented_block(parser);
+            }
+            else
+            {
+                body = parser_statement(parser);
+                skip_newlines(parser);
+                if (parser_check(parser, TOKEN_INDENT))
+                {
+                    Stmt **block_stmts = arena_alloc(parser->arena, sizeof(Stmt *) * 2);
+                    if (block_stmts == NULL)
+                    {
+                        exit(1);
+                    }
+                    block_stmts[0] = body;
+                    Stmt *indented = parser_indented_block(parser);
+                    block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
+                    body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
+                }
+            }
+
+            return ast_create_for_each_stmt(parser->arena, var_name, iterable, body, &for_token);
+        }
+        else
+        {
+            // Not for-each, backtrack - need to re-parse as expression
+            // Since we already consumed the identifier, we need to create a variable expr
+            // and parse the rest as expression statement initializer
+            var_name.start = arena_strndup(parser->arena, var_name.start, var_name.length);
+            if (var_name.start == NULL)
+            {
+                parser_error_at_current(parser, "Out of memory");
+                return NULL;
+            }
+            Expr *var_expr = ast_create_variable_expr(parser->arena, var_name, &var_name);
+
+            // Parse the rest of the expression (e.g., = 0)
+            Expr *init_expr = var_expr;
+            if (parser_match(parser, TOKEN_EQUAL))
+            {
+                Expr *value = parser_expression(parser);
+                init_expr = ast_create_assign_expr(parser->arena, var_name, value, &var_name);
+            }
+            else
+            {
+                // May have more expression parts like function call, etc.
+                // For now, just use the variable as the initializer
+                // This handles cases like: for i; i < 10; i++ =>
+            }
+            Stmt *initializer = ast_create_expr_stmt(parser->arena, init_expr, NULL);
+
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after initializer");
+
+            Expr *condition = NULL;
+            if (!parser_check(parser, TOKEN_SEMICOLON))
+            {
+                condition = parser_expression(parser);
+            }
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after condition");
+
+            Expr *increment = NULL;
+            if (!parser_check(parser, TOKEN_ARROW))
+            {
+                increment = parser_expression(parser);
+            }
+            parser_consume(parser, TOKEN_ARROW, "Expected '=>' after for clauses");
+            skip_newlines(parser);
+
+            Stmt *body;
+            if (parser_check(parser, TOKEN_INDENT))
+            {
+                body = parser_indented_block(parser);
+            }
+            else
+            {
+                body = parser_statement(parser);
+                skip_newlines(parser);
+                if (parser_check(parser, TOKEN_INDENT))
+                {
+                    Stmt **block_stmts = arena_alloc(parser->arena, sizeof(Stmt *) * 2);
+                    if (block_stmts == NULL)
+                    {
+                        exit(1);
+                    }
+                    block_stmts[0] = body;
+                    Stmt *indented = parser_indented_block(parser);
+                    block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
+                    body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
+                }
+            }
+
+            return ast_create_for_stmt(parser->arena, initializer, condition, increment, body, &for_token);
+        }
+    }
+
+    // Traditional for loop parsing
     Stmt *initializer = NULL;
     if (parser_match(parser, TOKEN_VAR))
     {
@@ -525,7 +677,8 @@ Stmt *parser_for_statement(Parser *parser)
                 exit(1);
             }
             block_stmts[0] = body;
-            block_stmts[1] = parser_indented_block(parser);
+            Stmt *indented = parser_indented_block(parser);
+            block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
             body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
         }
     }

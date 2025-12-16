@@ -443,8 +443,210 @@ void test_lexer_array_at_line_start()
     DEBUG_INFO("Finished test_lexer_array_at_line_start");
 }
 
-// New comprehensive tests for lexer.c
+// Range operator tests for slicing
 
+void test_lexer_range_operator()
+{
+    DEBUG_INFO("Starting test_lexer_range_operator");
+    printf("Testing lexer with range operator '..'\n");
+
+    const char *source = "..";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_RANGE);
+    assert(t1.length == 2);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_range_operator");
+}
+
+void test_lexer_array_slice_full()
+{
+    DEBUG_INFO("Starting test_lexer_array_slice_full");
+    printf("Testing lexer with full slice 'arr[1..3]'\n");
+
+    const char *source = "arr[1..3]";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_IDENTIFIER); // arr
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_LEFT_BRACKET);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_INT_LITERAL);
+    assert(t3.literal.int_value == 1);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_RANGE);
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_INT_LITERAL);
+    assert(t5.literal.int_value == 3);
+
+    Token t6 = lexer_scan_token(&lexer);
+    assert(t6.type == TOKEN_RIGHT_BRACKET);
+
+    Token t7 = lexer_scan_token(&lexer);
+    assert(t7.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_array_slice_full");
+}
+
+void test_lexer_array_slice_from_start()
+{
+    DEBUG_INFO("Starting test_lexer_array_slice_from_start");
+    printf("Testing lexer with slice from start 'arr[..3]'\n");
+
+    const char *source = "arr[..3]";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_IDENTIFIER); // arr
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_LEFT_BRACKET);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_RANGE);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_INT_LITERAL);
+    assert(t4.literal.int_value == 3);
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_RIGHT_BRACKET);
+
+    Token t6 = lexer_scan_token(&lexer);
+    assert(t6.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_array_slice_from_start");
+}
+
+void test_lexer_array_slice_to_end()
+{
+    DEBUG_INFO("Starting test_lexer_array_slice_to_end");
+    printf("Testing lexer with slice to end 'arr[2..]'\n");
+
+    const char *source = "arr[2..]";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_IDENTIFIER); // arr
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_LEFT_BRACKET);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_INT_LITERAL);
+    assert(t3.literal.int_value == 2);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_RANGE);
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_RIGHT_BRACKET);
+
+    Token t6 = lexer_scan_token(&lexer);
+    assert(t6.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_array_slice_to_end");
+}
+
+void test_lexer_array_slice_full_copy()
+{
+    DEBUG_INFO("Starting test_lexer_array_slice_full_copy");
+    printf("Testing lexer with full copy slice 'arr[..]'\n");
+
+    const char *source = "arr[..]";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_IDENTIFIER); // arr
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_LEFT_BRACKET);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_RANGE);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_RIGHT_BRACKET);
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_array_slice_full_copy");
+}
+
+void test_lexer_dot_vs_range()
+{
+    DEBUG_INFO("Starting test_lexer_dot_vs_range");
+    printf("Testing lexer distinguishes dot from range 'a.b..c'\n");
+
+    const char *source = "a.b..c";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_IDENTIFIER); // a
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_DOT);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_IDENTIFIER); // b
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_RANGE);
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_IDENTIFIER); // c
+
+    Token t6 = lexer_scan_token(&lexer);
+    assert(t6.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_dot_vs_range");
+}
 
 void test_lexer_array_main()
 {
@@ -457,4 +659,11 @@ void test_lexer_array_main()
     test_lexer_unmatched_brace_error();
     test_lexer_array_with_indentation();
     test_lexer_array_at_line_start();
+    // Range operator tests for slicing
+    test_lexer_range_operator();
+    test_lexer_array_slice_full();
+    test_lexer_array_slice_from_start();
+    test_lexer_array_slice_to_end();
+    test_lexer_array_slice_full_copy();
+    test_lexer_dot_vs_range();
 }

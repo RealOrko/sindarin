@@ -57,6 +57,17 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
             return NULL;
         }
     }
+    else if (op == TOKEN_AND || op == TOKEN_OR)
+    {
+        // Logical operators require boolean operands
+        if (left->kind != TYPE_BOOL || right->kind != TYPE_BOOL)
+        {
+            type_error(expr->token, "Logical operators require boolean operands");
+            return NULL;
+        }
+        DEBUG_VERBOSE("Returning BOOL type for logical operator");
+        return ast_create_primitive_type(table->arena, TYPE_BOOL);
+    }
     else
     {
         type_error(expr->token, "Invalid binary operator");
@@ -167,9 +178,38 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
     return sym->type;
 }
 
+static bool is_builtin_name(Expr *callee, const char *name)
+{
+    if (callee->type != EXPR_VARIABLE) return false;
+    Token tok = callee->as.variable.name;
+    size_t len = strlen(name);
+    return tok.length == (int)len && strncmp(tok.start, name, len) == 0;
+}
+
 static Type *type_check_call(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking function call with %d arguments", expr->as.call.arg_count);
+
+    // Handle array built-in functions specially
+    Expr *callee = expr->as.call.callee;
+
+    // len(arr) -> int (works on arrays and strings)
+    if (is_builtin_name(callee, "len") && expr->as.call.arg_count == 1)
+    {
+        Type *arg_type = type_check_expr(expr->as.call.arguments[0], table);
+        if (arg_type == NULL) return NULL;
+        if (arg_type->kind != TYPE_ARRAY && arg_type->kind != TYPE_STRING)
+        {
+            type_error(expr->token, "len() requires array or string argument");
+            return NULL;
+        }
+        return ast_create_primitive_type(table->arena, TYPE_INT);
+    }
+
+    // Note: Other array operations are method-style only:
+    //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
+
+    // Standard function call handling
     Type *callee_type = type_check_expr(expr->as.call.callee, table);
     if (callee_type == NULL)
     {
@@ -309,6 +349,52 @@ static Type *type_check_increment_decrement(Expr *expr, SymbolTable *table)
     return operand_type;
 }
 
+static Type *type_check_array_slice(Expr *expr, SymbolTable *table)
+{
+    DEBUG_VERBOSE("Type checking array slice");
+    Type *array_t = type_check_expr(expr->as.array_slice.array, table);
+    if (array_t == NULL)
+    {
+        return NULL;
+    }
+    if (array_t->kind != TYPE_ARRAY)
+    {
+        type_error(expr->token, "Cannot slice non-array");
+        return NULL;
+    }
+    // Type check start index if provided
+    if (expr->as.array_slice.start != NULL)
+    {
+        Type *start_t = type_check_expr(expr->as.array_slice.start, table);
+        if (start_t == NULL)
+        {
+            return NULL;
+        }
+        if (!is_numeric_type(start_t))
+        {
+            type_error(expr->token, "Slice start index must be numeric type");
+            return NULL;
+        }
+    }
+    // Type check end index if provided
+    if (expr->as.array_slice.end != NULL)
+    {
+        Type *end_t = type_check_expr(expr->as.array_slice.end, table);
+        if (end_t == NULL)
+        {
+            return NULL;
+        }
+        if (!is_numeric_type(end_t))
+        {
+            type_error(expr->token, "Slice end index must be numeric type");
+            return NULL;
+        }
+    }
+    DEBUG_VERBOSE("Returning array type for slice: %d", array_t->kind);
+    // Slicing an array returns an array of the same element type
+    return array_t;
+}
+
 static Type *type_check_member(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking member access: %s", expr->as.member.member_name.start);
@@ -350,6 +436,149 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         Type *param_types[1] = {param_array_type};
         DEBUG_VERBOSE("Returning function type for array concat method");
         return ast_create_function_type(table->arena, object_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "indexOf") == 0)
+    {
+        Type *element_type = object_type->as.array.element_type;
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {element_type};
+        DEBUG_VERBOSE("Returning function type for array indexOf method");
+        return ast_create_function_type(table->arena, int_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "contains") == 0)
+    {
+        Type *element_type = object_type->as.array.element_type;
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[1] = {element_type};
+        DEBUG_VERBOSE("Returning function type for array contains method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "clone") == 0)
+    {
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for array clone method");
+        return ast_create_function_type(table->arena, object_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "join") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for array join method");
+        return ast_create_function_type(table->arena, string_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "reverse") == 0)
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for array reverse method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "insert") == 0)
+    {
+        Type *element_type = object_type->as.array.element_type;
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[2] = {element_type, int_type};
+        DEBUG_VERBOSE("Returning function type for array insert method");
+        return ast_create_function_type(table->arena, void_type, param_types, 2);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "remove") == 0)
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *element_type = object_type->as.array.element_type;
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for array remove method");
+        return ast_create_function_type(table->arena, element_type, param_types, 1);
+    }
+    // String methods
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "length") == 0)
+    {
+        DEBUG_VERBOSE("Returning INT type for string length access");
+        return ast_create_primitive_type(table->arena, TYPE_INT);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "substring") == 0)
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[2] = {int_type, int_type};
+        DEBUG_VERBOSE("Returning function type for string substring method");
+        return ast_create_function_type(table->arena, string_type, param_types, 2);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "indexOf") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for string indexOf method");
+        return ast_create_function_type(table->arena, int_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "split") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *str_array_type = ast_create_array_type(table->arena, string_type);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for string split method");
+        return ast_create_function_type(table->arena, str_array_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "trim") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for string trim method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "toUpper") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for string toUpper method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "toLower") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for string toLower method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "startsWith") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for string startsWith method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "endsWith") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for string endsWith method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "contains") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for string contains method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "replace") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[2] = {string_type, string_type};
+        DEBUG_VERBOSE("Returning function type for string replace method");
+        return ast_create_function_type(table->arena, string_type, param_types, 2);
+    }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "charAt") == 0)
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *char_type = ast_create_primitive_type(table->arena, TYPE_CHAR);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for string charAt method");
+        return ast_create_function_type(table->arena, char_type, param_types, 1);
     }
     else
     {
@@ -407,6 +636,9 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_MEMBER:
         t = type_check_member(expr, table);
+        break;
+    case EXPR_ARRAY_SLICE:
+        t = type_check_array_slice(expr, table);
         break;
     }
     expr->expr_type = t;

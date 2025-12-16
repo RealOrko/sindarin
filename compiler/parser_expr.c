@@ -287,43 +287,76 @@ Expr *parser_primary(Parser *parser)
         int capacity = 0;
         int count = 0;
 
+        // Helper to add a string segment to parts
+        #define ADD_STRING_PART(str) do { \
+            LiteralValue v; \
+            v.string_value = str; \
+            Expr *seg_expr = ast_create_literal_expr(parser->arena, v, ast_create_primitive_type(parser->arena, TYPE_STRING), false, &interpol_token); \
+            if (count >= capacity) { \
+                capacity = capacity == 0 ? 8 : capacity * 2; \
+                Expr **new_parts = arena_alloc(parser->arena, sizeof(Expr *) * capacity); \
+                if (new_parts == NULL) exit(1); \
+                if (parts != NULL && count > 0) memcpy(new_parts, parts, sizeof(Expr *) * count); \
+                parts = new_parts; \
+            } \
+            parts[count++] = seg_expr; \
+        } while(0)
+
+        // Helper to add an expression to parts
+        #define ADD_EXPR_PART(expr) do { \
+            if (count >= capacity) { \
+                capacity = capacity == 0 ? 8 : capacity * 2; \
+                Expr **new_parts = arena_alloc(parser->arena, sizeof(Expr *) * capacity); \
+                if (new_parts == NULL) exit(1); \
+                if (parts != NULL && count > 0) memcpy(new_parts, parts, sizeof(Expr *) * count); \
+                parts = new_parts; \
+            } \
+            parts[count++] = expr; \
+        } while(0)
+
         const char *p = content;
-        const char *segment_start = p;
+        // Buffer for building text segments (handles escape sequences)
+        char *seg_buf = arena_alloc(parser->arena, strlen(content) + 1);
+        int seg_len = 0;
 
         while (*p)
         {
+            // Handle {{ escape sequence -> literal {
+            if (*p == '{' && *(p + 1) == '{')
+            {
+                seg_buf[seg_len++] = '{';
+                p += 2;
+                continue;
+            }
+            // Handle }} escape sequence -> literal }
+            if (*p == '}' && *(p + 1) == '}')
+            {
+                seg_buf[seg_len++] = '}';
+                p += 2;
+                continue;
+            }
+            // Handle interpolation expression {expr}
             if (*p == '{')
             {
-                if (p > segment_start)
+                // Flush accumulated text segment
+                if (seg_len > 0)
                 {
-                    int len = p - segment_start;
-                    char *seg = arena_strndup(parser->arena, segment_start, len);
-                    LiteralValue v;
-                    v.string_value = seg;
-                    Expr *seg_expr = ast_create_literal_expr(parser->arena, v, ast_create_primitive_type(parser->arena, TYPE_STRING), false, &interpol_token);
-
-                    if (count >= capacity)
-                    {
-                        capacity = capacity == 0 ? 8 : capacity * 2;
-                        Expr **new_parts = arena_alloc(parser->arena, sizeof(Expr *) * capacity);
-                        if (new_parts == NULL)
-                        {
-                            exit(1);
-                        }
-                        if (parts != NULL && count > 0)
-                        {
-                            memcpy(new_parts, parts, sizeof(Expr *) * count);
-                        }
-                        parts = new_parts;
-                    }
-                    parts[count++] = seg_expr;
+                    seg_buf[seg_len] = '\0';
+                    char *seg = arena_strdup(parser->arena, seg_buf);
+                    ADD_STRING_PART(seg);
+                    seg_len = 0;
                 }
 
-                p++;
+                p++; // skip {
                 const char *expr_start = p;
-                while (*p && *p != '}')
-                    p++;
-                if (!*p)
+                int brace_depth = 1;
+                while (*p && brace_depth > 0)
+                {
+                    if (*p == '{') brace_depth++;
+                    else if (*p == '}') brace_depth--;
+                    if (brace_depth > 0) p++;
+                }
+                if (!*p && brace_depth > 0)
                 {
                     parser_error_at_current(parser, "Unterminated interpolated expression");
                     LiteralValue zero = {0};
@@ -346,71 +379,37 @@ Expr *parser_primary(Parser *parser)
                     return ast_create_literal_expr(parser->arena, zero, ast_create_primitive_type(parser->arena, TYPE_STRING), false, NULL);
                 }
 
-                if (count >= capacity)
-                {
-                    capacity = capacity == 0 ? 8 : capacity * 2;
-                    Expr **new_parts = arena_alloc(parser->arena, sizeof(Expr *) * capacity);
-                    if (new_parts == NULL)
-                    {
-                        exit(1);
-                    }
-                    if (parts != NULL && count > 0)
-                    {
-                        memcpy(new_parts, parts, sizeof(Expr *) * count);
-                    }
-                    parts = new_parts;
-                }
-                parts[count++] = inner;
+                ADD_EXPR_PART(inner);
 
                 if (parser->interp_count >= parser->interp_capacity)
                 {
                     parser->interp_capacity = parser->interp_capacity ? parser->interp_capacity * 2 : 8;
                     char **new_interp_sources = arena_alloc(parser->arena, sizeof(char *) * parser->interp_capacity);
-                    if (new_interp_sources == NULL)
-                    {
-                        exit(1);
-                    }
+                    if (new_interp_sources == NULL) exit(1);
                     if (parser->interp_sources != NULL && parser->interp_count > 0)
-                    {
                         memcpy(new_interp_sources, parser->interp_sources, sizeof(char *) * parser->interp_count);
-                    }
                     parser->interp_sources = new_interp_sources;
                 }
                 parser->interp_sources[parser->interp_count++] = expr_src;
 
-                p++;
-                segment_start = p;
+                p++; // skip }
             }
             else
             {
-                p++;
+                seg_buf[seg_len++] = *p++;
             }
         }
 
-        if (p > segment_start)
+        // Flush any remaining text segment
+        if (seg_len > 0)
         {
-            int len = p - segment_start;
-            char *seg = arena_strndup(parser->arena, segment_start, len);
-            LiteralValue v;
-            v.string_value = seg;
-            Expr *seg_expr = ast_create_literal_expr(parser->arena, v, ast_create_primitive_type(parser->arena, TYPE_STRING), false, &interpol_token);
-
-            if (count >= capacity)
-            {
-                capacity = capacity == 0 ? 8 : capacity * 2;
-                Expr **new_parts = arena_alloc(parser->arena, sizeof(Expr *) * capacity);
-                if (new_parts == NULL)
-                {
-                    exit(1);
-                }
-                if (parts != NULL && count > 0)
-                {
-                    memcpy(new_parts, parts, sizeof(Expr *) * count);
-                }
-                parts = new_parts;
-            }
-            parts[count++] = seg_expr;
+            seg_buf[seg_len] = '\0';
+            char *seg = arena_strdup(parser->arena, seg_buf);
+            ADD_STRING_PART(seg);
         }
+
+        #undef ADD_STRING_PART
+        #undef ADD_EXPR_PART
 
         return ast_create_interpolated_expr(parser->arena, parts, count, &interpol_token);
     }
@@ -462,7 +461,49 @@ Expr *parser_call(Parser *parser, Expr *callee)
 Expr *parser_array_access(Parser *parser, Expr *array)
 {
     Token bracket = parser->previous;
-    Expr *index = parser_expression(parser);
+    Expr *start = NULL;
+    Expr *end = NULL;
+    Expr *step = NULL;
+
+    // Check if this is a slice starting with '..' (e.g., [..] or [..end] or [..end:step])
+    if (parser_match(parser, TOKEN_RANGE))
+    {
+        // This is a slice from the beginning: arr[..] or arr[..end] or arr[..end:step]
+        if (!parser_check(parser, TOKEN_RIGHT_BRACKET) && !parser_check(parser, TOKEN_COLON))
+        {
+            end = parser_expression(parser);
+        }
+        // Check for step: arr[..end:step] or arr[..:step]
+        if (parser_match(parser, TOKEN_COLON))
+        {
+            step = parser_expression(parser);
+        }
+        parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after slice");
+        return ast_create_array_slice_expr(parser->arena, array, NULL, end, step, &bracket);
+    }
+
+    // Parse the first expression (could be index or slice start)
+    Expr *first = parser_expression(parser);
+
+    // Check if this is a slice with start: arr[start..] or arr[start..end] or arr[start..end:step]
+    if (parser_match(parser, TOKEN_RANGE))
+    {
+        start = first;
+        // Check if there's an end expression
+        if (!parser_check(parser, TOKEN_RIGHT_BRACKET) && !parser_check(parser, TOKEN_COLON))
+        {
+            end = parser_expression(parser);
+        }
+        // Check for step: arr[start..end:step] or arr[start..:step]
+        if (parser_match(parser, TOKEN_COLON))
+        {
+            step = parser_expression(parser);
+        }
+        parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after slice");
+        return ast_create_array_slice_expr(parser->arena, array, start, end, step, &bracket);
+    }
+
+    // Regular array access: arr[index]
     parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after index");
-    return ast_create_array_access_expr(parser->arena, array, index, &bracket);
+    return ast_create_array_access_expr(parser->arena, array, first, &bracket);
 }

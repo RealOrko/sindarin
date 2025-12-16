@@ -39,6 +39,19 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     Type *to_string_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_STRING), builtin_params, 1);
     symbol_table_add_symbol_with_kind(parser->symbol_table, to_string_token, to_string_type, SYMBOL_GLOBAL);
 
+    // Array built-in: len(arr) -> int (works on arrays and strings)
+    Token len_token;
+    len_token.start = arena_strdup(arena, "len");
+    len_token.length = 3;
+    len_token.type = TOKEN_IDENTIFIER;
+    len_token.line = 0;
+    len_token.filename = arena_strdup(arena, "<built-in>");
+    Type *len_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_INT), builtin_params, 1);
+    symbol_table_add_symbol_with_kind(parser->symbol_table, len_token, len_type, SYMBOL_GLOBAL);
+
+    // Note: Other array operations (push, pop, rev, rem, ins) are now method-style only:
+    //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
+
     parser->previous.type = TOKEN_ERROR;
     parser->previous.start = NULL;
     parser->previous.length = 0;
@@ -190,7 +203,7 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
                 }
                 if (*imported_count > 0)
                 {
-                    memcpy(new_imported, *imported, sizeof(char *) * *imported_count);
+                    memmove(new_imported, *imported, sizeof(char *) * *imported_count);
                 }
                 *imported = new_imported;
             }
@@ -218,11 +231,11 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
                 }
                 if (all_count > 0)
                 {
-                    memcpy(new_statements, all_statements, sizeof(Stmt *) * all_count);
+                    memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
                 }
                 all_statements = new_statements;
             }
-            memcpy(all_statements + all_count, imported_module->statements, sizeof(Stmt *) * imported_module->count);
+            memmove(all_statements + all_count, imported_module->statements, sizeof(Stmt *) * imported_module->count);
             all_count = new_all_count;
 
             memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
@@ -248,11 +261,11 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
         }
         if (all_count > 0)
         {
-            memcpy(new_statements, all_statements, sizeof(Stmt *) * all_count);
+            memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
         }
         all_statements = new_statements;
     }
-    memcpy(all_statements + all_count, module->statements, sizeof(Stmt *) * module->count);
+    memmove(all_statements + all_count, module->statements, sizeof(Stmt *) * module->count);
     all_count = new_all_count;
 
     module->statements = all_statements;

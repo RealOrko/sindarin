@@ -88,6 +88,12 @@ const char *token_type_to_string(TokenType type)
         return "FOR";
     case TOKEN_WHILE:
         return "WHILE";
+    case TOKEN_BREAK:
+        return "BREAK";
+    case TOKEN_CONTINUE:
+        return "CONTINUE";
+    case TOKEN_IN:
+        return "IN";
     case TOKEN_IMPORT:
         return "IMPORT";
     case TOKEN_NIL:
@@ -160,6 +166,8 @@ const char *token_type_to_string(TokenType type)
         return "COMMA";
     case TOKEN_DOT:
         return "DOT";
+    case TOKEN_RANGE:
+        return "RANGE";
     case TOKEN_ARROW:
         return "ARROW";
     case TOKEN_INDENT:

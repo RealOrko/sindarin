@@ -14,10 +14,38 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         init_type = type_check_expr(stmt->as.var_decl.initializer, table);
         if (init_type == NULL)
         {
-            symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
+            // If we have a declared type, use it; otherwise use NIL as placeholder
+            Type *fallback = decl_type ? decl_type : ast_create_primitive_type(table->arena, TYPE_NIL);
+            symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, fallback, SYMBOL_LOCAL);
             return;
         }
+        // For empty array literals, adopt the declared type for code generation
+        if (decl_type && init_type->kind == TYPE_ARRAY &&
+            init_type->as.array.element_type->kind == TYPE_NIL &&
+            decl_type->kind == TYPE_ARRAY)
+        {
+            // Update the expression's type to match the declared type
+            stmt->as.var_decl.initializer->expr_type = decl_type;
+            init_type = decl_type;
+        }
     }
+
+    // Type inference: if no declared type, infer from initializer
+    if (decl_type == NULL)
+    {
+        if (init_type == NULL)
+        {
+            type_error(&stmt->as.var_decl.name, "Cannot infer type without initializer");
+            decl_type = ast_create_primitive_type(table->arena, TYPE_NIL);
+        }
+        else
+        {
+            decl_type = init_type;
+            // Update the statement's type for code generation
+            stmt->as.var_decl.type = decl_type;
+        }
+    }
+
     symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
     if (init_type && !ast_type_equals(init_type, decl_type))
     {
@@ -140,6 +168,38 @@ static void type_check_for(Stmt *stmt, SymbolTable *table, Type *return_type)
     symbol_table_pop_scope(table);
 }
 
+static void type_check_for_each(Stmt *stmt, SymbolTable *table, Type *return_type)
+{
+    DEBUG_VERBOSE("Type checking for-each statement");
+
+    // Type check the iterable expression
+    Type *iterable_type = type_check_expr(stmt->as.for_each_stmt.iterable, table);
+    if (iterable_type == NULL)
+    {
+        return;
+    }
+
+    // Verify the iterable is an array type
+    if (iterable_type->kind != TYPE_ARRAY)
+    {
+        type_error(stmt->as.for_each_stmt.iterable->token, "For-each iterable must be an array");
+        return;
+    }
+
+    // Get the element type from the array
+    Type *element_type = iterable_type->as.array.element_type;
+
+    // Create a new scope and add the loop variable
+    // Use SYMBOL_PARAM so it's not freed - loop var is a reference to array element, not owned
+    symbol_table_push_scope(table);
+    symbol_table_add_symbol_with_kind(table, stmt->as.for_each_stmt.var_name, element_type, SYMBOL_PARAM);
+
+    // Type check the body
+    type_check_stmt(stmt->as.for_each_stmt.body, table, return_type);
+
+    symbol_table_pop_scope(table);
+}
+
 void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     if (stmt == NULL)
@@ -173,6 +233,17 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
         break;
     case STMT_FOR:
         type_check_for(stmt, table, return_type);
+        break;
+    case STMT_FOR_EACH:
+        type_check_for_each(stmt, table, return_type);
+        break;
+    case STMT_BREAK:
+        DEBUG_VERBOSE("Type checking break statement");
+        // TODO: Verify break is inside a loop
+        break;
+    case STMT_CONTINUE:
+        DEBUG_VERBOSE("Type checking continue statement");
+        // TODO: Verify continue is inside a loop
         break;
     case STMT_IMPORT:
         DEBUG_VERBOSE("Skipping type check for import statement");

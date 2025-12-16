@@ -1,0 +1,142 @@
+// ============================================================================
+// strings.sn - String Features in Sindarin
+// ============================================================================
+// Demonstrates: string literals, length, concatenation, interpolation,
+//               escape sequences, comparisons, and string methods
+// ============================================================================
+
+// Entry point for string demos
+fn demo_strings(): void =>
+  print("=== Sindarin Strings ===\n\n")
+
+  // 1. String literals
+  print("--- String Literals ---\n")
+  var hello: str = "Hello, World!"
+  print(hello)
+  print("\n")
+  var empty: str = ""
+  print($"Empty string: \"{empty}\"\n")
+
+  // 2. String length (both len() and .length)
+  print("\n--- String Length ---\n")
+  var greeting: str = "Hello"
+  print($"len(\"{greeting}\") = {len(greeting)}\n")
+  print($"\"{greeting}\".length = {greeting.length}\n")
+  var sentence: str = "The quick brown fox"
+  print($"len(\"{sentence}\") = {len(sentence)}\n")
+
+  // 3. Concatenation
+  print("\n--- Concatenation ---\n")
+  var first: str = "Hello"
+  var second: str = "World"
+  var combined: str = first + " " + second
+  print($"Combined: \"{combined}\"\n")
+
+  // 4. Interpolation
+  print("\n--- Interpolation ---\n")
+  var name: str = "Alice"
+  var age: int = 30
+  print($"Name: {name}, Age: {age}\n")
+
+  var x: int = 5
+  var y: int = 3
+  print($"{x} + {y} = {x + y}\n")
+  print($"{x} * {y} = {x * y}\n")
+
+  // 5. Escape sequences
+  print("\n--- Escape Sequences ---\n")
+  print("Line 1\nLine 2\nLine 3\n")
+  print("Tab:\tValue\n")
+  print("Quote: \"Hello\"\n")
+
+  // 6. String comparisons
+  print("\n--- Comparisons ---\n")
+  var s1: str = "apple"
+  var s2: str = "apple"
+  var s3: str = "banana"
+  print($"apple == apple: {s1 == s2}\n")
+  print($"apple == banana: {s1 == s3}\n")
+
+  // 7. Case conversion: toUpper and toLower
+  print("\n--- Case Conversion ---\n")
+  var text: str = "Hello World"
+  print($"Original: \"{text}\"\n")
+  print($"toUpper(): \"{text.toUpper()}\"\n")
+  print($"toLower(): \"{text.toLower()}\"\n")
+  // Method chaining on literals
+  print($"\"sindarin\".toUpper() = \"{"sindarin".toUpper()}\"\n")
+
+  // 8. Trim whitespace
+  print("\n--- Trim ---\n")
+  var padded: str = "   hello world   "
+  print($"Original: \"{padded}\"\n")
+  print($"trim(): \"{padded.trim()}\"\n")
+
+  // 9. Substring extraction
+  print("\n--- Substring ---\n")
+  var phrase: str = "Hello, World!"
+  print($"Original: \"{phrase}\"\n")
+  print($"substring(0, 5): \"{phrase.substring(0, 5)}\"\n")
+  print($"substring(7, 12): \"{phrase.substring(7, 12)}\"\n")
+
+  // 10. indexOf - find substring position
+  print("\n--- indexOf ---\n")
+  var haystack: str = "the quick brown fox"
+  print($"String: \"{haystack}\"\n")
+  var search1: str = "quick"
+  var search2: str = "fox"
+  var search3: str = "cat"
+  var idx1: int = haystack.indexOf(search1)
+  var idx2: int = haystack.indexOf(search2)
+  var idx3: int = haystack.indexOf(search3)
+  print($"indexOf(\"quick\"): {idx1}\n")
+  print($"indexOf(\"fox\"): {idx2}\n")
+  print($"indexOf(\"cat\"): {idx3}\n")
+
+  // 11. String search: startsWith, endsWith, contains
+  print("\n--- String Search ---\n")
+  var filename: str = "document.txt"
+  print($"String: \"{filename}\"\n")
+  var prefix1: str = "doc"
+  var prefix2: str = "file"
+  var suffix1: str = ".txt"
+  var suffix2: str = ".pdf"
+  var sub1: str = "ment"
+  var sub2: str = "xyz"
+  print($"startsWith(\"doc\"): {filename.startsWith(prefix1)}\n")
+  print($"startsWith(\"file\"): {filename.startsWith(prefix2)}\n")
+  print($"endsWith(\".txt\"): {filename.endsWith(suffix1)}\n")
+  print($"endsWith(\".pdf\"): {filename.endsWith(suffix2)}\n")
+  print($"contains(\"ment\"): {filename.contains(sub1)}\n")
+  print($"contains(\"xyz\"): {filename.contains(sub2)}\n")
+
+  // 12. Replace substrings
+  print("\n--- Replace ---\n")
+  var original: str = "hello world"
+  print($"Original: \"{original}\"\n")
+  var oldStr: str = "world"
+  var newStr: str = "Sindarin"
+  var replaced: str = original.replace(oldStr, newStr)
+  print($"replace(\"world\", \"Sindarin\"): \"{replaced}\"\n")
+
+  // 13. Split into array
+  print("\n--- Split ---\n")
+  var csv: str = "apple,banana,cherry"
+  print($"String: \"{csv}\"\n")
+  var delim: str = ","
+  var parts: str[] = csv.split(delim)
+  print($"split(\",\") -> {parts.length} parts:\n")
+  for part in parts =>
+    print($"  - \"{part}\"\n")
+
+  // 14. Method chaining
+  print("\n--- Method Chaining ---\n")
+  var messy: str = "  HELLO WORLD  "
+  var clean: str = messy.trim().toLower()
+  print($"Original: \"{messy}\"\n")
+  print($"trim().toLower(): \"{clean}\"\n")
+  // Chaining on literal
+  var chainTest: str = "  TEST  ".trim().toUpper()
+  print($"Chained on literal: \"{chainTest}\"\n")
+
+  print("\n=== Done ===\n")

@@ -50,8 +50,11 @@ void test_ast_create_var_decl_stmt()
     assert(decl_no_init != NULL);
     assert(decl_no_init->as.var_decl.initializer == NULL);
 
-    // NULL type
-    assert(ast_create_var_decl_stmt(&arena, name, NULL, init, loc) == NULL);
+    // NULL type is allowed for type inference
+    Stmt *decl_null_type = ast_create_var_decl_stmt(&arena, name, NULL, init, loc);
+    assert(decl_null_type != NULL);
+    assert(decl_null_type->as.var_decl.type == NULL);
+    assert(decl_null_type->as.var_decl.initializer == init);
 
     // Empty name
     Token empty_name = create_dummy_token(&arena, "");

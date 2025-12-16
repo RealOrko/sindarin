@@ -96,6 +96,7 @@ void test_code_gen_function_simple_void()
     symbol_table_cleanup(&sym_table);
 
     const char *expected = get_expected(&arena,
+                                  "void myfn(void);\n\n"
                                   "void myfn() {\n"
                                   "    goto myfn_return;\n"
                                   "myfn_return:\n"
@@ -168,6 +169,7 @@ void test_code_gen_function_with_params_and_return()
     symbol_table_cleanup(&sym_table);
 
     const char *expected = get_expected(&arena,
+                                  "long add(long);\n\n"
                                   "long add(long a) {\n"
                                   "    long _return_value = 0;\n"
                                   "    _return_value = a;\n"
@@ -498,6 +500,7 @@ void test_code_gen_for_statement()
                                   "    long k = 0L;\n"
                                   "    while (rt_lt_long(k, 5L)) {\n"
                                   "        rt_print_long(k);\n"
+                                  "    __for_continue_0__:;\n"
                                   "        rt_post_inc_long(&k);\n"
                                   "    }\n"
                                   "}\n"

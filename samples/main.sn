@@ -1,44 +1,32 @@
-import "main.library"
+// ============================================================================
+// main.sn - Sindarin Language Demo
+// ============================================================================
+// This file demonstrates all features of the Sindarin language by importing
+// and running demo modules for each feature area.
+//
+// Run: bin/sn samples/main.sn -o /tmp/main.c && gcc /tmp/main.c bin/*.o -o /tmp/main && /tmp/main
+// ============================================================================
+
+import "lib/types"
+import "lib/loops"
+import "lib/conditionals"
+import "lib/strings"
+import "lib/functions"
+import "lib/arrays"
 
 fn main(): void =>
-  print("Starting main method ... \n")
-  var num: int = 5
-  var fact: int = factorial(num)
-  print($"Factorial of {num} is {fact}\n")
+  print("╔══════════════════════════════════════════════════════════════════╗\n")
+  print("║           Welcome to the Sindarin Language Demo                  ║\n")
+  print("╚══════════════════════════════════════════════════════════════════╝\n\n")
 
-  if is_prime(7) =>
-    print("7 is prime\n")
-  else =>
-    print("7 is not prime\n")
+  // Run each feature demo
+  demo_types()
+  demo_loops()
+  demo_conditionals()
+  demo_strings()
+  demo_functions()
+  demo_arrays()
 
-  var repeated: str = repeat_string("hello ", 3)
-  print(repeated + "world!\n")
-
-  var sum: int = 0
-  for var k: int = 1; k <= 10; k++ =>
-    sum = sum + k
-  print($"Sum 1 to 10: {sum}\n")
-
-  print_types(num, fact, sum)
-  print_void()
-
-  // Test push operation (creates runtime array from NULL)
-  var arr: int[]
-  arr.push(1)
-  arr.push(2)
-  arr.push(3)
-  print(arr) // Should print [1, 2, 3]
-  print($"\nArr Length: {arr.length}\n") // Should be 3
-
-  // Test pop operation
-  var result: int = arr.pop()
-  print(arr) // Should print [1, 2]
-  print($"\nPopped: {result}\n") // Should print 3
-
-  // Test clear operation
-  arr.clear()
-  print(arr) // Should print []
-  print($"\nArr Length: {arr.length}\n") // Should be 0
-
-  print("Complete main method ... \n")
-  
+  print("╔══════════════════════════════════════════════════════════════════╗\n")
+  print("║                    All Demos Complete!                           ║\n")
+  print("╚══════════════════════════════════════════════════════════════════╝\n")

@@ -18,5 +18,6 @@ Expr *ast_create_decrement_expr(Arena *arena, Expr *operand, const Token *loc_to
 Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, const Token *loc_token);
 Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, const Token *loc_token);
 Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenType comparison_type, const Token *loc_token);
+Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *end, Expr *step, const Token *loc_token);
 
 #endif /* AST_EXPR_H */

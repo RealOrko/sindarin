@@ -482,6 +482,71 @@ void test_ast_create_comparison_expr()
     cleanup_arena(&arena);
 }
 
+void test_ast_create_array_slice_expr()
+{
+    printf("Testing ast_create_array_slice_expr...\n");
+    Arena arena;
+    setup_arena(&arena);
+
+    Token temp_token = create_dummy_token(&arena, "loc");
+    Token *loc = ast_clone_token(&arena, &temp_token);
+    Expr *array = ast_create_variable_expr(&arena, create_dummy_token(&arena, "arr"), loc);
+    Expr *start = ast_create_literal_expr(&arena, (LiteralValue){.int_value = 1}, ast_create_primitive_type(&arena, TYPE_INT), false, loc);
+    Expr *end = ast_create_literal_expr(&arena, (LiteralValue){.int_value = 3}, ast_create_primitive_type(&arena, TYPE_INT), false, loc);
+
+    // Full slice: arr[1..3]
+    Expr *slice = ast_create_array_slice_expr(&arena, array, start, end, NULL, loc);
+    assert(slice != NULL);
+    assert(slice->type == EXPR_ARRAY_SLICE);
+    assert(slice->as.array_slice.array == array);
+    assert(slice->as.array_slice.start == start);
+    assert(slice->as.array_slice.end == end);
+    assert(slice->as.array_slice.step == NULL);
+    assert(tokens_equal(slice->token, loc));
+    assert(slice->expr_type == NULL);
+
+    // Slice from start: arr[..3]
+    Expr *slice_from_start = ast_create_array_slice_expr(&arena, array, NULL, end, NULL, loc);
+    assert(slice_from_start != NULL);
+    assert(slice_from_start->type == EXPR_ARRAY_SLICE);
+    assert(slice_from_start->as.array_slice.array == array);
+    assert(slice_from_start->as.array_slice.start == NULL);
+    assert(slice_from_start->as.array_slice.end == end);
+
+    // Slice to end: arr[1..]
+    Expr *slice_to_end = ast_create_array_slice_expr(&arena, array, start, NULL, NULL, loc);
+    assert(slice_to_end != NULL);
+    assert(slice_to_end->type == EXPR_ARRAY_SLICE);
+    assert(slice_to_end->as.array_slice.array == array);
+    assert(slice_to_end->as.array_slice.start == start);
+    assert(slice_to_end->as.array_slice.end == NULL);
+
+    // Full copy: arr[..]
+    Expr *slice_full = ast_create_array_slice_expr(&arena, array, NULL, NULL, NULL, loc);
+    assert(slice_full != NULL);
+    assert(slice_full->type == EXPR_ARRAY_SLICE);
+    assert(slice_full->as.array_slice.array == array);
+    assert(slice_full->as.array_slice.start == NULL);
+    assert(slice_full->as.array_slice.end == NULL);
+
+    // Slice with step: arr[0..10:2]
+    Expr *step = ast_create_literal_expr(&arena, (LiteralValue){.int_value = 2}, ast_create_primitive_type(&arena, TYPE_INT), false, loc);
+    Expr *slice_step = ast_create_array_slice_expr(&arena, array, start, end, step, loc);
+    assert(slice_step != NULL);
+    assert(slice_step->type == EXPR_ARRAY_SLICE);
+    assert(slice_step->as.array_slice.step == step);
+
+    // NULL array
+    assert(ast_create_array_slice_expr(&arena, NULL, start, end, NULL, loc) == NULL);
+
+    // NULL loc
+    Expr *slice_null_loc = ast_create_array_slice_expr(&arena, array, start, end, NULL, NULL);
+    assert(slice_null_loc != NULL);
+    assert(slice_null_loc->token == NULL);
+
+    cleanup_arena(&arena);
+}
+
 void test_ast_expr_main()
 {
     test_ast_create_binary_expr();
@@ -497,4 +562,5 @@ void test_ast_expr_main()
     test_ast_create_interpolated_expr();
     test_ast_create_member_expr();
     test_ast_create_comparison_expr();
+    test_ast_create_array_slice_expr();
 }
