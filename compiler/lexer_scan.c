@@ -78,6 +78,11 @@ TokenType lexer_identifier_type(Lexer *lexer)
             case 'm':
                 return lexer_check_keyword(lexer, 2, 4, "port", TOKEN_IMPORT);
             case 'n':
+                // Check for "in" (2 chars) vs "int" (3 chars)
+                if (lexer->current - lexer->start == 2)
+                {
+                    return TOKEN_IN;
+                }
                 return lexer_check_keyword(lexer, 2, 1, "t", TOKEN_INT);
             }
         }

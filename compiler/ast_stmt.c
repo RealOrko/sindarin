@@ -208,6 +208,37 @@ Stmt *ast_create_for_stmt(Arena *arena, Stmt *initializer, Expr *condition, Expr
     return stmt;
 }
 
+Stmt *ast_create_for_each_stmt(Arena *arena, Token var_name, Expr *iterable, Stmt *body, const Token *loc_token)
+{
+    if (iterable == NULL || body == NULL)
+    {
+        return NULL;
+    }
+    Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
+    if (stmt == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(stmt, 0, sizeof(Stmt));
+    stmt->type = STMT_FOR_EACH;
+    char *new_start = arena_strndup(arena, var_name.start, var_name.length);
+    if (new_start == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    stmt->as.for_each_stmt.var_name.start = new_start;
+    stmt->as.for_each_stmt.var_name.length = var_name.length;
+    stmt->as.for_each_stmt.var_name.line = var_name.line;
+    stmt->as.for_each_stmt.var_name.type = var_name.type;
+    stmt->as.for_each_stmt.var_name.filename = var_name.filename;
+    stmt->as.for_each_stmt.iterable = iterable;
+    stmt->as.for_each_stmt.body = body;
+    stmt->token = ast_dup_token(arena, loc_token);
+    return stmt;
+}
+
 Stmt *ast_create_import_stmt(Arena *arena, Token module_name, const Token *loc_token)
 {
     Stmt *stmt = arena_alloc(arena, sizeof(Stmt));

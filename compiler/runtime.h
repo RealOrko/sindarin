@@ -103,4 +103,81 @@ char *rt_array_concat_char(char *dest, char *src);
 int *rt_array_concat_bool(int *dest, int *src);
 char **rt_array_concat_string(char **dest, char **src);
 
+/* Array slice functions - step defaults to 1 if LONG_MIN */
+long *rt_array_slice_long(long *arr, long start, long end, long step);
+double *rt_array_slice_double(double *arr, long start, long end, long step);
+char *rt_array_slice_char(char *arr, long start, long end, long step);
+int *rt_array_slice_bool(int *arr, long start, long end, long step);
+char **rt_array_slice_string(char **arr, long start, long end, long step);
+
+/* Array reverse functions */
+long *rt_array_rev_long(long *arr);
+double *rt_array_rev_double(double *arr);
+char *rt_array_rev_char(char *arr);
+int *rt_array_rev_bool(int *arr);
+char **rt_array_rev_string(char **arr);
+
+/* Array remove at index functions */
+long *rt_array_rem_long(long *arr, long index);
+double *rt_array_rem_double(double *arr, long index);
+char *rt_array_rem_char(char *arr, long index);
+int *rt_array_rem_bool(int *arr, long index);
+char **rt_array_rem_string(char **arr, long index);
+
+/* Array insert at index functions */
+long *rt_array_ins_long(long *arr, long elem, long index);
+double *rt_array_ins_double(double *arr, double elem, long index);
+char *rt_array_ins_char(char *arr, char elem, long index);
+int *rt_array_ins_bool(int *arr, int elem, long index);
+char **rt_array_ins_string(char **arr, const char *elem, long index);
+
+/* Array push (copy) functions - return NEW array with element appended */
+long *rt_array_push_copy_long(long *arr, long elem);
+double *rt_array_push_copy_double(double *arr, double elem);
+char *rt_array_push_copy_char(char *arr, char elem);
+int *rt_array_push_copy_bool(int *arr, int elem);
+char **rt_array_push_copy_string(char **arr, const char *elem);
+
+/* Array indexOf functions - find first index of element, returns -1 if not found */
+long rt_array_indexOf_long(long *arr, long elem);
+long rt_array_indexOf_double(double *arr, double elem);
+long rt_array_indexOf_char(char *arr, char elem);
+long rt_array_indexOf_bool(int *arr, int elem);
+long rt_array_indexOf_string(char **arr, const char *elem);
+
+/* Array contains functions - check if element exists */
+int rt_array_contains_long(long *arr, long elem);
+int rt_array_contains_double(double *arr, double elem);
+int rt_array_contains_char(char *arr, char elem);
+int rt_array_contains_bool(int *arr, int elem);
+int rt_array_contains_string(char **arr, const char *elem);
+
+/* Array clone functions - create deep copy */
+long *rt_array_clone_long(long *arr);
+double *rt_array_clone_double(double *arr);
+char *rt_array_clone_char(char *arr);
+int *rt_array_clone_bool(int *arr);
+char **rt_array_clone_string(char **arr);
+
+/* Array join functions - join elements into string with separator */
+char *rt_array_join_long(long *arr, const char *separator);
+char *rt_array_join_double(double *arr, const char *separator);
+char *rt_array_join_char(char *arr, const char *separator);
+char *rt_array_join_bool(int *arr, const char *separator);
+char *rt_array_join_string(char **arr, const char *separator);
+
+/* Array create from static data - creates runtime array with metadata */
+long *rt_array_create_long(size_t count, const long *data);
+double *rt_array_create_double(size_t count, const double *data);
+char *rt_array_create_char(size_t count, const char *data);
+int *rt_array_create_bool(size_t count, const int *data);
+char **rt_array_create_string(size_t count, const char **data);
+
+/* Array equality functions - compare arrays element by element */
+int rt_array_eq_long(long *a, long *b);
+int rt_array_eq_double(double *a, double *b);
+int rt_array_eq_char(char *a, char *b);
+int rt_array_eq_bool(int *a, int *b);
+int rt_array_eq_string(char **a, char **b);
+
 #endif /* RUNTIME_H */

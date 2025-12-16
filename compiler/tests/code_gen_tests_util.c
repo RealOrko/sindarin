@@ -62,6 +62,20 @@ void compare_output_files(const char *actual_path, const char *expected_path)
     assert(actual != NULL && expected != NULL);
 
     DEBUG_VERBOSE("Comparing file contents");
+    if (strcmp(actual, expected) != 0) {
+        fprintf(stderr, "=== FILE COMPARISON FAILED ===\n");
+        fprintf(stderr, "Actual length: %zu, Expected length: %zu\n", strlen(actual), strlen(expected));
+        // Find first difference
+        size_t i = 0;
+        while (actual[i] && expected[i] && actual[i] == expected[i]) i++;
+        fprintf(stderr, "First difference at position %zu:\n", i);
+        fprintf(stderr, "Actual:   0x%02x '%c'\n", (unsigned char)actual[i], actual[i] > 31 ? actual[i] : '?');
+        fprintf(stderr, "Expected: 0x%02x '%c'\n", (unsigned char)expected[i], expected[i] > 31 ? expected[i] : '?');
+        // Show context
+        size_t start = i > 50 ? i - 50 : 0;
+        fprintf(stderr, "Context around difference (actual):\n%.100s\n", actual + start);
+        fprintf(stderr, "Context around difference (expected):\n%.100s\n", expected + start);
+    }
     assert(strcmp(actual, expected) == 0);
 
     DEBUG_VERBOSE("Freeing arena");

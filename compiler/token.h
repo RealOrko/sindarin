@@ -25,6 +25,7 @@ typedef enum
     TOKEN_ELSE,
     TOKEN_FOR,
     TOKEN_WHILE,
+    TOKEN_IN,
     TOKEN_IMPORT,
     TOKEN_NIL,
     TOKEN_INT,
@@ -61,6 +62,7 @@ typedef enum
     TOKEN_COLON,
     TOKEN_COMMA,
     TOKEN_DOT,
+    TOKEN_RANGE,
     TOKEN_ARROW,
     TOKEN_ERROR
 } TokenType;

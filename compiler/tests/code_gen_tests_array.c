@@ -52,10 +52,9 @@ void test_code_gen_array_literal()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Assuming code_gen_array_expression generates something like "(long[]){1L, 2L}"
-    // Adjust expected based on actual implementation; here assuming pointer cast for dynamic array.
+    // code_gen_array_expression generates rt_array_create_* for runtime arrays
     const char *expected = get_expected(&arena,
-                                  "(long[]){1L, 2L};\n"
+                                  "rt_array_create_long(2, (long[]){1L, 2L});\n"
                                   "int main() {\n"
                                   "    return 0;\n"
                                   "}\n");
@@ -131,10 +130,9 @@ void test_code_gen_array_var_declaration_with_init()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * arr = (long[]){3L, 4L}; arr; (adjust based on actual get_c_type and init)
-    // Assuming "long * arr = (long[]){3L, 4L};" for dynamic array simulation.
+    // Expected: long * arr = rt_array_create_long(2, (long[]){3L, 4L}); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){3L, 4L};\n"
+                                  "long * arr = rt_array_create_long(2, (long[]){3L, 4L});\n"
                                   "arr;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -283,9 +281,9 @@ void test_code_gen_array_access()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * arr = (long[]){10L, 20L, 30L}; arr[1];
+    // Expected: long * arr = rt_array_create_long(3, (long[]){10L, 20L, 30L}); arr[1];
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){10L, 20L, 30L};\n"
+                                  "long * arr = rt_array_create_long(3, (long[]){10L, 20L, 30L});\n"
                                   "arr[1L];\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -388,9 +386,9 @@ void test_code_gen_array_access_in_expression()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * arr = (long[]){5L, 10L}; rt_add_long(arr[0], arr[1]);
+    // Expected: long * arr = rt_array_create_long(2, (long[]){5L, 10L}); rt_add_long(arr[0], arr[1]);
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){5L, 10L};\n"
+                                  "long * arr = rt_array_create_long(2, (long[]){5L, 10L});\n"
                                   "rt_add_long(arr[0L], arr[1L]);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -514,10 +512,10 @@ void test_code_gen_array_of_arrays()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * (*)[] nested = (long * (*)[]){}; nested; (adjust for nested pointer types)
-    // get_c_type for array of array: ((long[])[]) or long * (*)[]
+    // Expected: long * (*)[] nested = (long *[]){}; nested;
+    // get_c_type for array of array: long * (*)[]
     const char *expected = get_expected(&arena,
-                                  "long * (*)[] nested = (long * (*)[]){};\n"
+                                  "long * (*)[] nested = (long *[]){};\n"
                                   "nested;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -603,10 +601,9 @@ void test_code_gen_array_push_long()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: Assuming rt_array_push(arr, 1L); arr;
-    // But since member not handled, will crash; expected for fixed version
+    // Expected: rt_array_push(arr, 1L); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){};\n"
+                                  "long * arr = rt_array_create_long(0, (long[]){});\n"
                                   "(arr = rt_array_push_long(arr, 1L));\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -694,9 +691,9 @@ void test_code_gen_array_push_int()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: Assuming (arr = rt_array_push_long(arr, 1L)); arr;
+    // Expected: (arr = rt_array_push_long(arr, 1L)); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){};\n"
+                                  "long * arr = rt_array_create_long(0, (long[]){});\n"
                                   "(arr = rt_array_push_long(arr, 1L));\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -784,9 +781,9 @@ void test_code_gen_array_push_double()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: double * arr = (double []){}; (arr = rt_array_push_double(arr, 1.0)); arr;
+    // Expected: double * arr = rt_array_create_double(0, (double[]){}); (arr = rt_array_push_double(arr, 1.0)); arr;
     const char *expected = get_expected(&arena,
-                                  "double * arr = (double[]){};\n"
+                                  "double * arr = rt_array_create_double(0, (double[]){});\n"
                                   "(arr = rt_array_push_double(arr, 1.0));\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -874,9 +871,9 @@ void test_code_gen_array_push_char()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: char * arr = (char []){}; (arr = rt_array_push_char(arr, 'a')); arr;
+    // Expected: char * arr = rt_array_create_char(0, (char[]){}); (arr = rt_array_push_char(arr, 'a')); arr;
     const char *expected = get_expected(&arena,
-                                  "char * arr = (char[]){};\n"
+                                  "char * arr = rt_array_create_char(0, (char[]){});\n"
                                   "(arr = rt_array_push_char(arr, 'a'));\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -964,9 +961,9 @@ void test_code_gen_array_push_bool()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: int * arr = (int []){}; (arr = rt_array_push_bool(arr, 1)); arr;
+    // Expected: bool * arr = rt_array_create_bool(0, (bool[]){}); (arr = rt_array_push_bool(arr, 1)); arr;
     const char *expected = get_expected(&arena,
-                                  "bool * arr = (bool[]){};\n"
+                                  "bool * arr = rt_array_create_bool(0, (bool[]){});\n"
                                   "(arr = rt_array_push_bool(arr, 1L));\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -1054,9 +1051,9 @@ void test_code_gen_array_push_string()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: char ** arr = (char *[]){}; (arr = rt_array_push_string(arr, "hello")); arr;
+    // Expected: char ** arr = rt_array_create_string(0, (char *[]){}); (arr = rt_array_push_string(arr, "hello")); arr;
     const char *expected = get_expected(&arena,
-                                  "char * * arr = (char *[]){};\n"
+                                  "char * * arr = rt_array_create_string(0, (char *[]){});\n"
                                   "(arr = rt_array_push_string(arr, \"hello\"));\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -1153,7 +1150,7 @@ void test_code_gen_array_clear()
 
     // Expected: rt_array_clear(arr); arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){1L, 2L};\n"
+                                  "long * arr = rt_array_create_long(2, (long[]){1L, 2L});\n"
                                   "rt_array_clear(arr);\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -1278,11 +1275,11 @@ void test_code_gen_array_concat()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * result = rt_array_concat_long(arr, (long[]){2L, 3L}); result;
+    // Expected: long * result = rt_array_concat_long(arr, rt_array_create_long(2, (long[]){2L, 3L})); result;
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){1L};\n"
+                                  "long * arr = rt_array_create_long(1, (long[]){1L});\n"
                                   "long * result = NULL;\n"
-                                  "result = rt_array_concat_long(arr, (long[]){2L, 3L});\n"
+                                  "result = rt_array_concat_long(arr, rt_array_create_long(2, (long[]){2L, 3L}));\n"
                                   "result;\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1372,7 +1369,7 @@ void test_code_gen_array_length()
 
     // Expected: arr->length; or rt_array_length(arr);
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){1L, 2L, 3L};\n"
+                                  "long * arr = rt_array_create_long(3, (long[]){1L, 2L, 3L});\n"
                                   "rt_array_length(arr);\n"
                                   "int main() {\n"
                                   "    return 0;\n"
@@ -1482,7 +1479,7 @@ void test_code_gen_array_pop()
 
     // Expected: long result = rt_array_pop(arr); result; arr;
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){1L, 2L, 3L};\n"
+                                  "long * arr = rt_array_create_long(3, (long[]){1L, 2L, 3L});\n"
                                   "long result = rt_array_pop(arr);\n"
                                   "result;\n"
                                   "arr;\n"
@@ -1578,7 +1575,7 @@ void test_code_gen_array_print()
 
     // Expected: rt_print_pointer(arr); or similar, but since print is extern, assuming rt_print_array(arr);
     const char *expected = get_expected(&arena,
-                                  "long * arr = (long[]){1L, 2L};\n"
+                                  "long * arr = rt_array_create_long(2, (long[]){1L, 2L});\n"
                                   "rt_print_array(arr);\n"
                                   "int main() {\n"
                                   "    return 0;\n"

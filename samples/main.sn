@@ -40,5 +40,237 @@ fn main(): void =>
   print(arr) // Should print []
   print($"\nArr Length: {arr.length}\n") // Should be 0
 
+  // Test array slicing
+  var nums: int[]
+  nums.push(10)
+  nums.push(20)
+  nums.push(30)
+  nums.push(40)
+  nums.push(50)
+  print("Original array: ")
+  print(nums)
+  print("\n")
+
+  // Full slice: nums[1..4]
+  var slice1: int[] = nums[1..4]
+  print("nums[1..4] = ")
+  print(slice1)
+  print("\n")
+
+  // Slice from start: nums[..3]
+  var slice2: int[] = nums[..3]
+  print("nums[..3] = ")
+  print(slice2)
+  print("\n")
+
+  // Slice to end: nums[2..]
+  var slice3: int[] = nums[2..]
+  print("nums[2..] = ")
+  print(slice3)
+  print("\n")
+
+  // Full copy: nums[..]
+  var slice4: int[] = nums[..]
+  print("nums[..] = ")
+  print(slice4)
+  print("\n")
+
+  // Test built-in array functions
+  print("\n--- Testing Built-in Functions ---\n")
+
+  // len(arr)
+  var length: int = len(nums)
+  print($"len(nums) = {length}\n")
+
+  // rev(arr)
+  var reversed: int[] = rev(nums)
+  print("rev(nums) = ")
+  print(reversed)
+  print("\n")
+
+  // push(elem, arr) - functional style
+  var extended: int[] = push(60, nums)
+  print("push(60, nums) = ")
+  print(extended)
+  print("\n")
+
+  // rem(index, arr)
+  var removed: int[] = rem(2, nums)
+  print("rem(2, nums) = ")
+  print(removed)
+  print("\n")
+
+  // ins(elem, index, arr)
+  var inserted: int[] = ins(99, 0, nums)
+  print("ins(99, 0, nums) = ")
+  print(inserted)
+  print("\n")
+
+  // --- Testing Phase 3: Array Methods ---
+  print("\n--- Testing Array Methods ---\n")
+
+  // indexOf(element)
+  var idx: int = nums.indexOf(30)
+  print($"nums.indexOf(30) = {idx}\n")
+
+  var not_found: int = nums.indexOf(999)
+  print($"nums.indexOf(999) = {not_found}\n")
+
+  // contains(element)
+  var has_30: bool = nums.contains(30)
+  print($"nums.contains(30) = {has_30}\n")
+
+  var has_999: bool = nums.contains(999)
+  print($"nums.contains(999) = {has_999}\n")
+
+  // clone()
+  var cloned: int[] = nums.clone()
+  print("nums.clone() = ")
+  print(cloned)
+  print("\n")
+
+  // join(separator)
+  var joined: str = nums.join(", ")
+  print($"nums.join(\", \") = {joined}\n")
+
+  // Test methods on a new array to avoid modifying nums
+  var test_arr: int[]
+  test_arr.push(1)
+  test_arr.push(2)
+  test_arr.push(3)
+  test_arr.push(4)
+  test_arr.push(5)
+  print("test_arr = ")
+  print(test_arr)
+  print("\n")
+
+  // reverse() - in-place
+  test_arr.reverse()
+  print("test_arr.reverse() = ")
+  print(test_arr)
+  print("\n")
+
+  // insert(elem, index)
+  test_arr.insert(99, 2)
+  print("test_arr.insert(99, 2) = ")
+  print(test_arr)
+  print("\n")
+
+  // remove(index)
+  test_arr.remove(2)
+  print("test_arr.remove(2) = ")
+  print(test_arr)
+  print("\n")
+
+  // --- Testing Phase 4: For-Each Iteration ---
+  print("\n--- Testing For-Each Iteration ---\n")
+
+  // for-each over int array
+  var items: int[] = {10, 20, 30, 40, 50}
+  print("items = ")
+  print(items)
+  print("\n")
+
+  print("Iterating with for-each:\n")
+  for x in items =>
+    print($"  x = {x}\n")
+
+  // for-each to sum elements
+  var total: int = 0
+  for n in items =>
+    total = total + n
+  print($"Sum of items = {total}\n")
+
+  // for-each over string array
+  var names: str[] = {"Alice", "Bob", "Charlie"}
+  print("Names: ")
+  for name in names =>
+    print($"{name} ")
+  print("\n")
+
+  // --- Testing Phase 5: Negative Indexing ---
+  print("\n--- Testing Negative Indexing ---\n")
+
+  // Negative index access
+  var arr5: int[] = {10, 20, 30, 40, 50}
+  print($"arr5[-1] = {arr5[-1]}\n")   // Should be 50 (last element)
+  print($"arr5[-2] = {arr5[-2]}\n")   // Should be 40
+  print($"arr5[-5] = {arr5[-5]}\n")   // Should be 10 (first element)
+
+  // Negative slicing
+  var last_two: int[] = arr5[-2..]
+  print("arr5[-2..] = ")
+  print(last_two)
+  print("\n")
+
+  var without_last: int[] = arr5[..-1]
+  print("arr5[..-1] = ")
+  print(without_last)
+  print("\n")
+
+  var middle: int[] = arr5[-4..-1]
+  print("arr5[-4..-1] = ")
+  print(middle)
+  print("\n")
+
+  // --- Testing Array Equality ---
+  print("\n--- Testing Array Equality ---\n")
+
+  var a1: int[] = {1, 2, 3}
+  var a2: int[] = {1, 2, 3}
+  var a3: int[] = {1, 2, 4}
+  var a4: int[] = {1, 2}
+
+  print($"a1 == a2: {a1 == a2}\n")   // Should be true
+  print($"a1 == a3: {a1 == a3}\n")   // Should be false (different element)
+  print($"a1 == a4: {a1 == a4}\n")   // Should be false (different length)
+  print($"a1 != a3: {a1 != a3}\n")   // Should be true
+
+  // Test string array equality
+  var s1: str[] = {"hello", "world"}
+  var s2: str[] = {"hello", "world"}
+  var s3: str[] = {"hello", "there"}
+
+  print($"s1 == s2: {s1 == s2}\n")   // Should be true
+  print($"s1 == s3: {s1 == s3}\n")   // Should be false
+
+  // --- Testing Step Slicing ---
+  print("\n--- Testing Step Slicing ---\n")
+
+  var step_arr: int[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+  print("step_arr = ")
+  print(step_arr)
+  print("\n")
+
+  // Every other element from full array
+  var evens: int[] = step_arr[..:2]
+  print("step_arr[..:2] = ")
+  print(evens)
+  print("\n")
+
+  // Every other element starting from index 1
+  var odds: int[] = step_arr[1..:2]
+  print("step_arr[1..:2] = ")
+  print(odds)
+  print("\n")
+
+  // Every third element
+  var thirds: int[] = step_arr[..:3]
+  print("step_arr[..:3] = ")
+  print(thirds)
+  print("\n")
+
+  // Slice with start, end, and step
+  var sub_step: int[] = step_arr[1..8:2]
+  print("step_arr[1..8:2] = ")
+  print(sub_step)
+  print("\n")
+
+  // Step with negative indices
+  var neg_step: int[] = step_arr[-6..:2]
+  print("step_arr[-6..:2] = ")
+  print(neg_step)
+  print("\n")
+
   print("Complete main method ... \n")
   

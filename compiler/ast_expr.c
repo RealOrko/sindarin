@@ -287,3 +287,26 @@ Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, cons
     expr->token = ast_clone_token(arena, loc_token);
     return expr;
 }
+
+Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *end, Expr *step, const Token *loc_token)
+{
+    if (array == NULL)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_ARRAY_SLICE;
+    expr->as.array_slice.array = array;
+    expr->as.array_slice.start = start;  // Can be NULL
+    expr->as.array_slice.end = end;      // Can be NULL
+    expr->as.array_slice.step = step;    // Can be NULL (defaults to 1)
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}

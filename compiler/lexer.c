@@ -218,6 +218,11 @@ Token lexer_scan_token(Lexer *lexer)
         DEBUG_VERBOSE("Line %d: Emitting SEMICOLON", lexer->line);
         return lexer_make_token(lexer, TOKEN_SEMICOLON);
     case '.':
+        if (lexer_match(lexer, '.'))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting RANGE", lexer->line);
+            return lexer_make_token(lexer, TOKEN_RANGE);
+        }
         DEBUG_VERBOSE("Line %d: Emitting DOT", lexer->line);
         return lexer_make_token(lexer, TOKEN_DOT);
     case '[':

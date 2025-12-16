@@ -167,9 +167,124 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
     return sym->type;
 }
 
+static bool is_builtin_name(Expr *callee, const char *name)
+{
+    if (callee->type != EXPR_VARIABLE) return false;
+    Token tok = callee->as.variable.name;
+    size_t len = strlen(name);
+    return tok.length == (int)len && strncmp(tok.start, name, len) == 0;
+}
+
 static Type *type_check_call(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking function call with %d arguments", expr->as.call.arg_count);
+
+    // Handle array built-in functions specially
+    Expr *callee = expr->as.call.callee;
+
+    // len(arr) -> int
+    if (is_builtin_name(callee, "len") && expr->as.call.arg_count == 1)
+    {
+        Type *arg_type = type_check_expr(expr->as.call.arguments[0], table);
+        if (arg_type == NULL) return NULL;
+        if (arg_type->kind != TYPE_ARRAY && arg_type->kind != TYPE_STRING)
+        {
+            type_error(expr->token, "len() requires array or string argument");
+            return NULL;
+        }
+        return ast_create_primitive_type(table->arena, TYPE_INT);
+    }
+
+    // pop(arr) -> element type
+    if (is_builtin_name(callee, "pop") && expr->as.call.arg_count == 1)
+    {
+        Type *arg_type = type_check_expr(expr->as.call.arguments[0], table);
+        if (arg_type == NULL) return NULL;
+        if (arg_type->kind != TYPE_ARRAY)
+        {
+            type_error(expr->token, "pop() requires array argument");
+            return NULL;
+        }
+        return arg_type->as.array.element_type;
+    }
+
+    // rev(arr) -> same array type
+    if (is_builtin_name(callee, "rev") && expr->as.call.arg_count == 1)
+    {
+        Type *arg_type = type_check_expr(expr->as.call.arguments[0], table);
+        if (arg_type == NULL) return NULL;
+        if (arg_type->kind != TYPE_ARRAY)
+        {
+            type_error(expr->token, "rev() requires array argument");
+            return NULL;
+        }
+        return arg_type;
+    }
+
+    // push(elem, arr) -> same array type
+    if (is_builtin_name(callee, "push") && expr->as.call.arg_count == 2)
+    {
+        Type *elem_type = type_check_expr(expr->as.call.arguments[0], table);
+        Type *arr_type = type_check_expr(expr->as.call.arguments[1], table);
+        if (elem_type == NULL || arr_type == NULL) return NULL;
+        if (arr_type->kind != TYPE_ARRAY)
+        {
+            type_error(expr->token, "push() second argument must be array");
+            return NULL;
+        }
+        if (!ast_type_equals(elem_type, arr_type->as.array.element_type))
+        {
+            type_error(expr->token, "push() element type must match array element type");
+            return NULL;
+        }
+        return arr_type;
+    }
+
+    // rem(index, arr) -> same array type
+    if (is_builtin_name(callee, "rem") && expr->as.call.arg_count == 2)
+    {
+        Type *idx_type = type_check_expr(expr->as.call.arguments[0], table);
+        Type *arr_type = type_check_expr(expr->as.call.arguments[1], table);
+        if (idx_type == NULL || arr_type == NULL) return NULL;
+        if (!is_numeric_type(idx_type))
+        {
+            type_error(expr->token, "rem() index must be numeric");
+            return NULL;
+        }
+        if (arr_type->kind != TYPE_ARRAY)
+        {
+            type_error(expr->token, "rem() second argument must be array");
+            return NULL;
+        }
+        return arr_type;
+    }
+
+    // ins(elem, index, arr) -> same array type
+    if (is_builtin_name(callee, "ins") && expr->as.call.arg_count == 3)
+    {
+        Type *elem_type = type_check_expr(expr->as.call.arguments[0], table);
+        Type *idx_type = type_check_expr(expr->as.call.arguments[1], table);
+        Type *arr_type = type_check_expr(expr->as.call.arguments[2], table);
+        if (elem_type == NULL || idx_type == NULL || arr_type == NULL) return NULL;
+        if (!is_numeric_type(idx_type))
+        {
+            type_error(expr->token, "ins() index must be numeric");
+            return NULL;
+        }
+        if (arr_type->kind != TYPE_ARRAY)
+        {
+            type_error(expr->token, "ins() third argument must be array");
+            return NULL;
+        }
+        if (!ast_type_equals(elem_type, arr_type->as.array.element_type))
+        {
+            type_error(expr->token, "ins() element type must match array element type");
+            return NULL;
+        }
+        return arr_type;
+    }
+
+    // Standard function call handling
     Type *callee_type = type_check_expr(expr->as.call.callee, table);
     if (callee_type == NULL)
     {
@@ -309,6 +424,52 @@ static Type *type_check_increment_decrement(Expr *expr, SymbolTable *table)
     return operand_type;
 }
 
+static Type *type_check_array_slice(Expr *expr, SymbolTable *table)
+{
+    DEBUG_VERBOSE("Type checking array slice");
+    Type *array_t = type_check_expr(expr->as.array_slice.array, table);
+    if (array_t == NULL)
+    {
+        return NULL;
+    }
+    if (array_t->kind != TYPE_ARRAY)
+    {
+        type_error(expr->token, "Cannot slice non-array");
+        return NULL;
+    }
+    // Type check start index if provided
+    if (expr->as.array_slice.start != NULL)
+    {
+        Type *start_t = type_check_expr(expr->as.array_slice.start, table);
+        if (start_t == NULL)
+        {
+            return NULL;
+        }
+        if (!is_numeric_type(start_t))
+        {
+            type_error(expr->token, "Slice start index must be numeric type");
+            return NULL;
+        }
+    }
+    // Type check end index if provided
+    if (expr->as.array_slice.end != NULL)
+    {
+        Type *end_t = type_check_expr(expr->as.array_slice.end, table);
+        if (end_t == NULL)
+        {
+            return NULL;
+        }
+        if (!is_numeric_type(end_t))
+        {
+            type_error(expr->token, "Slice end index must be numeric type");
+            return NULL;
+        }
+    }
+    DEBUG_VERBOSE("Returning array type for slice: %d", array_t->kind);
+    // Slicing an array returns an array of the same element type
+    return array_t;
+}
+
 static Type *type_check_member(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking member access: %s", expr->as.member.member_name.start);
@@ -350,6 +511,59 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         Type *param_types[1] = {param_array_type};
         DEBUG_VERBOSE("Returning function type for array concat method");
         return ast_create_function_type(table->arena, object_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "indexOf") == 0)
+    {
+        Type *element_type = object_type->as.array.element_type;
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {element_type};
+        DEBUG_VERBOSE("Returning function type for array indexOf method");
+        return ast_create_function_type(table->arena, int_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "contains") == 0)
+    {
+        Type *element_type = object_type->as.array.element_type;
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[1] = {element_type};
+        DEBUG_VERBOSE("Returning function type for array contains method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "clone") == 0)
+    {
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for array clone method");
+        return ast_create_function_type(table->arena, object_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "join") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for array join method");
+        return ast_create_function_type(table->arena, string_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "reverse") == 0)
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for array reverse method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "insert") == 0)
+    {
+        Type *element_type = object_type->as.array.element_type;
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[2] = {element_type, int_type};
+        DEBUG_VERBOSE("Returning function type for array insert method");
+        return ast_create_function_type(table->arena, void_type, param_types, 2);
+    }
+    else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "remove") == 0)
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *element_type = object_type->as.array.element_type;
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for array remove method");
+        return ast_create_function_type(table->arena, element_type, param_types, 1);
     }
     else
     {
@@ -407,6 +621,9 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_MEMBER:
         t = type_check_member(expr, table);
+        break;
+    case EXPR_ARRAY_SLICE:
+        t = type_check_array_slice(expr, table);
         break;
     }
     expr->expr_type = t;

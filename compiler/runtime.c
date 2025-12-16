@@ -598,3 +598,682 @@ void rt_array_free_string(char **arr) {
     }
     free(meta);
 }
+
+/* Array slice functions - create a new array from a portion of the source
+ * start: starting index (inclusive), use LONG_MIN for beginning
+ * end: ending index (exclusive), use LONG_MIN for end of array
+ * step: step size, use LONG_MIN for default step of 1
+ */
+#define DEFINE_ARRAY_SLICE(suffix, elem_type)                                   \
+elem_type *rt_array_slice_##suffix(elem_type *arr, long start, long end, long step) { \
+    if (arr == NULL) {                                                          \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t len = rt_array_length(arr);                                          \
+    /* Handle step: LONG_MIN means step of 1 */                                 \
+    long actual_step = (step == LONG_MIN) ? 1 : step;                           \
+    if (actual_step <= 0) {                                                     \
+        fprintf(stderr, "rt_array_slice_" #suffix ": step must be positive\n"); \
+        return NULL;                                                            \
+    }                                                                           \
+    /* Handle start: LONG_MIN means "from beginning", negative means from end */\
+    long actual_start;                                                          \
+    if (start == LONG_MIN) {                                                    \
+        actual_start = 0;                                                       \
+    } else if (start < 0) {                                                     \
+        actual_start = (long)len + start;                                       \
+        if (actual_start < 0) actual_start = 0;                                 \
+    } else {                                                                    \
+        actual_start = start;                                                   \
+    }                                                                           \
+    /* Handle end: LONG_MIN means "to end", negative means from end */          \
+    long actual_end;                                                            \
+    if (end == LONG_MIN) {                                                      \
+        actual_end = (long)len;                                                 \
+    } else if (end < 0) {                                                       \
+        actual_end = (long)len + end;                                           \
+        if (actual_end < 0) actual_end = 0;                                     \
+    } else {                                                                    \
+        actual_end = end;                                                       \
+    }                                                                           \
+    if (actual_start > (long)len) actual_start = (long)len;                     \
+    if (actual_end > (long)len) actual_end = (long)len;                         \
+    if (actual_start >= actual_end) {                                           \
+        return NULL;                                                            \
+    }                                                                           \
+    /* Calculate slice length with step */                                      \
+    size_t range = (size_t)(actual_end - actual_start);                         \
+    size_t slice_len = (range + (size_t)actual_step - 1) / (size_t)actual_step; \
+    size_t capacity = slice_len > 4 ? slice_len : 4;                            \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_slice_" #suffix ": allocation failed\n");     \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->size = slice_len;                                                     \
+    meta->capacity = capacity;                                                  \
+    elem_type *new_arr = (elem_type *)(meta + 1);                               \
+    for (size_t i = 0; i < slice_len; i++) {                                    \
+        new_arr[i] = arr[actual_start + i * (size_t)actual_step];               \
+    }                                                                           \
+    return new_arr;                                                             \
+}
+
+DEFINE_ARRAY_SLICE(long, long)
+DEFINE_ARRAY_SLICE(double, double)
+DEFINE_ARRAY_SLICE(char, char)
+DEFINE_ARRAY_SLICE(bool, int)
+
+/* String slice needs special handling to strdup elements */
+char **rt_array_slice_string(char **arr, long start, long end, long step) {
+    if (arr == NULL) {
+        return NULL;
+    }
+    size_t len = rt_array_length(arr);
+    /* Handle step: LONG_MIN means step of 1 */
+    long actual_step = (step == LONG_MIN) ? 1 : step;
+    if (actual_step <= 0) {
+        fprintf(stderr, "rt_array_slice_string: step must be positive\n");
+        return NULL;
+    }
+    /* Handle start: LONG_MIN means "from beginning", negative means from end */
+    long actual_start;
+    if (start == LONG_MIN) {
+        actual_start = 0;
+    } else if (start < 0) {
+        actual_start = (long)len + start;
+        if (actual_start < 0) actual_start = 0;
+    } else {
+        actual_start = start;
+    }
+    /* Handle end: LONG_MIN means "to end", negative means from end */
+    long actual_end;
+    if (end == LONG_MIN) {
+        actual_end = (long)len;
+    } else if (end < 0) {
+        actual_end = (long)len + end;
+        if (actual_end < 0) actual_end = 0;
+    } else {
+        actual_end = end;
+    }
+    if (actual_start > (long)len) actual_start = (long)len;
+    if (actual_end > (long)len) actual_end = (long)len;
+    if (actual_start >= actual_end) {
+        return NULL;
+    }
+    /* Calculate slice length with step */
+    size_t range = (size_t)(actual_end - actual_start);
+    size_t slice_len = (range + (size_t)actual_step - 1) / (size_t)actual_step;
+    size_t capacity = slice_len > 4 ? slice_len : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_slice_string: allocation failed\n");
+        exit(1);
+    }
+    meta->size = slice_len;
+    meta->capacity = capacity;
+    char **new_arr = (char **)(meta + 1);
+    for (size_t i = 0; i < slice_len; i++) {
+        size_t src_idx = actual_start + i * (size_t)actual_step;
+        new_arr[i] = arr[src_idx] ? strdup(arr[src_idx]) : NULL;
+    }
+    return new_arr;
+}
+
+/* Array reverse functions - return a new reversed array */
+#define DEFINE_ARRAY_REV(suffix, elem_type)                                     \
+elem_type *rt_array_rev_##suffix(elem_type *arr) {                              \
+    if (arr == NULL) {                                                          \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t len = rt_array_length(arr);                                          \
+    if (len == 0) {                                                             \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t capacity = len > 4 ? len : 4;                                        \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_rev_" #suffix ": allocation failed\n");       \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->size = len;                                                           \
+    meta->capacity = capacity;                                                  \
+    elem_type *new_arr = (elem_type *)(meta + 1);                               \
+    for (size_t i = 0; i < len; i++) {                                          \
+        new_arr[i] = arr[len - 1 - i];                                          \
+    }                                                                           \
+    return new_arr;                                                             \
+}
+
+DEFINE_ARRAY_REV(long, long)
+DEFINE_ARRAY_REV(double, double)
+DEFINE_ARRAY_REV(char, char)
+DEFINE_ARRAY_REV(bool, int)
+
+/* String reverse needs special handling to strdup elements */
+char **rt_array_rev_string(char **arr) {
+    if (arr == NULL) {
+        return NULL;
+    }
+    size_t len = rt_array_length(arr);
+    if (len == 0) {
+        return NULL;
+    }
+    size_t capacity = len > 4 ? len : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_rev_string: allocation failed\n");
+        exit(1);
+    }
+    meta->size = len;
+    meta->capacity = capacity;
+    char **new_arr = (char **)(meta + 1);
+    for (size_t i = 0; i < len; i++) {
+        new_arr[i] = arr[len - 1 - i] ? strdup(arr[len - 1 - i]) : NULL;
+    }
+    return new_arr;
+}
+
+/* Array remove at index functions - return a new array without the element */
+#define DEFINE_ARRAY_REM(suffix, elem_type)                                     \
+elem_type *rt_array_rem_##suffix(elem_type *arr, long index) {                  \
+    if (arr == NULL) {                                                          \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t len = rt_array_length(arr);                                          \
+    if (index < 0 || (size_t)index >= len) {                                    \
+        fprintf(stderr, "rt_array_rem_" #suffix ": index out of bounds\n");     \
+        exit(1);                                                                \
+    }                                                                           \
+    if (len == 1) {                                                             \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t new_len = len - 1;                                                   \
+    size_t capacity = new_len > 4 ? new_len : 4;                                \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_rem_" #suffix ": allocation failed\n");       \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->size = new_len;                                                       \
+    meta->capacity = capacity;                                                  \
+    elem_type *new_arr = (elem_type *)(meta + 1);                               \
+    for (size_t i = 0; i < (size_t)index; i++) {                                \
+        new_arr[i] = arr[i];                                                    \
+    }                                                                           \
+    for (size_t i = (size_t)index; i < new_len; i++) {                          \
+        new_arr[i] = arr[i + 1];                                                \
+    }                                                                           \
+    return new_arr;                                                             \
+}
+
+DEFINE_ARRAY_REM(long, long)
+DEFINE_ARRAY_REM(double, double)
+DEFINE_ARRAY_REM(char, char)
+DEFINE_ARRAY_REM(bool, int)
+
+/* String remove needs special handling to strdup elements */
+char **rt_array_rem_string(char **arr, long index) {
+    if (arr == NULL) {
+        return NULL;
+    }
+    size_t len = rt_array_length(arr);
+    if (index < 0 || (size_t)index >= len) {
+        fprintf(stderr, "rt_array_rem_string: index out of bounds\n");
+        exit(1);
+    }
+    if (len == 1) {
+        return NULL;
+    }
+    size_t new_len = len - 1;
+    size_t capacity = new_len > 4 ? new_len : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_rem_string: allocation failed\n");
+        exit(1);
+    }
+    meta->size = new_len;
+    meta->capacity = capacity;
+    char **new_arr = (char **)(meta + 1);
+    for (size_t i = 0; i < (size_t)index; i++) {
+        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+    }
+    for (size_t i = (size_t)index; i < new_len; i++) {
+        new_arr[i] = arr[i + 1] ? strdup(arr[i + 1]) : NULL;
+    }
+    return new_arr;
+}
+
+/* Array insert at index functions - return a new array with the element inserted */
+#define DEFINE_ARRAY_INS(suffix, elem_type)                                     \
+elem_type *rt_array_ins_##suffix(elem_type *arr, elem_type elem, long index) {  \
+    size_t len = arr ? rt_array_length(arr) : 0;                                \
+    if (index < 0) index = 0;                                                   \
+    if ((size_t)index > len) index = (long)len;                                 \
+    size_t new_len = len + 1;                                                   \
+    size_t capacity = new_len > 4 ? new_len : 4;                                \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_ins_" #suffix ": allocation failed\n");       \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->size = new_len;                                                       \
+    meta->capacity = capacity;                                                  \
+    elem_type *new_arr = (elem_type *)(meta + 1);                               \
+    for (size_t i = 0; i < (size_t)index; i++) {                                \
+        new_arr[i] = arr[i];                                                    \
+    }                                                                           \
+    new_arr[index] = elem;                                                      \
+    for (size_t i = (size_t)index + 1; i < new_len; i++) {                      \
+        new_arr[i] = arr[i - 1];                                                \
+    }                                                                           \
+    return new_arr;                                                             \
+}
+
+DEFINE_ARRAY_INS(long, long)
+DEFINE_ARRAY_INS(double, double)
+DEFINE_ARRAY_INS(char, char)
+DEFINE_ARRAY_INS(bool, int)
+
+/* String insert needs special handling to strdup elements */
+char **rt_array_ins_string(char **arr, const char *elem, long index) {
+    size_t len = arr ? rt_array_length(arr) : 0;
+    if (index < 0) index = 0;
+    if ((size_t)index > len) index = (long)len;
+    size_t new_len = len + 1;
+    size_t capacity = new_len > 4 ? new_len : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_ins_string: allocation failed\n");
+        exit(1);
+    }
+    meta->size = new_len;
+    meta->capacity = capacity;
+    char **new_arr = (char **)(meta + 1);
+    for (size_t i = 0; i < (size_t)index; i++) {
+        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+    }
+    new_arr[index] = elem ? strdup(elem) : NULL;
+    for (size_t i = (size_t)index + 1; i < new_len; i++) {
+        new_arr[i] = arr[i - 1] ? strdup(arr[i - 1]) : NULL;
+    }
+    return new_arr;
+}
+
+/* Array push (copy) functions - create a NEW array with element appended */
+#define DEFINE_ARRAY_PUSH_COPY(suffix, elem_type)                               \
+elem_type *rt_array_push_copy_##suffix(elem_type *arr, elem_type elem) {        \
+    size_t len = arr ? rt_array_length(arr) : 0;                                \
+    size_t new_len = len + 1;                                                   \
+    size_t capacity = new_len > 4 ? new_len : 4;                                \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_push_copy_" #suffix ": allocation failed\n"); \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->size = new_len;                                                       \
+    meta->capacity = capacity;                                                  \
+    elem_type *new_arr = (elem_type *)(meta + 1);                               \
+    for (size_t i = 0; i < len; i++) {                                          \
+        new_arr[i] = arr[i];                                                    \
+    }                                                                           \
+    new_arr[len] = elem;                                                        \
+    return new_arr;                                                             \
+}
+
+DEFINE_ARRAY_PUSH_COPY(long, long)
+DEFINE_ARRAY_PUSH_COPY(double, double)
+DEFINE_ARRAY_PUSH_COPY(char, char)
+DEFINE_ARRAY_PUSH_COPY(bool, int)
+
+/* String push copy needs special handling to strdup elements */
+char **rt_array_push_copy_string(char **arr, const char *elem) {
+    size_t len = arr ? rt_array_length(arr) : 0;
+    size_t new_len = len + 1;
+    size_t capacity = new_len > 4 ? new_len : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_push_copy_string: allocation failed\n");
+        exit(1);
+    }
+    meta->size = new_len;
+    meta->capacity = capacity;
+    char **new_arr = (char **)(meta + 1);
+    for (size_t i = 0; i < len; i++) {
+        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+    }
+    new_arr[len] = elem ? strdup(elem) : NULL;
+    return new_arr;
+}
+
+/* Array indexOf functions - find first index of element, returns -1 if not found */
+#define DEFINE_ARRAY_INDEXOF(suffix, elem_type, compare_expr)                   \
+long rt_array_indexOf_##suffix(elem_type *arr, elem_type elem) {                \
+    if (arr == NULL) {                                                          \
+        return -1L;                                                             \
+    }                                                                           \
+    size_t len = rt_array_length(arr);                                          \
+    for (size_t i = 0; i < len; i++) {                                          \
+        if (compare_expr) {                                                     \
+            return (long)i;                                                     \
+        }                                                                       \
+    }                                                                           \
+    return -1L;                                                                 \
+}
+
+DEFINE_ARRAY_INDEXOF(long, long, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(double, double, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(char, char, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(bool, int, arr[i] == elem)
+
+/* String indexOf needs special comparison */
+long rt_array_indexOf_string(char **arr, const char *elem) {
+    if (arr == NULL) {
+        return -1L;
+    }
+    size_t len = rt_array_length(arr);
+    for (size_t i = 0; i < len; i++) {
+        if (arr[i] == NULL && elem == NULL) {
+            return (long)i;
+        }
+        if (arr[i] != NULL && elem != NULL && strcmp(arr[i], elem) == 0) {
+            return (long)i;
+        }
+    }
+    return -1L;
+}
+
+/* Array contains functions - check if element exists */
+#define DEFINE_ARRAY_CONTAINS(suffix, elem_type)                                \
+int rt_array_contains_##suffix(elem_type *arr, elem_type elem) {                \
+    return rt_array_indexOf_##suffix(arr, elem) >= 0;                           \
+}
+
+DEFINE_ARRAY_CONTAINS(long, long)
+DEFINE_ARRAY_CONTAINS(double, double)
+DEFINE_ARRAY_CONTAINS(char, char)
+DEFINE_ARRAY_CONTAINS(bool, int)
+
+int rt_array_contains_string(char **arr, const char *elem) {
+    return rt_array_indexOf_string(arr, elem) >= 0;
+}
+
+/* Array clone functions - create a deep copy of the array */
+#define DEFINE_ARRAY_CLONE(suffix, elem_type)                                   \
+elem_type *rt_array_clone_##suffix(elem_type *arr) {                            \
+    if (arr == NULL) {                                                          \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t len = rt_array_length(arr);                                          \
+    if (len == 0) {                                                             \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t capacity = len > 4 ? len : 4;                                        \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_clone_" #suffix ": allocation failed\n");     \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->size = len;                                                           \
+    meta->capacity = capacity;                                                  \
+    elem_type *new_arr = (elem_type *)(meta + 1);                               \
+    memcpy(new_arr, arr, len * sizeof(elem_type));                              \
+    return new_arr;                                                             \
+}
+
+DEFINE_ARRAY_CLONE(long, long)
+DEFINE_ARRAY_CLONE(double, double)
+DEFINE_ARRAY_CLONE(char, char)
+DEFINE_ARRAY_CLONE(bool, int)
+
+/* String clone needs special handling to strdup elements */
+char **rt_array_clone_string(char **arr) {
+    if (arr == NULL) {
+        return NULL;
+    }
+    size_t len = rt_array_length(arr);
+    if (len == 0) {
+        return NULL;
+    }
+    size_t capacity = len > 4 ? len : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_clone_string: allocation failed\n");
+        exit(1);
+    }
+    meta->size = len;
+    meta->capacity = capacity;
+    char **new_arr = (char **)(meta + 1);
+    for (size_t i = 0; i < len; i++) {
+        new_arr[i] = arr[i] ? strdup(arr[i]) : NULL;
+    }
+    return new_arr;
+}
+
+/* Array join function - join elements into a string with separator */
+char *rt_array_join_long(long *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return strdup("");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    /* Estimate buffer size: each long can be up to 20 chars + separators */
+    size_t buf_size = len * 24 + (len - 1) * sep_len + 1;
+    char *result = malloc(buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_long: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "%ld", arr[i]);
+    }
+    return result;
+}
+
+char *rt_array_join_double(double *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return strdup("");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    size_t buf_size = len * 32 + (len - 1) * sep_len + 1;
+    char *result = malloc(buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_double: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "%.5f", arr[i]);
+    }
+    return result;
+}
+
+char *rt_array_join_char(char *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return strdup("");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    size_t buf_size = len + (len - 1) * sep_len + 1;
+    char *result = malloc(buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_char: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        *ptr++ = arr[i];
+    }
+    *ptr = '\0';
+    return result;
+}
+
+char *rt_array_join_bool(int *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return strdup("");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    /* "true" or "false" + separators */
+    size_t buf_size = len * 6 + (len - 1) * sep_len + 1;
+    char *result = malloc(buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_bool: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "%s", arr[i] ? "true" : "false");
+    }
+    return result;
+}
+
+char *rt_array_join_string(char **arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return strdup("");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    /* Calculate total length */
+    size_t total_len = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (arr[i]) {
+            total_len += strlen(arr[i]);
+        }
+    }
+    total_len += (len - 1) * sep_len + 1;
+
+    char *result = malloc(total_len);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_string: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            size_t l = strlen(separator);
+            memcpy(ptr, separator, l);
+            ptr += l;
+        }
+        if (arr[i]) {
+            size_t l = strlen(arr[i]);
+            memcpy(ptr, arr[i], l);
+            ptr += l;
+        }
+    }
+    *ptr = '\0';
+    return result;
+}
+
+/* Array create functions - create runtime array from static C array */
+#define DEFINE_ARRAY_CREATE(suffix, elem_type)                                  \
+elem_type *rt_array_create_##suffix(size_t count, const elem_type *data) {      \
+    if (count == 0 || data == NULL) {                                           \
+        return NULL;                                                            \
+    }                                                                           \
+    size_t capacity = count > 4 ? count : 4;                                    \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_create_" #suffix ": allocation failed\n");    \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->size = count;                                                         \
+    meta->capacity = capacity;                                                  \
+    elem_type *arr = (elem_type *)(meta + 1);                                   \
+    for (size_t i = 0; i < count; i++) {                                        \
+        arr[i] = data[i];                                                       \
+    }                                                                           \
+    return arr;                                                                 \
+}
+
+DEFINE_ARRAY_CREATE(long, long)
+DEFINE_ARRAY_CREATE(double, double)
+DEFINE_ARRAY_CREATE(char, char)
+DEFINE_ARRAY_CREATE(bool, int)
+
+/* String array create needs special handling for strdup */
+char **rt_array_create_string(size_t count, const char **data) {
+    if (count == 0 || data == NULL) {
+        return NULL;
+    }
+    size_t capacity = count > 4 ? count : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_create_string: allocation failed\n");
+        exit(1);
+    }
+    meta->size = count;
+    meta->capacity = capacity;
+    char **arr = (char **)(meta + 1);
+    for (size_t i = 0; i < count; i++) {
+        arr[i] = data[i] ? strdup(data[i]) : NULL;
+    }
+    return arr;
+}
+
+/* Array equality functions - compare arrays element by element */
+#define DEFINE_ARRAY_EQ(suffix, elem_type, compare_expr)                        \
+int rt_array_eq_##suffix(elem_type *a, elem_type *b) {                          \
+    /* Both NULL means equal */                                                 \
+    if (a == NULL && b == NULL) return 1;                                       \
+    /* One NULL, one not means not equal */                                     \
+    if (a == NULL || b == NULL) return 0;                                       \
+    size_t len_a = rt_array_length(a);                                          \
+    size_t len_b = rt_array_length(b);                                          \
+    /* Different lengths means not equal */                                     \
+    if (len_a != len_b) return 0;                                               \
+    /* Compare element by element */                                            \
+    for (size_t i = 0; i < len_a; i++) {                                        \
+        if (!(compare_expr)) return 0;                                          \
+    }                                                                           \
+    return 1;                                                                   \
+}
+
+DEFINE_ARRAY_EQ(long, long, a[i] == b[i])
+DEFINE_ARRAY_EQ(double, double, a[i] == b[i])
+DEFINE_ARRAY_EQ(char, char, a[i] == b[i])
+DEFINE_ARRAY_EQ(bool, int, a[i] == b[i])
+
+/* String array equality needs strcmp */
+int rt_array_eq_string(char **a, char **b) {
+    /* Both NULL means equal */
+    if (a == NULL && b == NULL) return 1;
+    /* One NULL, one not means not equal */
+    if (a == NULL || b == NULL) return 0;
+    size_t len_a = rt_array_length(a);
+    size_t len_b = rt_array_length(b);
+    /* Different lengths means not equal */
+    if (len_a != len_b) return 0;
+    /* Compare element by element */
+    for (size_t i = 0; i < len_a; i++) {
+        /* Handle NULL strings */
+        if (a[i] == NULL && b[i] == NULL) continue;
+        if (a[i] == NULL || b[i] == NULL) return 0;
+        if (strcmp(a[i], b[i]) != 0) return 0;
+    }
+    return 1;
+}

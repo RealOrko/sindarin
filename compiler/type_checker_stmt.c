@@ -140,6 +140,38 @@ static void type_check_for(Stmt *stmt, SymbolTable *table, Type *return_type)
     symbol_table_pop_scope(table);
 }
 
+static void type_check_for_each(Stmt *stmt, SymbolTable *table, Type *return_type)
+{
+    DEBUG_VERBOSE("Type checking for-each statement");
+
+    // Type check the iterable expression
+    Type *iterable_type = type_check_expr(stmt->as.for_each_stmt.iterable, table);
+    if (iterable_type == NULL)
+    {
+        return;
+    }
+
+    // Verify the iterable is an array type
+    if (iterable_type->kind != TYPE_ARRAY)
+    {
+        type_error(stmt->as.for_each_stmt.iterable->token, "For-each iterable must be an array");
+        return;
+    }
+
+    // Get the element type from the array
+    Type *element_type = iterable_type->as.array.element_type;
+
+    // Create a new scope and add the loop variable
+    // Use SYMBOL_PARAM so it's not freed - loop var is a reference to array element, not owned
+    symbol_table_push_scope(table);
+    symbol_table_add_symbol_with_kind(table, stmt->as.for_each_stmt.var_name, element_type, SYMBOL_PARAM);
+
+    // Type check the body
+    type_check_stmt(stmt->as.for_each_stmt.body, table, return_type);
+
+    symbol_table_pop_scope(table);
+}
+
 void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     if (stmt == NULL)
@@ -173,6 +205,9 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
         break;
     case STMT_FOR:
         type_check_for(stmt, table, return_type);
+        break;
+    case STMT_FOR_EACH:
+        type_check_for_each(stmt, table, return_type);
         break;
     case STMT_IMPORT:
         DEBUG_VERBOSE("Skipping type check for import statement");

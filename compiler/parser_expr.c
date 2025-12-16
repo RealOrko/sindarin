@@ -462,7 +462,49 @@ Expr *parser_call(Parser *parser, Expr *callee)
 Expr *parser_array_access(Parser *parser, Expr *array)
 {
     Token bracket = parser->previous;
-    Expr *index = parser_expression(parser);
+    Expr *start = NULL;
+    Expr *end = NULL;
+    Expr *step = NULL;
+
+    // Check if this is a slice starting with '..' (e.g., [..] or [..end] or [..end:step])
+    if (parser_match(parser, TOKEN_RANGE))
+    {
+        // This is a slice from the beginning: arr[..] or arr[..end] or arr[..end:step]
+        if (!parser_check(parser, TOKEN_RIGHT_BRACKET) && !parser_check(parser, TOKEN_COLON))
+        {
+            end = parser_expression(parser);
+        }
+        // Check for step: arr[..end:step] or arr[..:step]
+        if (parser_match(parser, TOKEN_COLON))
+        {
+            step = parser_expression(parser);
+        }
+        parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after slice");
+        return ast_create_array_slice_expr(parser->arena, array, NULL, end, step, &bracket);
+    }
+
+    // Parse the first expression (could be index or slice start)
+    Expr *first = parser_expression(parser);
+
+    // Check if this is a slice with start: arr[start..] or arr[start..end] or arr[start..end:step]
+    if (parser_match(parser, TOKEN_RANGE))
+    {
+        start = first;
+        // Check if there's an end expression
+        if (!parser_check(parser, TOKEN_RIGHT_BRACKET) && !parser_check(parser, TOKEN_COLON))
+        {
+            end = parser_expression(parser);
+        }
+        // Check for step: arr[start..end:step] or arr[start..:step]
+        if (parser_match(parser, TOKEN_COLON))
+        {
+            step = parser_expression(parser);
+        }
+        parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after slice");
+        return ast_create_array_slice_expr(parser->arena, array, start, end, step, &bracket);
+    }
+
+    // Regular array access: arr[index]
     parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after index");
-    return ast_create_array_access_expr(parser->arena, array, index, &bracket);
+    return ast_create_array_access_expr(parser->arena, array, first, &bracket);
 }

@@ -109,6 +109,16 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
         ast_print_stmt(arena, stmt->as.for_stmt.body, indent_level + 2);
         break;
 
+    case STMT_FOR_EACH:
+        DEBUG_VERBOSE_INDENT(indent_level, "ForEach: %.*s",
+                             stmt->as.for_each_stmt.var_name.length,
+                             stmt->as.for_each_stmt.var_name.start);
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Iterable:");
+        ast_print_expr(arena, stmt->as.for_each_stmt.iterable, indent_level + 2);
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Body:");
+        ast_print_stmt(arena, stmt->as.for_each_stmt.body, indent_level + 2);
+        break;
+
     case STMT_IMPORT:
         DEBUG_VERBOSE_INDENT(indent_level, "Import: %.*s",
                              stmt->as.import.module_name.length,
@@ -226,6 +236,30 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
                              expr->as.member.member_name.start);
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Object:");
         ast_print_expr(arena, expr->as.member.object, indent_level + 2);
+        break;
+
+    case EXPR_ARRAY_SLICE:
+        DEBUG_VERBOSE_INDENT(indent_level, "ArraySlice:");
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Array:");
+        ast_print_expr(arena, expr->as.array_slice.array, indent_level + 2);
+        if (expr->as.array_slice.start)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "Start:");
+            ast_print_expr(arena, expr->as.array_slice.start, indent_level + 2);
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "Start: (beginning)");
+        }
+        if (expr->as.array_slice.end)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "End:");
+            ast_print_expr(arena, expr->as.array_slice.end, indent_level + 2);
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "End: (end)");
+        }
         break;
     }
 }

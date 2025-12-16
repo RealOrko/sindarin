@@ -442,6 +442,151 @@ void test_array_access_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_array_slice_full_parsing()
+{
+    printf("Testing parser_execute array slice (full: arr[1..3])...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main():void =>\n"
+        "  var arr:int[] = {1, 2, 3, 4, 5}\n"
+        "  var slice:int[] = arr[1..3]\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 2);
+
+    Stmt *slice_decl = fn->as.function.body[1];
+    assert(slice_decl->type == STMT_VAR_DECL);
+    assert(strcmp(slice_decl->as.var_decl.name.start, "slice") == 0);
+    Expr *initializer = slice_decl->as.var_decl.initializer;
+    assert(initializer->type == EXPR_ARRAY_SLICE);
+    assert(initializer->as.array_slice.array->type == EXPR_VARIABLE);
+    assert(strcmp(initializer->as.array_slice.array->as.variable.name.start, "arr") == 0);
+    assert(initializer->as.array_slice.start != NULL);
+    assert(initializer->as.array_slice.start->type == EXPR_LITERAL);
+    assert(initializer->as.array_slice.start->as.literal.value.int_value == 1);
+    assert(initializer->as.array_slice.end != NULL);
+    assert(initializer->as.array_slice.end->type == EXPR_LITERAL);
+    assert(initializer->as.array_slice.end->as.literal.value.int_value == 3);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_array_slice_from_start_parsing()
+{
+    printf("Testing parser_execute array slice (from start: arr[..3])...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main():void =>\n"
+        "  var arr:int[] = {1, 2, 3, 4, 5}\n"
+        "  var slice:int[] = arr[..3]\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 2);
+
+    Stmt *slice_decl = fn->as.function.body[1];
+    assert(slice_decl->type == STMT_VAR_DECL);
+    Expr *initializer = slice_decl->as.var_decl.initializer;
+    assert(initializer->type == EXPR_ARRAY_SLICE);
+    assert(initializer->as.array_slice.array->type == EXPR_VARIABLE);
+    assert(strcmp(initializer->as.array_slice.array->as.variable.name.start, "arr") == 0);
+    assert(initializer->as.array_slice.start == NULL);
+    assert(initializer->as.array_slice.end != NULL);
+    assert(initializer->as.array_slice.end->type == EXPR_LITERAL);
+    assert(initializer->as.array_slice.end->as.literal.value.int_value == 3);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_array_slice_to_end_parsing()
+{
+    printf("Testing parser_execute array slice (to end: arr[2..])...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main():void =>\n"
+        "  var arr:int[] = {1, 2, 3, 4, 5}\n"
+        "  var slice:int[] = arr[2..]\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 2);
+
+    Stmt *slice_decl = fn->as.function.body[1];
+    assert(slice_decl->type == STMT_VAR_DECL);
+    Expr *initializer = slice_decl->as.var_decl.initializer;
+    assert(initializer->type == EXPR_ARRAY_SLICE);
+    assert(initializer->as.array_slice.array->type == EXPR_VARIABLE);
+    assert(strcmp(initializer->as.array_slice.array->as.variable.name.start, "arr") == 0);
+    assert(initializer->as.array_slice.start != NULL);
+    assert(initializer->as.array_slice.start->type == EXPR_LITERAL);
+    assert(initializer->as.array_slice.start->as.literal.value.int_value == 2);
+    assert(initializer->as.array_slice.end == NULL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_array_slice_full_copy_parsing()
+{
+    printf("Testing parser_execute array slice (full copy: arr[..])...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main():void =>\n"
+        "  var arr:int[] = {1, 2, 3}\n"
+        "  var copy:int[] = arr[..]\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 2);
+
+    Stmt *slice_decl = fn->as.function.body[1];
+    assert(slice_decl->type == STMT_VAR_DECL);
+    Expr *initializer = slice_decl->as.var_decl.initializer;
+    assert(initializer->type == EXPR_ARRAY_SLICE);
+    assert(initializer->as.array_slice.array->type == EXPR_VARIABLE);
+    assert(strcmp(initializer->as.array_slice.array->as.variable.name.start, "arr") == 0);
+    assert(initializer->as.array_slice.start == NULL);
+    assert(initializer->as.array_slice.end == NULL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_parser_array_main()
 {
     test_array_declaration_parsing();
@@ -455,4 +600,9 @@ void test_parser_array_main()
     test_array_print_and_interpolated_parsing_no_trailing_literal();
     test_array_function_params_and_return_parsing();
     test_array_access_parsing();
+    // Slice tests
+    test_array_slice_full_parsing();
+    test_array_slice_from_start_parsing();
+    test_array_slice_to_end_parsing();
+    test_array_slice_full_copy_parsing();
 }

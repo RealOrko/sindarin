@@ -59,7 +59,8 @@ typedef enum
     EXPR_INCREMENT,
     EXPR_DECREMENT,
     EXPR_INTERPOLATED,
-    EXPR_MEMBER
+    EXPR_MEMBER,
+    EXPR_ARRAY_SLICE
 } ExprType;
 
 typedef struct
@@ -114,6 +115,14 @@ typedef struct
 
 typedef struct
 {
+    Expr *array;
+    Expr *start;  // NULL means from beginning
+    Expr *end;    // NULL means to end
+    Expr *step;   // NULL means step of 1
+} ArraySliceExpr;
+
+typedef struct
+{
     Expr **parts;
     int part_count;
 } InterpolExpr;
@@ -139,6 +148,7 @@ struct Expr
         CallExpr call;
         ArrayExpr array;
         ArrayAccessExpr array_access;
+        ArraySliceExpr array_slice;
         Expr *operand;
         MemberExpr member;
         InterpolExpr interpol;
@@ -157,6 +167,7 @@ typedef enum
     STMT_IF,
     STMT_WHILE,
     STMT_FOR,
+    STMT_FOR_EACH,
     STMT_IMPORT
 } StmtType;
 
@@ -223,6 +234,13 @@ typedef struct
 
 typedef struct
 {
+    Token var_name;
+    Expr *iterable;
+    Stmt *body;
+} ForEachStmt;
+
+typedef struct
+{
     Token module_name;
 } ImportStmt;
 
@@ -241,6 +259,7 @@ struct Stmt
         IfStmt if_stmt;
         WhileStmt while_stmt;
         ForStmt for_stmt;
+        ForEachStmt for_each_stmt;
         ImportStmt import;
     } as;
 };
@@ -278,6 +297,7 @@ Expr *ast_create_decrement_expr(Arena *arena, Expr *operand, const Token *loc_to
 Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, const Token *loc_token);
 Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, const Token *loc_token);
 Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenType comparison_type, const Token *loc_token);
+Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *end, Expr *step, const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token);
@@ -288,6 +308,7 @@ Stmt *ast_create_block_stmt(Arena *arena, Stmt **statements, int count, const To
 Stmt *ast_create_if_stmt(Arena *arena, Expr *condition, Stmt *then_branch, Stmt *else_branch, const Token *loc_token);
 Stmt *ast_create_while_stmt(Arena *arena, Expr *condition, Stmt *body, const Token *loc_token);
 Stmt *ast_create_for_stmt(Arena *arena, Stmt *initializer, Expr *condition, Expr *increment, Stmt *body, const Token *loc_token);
+Stmt *ast_create_for_each_stmt(Arena *arena, Token var_name, Expr *iterable, Stmt *body, const Token *loc_token);
 Stmt *ast_create_import_stmt(Arena *arena, Token module_name, const Token *loc_token);
 
 void ast_init_module(Arena *arena, Module *module, const char *filename);
