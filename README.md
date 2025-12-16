@@ -16,6 +16,7 @@
 - 🔁 **Control flow** with for, for-each, while, break, continue
 - ⚡ **Boolean operators** (`&&`, `||`, `!`)
 - 📚 **Module imports** for code organization
+- 🧠 **Arena memory** with shared/private scopes and copy semantics
 
 ## 🚀 Quick Start
 
@@ -257,6 +258,42 @@ import "utils"
 fn main(): void =>
   helper()
 ```
+
+### 🧠 Memory Management
+
+Sindarin uses arena-based memory with optional control over allocation:
+
+#### Function Modifiers
+```sn
+// Shared function - uses caller's arena (efficient)
+fn helper(a: int, b: int) shared: int =>
+  return a + b
+
+// Private function - isolated arena, can only return primitives
+fn compute() private: int =>
+  var temp: int[] = {1, 2, 3}  // Freed when function returns
+  return temp.length
+```
+
+#### Block Modifiers
+```sn
+var result: int = 0
+private =>
+  var arr: int[] = {1, 2, 3, 4, 5}
+  for n in arr =>
+    result = result + n
+  // arr is freed here
+```
+
+#### Copy Semantics
+```sn
+var original: int[] = {1, 2, 3}
+var copy: int[] as val = original  // Independent copy
+original.push(4)
+// copy still has {1, 2, 3}
+```
+
+See [docs/MEMORY.md](docs/MEMORY.md) for complete documentation.
 
 ## 🏗️ Architecture
 

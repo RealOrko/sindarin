@@ -46,6 +46,22 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
         {
             init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s)", init_str);
         }
+
+        // Handle 'as val' - create a copy for arrays and strings
+        if (stmt->mem_qualifier == MEM_AS_VAL)
+        {
+            if (stmt->type->kind == TYPE_ARRAY)
+            {
+                // Get element type suffix for the clone function
+                Type *elem_type = stmt->type->as.array.element_type;
+                const char *suffix = code_gen_type_suffix(elem_type);
+                init_str = arena_sprintf(gen->arena, "rt_array_clone_%s(%s)", suffix, init_str);
+            }
+            else if (stmt->type->kind == TYPE_STRING)
+            {
+                init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s)", init_str);
+            }
+        }
     }
     else
     {
@@ -145,8 +161,7 @@ void code_gen_block(CodeGen *gen, BlockStmt *stmt, int indent)
     // For private blocks, create a local arena
     if (is_private)
     {
-        indented_fprintf(gen, indent + 1, "Arena %s;\n", gen->current_arena_var);
-        indented_fprintf(gen, indent + 1, "arena_init(&%s, 4096);\n", gen->current_arena_var);
+        indented_fprintf(gen, indent + 1, "RtArena *%s = rt_arena_create(NULL);\n", gen->current_arena_var);
     }
 
     for (int i = 0; i < stmt->count; i++)
@@ -155,10 +170,10 @@ void code_gen_block(CodeGen *gen, BlockStmt *stmt, int indent)
     }
     code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
 
-    // For private blocks, free the arena
+    // For private blocks, destroy the arena
     if (is_private)
     {
-        indented_fprintf(gen, indent + 1, "arena_free(&%s);\n", gen->current_arena_var);
+        indented_fprintf(gen, indent + 1, "rt_arena_destroy(%s);\n", gen->current_arena_var);
         symbol_table_exit_arena(gen->symbol_table);
     }
 
@@ -229,8 +244,7 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     // For private functions, create a local arena
     if (is_private)
     {
-        indented_fprintf(gen, 1, "Arena %s;\n", gen->current_arena_var);
-        indented_fprintf(gen, 1, "arena_init(&%s, 4096);\n", gen->current_arena_var);
+        indented_fprintf(gen, 1, "RtArena *%s = rt_arena_create(NULL);\n", gen->current_arena_var);
     }
 
     // Add _return_value only if needed (non-void or main).
@@ -255,10 +269,10 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     indented_fprintf(gen, 0, "%s_return:\n", gen->current_function);
     code_gen_free_locals(gen, gen->symbol_table->current, true, 1);
 
-    // For private functions, free the arena before returning
+    // For private functions, destroy the arena before returning
     if (is_private)
     {
-        indented_fprintf(gen, 1, "arena_free(&%s);\n", gen->current_arena_var);
+        indented_fprintf(gen, 1, "rt_arena_destroy(%s);\n", gen->current_arena_var);
     }
 
     // Return _return_value only if needed; otherwise, plain return.

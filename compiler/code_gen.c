@@ -247,10 +247,10 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_array_eq_string(char **, char **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime arena operations */\n");
-    indented_fprintf(gen, 0, "typedef struct Arena Arena;\n");
-    indented_fprintf(gen, 0, "extern void arena_init(Arena *arena, size_t initial_size);\n");
-    indented_fprintf(gen, 0, "extern void arena_free(Arena *arena);\n");
-    indented_fprintf(gen, 0, "extern void *arena_alloc(Arena *arena, size_t size);\n\n");
+    indented_fprintf(gen, 0, "typedef struct RtArena RtArena;\n");
+    indented_fprintf(gen, 0, "extern RtArena *rt_arena_create(RtArena *parent);\n");
+    indented_fprintf(gen, 0, "extern void rt_arena_destroy(RtArena *arena);\n");
+    indented_fprintf(gen, 0, "extern void *rt_arena_alloc(RtArena *arena, size_t size);\n\n");
 }
 
 static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)

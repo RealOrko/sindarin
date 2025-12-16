@@ -13,6 +13,7 @@ import "lib/conditionals"
 import "lib/strings"
 import "lib/functions"
 import "lib/arrays"
+import "lib/memory"
 
 fn main(): void =>
   print("╔══════════════════════════════════════════════════════════════════╗\n")
@@ -26,6 +27,7 @@ fn main(): void =>
   demo_strings()
   demo_functions()
   demo_arrays()
+  demo_memory()
 
   print("╔══════════════════════════════════════════════════════════════════╗\n")
   print("║                    All Demos Complete!                           ║\n")
