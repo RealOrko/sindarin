@@ -1,0 +1,212 @@
+// tests/code_gen_tests_memory.c
+// Code generation tests for memory management features (private functions, shared loops)
+
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "../arena.h"
+#include "../debug.h"
+#include "../code_gen.h"
+#include "../ast.h"
+#include "../token.h"
+#include "../symbol_table.h"
+#include "../file.h"
+#include "test_utils.h"
+
+static const char *test_output_path_mem = "test_output_mem.c";
+static const char *expected_output_path_mem = "expected_output_mem.c";
+
+static void setup_token_mem(Token *token, TokenType type, const char *lexeme)
+{
+    token_init(token, type, lexeme, (int)strlen(lexeme), 1, "test.sn");
+}
+
+void test_code_gen_private_function()
+{
+    printf("Testing code_gen for private function with arena lifecycle...\n");
+
+    Arena arena;
+    arena_init(&arena, 8192);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path_mem);
+
+    // Create: private fn compute(): int => return 42
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+
+    Token ret_tok;
+    setup_token_mem(&ret_tok, TOKEN_RETURN, "return");
+    Token lit_tok;
+    setup_token_mem(&lit_tok, TOKEN_INT_LITERAL, "42");
+    LiteralValue v = {.int_value = 42};
+    Expr *ret_val = ast_create_literal_expr(&arena, v, int_type, false, &lit_tok);
+    Stmt *ret_stmt = ast_create_return_stmt(&arena, ret_tok, ret_val, &ret_tok);
+
+    Stmt *body[1] = {ret_stmt};
+    Token func_name_tok;
+    setup_token_mem(&func_name_tok, TOKEN_IDENTIFIER, "compute");
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, int_type, body, 1, &func_name_tok);
+    func_decl->as.function.modifier = FUNC_PRIVATE;
+
+    ast_module_add_statement(&arena, &module, func_decl);
+    code_gen_module(&gen, &module);
+
+    // Expected: private function should have rt_arena_create and rt_arena_destroy
+    // Note: forward declaration is emitted first
+    const char *expected = get_expected(&arena,
+                                        "long compute(void);\n\n"
+                                        "long compute() {\n"
+                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                        "    long _return_value = 0;\n"
+                                        "    _return_value = 42L;\n"
+                                        "    goto compute_return;\n"
+                                        "compute_return:\n"
+                                        "    rt_arena_destroy(__arena_1__);\n"
+                                        "    return _return_value;\n"
+                                        "}\n\n"
+                                        "int main() {\n"
+                                        "    return 0;\n"
+                                        "}\n");
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    create_expected_file(expected_output_path_mem, expected);
+    compare_output_files(test_output_path_mem, expected_output_path_mem);
+    remove_test_file(test_output_path_mem);
+    remove_test_file(expected_output_path_mem);
+
+    arena_free(&arena);
+}
+
+void test_code_gen_shared_function()
+{
+    printf("Testing code_gen for shared function (no arena lifecycle)...\n");
+
+    Arena arena;
+    arena_init(&arena, 8192);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path_mem);
+
+    // Create: shared fn helper(): int => return 1
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+
+    Token ret_tok;
+    setup_token_mem(&ret_tok, TOKEN_RETURN, "return");
+    Token lit_tok;
+    setup_token_mem(&lit_tok, TOKEN_INT_LITERAL, "1");
+    LiteralValue v = {.int_value = 1};
+    Expr *ret_val = ast_create_literal_expr(&arena, v, int_type, false, &lit_tok);
+    Stmt *ret_stmt = ast_create_return_stmt(&arena, ret_tok, ret_val, &ret_tok);
+
+    Stmt *body[1] = {ret_stmt};
+    Token func_name_tok;
+    setup_token_mem(&func_name_tok, TOKEN_IDENTIFIER, "helper");
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, int_type, body, 1, &func_name_tok);
+    func_decl->as.function.modifier = FUNC_SHARED;
+
+    ast_module_add_statement(&arena, &module, func_decl);
+    code_gen_module(&gen, &module);
+
+    // Expected: shared function should NOT have arena_init/arena_free
+    // Note: forward declaration is emitted first
+    const char *expected = get_expected(&arena,
+                                        "long helper(void);\n\n"
+                                        "long helper() {\n"
+                                        "    long _return_value = 0;\n"
+                                        "    _return_value = 1L;\n"
+                                        "    goto helper_return;\n"
+                                        "helper_return:\n"
+                                        "    return _return_value;\n"
+                                        "}\n\n"
+                                        "int main() {\n"
+                                        "    return 0;\n"
+                                        "}\n");
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    create_expected_file(expected_output_path_mem, expected);
+    compare_output_files(test_output_path_mem, expected_output_path_mem);
+    remove_test_file(test_output_path_mem);
+    remove_test_file(expected_output_path_mem);
+
+    arena_free(&arena);
+}
+
+void test_code_gen_default_function()
+{
+    printf("Testing code_gen for default function (no arena lifecycle)...\n");
+
+    Arena arena;
+    arena_init(&arena, 8192);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path_mem);
+
+    // Create: fn regular(): int => return 5
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+
+    Token ret_tok;
+    setup_token_mem(&ret_tok, TOKEN_RETURN, "return");
+    Token lit_tok;
+    setup_token_mem(&lit_tok, TOKEN_INT_LITERAL, "5");
+    LiteralValue v = {.int_value = 5};
+    Expr *ret_val = ast_create_literal_expr(&arena, v, int_type, false, &lit_tok);
+    Stmt *ret_stmt = ast_create_return_stmt(&arena, ret_tok, ret_val, &ret_tok);
+
+    Stmt *body[1] = {ret_stmt};
+    Token func_name_tok;
+    setup_token_mem(&func_name_tok, TOKEN_IDENTIFIER, "regular");
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, int_type, body, 1, &func_name_tok);
+    func_decl->as.function.modifier = FUNC_DEFAULT;
+
+    ast_module_add_statement(&arena, &module, func_decl);
+    code_gen_module(&gen, &module);
+
+    // Expected: default function should NOT have arena_init/arena_free
+    // Note: forward declaration is emitted first
+    const char *expected = get_expected(&arena,
+                                        "long regular(void);\n\n"
+                                        "long regular() {\n"
+                                        "    long _return_value = 0;\n"
+                                        "    _return_value = 5L;\n"
+                                        "    goto regular_return;\n"
+                                        "regular_return:\n"
+                                        "    return _return_value;\n"
+                                        "}\n\n"
+                                        "int main() {\n"
+                                        "    return 0;\n"
+                                        "}\n");
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    create_expected_file(expected_output_path_mem, expected);
+    compare_output_files(test_output_path_mem, expected_output_path_mem);
+    remove_test_file(test_output_path_mem);
+    remove_test_file(expected_output_path_mem);
+
+    arena_free(&arena);
+}
+
+void test_code_gen_memory_main()
+{
+    test_code_gen_private_function();
+    test_code_gen_shared_function();
+    test_code_gen_default_function();
+}

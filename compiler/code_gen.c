@@ -20,6 +20,14 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->current_return_type = NULL;
     gen->temp_count = 0;
     gen->for_continue_label = NULL;
+
+    /* Initialize arena context fields */
+    gen->arena_depth = 0;
+    gen->in_shared_context = false;
+    gen->in_private_context = false;
+    gen->current_arena_var = NULL;
+    gen->current_func_modifier = FUNC_DEFAULT;
+
     if (gen->output == NULL)
     {
         exit(1);
@@ -237,6 +245,12 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_array_eq_char(char *, char *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_eq_bool(int *, int *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_eq_string(char **, char **);\n\n");
+
+    indented_fprintf(gen, 0, "/* Runtime arena operations */\n");
+    indented_fprintf(gen, 0, "typedef struct RtArena RtArena;\n");
+    indented_fprintf(gen, 0, "extern RtArena *rt_arena_create(RtArena *parent);\n");
+    indented_fprintf(gen, 0, "extern void rt_arena_destroy(RtArena *arena);\n");
+    indented_fprintf(gen, 0, "extern void *rt_arena_alloc(RtArena *arena, size_t size);\n\n");
 }
 
 static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)

@@ -46,6 +46,26 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         }
     }
 
+    // Validate memory qualifier usage
+    MemoryQualifier mem_qual = stmt->as.var_decl.mem_qualifier;
+    if (mem_qual == MEM_AS_REF)
+    {
+        // 'as ref' can only be used with primitive types
+        if (!is_primitive_type(decl_type))
+        {
+            type_error(&stmt->as.var_decl.name, "'as ref' can only be used with primitive types");
+        }
+    }
+    else if (mem_qual == MEM_AS_VAL)
+    {
+        // 'as val' is meaningful only for reference types (arrays, strings)
+        // For primitives, it's a no-op but we allow it
+        if (is_primitive_type(decl_type))
+        {
+            DEBUG_VERBOSE("Warning: 'as val' on primitive type has no effect");
+        }
+    }
+
     symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
     if (init_type && !ast_type_equals(init_type, decl_type))
     {
@@ -65,6 +85,18 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     }
     Type *func_type = ast_create_function_type(arena, stmt->as.function.return_type, param_types, stmt->as.function.param_count);
 
+    /* Validate private function return type */
+    FunctionModifier modifier = stmt->as.function.modifier;
+    if (modifier == FUNC_PRIVATE)
+    {
+        Type *return_type = stmt->as.function.return_type;
+        if (!can_escape_private(return_type))
+        {
+            type_error(&stmt->as.function.name,
+                       "Private function can only return primitive types (int, double, bool, char)");
+        }
+    }
+
     /* Add function symbol to current scope (e.g., global) */
     symbol_table_add_symbol_with_kind(table, stmt->as.function.name, func_type, SYMBOL_LOCAL);
 
@@ -74,6 +106,22 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     {
         Parameter param = stmt->as.function.params[i];
         DEBUG_VERBOSE("Adding parameter %d: %.*s", i, param.name.length, param.name.start);
+
+        /* Validate parameter memory qualifier */
+        if (param.mem_qualifier == MEM_AS_VAL)
+        {
+            /* 'as val' on parameters is meaningful only for reference types */
+            if (is_primitive_type(param.type))
+            {
+                DEBUG_VERBOSE("Warning: 'as val' on primitive parameter has no effect");
+            }
+        }
+        else if (param.mem_qualifier == MEM_AS_REF)
+        {
+            /* 'as ref' doesn't make sense for parameters - they're already references by default */
+            type_error(&param.name, "'as ref' cannot be used on function parameters");
+        }
+
         symbol_table_add_symbol_with_kind(table, param.name, param.type, SYMBOL_PARAM);
     }
 
@@ -109,6 +157,21 @@ static void type_check_return(Stmt *stmt, SymbolTable *table, Type *return_type)
 static void type_check_block(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     DEBUG_VERBOSE("Type checking block with %d statements", stmt->as.block.count);
+
+    BlockModifier modifier = stmt->as.block.modifier;
+    if (modifier == BLOCK_PRIVATE)
+    {
+        DEBUG_VERBOSE("Entering private block - escape analysis will be enforced");
+        /* Private block: reference types allocated here cannot escape to outer scope */
+        /* Full escape analysis would track assignments to outer-scope variables */
+        /* For now, we just mark the context */
+    }
+    else if (modifier == BLOCK_SHARED)
+    {
+        DEBUG_VERBOSE("Entering shared block - using parent's arena");
+        /* Shared block: allocations use parent's arena, no special restrictions */
+    }
+
     symbol_table_push_scope(table);
     for (int i = 0; i < stmt->as.block.count; i++)
     {

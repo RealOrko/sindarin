@@ -6,6 +6,7 @@
 #include "code_gen_tests_expr.c"
 #include "code_gen_tests_stmt.c"
 #include "code_gen_tests_array.c"
+#include "code_gen_tests_memory.c"
 
 void test_code_gen_main()
 {
@@ -13,4 +14,5 @@ void test_code_gen_main()
     test_code_gen_expr_main();
     test_code_gen_stmt_main();
     test_code_gen_array_main();
+    test_code_gen_memory_main();
 }

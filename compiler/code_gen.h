@@ -5,6 +5,7 @@
 #include "ast.h"
 #include "symbol_table.h"
 #include <stdio.h>
+#include <stdbool.h>
 
 typedef struct {
     Arena *arena;
@@ -15,6 +16,13 @@ typedef struct {
     Type *current_return_type;
     int temp_count;
     char *for_continue_label;  // Label to jump to for continue in for loops
+
+    /* Arena context for memory management */
+    int arena_depth;            // Current arena nesting level
+    bool in_shared_context;     // Are we in a shared block/loop?
+    bool in_private_context;    // Are we in a private block/function?
+    char *current_arena_var;    // Name of current arena variable (e.g., "__arena__")
+    FunctionModifier current_func_modifier;  // Current function's modifier
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);

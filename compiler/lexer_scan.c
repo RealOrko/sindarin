@@ -22,6 +22,8 @@ TokenType lexer_identifier_type(Lexer *lexer)
 {
     switch (lexer->start[0])
     {
+    case 'a':
+        return lexer_check_keyword(lexer, 1, 1, "s", TOKEN_AS);
     case 'b':
         if (lexer->current - lexer->start > 1)
         {
@@ -95,10 +97,35 @@ TokenType lexer_identifier_type(Lexer *lexer)
         return lexer_check_keyword(lexer, 1, 3, "ong", TOKEN_LONG);
     case 'n':
         return lexer_check_keyword(lexer, 1, 2, "il", TOKEN_NIL);
+    case 'p':
+        return lexer_check_keyword(lexer, 1, 6, "rivate", TOKEN_PRIVATE);
     case 'r':
-        return lexer_check_keyword(lexer, 1, 5, "eturn", TOKEN_RETURN);
+        if (lexer->current - lexer->start > 1)
+        {
+            switch (lexer->start[1])
+            {
+            case 'e':
+                // Check for "ref" (3 chars) vs "return" (6 chars)
+                if (lexer->current - lexer->start == 3)
+                {
+                    return lexer_check_keyword(lexer, 2, 1, "f", TOKEN_REF);
+                }
+                return lexer_check_keyword(lexer, 2, 4, "turn", TOKEN_RETURN);
+            }
+        }
+        break;
     case 's':
-        return lexer_check_keyword(lexer, 1, 2, "tr", TOKEN_STR);
+        if (lexer->current - lexer->start > 1)
+        {
+            switch (lexer->start[1])
+            {
+            case 't':
+                return lexer_check_keyword(lexer, 2, 1, "r", TOKEN_STR);
+            case 'h':
+                return lexer_check_keyword(lexer, 2, 4, "ared", TOKEN_SHARED);
+            }
+        }
+        break;
     case 't':
         return lexer_check_keyword(lexer, 1, 3, "rue", TOKEN_BOOL_LITERAL);
     case 'v':
@@ -107,7 +134,19 @@ TokenType lexer_identifier_type(Lexer *lexer)
             switch (lexer->start[1])
             {
             case 'a':
-                return lexer_check_keyword(lexer, 2, 1, "r", TOKEN_VAR);
+                // Check for "val" (3 chars) vs "var" (3 chars)
+                if (lexer->current - lexer->start == 3)
+                {
+                    if (lexer->start[2] == 'l')
+                    {
+                        return TOKEN_VAL;
+                    }
+                    else if (lexer->start[2] == 'r')
+                    {
+                        return TOKEN_VAR;
+                    }
+                }
+                break;
             case 'o':
                 return lexer_check_keyword(lexer, 2, 2, "id", TOKEN_VOID);
             }

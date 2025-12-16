@@ -246,6 +246,11 @@ static const char *CODE_GEN_RUNTIME_HEADER =
     "extern int rt_array_eq_char(char *, char *);\n"
     "extern int rt_array_eq_bool(int *, int *);\n"
     "extern int rt_array_eq_string(char **, char **);\n\n"
+    "/* Runtime arena operations */\n"
+    "typedef struct RtArena RtArena;\n"
+    "extern RtArena *rt_arena_create(RtArena *parent);\n"
+    "extern void rt_arena_destroy(RtArena *arena);\n"
+    "extern void *rt_arena_alloc(RtArena *arena, size_t size);\n\n"
     "/* Forward declarations */\n";
 
 /*

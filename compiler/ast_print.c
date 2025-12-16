@@ -2,6 +2,40 @@
 #include "ast_type.h"
 #include "debug.h"
 
+/* Helper functions to convert memory modifiers to strings */
+static const char *memory_qualifier_to_string(MemoryQualifier qual)
+{
+    switch (qual)
+    {
+    case MEM_DEFAULT: return NULL;  /* Don't print default */
+    case MEM_AS_VAL: return "as val";
+    case MEM_AS_REF: return "as ref";
+    default: return "unknown";
+    }
+}
+
+static const char *block_modifier_to_string(BlockModifier mod)
+{
+    switch (mod)
+    {
+    case BLOCK_DEFAULT: return NULL;  /* Don't print default */
+    case BLOCK_SHARED: return "shared";
+    case BLOCK_PRIVATE: return "private";
+    default: return "unknown";
+    }
+}
+
+static const char *function_modifier_to_string(FunctionModifier mod)
+{
+    switch (mod)
+    {
+    case FUNC_DEFAULT: return NULL;  /* Don't print default */
+    case FUNC_SHARED: return "shared";
+    case FUNC_PRIVATE: return "private";
+    default: return "unknown";
+    }
+}
+
 void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
 {
     if (stmt == NULL)
@@ -17,31 +51,70 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
         break;
 
     case STMT_VAR_DECL:
-        DEBUG_VERBOSE_INDENT(indent_level, "VarDecl: %.*s (type: %s)",
-                             stmt->as.var_decl.name.length,
-                             stmt->as.var_decl.name.start,
-                             ast_type_to_string(arena, stmt->as.var_decl.type));
+    {
+        const char *mem_qual = memory_qualifier_to_string(stmt->as.var_decl.mem_qualifier);
+        if (mem_qual)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "VarDecl: %.*s (type: %s, %s)",
+                                 stmt->as.var_decl.name.length,
+                                 stmt->as.var_decl.name.start,
+                                 ast_type_to_string(arena, stmt->as.var_decl.type),
+                                 mem_qual);
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "VarDecl: %.*s (type: %s)",
+                                 stmt->as.var_decl.name.length,
+                                 stmt->as.var_decl.name.start,
+                                 ast_type_to_string(arena, stmt->as.var_decl.type));
+        }
         if (stmt->as.var_decl.initializer)
         {
             DEBUG_VERBOSE_INDENT(indent_level + 1, "Initializer:");
             ast_print_expr(arena, stmt->as.var_decl.initializer, indent_level + 2);
         }
         break;
+    }
 
     case STMT_FUNCTION:
-        DEBUG_VERBOSE_INDENT(indent_level, "Function: %.*s (return: %s)",
-                             stmt->as.function.name.length,
-                             stmt->as.function.name.start,
-                             ast_type_to_string(arena, stmt->as.function.return_type));
+    {
+        const char *func_mod = function_modifier_to_string(stmt->as.function.modifier);
+        if (func_mod)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "Function: %.*s %s (return: %s)",
+                                 stmt->as.function.name.length,
+                                 stmt->as.function.name.start,
+                                 func_mod,
+                                 ast_type_to_string(arena, stmt->as.function.return_type));
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "Function: %.*s (return: %s)",
+                                 stmt->as.function.name.length,
+                                 stmt->as.function.name.start,
+                                 ast_type_to_string(arena, stmt->as.function.return_type));
+        }
         if (stmt->as.function.param_count > 0)
         {
             DEBUG_VERBOSE_INDENT(indent_level + 1, "Parameters:");
             for (int i = 0; i < stmt->as.function.param_count; i++)
             {
-                DEBUG_VERBOSE_INDENT(indent_level + 1, "%.*s: %s",
-                                     stmt->as.function.params[i].name.length,
-                                     stmt->as.function.params[i].name.start,
-                                     ast_type_to_string(arena, stmt->as.function.params[i].type));
+                const char *param_qual = memory_qualifier_to_string(stmt->as.function.params[i].mem_qualifier);
+                if (param_qual)
+                {
+                    DEBUG_VERBOSE_INDENT(indent_level + 1, "%.*s: %s %s",
+                                         stmt->as.function.params[i].name.length,
+                                         stmt->as.function.params[i].name.start,
+                                         ast_type_to_string(arena, stmt->as.function.params[i].type),
+                                         param_qual);
+                }
+                else
+                {
+                    DEBUG_VERBOSE_INDENT(indent_level + 1, "%.*s: %s",
+                                         stmt->as.function.params[i].name.length,
+                                         stmt->as.function.params[i].name.start,
+                                         ast_type_to_string(arena, stmt->as.function.params[i].type));
+                }
             }
         }
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Body:");
@@ -50,6 +123,7 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
             ast_print_stmt(arena, stmt->as.function.body[i], indent_level + 2);
         }
         break;
+    }
 
     case STMT_RETURN:
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Return:");
@@ -60,12 +134,22 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
         break;
 
     case STMT_BLOCK:
-        DEBUG_VERBOSE_INDENT(indent_level, "Block:");
+    {
+        const char *block_mod = block_modifier_to_string(stmt->as.block.modifier);
+        if (block_mod)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "Block (%s):", block_mod);
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "Block:");
+        }
         for (int i = 0; i < stmt->as.block.count; i++)
         {
             ast_print_stmt(arena, stmt->as.block.statements[i], indent_level + 1);
         }
         break;
+    }
 
     case STMT_IF:
         DEBUG_VERBOSE_INDENT(indent_level, "If:");
@@ -81,7 +165,14 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
         break;
 
     case STMT_WHILE:
-        DEBUG_VERBOSE_INDENT(indent_level, "While:");
+        if (stmt->as.while_stmt.is_shared)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "While (shared):");
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "While:");
+        }
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Condition:");
         ast_print_expr(arena, stmt->as.while_stmt.condition, indent_level + 2);
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Body:");
@@ -89,7 +180,14 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
         break;
 
     case STMT_FOR:
-        DEBUG_VERBOSE_INDENT(indent_level, "For:");
+        if (stmt->as.for_stmt.is_shared)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "For (shared):");
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "For:");
+        }
         if (stmt->as.for_stmt.initializer)
         {
             DEBUG_VERBOSE_INDENT(indent_level + 1, "Initializer:");
@@ -110,9 +208,18 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
         break;
 
     case STMT_FOR_EACH:
-        DEBUG_VERBOSE_INDENT(indent_level, "ForEach: %.*s",
-                             stmt->as.for_each_stmt.var_name.length,
-                             stmt->as.for_each_stmt.var_name.start);
+        if (stmt->as.for_each_stmt.is_shared)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "ForEach (shared): %.*s",
+                                 stmt->as.for_each_stmt.var_name.length,
+                                 stmt->as.for_each_stmt.var_name.start);
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "ForEach: %.*s",
+                                 stmt->as.for_each_stmt.var_name.length,
+                                 stmt->as.for_each_stmt.var_name.start);
+        }
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Iterable:");
         ast_print_expr(arena, stmt->as.for_each_stmt.iterable, indent_level + 2);
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Body:");

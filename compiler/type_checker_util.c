@@ -106,3 +106,60 @@ bool is_printable_type(Type *type)
     DEBUG_VERBOSE("Checking if type is printable: %s", result ? "true" : "false");
     return result;
 }
+
+bool is_primitive_type(Type *type)
+{
+    if (type == NULL) return false;
+    bool result = type->kind == TYPE_INT ||
+                  type->kind == TYPE_LONG ||
+                  type->kind == TYPE_DOUBLE ||
+                  type->kind == TYPE_CHAR ||
+                  type->kind == TYPE_BOOL ||
+                  type->kind == TYPE_VOID;
+    DEBUG_VERBOSE("Checking if type is primitive: %s", result ? "true" : "false");
+    return result;
+}
+
+bool is_reference_type(Type *type)
+{
+    if (type == NULL) return false;
+    bool result = type->kind == TYPE_STRING ||
+                  type->kind == TYPE_ARRAY ||
+                  type->kind == TYPE_FUNCTION;
+    DEBUG_VERBOSE("Checking if type is reference: %s", result ? "true" : "false");
+    return result;
+}
+
+bool can_escape_private(Type *type)
+{
+    /* Only primitive types can escape from private blocks/functions */
+    return is_primitive_type(type);
+}
+
+void memory_context_init(MemoryContext *ctx)
+{
+    ctx->in_private_block = false;
+    ctx->in_private_function = false;
+    ctx->private_depth = 0;
+}
+
+void memory_context_enter_private(MemoryContext *ctx)
+{
+    ctx->in_private_block = true;
+    ctx->private_depth++;
+}
+
+void memory_context_exit_private(MemoryContext *ctx)
+{
+    ctx->private_depth--;
+    if (ctx->private_depth <= 0)
+    {
+        ctx->in_private_block = false;
+        ctx->private_depth = 0;
+    }
+}
+
+bool memory_context_is_private(MemoryContext *ctx)
+{
+    return ctx->in_private_block || ctx->in_private_function;
+}

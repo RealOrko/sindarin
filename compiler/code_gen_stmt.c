@@ -46,6 +46,22 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
         {
             init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s)", init_str);
         }
+
+        // Handle 'as val' - create a copy for arrays and strings
+        if (stmt->mem_qualifier == MEM_AS_VAL)
+        {
+            if (stmt->type->kind == TYPE_ARRAY)
+            {
+                // Get element type suffix for the clone function
+                Type *elem_type = stmt->type->as.array.element_type;
+                const char *suffix = code_gen_type_suffix(elem_type);
+                init_str = arena_sprintf(gen->arena, "rt_array_clone_%s(%s)", suffix, init_str);
+            }
+            else if (stmt->type->kind == TYPE_STRING)
+            {
+                init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s)", init_str);
+            }
+        }
     }
     else
     {
@@ -114,15 +130,61 @@ void code_gen_free_locals(CodeGen *gen, Scope *scope, bool is_function, int inde
 void code_gen_block(CodeGen *gen, BlockStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_block");
+
+    bool old_in_shared_context = gen->in_shared_context;
+    bool old_in_private_context = gen->in_private_context;
+    char *old_arena_var = gen->current_arena_var;
+    int old_arena_depth = gen->arena_depth;
+
+    bool is_shared = stmt->modifier == BLOCK_SHARED;
+    bool is_private = stmt->modifier == BLOCK_PRIVATE;
+
     symbol_table_push_scope(gen->symbol_table);
+
+    // Handle private block - create new arena
+    if (is_private)
+    {
+        gen->in_private_context = true;
+        gen->in_shared_context = false;
+        gen->arena_depth++;
+        gen->current_arena_var = arena_sprintf(gen->arena, "__arena_%d__", gen->arena_depth);
+        symbol_table_enter_arena(gen->symbol_table);
+    }
+    // Handle shared block - uses parent's arena
+    else if (is_shared)
+    {
+        gen->in_shared_context = true;
+    }
+
     indented_fprintf(gen, indent, "{\n");
+
+    // For private blocks, create a local arena
+    if (is_private)
+    {
+        indented_fprintf(gen, indent + 1, "RtArena *%s = rt_arena_create(NULL);\n", gen->current_arena_var);
+    }
+
     for (int i = 0; i < stmt->count; i++)
     {
         code_gen_statement(gen, stmt->statements[i], indent + 1);
     }
     code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
+
+    // For private blocks, destroy the arena
+    if (is_private)
+    {
+        indented_fprintf(gen, indent + 1, "rt_arena_destroy(%s);\n", gen->current_arena_var);
+        symbol_table_exit_arena(gen->symbol_table);
+    }
+
     indented_fprintf(gen, indent, "}\n");
     symbol_table_pop_scope(gen->symbol_table);
+
+    // Restore context
+    gen->in_shared_context = old_in_shared_context;
+    gen->in_private_context = old_in_private_context;
+    gen->current_arena_var = old_arena_var;
+    gen->arena_depth = old_arena_depth;
 }
 
 void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
@@ -130,14 +192,38 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     DEBUG_VERBOSE("Entering code_gen_function");
     char *old_function = gen->current_function;
     Type *old_return_type = gen->current_return_type;
+    FunctionModifier old_func_modifier = gen->current_func_modifier;
+    bool old_in_private_context = gen->in_private_context;
+    char *old_arena_var = gen->current_arena_var;
+    int old_arena_depth = gen->arena_depth;
+
     gen->current_function = get_var_name(gen->arena, stmt->name);
     gen->current_return_type = stmt->return_type;
+    gen->current_func_modifier = stmt->modifier;
+
     bool is_main = strcmp(gen->current_function, "main") == 0;
+    bool is_private = stmt->modifier == FUNC_PRIVATE;
+
+    // Private functions have their own arena context
+    if (is_private)
+    {
+        gen->in_private_context = true;
+        gen->arena_depth++;
+        gen->current_arena_var = arena_sprintf(gen->arena, "__arena_%d__", gen->arena_depth);
+    }
+
     // Special case for main: always use "int" return type in C for standard entry point.
     const char *ret_c = is_main ? "int" : get_c_type(gen->arena, gen->current_return_type);
     // Determine if we need a _return_value variable: only for non-void or main.
     bool has_return_value = (gen->current_return_type && gen->current_return_type->kind != TYPE_VOID) || is_main;
     symbol_table_push_scope(gen->symbol_table);
+
+    // For private functions, enter arena scope in symbol table
+    if (is_private)
+    {
+        symbol_table_enter_arena(gen->symbol_table);
+    }
+
     for (int i = 0; i < stmt->param_count; i++)
     {
         symbol_table_add_symbol_with_kind(gen->symbol_table, stmt->params[i].name, stmt->params[i].type, SYMBOL_PARAM);
@@ -154,6 +240,13 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
         }
     }
     indented_fprintf(gen, 0, ") {\n");
+
+    // For private functions, create a local arena
+    if (is_private)
+    {
+        indented_fprintf(gen, 1, "RtArena *%s = rt_arena_create(NULL);\n", gen->current_arena_var);
+    }
+
     // Add _return_value only if needed (non-void or main).
     if (has_return_value)
     {
@@ -175,6 +268,13 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     }
     indented_fprintf(gen, 0, "%s_return:\n", gen->current_function);
     code_gen_free_locals(gen, gen->symbol_table->current, true, 1);
+
+    // For private functions, destroy the arena before returning
+    if (is_private)
+    {
+        indented_fprintf(gen, 1, "rt_arena_destroy(%s);\n", gen->current_arena_var);
+    }
+
     // Return _return_value only if needed; otherwise, plain return.
     if (has_return_value)
     {
@@ -185,9 +285,20 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
         indented_fprintf(gen, 1, "return;\n");
     }
     indented_fprintf(gen, 0, "}\n\n");
+
+    // Exit arena scope in symbol table for private functions
+    if (is_private)
+    {
+        symbol_table_exit_arena(gen->symbol_table);
+    }
+
     symbol_table_pop_scope(gen->symbol_table);
     gen->current_function = old_function;
     gen->current_return_type = old_return_type;
+    gen->current_func_modifier = old_func_modifier;
+    gen->in_private_context = old_in_private_context;
+    gen->current_arena_var = old_arena_var;
+    gen->arena_depth = old_arena_depth;
 }
 
 void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt, int indent)
@@ -219,15 +330,35 @@ void code_gen_if_statement(CodeGen *gen, IfStmt *stmt, int indent)
 void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_while_statement");
+
+    bool old_in_shared_context = gen->in_shared_context;
+
+    // Shared loops don't create per-iteration arenas
+    if (stmt->is_shared)
+    {
+        gen->in_shared_context = true;
+    }
+
     char *cond_str = code_gen_expression(gen, stmt->condition);
     indented_fprintf(gen, indent, "while (%s) {\n", cond_str);
     code_gen_statement(gen, stmt->body, indent + 1);
     indented_fprintf(gen, indent, "}\n");
+
+    gen->in_shared_context = old_in_shared_context;
 }
 
 void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_for_statement");
+
+    bool old_in_shared_context = gen->in_shared_context;
+
+    // Shared loops don't create per-iteration arenas
+    if (stmt->is_shared)
+    {
+        gen->in_shared_context = true;
+    }
+
     symbol_table_push_scope(gen->symbol_table);
     indented_fprintf(gen, indent, "{\n");
     if (stmt->initializer)
@@ -265,11 +396,21 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
     indented_fprintf(gen, indent, "}\n");
     symbol_table_pop_scope(gen->symbol_table);
+
+    gen->in_shared_context = old_in_shared_context;
 }
 
 void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_for_each_statement");
+
+    bool old_in_shared_context = gen->in_shared_context;
+
+    // Shared loops don't create per-iteration arenas
+    if (stmt->is_shared)
+    {
+        gen->in_shared_context = true;
+    }
 
     // Generate a unique index variable name
     int temp_idx = gen->temp_count++;
@@ -317,6 +458,8 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     indented_fprintf(gen, indent + 1, "}\n");
     code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
     indented_fprintf(gen, indent, "}\n");
+
+    gen->in_shared_context = old_in_shared_context;
 
     symbol_table_pop_scope(gen->symbol_table);
 }
