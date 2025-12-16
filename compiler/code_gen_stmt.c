@@ -1,0 +1,287 @@
+#include "code_gen_stmt.h"
+#include "code_gen_expr.h"
+#include "code_gen_util.h"
+#include "debug.h"
+#include "symbol_table.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+void code_gen_expression_statement(CodeGen *gen, ExprStmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_expression_statement");
+    char *expr_str = code_gen_expression(gen, stmt->expression);
+    if (stmt->expression->expr_type->kind == TYPE_STRING && expression_produces_temp(stmt->expression))
+    {
+        indented_fprintf(gen, indent, "{\n");
+        indented_fprintf(gen, indent + 1, "char *_tmp = %s;\n", expr_str);
+        indented_fprintf(gen, indent + 1, "(void)_tmp;\n");
+        indented_fprintf(gen, indent + 1, "rt_free_string(_tmp);\n");
+        indented_fprintf(gen, indent, "}\n");
+    }
+    else if (stmt->expression->type == EXPR_CALL && stmt->expression->expr_type->kind == TYPE_VOID)
+    {
+        // Statement expressions need a semicolon after them
+        indented_fprintf(gen, indent, "%s;\n", expr_str);
+    }
+    else
+    {
+        indented_fprintf(gen, indent, "%s;\n", expr_str);
+    }
+}
+
+void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_var_declaration");
+    symbol_table_add_symbol_with_kind(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL);
+    const char *type_c = get_c_type(gen->arena, stmt->type);
+    char *var_name = get_var_name(gen->arena, stmt->name);
+    char *init_str;
+    if (stmt->initializer)
+    {
+        init_str = code_gen_expression(gen, stmt->initializer);
+        // Wrap string literals in rt_to_string_string to create heap-allocated copies
+        // This is needed because string variables may be freed/reassigned later
+        if (stmt->type->kind == TYPE_STRING && stmt->initializer->type == EXPR_LITERAL)
+        {
+            init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s)", init_str);
+        }
+    }
+    else
+    {
+        init_str = arena_strdup(gen->arena, get_default_value(stmt->type));
+    }
+    indented_fprintf(gen, indent, "%s %s = %s;\n", type_c, var_name, init_str);
+}
+
+void code_gen_free_locals(CodeGen *gen, Scope *scope, bool is_function, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_free_locals");
+    Symbol *sym = scope->symbols;
+    while (sym)
+    {
+        if (sym->type && sym->type->kind == TYPE_STRING && sym->kind == SYMBOL_LOCAL)
+        {
+            char *var_name = get_var_name(gen->arena, sym->name);
+            indented_fprintf(gen, indent, "if (%s) {\n", var_name);
+            if (is_function && gen->current_return_type && gen->current_return_type->kind == TYPE_STRING)
+            {
+                indented_fprintf(gen, indent + 1, "if (%s != _return_value) {\n", var_name);
+                indented_fprintf(gen, indent + 2, "rt_free_string(%s);\n", var_name);
+                indented_fprintf(gen, indent + 1, "}\n");
+            }
+            else
+            {
+                indented_fprintf(gen, indent + 1, "rt_free_string(%s);\n", var_name);
+            }
+            indented_fprintf(gen, indent, "}\n");
+        }
+        else if (sym->type && sym->type->kind == TYPE_ARRAY && sym->kind == SYMBOL_LOCAL)
+        {
+            char *var_name = get_var_name(gen->arena, sym->name);
+            Type *elem_type = sym->type->as.array.element_type;
+            indented_fprintf(gen, indent, "if (%s) {\n", var_name);
+            if (is_function && gen->current_return_type && gen->current_return_type->kind == TYPE_ARRAY)
+            {
+                indented_fprintf(gen, indent + 1, "if (%s != _return_value) {\n", var_name);
+                if (elem_type && elem_type->kind == TYPE_STRING)
+                {
+                    indented_fprintf(gen, indent + 2, "rt_array_free_string(%s);\n", var_name);
+                }
+                else
+                {
+                    indented_fprintf(gen, indent + 2, "rt_array_free(%s);\n", var_name);
+                }
+                indented_fprintf(gen, indent + 1, "}\n");
+            }
+            else
+            {
+                if (elem_type && elem_type->kind == TYPE_STRING)
+                {
+                    indented_fprintf(gen, indent + 1, "rt_array_free_string(%s);\n", var_name);
+                }
+                else
+                {
+                    indented_fprintf(gen, indent + 1, "rt_array_free(%s);\n", var_name);
+                }
+            }
+            indented_fprintf(gen, indent, "}\n");
+        }
+        sym = sym->next;
+    }
+}
+
+void code_gen_block(CodeGen *gen, BlockStmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_block");
+    symbol_table_push_scope(gen->symbol_table);
+    indented_fprintf(gen, indent, "{\n");
+    for (int i = 0; i < stmt->count; i++)
+    {
+        code_gen_statement(gen, stmt->statements[i], indent + 1);
+    }
+    code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
+    indented_fprintf(gen, indent, "}\n");
+    symbol_table_pop_scope(gen->symbol_table);
+}
+
+void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
+{
+    DEBUG_VERBOSE("Entering code_gen_function");
+    char *old_function = gen->current_function;
+    Type *old_return_type = gen->current_return_type;
+    gen->current_function = get_var_name(gen->arena, stmt->name);
+    gen->current_return_type = stmt->return_type;
+    bool is_main = strcmp(gen->current_function, "main") == 0;
+    // Special case for main: always use "int" return type in C for standard entry point.
+    const char *ret_c = is_main ? "int" : get_c_type(gen->arena, gen->current_return_type);
+    // Determine if we need a _return_value variable: only for non-void or main.
+    bool has_return_value = (gen->current_return_type && gen->current_return_type->kind != TYPE_VOID) || is_main;
+    symbol_table_push_scope(gen->symbol_table);
+    for (int i = 0; i < stmt->param_count; i++)
+    {
+        symbol_table_add_symbol_with_kind(gen->symbol_table, stmt->params[i].name, stmt->params[i].type, SYMBOL_PARAM);
+    }
+    indented_fprintf(gen, 0, "%s %s(", ret_c, gen->current_function);
+    for (int i = 0; i < stmt->param_count; i++)
+    {
+        const char *param_type_c = get_c_type(gen->arena, stmt->params[i].type);
+        char *param_name = get_var_name(gen->arena, stmt->params[i].name);
+        fprintf(gen->output, "%s %s", param_type_c, param_name);
+        if (i < stmt->param_count - 1)
+        {
+            fprintf(gen->output, ", ");
+        }
+    }
+    indented_fprintf(gen, 0, ") {\n");
+    // Add _return_value only if needed (non-void or main).
+    if (has_return_value)
+    {
+        const char *default_val = is_main ? "0" : get_default_value(gen->current_return_type);
+        indented_fprintf(gen, 1, "%s _return_value = %s;\n", ret_c, default_val);
+    }
+    bool has_return = false;
+    if (stmt->body_count > 0 && stmt->body[stmt->body_count - 1]->type == STMT_RETURN)
+    {
+        has_return = true;
+    }
+    for (int i = 0; i < stmt->body_count; i++)
+    {
+        code_gen_statement(gen, stmt->body[i], 1);
+    }
+    if (!has_return)
+    {
+        indented_fprintf(gen, 1, "goto %s_return;\n", gen->current_function);
+    }
+    indented_fprintf(gen, 0, "%s_return:\n", gen->current_function);
+    code_gen_free_locals(gen, gen->symbol_table->current, true, 1);
+    // Return _return_value only if needed; otherwise, plain return.
+    if (has_return_value)
+    {
+        indented_fprintf(gen, 1, "return _return_value;\n");
+    }
+    else
+    {
+        indented_fprintf(gen, 1, "return;\n");
+    }
+    indented_fprintf(gen, 0, "}\n\n");
+    symbol_table_pop_scope(gen->symbol_table);
+    gen->current_function = old_function;
+    gen->current_return_type = old_return_type;
+}
+
+void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_return_statement");
+    if (stmt->value)
+    {
+        char *value_str = code_gen_expression(gen, stmt->value);
+        indented_fprintf(gen, indent, "_return_value = %s;\n", value_str);
+    }
+    indented_fprintf(gen, indent, "goto %s_return;\n", gen->current_function);
+}
+
+void code_gen_if_statement(CodeGen *gen, IfStmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_if_statement");
+    char *cond_str = code_gen_expression(gen, stmt->condition);
+    indented_fprintf(gen, indent, "if (%s) {\n", cond_str);
+    code_gen_statement(gen, stmt->then_branch, indent + 1);
+    indented_fprintf(gen, indent, "}\n");
+    if (stmt->else_branch)
+    {
+        indented_fprintf(gen, indent, "else {\n");
+        code_gen_statement(gen, stmt->else_branch, indent + 1);
+        indented_fprintf(gen, indent, "}\n");
+    }
+}
+
+void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_while_statement");
+    char *cond_str = code_gen_expression(gen, stmt->condition);
+    indented_fprintf(gen, indent, "while (%s) {\n", cond_str);
+    code_gen_statement(gen, stmt->body, indent + 1);
+    indented_fprintf(gen, indent, "}\n");
+}
+
+void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_for_statement");
+    symbol_table_push_scope(gen->symbol_table);
+    indented_fprintf(gen, indent, "{\n");
+    if (stmt->initializer)
+    {
+        code_gen_statement(gen, stmt->initializer, indent + 1);
+    }
+    char *cond_str = NULL;
+    if (stmt->condition)
+    {
+        cond_str = code_gen_expression(gen, stmt->condition);
+    }
+    indented_fprintf(gen, indent + 1, "while (%s) {\n", cond_str ? cond_str : "1");
+    code_gen_statement(gen, stmt->body, indent + 2);
+    if (stmt->increment)
+    {
+        char *inc_str = code_gen_expression(gen, stmt->increment);
+        indented_fprintf(gen, indent + 2, "%s;\n", inc_str);
+    }
+    indented_fprintf(gen, indent + 1, "}\n");
+    code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
+    indented_fprintf(gen, indent, "}\n");
+    symbol_table_pop_scope(gen->symbol_table);
+}
+
+void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
+{
+    DEBUG_VERBOSE("Entering code_gen_statement");
+    switch (stmt->type)
+    {
+    case STMT_EXPR:
+        code_gen_expression_statement(gen, &stmt->as.expression, indent);
+        break;
+    case STMT_VAR_DECL:
+        code_gen_var_declaration(gen, &stmt->as.var_decl, indent);
+        break;
+    case STMT_FUNCTION:
+        code_gen_function(gen, &stmt->as.function);
+        break;
+    case STMT_RETURN:
+        code_gen_return_statement(gen, &stmt->as.return_stmt, indent);
+        break;
+    case STMT_BLOCK:
+        code_gen_block(gen, &stmt->as.block, indent);
+        break;
+    case STMT_IF:
+        code_gen_if_statement(gen, &stmt->as.if_stmt, indent);
+        break;
+    case STMT_WHILE:
+        code_gen_while_statement(gen, &stmt->as.while_stmt, indent);
+        break;
+    case STMT_FOR:
+        code_gen_for_statement(gen, &stmt->as.for_stmt, indent);
+        break;
+    case STMT_IMPORT:
+        break;
+    }
+}

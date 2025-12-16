@@ -324,181 +324,75 @@ int rt_ge_string(const char *a, const char *b) {
     return strcmp(a, b) >= 0;
 }
 
-long *rt_array_push_long(long *arr, long element) {
-    // Structure to store array metadata (size and capacity) before the array data
-    struct array_metadata {
-        size_t size;     // Number of elements currently in the array
-        size_t capacity; // Total allocated space for elements
-    };
+/* Array metadata structure - stored before array data */
+typedef struct {
+    size_t size;     /* Number of elements currently in the array */
+    size_t capacity; /* Total allocated space for elements */
+} ArrayMetadata;
 
-    struct array_metadata *meta;
-    long *new_arr;
-    size_t new_capacity;
-
-    if (arr == NULL) {
-        // Initial case: create a new array with capacity 4
-        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(long));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_long: memory allocation failed\n");
-            exit(1);
-        }
-        meta->size = 1;
-        meta->capacity = 4;
-        new_arr = (long *)(meta + 1);
-        new_arr[0] = element;
-        return new_arr;
-    }
-
-    // Get metadata (stored just before the array)
-    meta = ((struct array_metadata *)arr) - 1;
-
-    if (meta->size >= meta->capacity) {
-        // Resize array: double the capacity
-        new_capacity = meta->capacity * 2;
-        if (new_capacity < meta->capacity) { // Check for overflow
-            fprintf(stderr, "rt_array_push_long: capacity overflow\n");
-            exit(1);
-        }
-        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(long));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_long: memory allocation failed\n");
-            exit(1);
-        }
-        meta->capacity = new_capacity;
-        new_arr = (long *)(meta + 1);
-    } else {
-        new_arr = arr;
-    }
-
-    // Add the new element
-    new_arr[meta->size] = element;
-    meta->size++;
-
-    return new_arr;
+/*
+ * Macro to generate type-safe array push functions.
+ * Reduces code duplication across different element types.
+ */
+#define DEFINE_ARRAY_PUSH(suffix, elem_type, assign_expr)                      \
+elem_type *rt_array_push_##suffix(elem_type *arr, elem_type element) {         \
+    ArrayMetadata *meta;                                                       \
+    elem_type *new_arr;                                                        \
+    size_t new_capacity;                                                       \
+                                                                               \
+    if (arr == NULL) {                                                         \
+        meta = malloc(sizeof(ArrayMetadata) + 4 * sizeof(elem_type));          \
+        if (meta == NULL) {                                                    \
+            fprintf(stderr, "rt_array_push_" #suffix ": allocation failed\n"); \
+            exit(1);                                                           \
+        }                                                                      \
+        meta->size = 1;                                                        \
+        meta->capacity = 4;                                                    \
+        new_arr = (elem_type *)(meta + 1);                                     \
+        new_arr[0] = assign_expr;                                              \
+        return new_arr;                                                        \
+    }                                                                          \
+                                                                               \
+    meta = ((ArrayMetadata *)arr) - 1;                                         \
+                                                                               \
+    if (meta->size >= meta->capacity) {                                        \
+        new_capacity = meta->capacity * 2;                                     \
+        if (new_capacity < meta->capacity) {                                   \
+            fprintf(stderr, "rt_array_push_" #suffix ": capacity overflow\n"); \
+            exit(1);                                                           \
+        }                                                                      \
+        meta = realloc(meta, sizeof(ArrayMetadata) + new_capacity * sizeof(elem_type)); \
+        if (meta == NULL) {                                                    \
+            fprintf(stderr, "rt_array_push_" #suffix ": allocation failed\n"); \
+            exit(1);                                                           \
+        }                                                                      \
+        meta->capacity = new_capacity;                                         \
+        new_arr = (elem_type *)(meta + 1);                                     \
+    } else {                                                                   \
+        new_arr = arr;                                                         \
+    }                                                                          \
+                                                                               \
+    new_arr[meta->size] = assign_expr;                                         \
+    meta->size++;                                                              \
+    return new_arr;                                                            \
 }
 
-double *rt_array_push_double(double *arr, double element) {
-    // Structure to store array metadata (size and capacity) before the array data
-    struct array_metadata {
-        size_t size;     // Number of elements currently in the array
-        size_t capacity; // Total allocated space for elements
-    };
+/* Generate array push functions for each type */
+DEFINE_ARRAY_PUSH(long, long, element)
+DEFINE_ARRAY_PUSH(double, double, element)
+DEFINE_ARRAY_PUSH(char, char, element)
+DEFINE_ARRAY_PUSH(bool, int, element)
 
-    struct array_metadata *meta;
-    double *new_arr;
-    size_t new_capacity;
-
-    if (arr == NULL) {
-        // Initial case: create a new array with capacity 4
-        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(double));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_double: memory allocation failed\n");
-            exit(1);
-        }
-        meta->size = 1;
-        meta->capacity = 4;
-        new_arr = (double *)(meta + 1);
-        new_arr[0] = element;
-        return new_arr;
-    }
-
-    // Get metadata (stored just before the array)
-    meta = ((struct array_metadata *)arr) - 1;
-
-    if (meta->size >= meta->capacity) {
-        // Resize array: double the capacity
-        new_capacity = meta->capacity * 2;
-        if (new_capacity < meta->capacity) { // Check for overflow
-            fprintf(stderr, "rt_array_push_double: capacity overflow\n");
-            exit(1);
-        }
-        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(double));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_double: memory allocation failed\n");
-            exit(1);
-        }
-        meta->capacity = new_capacity;
-        new_arr = (double *)(meta + 1);
-    } else {
-        new_arr = arr;
-    }
-
-    // Add the new element
-    new_arr[meta->size] = element;
-    meta->size++;
-
-    return new_arr;
-}
-
-char *rt_array_push_char(char *arr, char element) {
-    // Structure to store array metadata (size and capacity) before the array data
-    struct array_metadata {
-        size_t size;     // Number of elements currently in the array
-        size_t capacity; // Total allocated space for elements
-    };
-
-    struct array_metadata *meta;
-    char *new_arr;
-    size_t new_capacity;
-
-    if (arr == NULL) {
-        // Initial case: create a new array with capacity 4
-        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(char));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_char: memory allocation failed\n");
-            exit(1);
-        }
-        meta->size = 1;
-        meta->capacity = 4;
-        new_arr = (char *)(meta + 1);
-        new_arr[0] = element;
-        return new_arr;
-    }
-
-    // Get metadata (stored just before the array)
-    meta = ((struct array_metadata *)arr) - 1;
-
-    if (meta->size >= meta->capacity) {
-        // Resize array: double the capacity
-        new_capacity = meta->capacity * 2;
-        if (new_capacity < meta->capacity) { // Check for overflow
-            fprintf(stderr, "rt_array_push_char: capacity overflow\n");
-            exit(1);
-        }
-        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(char));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_char: memory allocation failed\n");
-            exit(1);
-        }
-        meta->capacity = new_capacity;
-        new_arr = (char *)(meta + 1);
-    } else {
-        new_arr = arr;
-    }
-
-    // Add the new element
-    new_arr[meta->size] = element;
-    meta->size++;
-
-    return new_arr;
-}
-
+/* String arrays need special handling for strdup */
 char **rt_array_push_string(char **arr, const char *element) {
-    // Structure to store array metadata (size and capacity) before the array data
-    struct array_metadata {
-        size_t size;     // Number of elements currently in the array
-        size_t capacity; // Total allocated space for elements
-    };
-
-    struct array_metadata *meta;
+    ArrayMetadata *meta;
     char **new_arr;
     size_t new_capacity;
 
     if (arr == NULL) {
-        // Initial case: create a new array with capacity 4
-        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(char *));
+        meta = malloc(sizeof(ArrayMetadata) + 4 * sizeof(char *));
         if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_string: memory allocation failed\n");
+            fprintf(stderr, "rt_array_push_string: allocation failed\n");
             exit(1);
         }
         meta->size = 1;
@@ -508,19 +402,17 @@ char **rt_array_push_string(char **arr, const char *element) {
         return new_arr;
     }
 
-    // Get metadata (stored just before the array)
-    meta = ((struct array_metadata *)arr) - 1;
+    meta = ((ArrayMetadata *)arr) - 1;
 
     if (meta->size >= meta->capacity) {
-        // Resize array: double the capacity
         new_capacity = meta->capacity * 2;
-        if (new_capacity < meta->capacity) { // Check for overflow
+        if (new_capacity < meta->capacity) {
             fprintf(stderr, "rt_array_push_string: capacity overflow\n");
             exit(1);
         }
-        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(char *));
+        meta = realloc(meta, sizeof(ArrayMetadata) + new_capacity * sizeof(char *));
         if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_string: memory allocation failed\n");
+            fprintf(stderr, "rt_array_push_string: allocation failed\n");
             exit(1);
         }
         meta->capacity = new_capacity;
@@ -529,63 +421,8 @@ char **rt_array_push_string(char **arr, const char *element) {
         new_arr = arr;
     }
 
-    // Add the new element (duplicate the string to manage memory)
     new_arr[meta->size] = element ? strdup(element) : NULL;
     meta->size++;
-
-    return new_arr;
-}
-
-int *rt_array_push_bool(int *arr, int element) {
-    // Structure to store array metadata (size and capacity) before the array data
-    struct array_metadata {
-        size_t size;     // Number of elements currently in the array
-        size_t capacity; // Total allocated space for elements
-    };
-
-    struct array_metadata *meta;
-    int *new_arr;
-    size_t new_capacity;
-
-    if (arr == NULL) {
-        // Initial case: create a new array with capacity 4
-        meta = malloc(sizeof(struct array_metadata) + 4 * sizeof(int));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_bool: memory allocation failed\n");
-            exit(1);
-        }
-        meta->size = 1;
-        meta->capacity = 4;
-        new_arr = (int *)(meta + 1);
-        new_arr[0] = element;
-        return new_arr;
-    }
-
-    // Get metadata (stored just before the array)
-    meta = ((struct array_metadata *)arr) - 1;
-
-    if (meta->size >= meta->capacity) {
-        // Resize array: double the capacity
-        new_capacity = meta->capacity * 2;
-        if (new_capacity < meta->capacity) { // Check for overflow
-            fprintf(stderr, "rt_array_push_bool: capacity overflow\n");
-            exit(1);
-        }
-        meta = realloc(meta, sizeof(struct array_metadata) + new_capacity * sizeof(int));
-        if (meta == NULL) {
-            fprintf(stderr, "rt_array_push_bool: memory allocation failed\n");
-            exit(1);
-        }
-        meta->capacity = new_capacity;
-        new_arr = (int *)(meta + 1);
-    } else {
-        new_arr = arr;
-    }
-
-    // Add the new element
-    new_arr[meta->size] = element;
-    meta->size++;
-
     return new_arr;
 }
 
@@ -594,4 +431,170 @@ void rt_free_string(char *s) {
         return;
     }
     free(s);
+}
+
+/* Get array length - returns 0 for NULL arrays */
+size_t rt_array_length(void *arr) {
+    if (arr == NULL) {
+        return 0;
+    }
+    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
+    return meta->size;
+}
+
+/* Print array functions */
+void rt_print_array_long(long *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("%ld", arr[i]);
+        }
+    }
+    printf("]");
+}
+
+void rt_print_array_double(double *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("%.5f", arr[i]);
+        }
+    }
+    printf("]");
+}
+
+void rt_print_array_char(char *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("'%c'", arr[i]);
+        }
+    }
+    printf("]");
+}
+
+void rt_print_array_bool(int *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("%s", arr[i] ? "true" : "false");
+        }
+    }
+    printf("]");
+}
+
+void rt_print_array_string(char **arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("\"%s\"", arr[i] ? arr[i] : "(null)");
+        }
+    }
+    printf("]");
+}
+
+/* Clear array - sets size to 0 but keeps capacity */
+void rt_array_clear(void *arr) {
+    if (arr == NULL) {
+        return;
+    }
+    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
+    meta->size = 0;
+}
+
+/* Pop functions - remove and return last element */
+#define DEFINE_ARRAY_POP(suffix, elem_type, default_val)                       \
+elem_type rt_array_pop_##suffix(elem_type *arr) {                              \
+    if (arr == NULL) {                                                         \
+        fprintf(stderr, "rt_array_pop_" #suffix ": NULL array\n");             \
+        exit(1);                                                               \
+    }                                                                          \
+    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;                          \
+    if (meta->size == 0) {                                                     \
+        fprintf(stderr, "rt_array_pop_" #suffix ": empty array\n");            \
+        exit(1);                                                               \
+    }                                                                          \
+    meta->size--;                                                              \
+    return arr[meta->size];                                                    \
+}
+
+DEFINE_ARRAY_POP(long, long, 0)
+DEFINE_ARRAY_POP(double, double, 0.0)
+DEFINE_ARRAY_POP(char, char, '\0')
+DEFINE_ARRAY_POP(bool, int, 0)
+
+char *rt_array_pop_string(char **arr) {
+    if (arr == NULL) {
+        fprintf(stderr, "rt_array_pop_string: NULL array\n");
+        exit(1);
+    }
+    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
+    if (meta->size == 0) {
+        fprintf(stderr, "rt_array_pop_string: empty array\n");
+        exit(1);
+    }
+    meta->size--;
+    return arr[meta->size];
+}
+
+/* Concat functions - append all elements from src to dest, returns dest */
+#define DEFINE_ARRAY_CONCAT(suffix, elem_type)                                 \
+elem_type *rt_array_concat_##suffix(elem_type *dest, elem_type *src) {         \
+    if (src == NULL) {                                                         \
+        return dest;                                                           \
+    }                                                                          \
+    size_t src_len = rt_array_length(src);                                     \
+    for (size_t i = 0; i < src_len; i++) {                                     \
+        dest = rt_array_push_##suffix(dest, src[i]);                           \
+    }                                                                          \
+    return dest;                                                               \
+}
+
+DEFINE_ARRAY_CONCAT(long, long)
+DEFINE_ARRAY_CONCAT(double, double)
+DEFINE_ARRAY_CONCAT(char, char)
+DEFINE_ARRAY_CONCAT(bool, int)
+
+char **rt_array_concat_string(char **dest, char **src) {
+    if (src == NULL) {
+        return dest;
+    }
+    size_t src_len = rt_array_length(src);
+    for (size_t i = 0; i < src_len; i++) {
+        dest = rt_array_push_string(dest, src[i]);
+    }
+    return dest;
+}
+
+/* Free array functions */
+void rt_array_free(void *arr) {
+    if (arr == NULL) {
+        return;
+    }
+    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
+    free(meta);
+}
+
+void rt_array_free_string(char **arr) {
+    if (arr == NULL) {
+        return;
+    }
+    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
+    /* Free each string element first */
+    for (size_t i = 0; i < meta->size; i++) {
+        if (arr[i] != NULL) {
+            free(arr[i]);
+        }
+    }
+    free(meta);
 }

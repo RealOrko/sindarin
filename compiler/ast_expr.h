@@ -1,0 +1,22 @@
+#ifndef AST_EXPR_H
+#define AST_EXPR_H
+
+#include "ast.h"
+#include "arena.h"
+
+/* Expression creation functions */
+Expr *ast_create_binary_expr(Arena *arena, Expr *left, TokenType operator, Expr *right, const Token *loc_token);
+Expr *ast_create_unary_expr(Arena *arena, TokenType operator, Expr *operand, const Token *loc_token);
+Expr *ast_create_literal_expr(Arena *arena, LiteralValue value, Type *type, bool is_interpolated, const Token *loc_token);
+Expr *ast_create_variable_expr(Arena *arena, Token name, const Token *loc_token);
+Expr *ast_create_assign_expr(Arena *arena, Token name, Expr *value, const Token *loc_token);
+Expr *ast_create_call_expr(Arena *arena, Expr *callee, Expr **arguments, int arg_count, const Token *loc_token);
+Expr *ast_create_array_expr(Arena *arena, Expr **elements, int element_count, const Token *loc_token);
+Expr *ast_create_array_access_expr(Arena *arena, Expr *array, Expr *index, const Token *loc_token);
+Expr *ast_create_increment_expr(Arena *arena, Expr *operand, const Token *loc_token);
+Expr *ast_create_decrement_expr(Arena *arena, Expr *operand, const Token *loc_token);
+Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, const Token *loc_token);
+Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, const Token *loc_token);
+Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenType comparison_type, const Token *loc_token);
+
+#endif /* AST_EXPR_H */

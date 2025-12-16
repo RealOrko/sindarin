@@ -47,44 +47,39 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
 {
     if (argc < 2)
     {
-        DEBUG_ERROR(
+        fprintf(stderr,
             "Usage: %s <source_file> [-o <output_file>] [-v] [-l <level>]\n"
             "  -o <output_file>   Specify output file (default is source_file.s)\n"
             "  -v                 Verbose mode\n"
-            "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)",
+            "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)\n",
             argv[0]);
         return 0;
     }
 
-    // Allocate source_file using arena
-    options->source_file = arena_strdup(&options->arena, argv[1]);
-    if (!options->source_file)
+    // First pass: parse options to set log level early
+    for (int i = 1; i < argc; i++)
     {
-        DEBUG_ERROR("Failed to allocate memory for source file path");
-        return 0;
+        if (strcmp(argv[i], "-l") == 0 && i + 1 < argc)
+        {
+            i++;
+            int log_level = atoi(argv[i]);
+            if (log_level < DEBUG_LEVEL_NONE || log_level > DEBUG_LEVEL_VERBOSE)
+            {
+                fprintf(stderr, "Invalid log level: %s (must be 0-4)\n", argv[i]);
+                return 0;
+            }
+            options->log_level = log_level;
+            init_debug(log_level);
+        }
     }
 
-    // Generate default output file name
-    const char *dot = strrchr(options->source_file, '.');
-    size_t base_len = dot ? (size_t)(dot - options->source_file) : strlen(options->source_file);
-    size_t out_len = base_len + 3; // ".s" + null terminator
-    char *out = arena_alloc(&options->arena, out_len);
-    if (!out)
-    {
-        DEBUG_ERROR("Failed to allocate memory for output file path");
-        return 0;
-    }
-
-    strncpy(out, options->source_file, base_len);
-    strcpy(out + base_len, ".s");
-    options->output_file = out;
-
-    // Parse additional arguments
-    for (int i = 2; i < argc; i++)
+    // Second pass: parse all arguments
+    for (int i = 1; i < argc; i++)
     {
         if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
         {
-            options->output_file = arena_strdup(&options->arena, argv[++i]);
+            i++;
+            options->output_file = arena_strdup(&options->arena, argv[i]);
             if (!options->output_file)
             {
                 DEBUG_ERROR("Failed to allocate memory for output file path");
@@ -97,21 +92,52 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
         }
         else if (strcmp(argv[i], "-l") == 0 && i + 1 < argc)
         {
-            i++;
-            int log_level = atoi(argv[i]);
-            if (log_level < DEBUG_LEVEL_NONE || log_level > DEBUG_LEVEL_VERBOSE)
-            {
-                DEBUG_ERROR("Invalid log level: %s", argv[i]);
-                return 0;
-            }
-            options->log_level = log_level;
-            init_debug(log_level); // Update debug level if changed
+            i++; // Skip the level value, already processed
         }
-        else
+        else if (argv[i][0] == '-')
         {
             DEBUG_ERROR("Unknown option: %s", argv[i]);
             return 0;
         }
+        else
+        {
+            // This is the source file
+            if (options->source_file != NULL)
+            {
+                DEBUG_ERROR("Multiple source files specified: %s and %s", options->source_file, argv[i]);
+                return 0;
+            }
+            options->source_file = arena_strdup(&options->arena, argv[i]);
+            if (!options->source_file)
+            {
+                DEBUG_ERROR("Failed to allocate memory for source file path");
+                return 0;
+            }
+        }
+    }
+
+    // Check that source file was provided
+    if (options->source_file == NULL)
+    {
+        fprintf(stderr, "Error: No source file specified\n");
+        return 0;
+    }
+
+    // Generate default output file name if not specified
+    if (options->output_file == NULL)
+    {
+        const char *dot = strrchr(options->source_file, '.');
+        size_t base_len = dot ? (size_t)(dot - options->source_file) : strlen(options->source_file);
+        size_t out_len = base_len + 3; // ".s" + null terminator
+        char *out = arena_alloc(&options->arena, out_len);
+        if (!out)
+        {
+            DEBUG_ERROR("Failed to allocate memory for output file path");
+            return 0;
+        }
+        strncpy(out, options->source_file, base_len);
+        strcpy(out + base_len, ".s");
+        options->output_file = out;
     }
 
     return 1;

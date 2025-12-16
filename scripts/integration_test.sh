@@ -1,0 +1,104 @@
+#!/bin/bash
+# Integration test runner for Sn compiler
+# Tests compile .sn files, run them, and compare output
+
+# Don't use set -e as arithmetic can return 1
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+BIN_DIR="$ROOT_DIR/bin"
+TEST_DIR="$ROOT_DIR/compiler/tests/integration"
+TEMP_DIR="/tmp/sn_integration_tests"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+# Ensure temp directory exists
+mkdir -p "$TEMP_DIR"
+
+# Track test results
+PASSED=0
+FAILED=0
+SKIPPED=0
+
+run_test() {
+    local test_file="$1"
+    local test_name=$(basename "$test_file" .sn)
+    local expected_file="${test_file%.sn}.expected"
+    local c_file="$TEMP_DIR/${test_name}.c"
+    local exe_file="$TEMP_DIR/${test_name}"
+    local output_file="$TEMP_DIR/${test_name}.out"
+    
+    printf "  %-40s " "$test_name"
+    
+    # Check if expected output file exists
+    if [ ! -f "$expected_file" ]; then
+        printf "${YELLOW}SKIP${NC} (no .expected file)\n"
+        ((SKIPPED++))
+        return
+    fi
+    
+    # Compile .sn to .c
+    if ! "$BIN_DIR/sn" "$test_file" -o "$c_file" -l 1 2>"$TEMP_DIR/${test_name}.compile_err"; then
+        printf "${RED}FAIL${NC} (compilation error)\n"
+        cat "$TEMP_DIR/${test_name}.compile_err" | head -5
+        ((FAILED++))
+        return
+    fi
+    
+    # Compile .c to executable (with fsanitize to match runtime objects)
+    if ! gcc -no-pie -fsanitize=address "$c_file" "$BIN_DIR/arena.o" "$BIN_DIR/debug.o" "$BIN_DIR/runtime.o" -o "$exe_file" 2>"$TEMP_DIR/${test_name}.gcc_err"; then
+        printf "${RED}FAIL${NC} (gcc error)\n"
+        cat "$TEMP_DIR/${test_name}.gcc_err" | head -5
+        ((FAILED++))
+        return
+    fi
+    
+    # Run the executable and capture output (disable leak sanitizer for integration tests)
+    if ! ASAN_OPTIONS=detect_leaks=0 timeout 5s "$exe_file" > "$output_file" 2>&1; then
+        printf "${RED}FAIL${NC} (runtime error or timeout)\n"
+        cat "$output_file" | head -5
+        ((FAILED++))
+        return
+    fi
+    
+    # Compare output
+    if diff -q "$output_file" "$expected_file" > /dev/null 2>&1; then
+        printf "${GREEN}PASS${NC}\n"
+        ((PASSED++))
+    else
+        printf "${RED}FAIL${NC} (output mismatch)\n"
+        echo "  Expected:"
+        head -3 "$expected_file" | sed 's/^/    /'
+        echo "  Got:"
+        head -3 "$output_file" | sed 's/^/    /'
+        ((FAILED++))
+    fi
+}
+
+echo "Running Sn Integration Tests"
+echo "============================"
+echo ""
+
+# Find all .sn files in integration test directory
+if [ -d "$TEST_DIR" ]; then
+    for test_file in "$TEST_DIR"/*.sn; do
+        [ -f "$test_file" ] || continue
+        run_test "$test_file"
+    done
+fi
+
+echo ""
+echo "============================"
+printf "Results: ${GREEN}%d passed${NC}, ${RED}%d failed${NC}, ${YELLOW}%d skipped${NC}\n" $PASSED $FAILED $SKIPPED
+
+# Cleanup
+rm -rf "$TEMP_DIR"
+
+# Exit with error if any tests failed
+if [ $FAILED -gt 0 ]; then
+    exit 1
+fi
