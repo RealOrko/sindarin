@@ -23,6 +23,10 @@ typedef struct {
     bool in_private_context;    // Are we in a private block/function?
     char *current_arena_var;    // Name of current arena variable (e.g., "__arena__")
     FunctionModifier current_func_modifier;  // Current function's modifier
+
+    /* Loop arena for per-iteration cleanup */
+    char *loop_arena_var;       // Name of current loop's per-iteration arena (NULL if shared loop)
+    char *loop_cleanup_label;   // Label for loop cleanup (used by break/continue)
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);

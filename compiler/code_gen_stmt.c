@@ -350,19 +350,55 @@ void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent)
     DEBUG_VERBOSE("Entering code_gen_while_statement");
 
     bool old_in_shared_context = gen->in_shared_context;
+    char *old_loop_arena_var = gen->loop_arena_var;
+    char *old_loop_cleanup_label = gen->loop_cleanup_label;
+
+    bool is_shared = stmt->is_shared;
+    bool needs_loop_arena = !is_shared && gen->current_arena_var != NULL;
 
     // Shared loops don't create per-iteration arenas
-    if (stmt->is_shared)
+    if (is_shared)
     {
         gen->in_shared_context = true;
     }
 
+    // For non-shared loops with arena context, create per-iteration arena
+    if (needs_loop_arena)
+    {
+        int label_num = code_gen_new_label(gen);
+        gen->loop_arena_var = arena_sprintf(gen->arena, "__loop_arena_%d__", label_num);
+        gen->loop_cleanup_label = arena_sprintf(gen->arena, "__loop_cleanup_%d__", label_num);
+    }
+    else
+    {
+        gen->loop_arena_var = NULL;
+        gen->loop_cleanup_label = NULL;
+    }
+
     char *cond_str = code_gen_expression(gen, stmt->condition);
     indented_fprintf(gen, indent, "while (%s) {\n", cond_str);
+
+    // Create per-iteration arena at start of loop body
+    if (needs_loop_arena)
+    {
+        indented_fprintf(gen, indent + 1, "RtArena *%s = rt_arena_create(%s);\n",
+                         gen->loop_arena_var, ARENA_VAR(gen));
+    }
+
     code_gen_statement(gen, stmt->body, indent + 1);
+
+    // Cleanup label and arena destruction
+    if (needs_loop_arena)
+    {
+        indented_fprintf(gen, indent, "%s:\n", gen->loop_cleanup_label);
+        indented_fprintf(gen, indent + 1, "rt_arena_destroy(%s);\n", gen->loop_arena_var);
+    }
+
     indented_fprintf(gen, indent, "}\n");
 
     gen->in_shared_context = old_in_shared_context;
+    gen->loop_arena_var = old_loop_arena_var;
+    gen->loop_cleanup_label = old_loop_cleanup_label;
 }
 
 void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
@@ -370,11 +406,29 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     DEBUG_VERBOSE("Entering code_gen_for_statement");
 
     bool old_in_shared_context = gen->in_shared_context;
+    char *old_loop_arena_var = gen->loop_arena_var;
+    char *old_loop_cleanup_label = gen->loop_cleanup_label;
+
+    bool is_shared = stmt->is_shared;
+    bool needs_loop_arena = !is_shared && gen->current_arena_var != NULL;
 
     // Shared loops don't create per-iteration arenas
-    if (stmt->is_shared)
+    if (is_shared)
     {
         gen->in_shared_context = true;
+    }
+
+    // For non-shared loops with arena context, create per-iteration arena
+    if (needs_loop_arena)
+    {
+        int arena_label_num = code_gen_new_label(gen);
+        gen->loop_arena_var = arena_sprintf(gen->arena, "__loop_arena_%d__", arena_label_num);
+        gen->loop_cleanup_label = arena_sprintf(gen->arena, "__loop_cleanup_%d__", arena_label_num);
+    }
+    else
+    {
+        gen->loop_arena_var = NULL;
+        gen->loop_cleanup_label = NULL;
     }
 
     symbol_table_push_scope(gen->symbol_table);
@@ -396,7 +450,22 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     gen->for_continue_label = continue_label;
 
     indented_fprintf(gen, indent + 1, "while (%s) {\n", cond_str ? cond_str : "1");
+
+    // Create per-iteration arena at start of loop body
+    if (needs_loop_arena)
+    {
+        indented_fprintf(gen, indent + 2, "RtArena *%s = rt_arena_create(%s);\n",
+                         gen->loop_arena_var, ARENA_VAR(gen));
+    }
+
     code_gen_statement(gen, stmt->body, indent + 2);
+
+    // Cleanup label and arena destruction (before increment)
+    if (needs_loop_arena)
+    {
+        indented_fprintf(gen, indent + 1, "%s:\n", gen->loop_cleanup_label);
+        indented_fprintf(gen, indent + 2, "rt_arena_destroy(%s);\n", gen->loop_arena_var);
+    }
 
     // Generate continue label before increment
     indented_fprintf(gen, indent + 1, "%s:;\n", continue_label);
@@ -416,6 +485,8 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     symbol_table_pop_scope(gen->symbol_table);
 
     gen->in_shared_context = old_in_shared_context;
+    gen->loop_arena_var = old_loop_arena_var;
+    gen->loop_cleanup_label = old_loop_cleanup_label;
 }
 
 void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
@@ -423,11 +494,29 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     DEBUG_VERBOSE("Entering code_gen_for_each_statement");
 
     bool old_in_shared_context = gen->in_shared_context;
+    char *old_loop_arena_var = gen->loop_arena_var;
+    char *old_loop_cleanup_label = gen->loop_cleanup_label;
+
+    bool is_shared = stmt->is_shared;
+    bool needs_loop_arena = !is_shared && gen->current_arena_var != NULL;
 
     // Shared loops don't create per-iteration arenas
-    if (stmt->is_shared)
+    if (is_shared)
     {
         gen->in_shared_context = true;
+    }
+
+    // For non-shared loops with arena context, create per-iteration arena
+    if (needs_loop_arena)
+    {
+        int arena_label_num = code_gen_new_label(gen);
+        gen->loop_arena_var = arena_sprintf(gen->arena, "__loop_arena_%d__", arena_label_num);
+        gen->loop_cleanup_label = arena_sprintf(gen->arena, "__loop_cleanup_%d__", arena_label_num);
+    }
+    else
+    {
+        gen->loop_arena_var = NULL;
+        gen->loop_cleanup_label = NULL;
     }
 
     // Generate a unique index variable name
@@ -460,24 +549,43 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     //     arr_type __arr__ = iterable;
     //     long __len__ = rt_array_length(__arr__);
     //     for (long __idx__ = 0; __idx__ < __len__; __idx__++) {
+    //         [RtArena *__loop_arena__ = rt_arena_create(parent);]  // if needs_loop_arena
     //         elem_type var = __arr__[__idx__];
     //         body
+    //         [__loop_cleanup__: rt_arena_destroy(__loop_arena__);] // if needs_loop_arena
     //     }
     // }
     indented_fprintf(gen, indent, "{\n");
     indented_fprintf(gen, indent + 1, "%s %s = %s;\n", arr_c_type, arr_var, iterable_str);
     indented_fprintf(gen, indent + 1, "long %s = rt_array_length(%s);\n", len_var, arr_var);
     indented_fprintf(gen, indent + 1, "for (long %s = 0; %s < %s; %s++) {\n", idx_var, idx_var, len_var, idx_var);
+
+    // Create per-iteration arena at start of loop body
+    if (needs_loop_arena)
+    {
+        indented_fprintf(gen, indent + 2, "RtArena *%s = rt_arena_create(%s);\n",
+                         gen->loop_arena_var, ARENA_VAR(gen));
+    }
+
     indented_fprintf(gen, indent + 2, "%s %s = %s[%s];\n", elem_c_type, var_name, arr_var, idx_var);
 
     // Generate the body
     code_gen_statement(gen, stmt->body, indent + 2);
+
+    // Cleanup label and arena destruction
+    if (needs_loop_arena)
+    {
+        indented_fprintf(gen, indent + 1, "%s:\n", gen->loop_cleanup_label);
+        indented_fprintf(gen, indent + 2, "rt_arena_destroy(%s);\n", gen->loop_arena_var);
+    }
 
     indented_fprintf(gen, indent + 1, "}\n");
     code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
     indented_fprintf(gen, indent, "}\n");
 
     gen->in_shared_context = old_in_shared_context;
+    gen->loop_arena_var = old_loop_arena_var;
+    gen->loop_cleanup_label = old_loop_cleanup_label;
 
     symbol_table_pop_scope(gen->symbol_table);
 }
@@ -515,15 +623,29 @@ void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
         code_gen_for_each_statement(gen, &stmt->as.for_each_stmt, indent);
         break;
     case STMT_BREAK:
-        indented_fprintf(gen, indent, "break;\n");
+        // If in a loop with per-iteration arena, destroy it before breaking
+        if (gen->loop_arena_var)
+        {
+            indented_fprintf(gen, indent, "{ rt_arena_destroy(%s); break; }\n", gen->loop_arena_var);
+        }
+        else
+        {
+            indented_fprintf(gen, indent, "break;\n");
+        }
         break;
     case STMT_CONTINUE:
-        // In for loops, continue needs to jump to the continue label (before increment)
-        // In while/for-each loops, regular continue works fine
-        if (gen->for_continue_label)
+        // If there's a loop cleanup label (for per-iteration arena), jump to it
+        // The cleanup label destroys the arena and falls through to continue/increment
+        if (gen->loop_cleanup_label)
+        {
+            indented_fprintf(gen, indent, "goto %s;\n", gen->loop_cleanup_label);
+        }
+        // In for loops without arena, continue needs to jump to the continue label (before increment)
+        else if (gen->for_continue_label)
         {
             indented_fprintf(gen, indent, "goto %s;\n", gen->for_continue_label);
         }
+        // In while/for-each loops without arena, regular continue works fine
         else
         {
             indented_fprintf(gen, indent, "continue;\n");

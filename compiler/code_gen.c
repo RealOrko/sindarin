@@ -28,6 +28,10 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->current_arena_var = NULL;
     gen->current_func_modifier = FUNC_DEFAULT;
 
+    /* Initialize loop arena fields */
+    gen->loop_arena_var = NULL;
+    gen->loop_cleanup_label = NULL;
+
     if (gen->output == NULL)
     {
         exit(1);
