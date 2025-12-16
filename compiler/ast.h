@@ -26,6 +26,30 @@ typedef enum
     TYPE_ANY
 } TypeKind;
 
+/* Memory qualifier for variables and parameters */
+typedef enum
+{
+    MEM_DEFAULT,    /* Default behavior (reference for arrays, value for primitives) */
+    MEM_AS_VAL,     /* as val - explicit copy semantics */
+    MEM_AS_REF      /* as ref - heap allocation for primitives */
+} MemoryQualifier;
+
+/* Block modifier for memory management */
+typedef enum
+{
+    BLOCK_DEFAULT,  /* Normal block with own arena */
+    BLOCK_SHARED,   /* shared block - uses parent's arena */
+    BLOCK_PRIVATE   /* private block - isolated arena, only primitives escape */
+} BlockModifier;
+
+/* Function modifier for memory management */
+typedef enum
+{
+    FUNC_DEFAULT,   /* Normal function with own arena */
+    FUNC_SHARED,    /* shared function - uses caller's arena */
+    FUNC_PRIVATE    /* private function - isolated arena, only primitives return */
+} FunctionModifier;
+
 struct Type
 {
     TypeKind kind;
@@ -183,12 +207,14 @@ typedef struct
     Token name;
     Type *type;
     Expr *initializer;
+    MemoryQualifier mem_qualifier;  /* as val or as ref modifier */
 } VarDeclStmt;
 
 typedef struct
 {
     Token name;
     Type *type;
+    MemoryQualifier mem_qualifier;  /* as val modifier for copy semantics */
 } Parameter;
 
 typedef struct
@@ -199,6 +225,7 @@ typedef struct
     Type *return_type;
     Stmt **body;
     int body_count;
+    FunctionModifier modifier;  /* shared or private modifier */
 } FunctionStmt;
 
 typedef struct
@@ -211,6 +238,7 @@ typedef struct
 {
     Stmt **statements;
     int count;
+    BlockModifier modifier;  /* shared or private block modifier */
 } BlockStmt;
 
 typedef struct
@@ -224,6 +252,7 @@ typedef struct
 {
     Expr *condition;
     Stmt *body;
+    bool is_shared;  /* shared loop - no per-iteration arena */
 } WhileStmt;
 
 typedef struct
@@ -232,6 +261,7 @@ typedef struct
     Expr *condition;
     Expr *increment;
     Stmt *body;
+    bool is_shared;  /* shared loop - no per-iteration arena */
 } ForStmt;
 
 typedef struct
@@ -239,6 +269,7 @@ typedef struct
     Token var_name;
     Expr *iterable;
     Stmt *body;
+    bool is_shared;  /* shared loop - no per-iteration arena */
 } ForEachStmt;
 
 typedef struct
