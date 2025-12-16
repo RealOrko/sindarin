@@ -228,13 +228,43 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
                 return arena_sprintf(gen->arena, "rt_to_string_string(%s)", part_strs[0]);
             }
         }
-        if (count == 2)
+
+        // Check if any parts need freeing (are temp strings from calls, etc.)
+        bool any_free_parts = false;
+        for (int i = 0; i < count; i++)
         {
-            // Two parts - simple concat, no intermediate to free
+            if (free_parts[i])
+            {
+                any_free_parts = true;
+                break;
+            }
+        }
+
+        if (count == 2 && !any_free_parts)
+        {
+            // Two parts, neither needs freeing - simple concat
             return arena_sprintf(gen->arena, "rt_str_concat(%s, %s)", part_strs[0], part_strs[1]);
         }
-        // Multiple parts - need intermediate variables to avoid memory leaks
+
+        // Multiple parts or some need freeing - need intermediate variables
         char *result = arena_strdup(gen->arena, "({\n");
+
+        // Build arrays of what to use in concat (either original or captured temp)
+        char **concat_parts = arena_alloc(gen->arena, count * sizeof(char *));
+
+        // Capture parts that need freeing into temp variables
+        for (int i = 0; i < count; i++)
+        {
+            if (free_parts[i])
+            {
+                result = arena_sprintf(gen->arena, "%s        char *_str_tmp%d = %s;\n", result, i, part_strs[i]);
+                concat_parts[i] = arena_sprintf(gen->arena, "_str_tmp%d", i);
+            }
+            else
+            {
+                concat_parts[i] = part_strs[i];
+            }
+        }
 
         // Declare intermediate concat variables
         for (int i = 0; i < count - 2; i++)
@@ -242,20 +272,38 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
             result = arena_sprintf(gen->arena, "%s        char *_concat_tmp%d;\n", result, i);
         }
 
-        // First concat
-        result = arena_sprintf(gen->arena, "%s        _concat_tmp0 = rt_str_concat(%s, %s);\n",
-                               result, part_strs[0], part_strs[1]);
-
-        // Middle concats
-        for (int i = 2; i < count - 1; i++)
+        if (count == 2)
         {
-            result = arena_sprintf(gen->arena, "%s        _concat_tmp%d = rt_str_concat(_concat_tmp%d, %s);\n",
-                                   result, i - 1, i - 2, part_strs[i]);
+            // Two parts - simple concat
+            result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(%s, %s);\n",
+                                   result, concat_parts[0], concat_parts[1]);
+        }
+        else
+        {
+            // First concat
+            result = arena_sprintf(gen->arena, "%s        _concat_tmp0 = rt_str_concat(%s, %s);\n",
+                                   result, concat_parts[0], concat_parts[1]);
+
+            // Middle concats
+            for (int i = 2; i < count - 1; i++)
+            {
+                result = arena_sprintf(gen->arena, "%s        _concat_tmp%d = rt_str_concat(_concat_tmp%d, %s);\n",
+                                       result, i - 1, i - 2, concat_parts[i]);
+            }
+
+            // Final concat
+            result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(_concat_tmp%d, %s);\n",
+                                   result, count - 3, concat_parts[count - 1]);
         }
 
-        // Final concat
-        result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(_concat_tmp%d, %s);\n",
-                               result, count - 3, part_strs[count - 1]);
+        // Free captured temp strings
+        for (int i = 0; i < count; i++)
+        {
+            if (free_parts[i])
+            {
+                result = arena_sprintf(gen->arena, "%s        rt_free_string(_str_tmp%d);\n", result, i);
+            }
+        }
 
         // Free intermediate concat results
         for (int i = 0; i < count - 2; i++)
@@ -690,8 +738,134 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 return arena_sprintf(gen->arena, "%s(%s, %s)", rem_func, object_str, idx_str);
             }
         }
+
+        // String methods
+        if (object_type->kind == TYPE_STRING) {
+            char *object_str = code_gen_expression(gen, member->object);
+            bool object_is_temp = expression_produces_temp(member->object);
+
+            // Helper macro-like pattern for string methods that return strings
+            // If object is temp, we need to capture it, call method, free it, return result
+            #define STRING_METHOD_RETURNING_STRING(method_call) \
+                do { \
+                    if (object_is_temp) { \
+                        return arena_sprintf(gen->arena, \
+                            "({ char *_obj_tmp = %s; char *_res = %s; rt_free_string(_obj_tmp); _res; })", \
+                            object_str, method_call); \
+                    } else { \
+                        return arena_sprintf(gen->arena, "%s", method_call); \
+                    } \
+                } while(0)
+
+            // Handle substring(start, end) - returns string
+            if (strcmp(member_name_str, "substring") == 0 && call->arg_count == 2) {
+                char *start_str = code_gen_expression(gen, call->arguments[0]);
+                char *end_str = code_gen_expression(gen, call->arguments[1]);
+                char *method_call = arena_sprintf(gen->arena, "rt_str_substring(%s, %s, %s)",
+                    object_is_temp ? "_obj_tmp" : object_str, start_str, end_str);
+                STRING_METHOD_RETURNING_STRING(method_call);
+            }
+
+            // Handle indexOf(search) - returns int, no string cleanup needed for result
+            if (strcmp(member_name_str, "indexOf") == 0 && call->arg_count == 1) {
+                char *arg_str = code_gen_expression(gen, call->arguments[0]);
+                if (object_is_temp) {
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; long _res = rt_str_indexOf(_obj_tmp, %s); rt_free_string(_obj_tmp); _res; })",
+                        object_str, arg_str);
+                }
+                return arena_sprintf(gen->arena, "rt_str_indexOf(%s, %s)", object_str, arg_str);
+            }
+
+            // Handle split(delimiter) - returns array, object cleanup needed
+            if (strcmp(member_name_str, "split") == 0 && call->arg_count == 1) {
+                char *arg_str = code_gen_expression(gen, call->arguments[0]);
+                if (object_is_temp) {
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; char **_res = rt_str_split(_obj_tmp, %s); rt_free_string(_obj_tmp); _res; })",
+                        object_str, arg_str);
+                }
+                return arena_sprintf(gen->arena, "rt_str_split(%s, %s)", object_str, arg_str);
+            }
+
+            // Handle trim() - returns string
+            if (strcmp(member_name_str, "trim") == 0 && call->arg_count == 0) {
+                char *method_call = arena_sprintf(gen->arena, "rt_str_trim(%s)",
+                    object_is_temp ? "_obj_tmp" : object_str);
+                STRING_METHOD_RETURNING_STRING(method_call);
+            }
+
+            // Handle toUpper() - returns string
+            if (strcmp(member_name_str, "toUpper") == 0 && call->arg_count == 0) {
+                char *method_call = arena_sprintf(gen->arena, "rt_str_toUpper(%s)",
+                    object_is_temp ? "_obj_tmp" : object_str);
+                STRING_METHOD_RETURNING_STRING(method_call);
+            }
+
+            // Handle toLower() - returns string
+            if (strcmp(member_name_str, "toLower") == 0 && call->arg_count == 0) {
+                char *method_call = arena_sprintf(gen->arena, "rt_str_toLower(%s)",
+                    object_is_temp ? "_obj_tmp" : object_str);
+                STRING_METHOD_RETURNING_STRING(method_call);
+            }
+
+            // Handle startsWith(prefix) - returns bool
+            if (strcmp(member_name_str, "startsWith") == 0 && call->arg_count == 1) {
+                char *arg_str = code_gen_expression(gen, call->arguments[0]);
+                if (object_is_temp) {
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; int _res = rt_str_startsWith(_obj_tmp, %s); rt_free_string(_obj_tmp); _res; })",
+                        object_str, arg_str);
+                }
+                return arena_sprintf(gen->arena, "rt_str_startsWith(%s, %s)", object_str, arg_str);
+            }
+
+            // Handle endsWith(suffix) - returns bool
+            if (strcmp(member_name_str, "endsWith") == 0 && call->arg_count == 1) {
+                char *arg_str = code_gen_expression(gen, call->arguments[0]);
+                if (object_is_temp) {
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; int _res = rt_str_endsWith(_obj_tmp, %s); rt_free_string(_obj_tmp); _res; })",
+                        object_str, arg_str);
+                }
+                return arena_sprintf(gen->arena, "rt_str_endsWith(%s, %s)", object_str, arg_str);
+            }
+
+            // Handle contains(search) - returns bool
+            if (strcmp(member_name_str, "contains") == 0 && call->arg_count == 1) {
+                char *arg_str = code_gen_expression(gen, call->arguments[0]);
+                if (object_is_temp) {
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; int _res = rt_str_contains(_obj_tmp, %s); rt_free_string(_obj_tmp); _res; })",
+                        object_str, arg_str);
+                }
+                return arena_sprintf(gen->arena, "rt_str_contains(%s, %s)", object_str, arg_str);
+            }
+
+            // Handle replace(old, new) - returns string
+            if (strcmp(member_name_str, "replace") == 0 && call->arg_count == 2) {
+                char *old_str = code_gen_expression(gen, call->arguments[0]);
+                char *new_str = code_gen_expression(gen, call->arguments[1]);
+                char *method_call = arena_sprintf(gen->arena, "rt_str_replace(%s, %s, %s)",
+                    object_is_temp ? "_obj_tmp" : object_str, old_str, new_str);
+                STRING_METHOD_RETURNING_STRING(method_call);
+            }
+
+            // Handle charAt(index) - returns char
+            if (strcmp(member_name_str, "charAt") == 0 && call->arg_count == 1) {
+                char *index_str = code_gen_expression(gen, call->arguments[0]);
+                if (object_is_temp) {
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; char _res = (char)rt_str_charAt(_obj_tmp, %s); rt_free_string(_obj_tmp); _res; })",
+                        object_str, index_str);
+                }
+                return arena_sprintf(gen->arena, "(char)rt_str_charAt(%s, %s)", object_str, index_str);
+            }
+
+            #undef STRING_METHOD_RETURNING_STRING
+        }
     }
-    
+
     char *callee_str = code_gen_expression(gen, call->callee);
 
     char **arg_strs = arena_alloc(gen->arena, call->arg_count * sizeof(char *));
@@ -770,161 +944,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
             callee_str = arena_strdup(gen->arena, print_func);
         }
-        // Handle len(arr) -> rt_array_length
+        // Handle len(arr) -> rt_array_length for arrays, strlen for strings
         else if (strcmp(callee_name, "len") == 0 && call->arg_count == 1)
         {
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type && arg_type->kind == TYPE_STRING)
+            {
+                return arena_sprintf(gen->arena, "(long)strlen(%s)", arg_strs[0]);
+            }
             return arena_sprintf(gen->arena, "rt_array_length(%s)", arg_strs[0]);
         }
-        // Handle pop(arr) -> rt_array_pop_*
-        else if (strcmp(callee_name, "pop") == 0 && call->arg_count == 1)
-        {
-            Type *arr_type = call->arguments[0]->expr_type;
-            Type *elem_type = arr_type->as.array.element_type;
-            const char *pop_func = NULL;
-            switch (elem_type->kind)
-            {
-            case TYPE_INT:
-            case TYPE_LONG:
-                pop_func = "rt_array_pop_long";
-                break;
-            case TYPE_DOUBLE:
-                pop_func = "rt_array_pop_double";
-                break;
-            case TYPE_CHAR:
-                pop_func = "rt_array_pop_char";
-                break;
-            case TYPE_STRING:
-                pop_func = "rt_array_pop_string";
-                break;
-            case TYPE_BOOL:
-                pop_func = "rt_array_pop_bool";
-                break;
-            default:
-                fprintf(stderr, "Error: unsupported array element type for pop\n");
-                exit(1);
-            }
-            return arena_sprintf(gen->arena, "%s(%s)", pop_func, arg_strs[0]);
-        }
-        // Handle rev(arr) -> rt_array_rev_*
-        else if (strcmp(callee_name, "rev") == 0 && call->arg_count == 1)
-        {
-            Type *arr_type = call->arguments[0]->expr_type;
-            Type *elem_type = arr_type->as.array.element_type;
-            const char *rev_func = NULL;
-            switch (elem_type->kind)
-            {
-            case TYPE_INT:
-            case TYPE_LONG:
-                rev_func = "rt_array_rev_long";
-                break;
-            case TYPE_DOUBLE:
-                rev_func = "rt_array_rev_double";
-                break;
-            case TYPE_CHAR:
-                rev_func = "rt_array_rev_char";
-                break;
-            case TYPE_STRING:
-                rev_func = "rt_array_rev_string";
-                break;
-            case TYPE_BOOL:
-                rev_func = "rt_array_rev_bool";
-                break;
-            default:
-                fprintf(stderr, "Error: unsupported array element type for rev\n");
-                exit(1);
-            }
-            return arena_sprintf(gen->arena, "%s(%s)", rev_func, arg_strs[0]);
-        }
-        // Handle push(elem, arr) -> rt_array_push_copy_* (returns new array)
-        else if (strcmp(callee_name, "push") == 0 && call->arg_count == 2)
-        {
-            Type *arr_type = call->arguments[1]->expr_type;
-            Type *elem_type = arr_type->as.array.element_type;
-            const char *push_func = NULL;
-            switch (elem_type->kind)
-            {
-            case TYPE_INT:
-            case TYPE_LONG:
-                push_func = "rt_array_push_copy_long";
-                break;
-            case TYPE_DOUBLE:
-                push_func = "rt_array_push_copy_double";
-                break;
-            case TYPE_CHAR:
-                push_func = "rt_array_push_copy_char";
-                break;
-            case TYPE_STRING:
-                push_func = "rt_array_push_copy_string";
-                break;
-            case TYPE_BOOL:
-                push_func = "rt_array_push_copy_bool";
-                break;
-            default:
-                fprintf(stderr, "Error: unsupported array element type for push\n");
-                exit(1);
-            }
-            return arena_sprintf(gen->arena, "%s(%s, %s)", push_func, arg_strs[1], arg_strs[0]);
-        }
-        // Handle rem(index, arr) -> rt_array_rem_*
-        else if (strcmp(callee_name, "rem") == 0 && call->arg_count == 2)
-        {
-            Type *arr_type = call->arguments[1]->expr_type;
-            Type *elem_type = arr_type->as.array.element_type;
-            const char *rem_func = NULL;
-            switch (elem_type->kind)
-            {
-            case TYPE_INT:
-            case TYPE_LONG:
-                rem_func = "rt_array_rem_long";
-                break;
-            case TYPE_DOUBLE:
-                rem_func = "rt_array_rem_double";
-                break;
-            case TYPE_CHAR:
-                rem_func = "rt_array_rem_char";
-                break;
-            case TYPE_STRING:
-                rem_func = "rt_array_rem_string";
-                break;
-            case TYPE_BOOL:
-                rem_func = "rt_array_rem_bool";
-                break;
-            default:
-                fprintf(stderr, "Error: unsupported array element type for rem\n");
-                exit(1);
-            }
-            return arena_sprintf(gen->arena, "%s(%s, %s)", rem_func, arg_strs[1], arg_strs[0]);
-        }
-        // Handle ins(elem, index, arr) -> rt_array_ins_*
-        else if (strcmp(callee_name, "ins") == 0 && call->arg_count == 3)
-        {
-            Type *arr_type = call->arguments[2]->expr_type;
-            Type *elem_type = arr_type->as.array.element_type;
-            const char *ins_func = NULL;
-            switch (elem_type->kind)
-            {
-            case TYPE_INT:
-            case TYPE_LONG:
-                ins_func = "rt_array_ins_long";
-                break;
-            case TYPE_DOUBLE:
-                ins_func = "rt_array_ins_double";
-                break;
-            case TYPE_CHAR:
-                ins_func = "rt_array_ins_char";
-                break;
-            case TYPE_STRING:
-                ins_func = "rt_array_ins_string";
-                break;
-            case TYPE_BOOL:
-                ins_func = "rt_array_ins_bool";
-                break;
-            default:
-                fprintf(stderr, "Error: unsupported array element type for ins\n");
-                exit(1);
-            }
-            return arena_sprintf(gen->arena, "%s(%s, %s, %s)", ins_func, arg_strs[2], arg_strs[0], arg_strs[1]);
-        }
+        // Note: Other array operations are method-style only:
+        //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
     }
 
     // Collect arg names for the call: use temp var if temp, else original str.
@@ -1036,8 +1067,10 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
     }
 
     // Generate: rt_array_create_<suffix>(count, (elem_type[]){...})
+    // For bool arrays, use "int" for compound literal since runtime uses int internally
+    const char *literal_type = (elem_type->kind == TYPE_BOOL) ? "int" : elem_c;
     return arena_sprintf(gen->arena, "rt_array_create_%s(%d, (%s[]){%s})",
-                         suffix, arr->element_count, elem_c, inits);
+                         suffix, arr->element_count, literal_type, inits);
 }
 
 char *code_gen_array_access_expression(CodeGen *gen, ArrayAccessExpr *expr)
@@ -1099,6 +1132,11 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
     // Handle array.length
     if (object_type->kind == TYPE_ARRAY && strcmp(member_name_str, "length") == 0) {
         return arena_sprintf(gen->arena, "rt_array_length(%s)", object_str);
+    }
+
+    // Handle string.length
+    if (object_type->kind == TYPE_STRING && strcmp(member_name_str, "length") == 0) {
+        return arena_sprintf(gen->arena, "rt_str_length(%s)", object_str);
     }
 
     // Generic struct member access (not currently supported)

@@ -136,6 +136,9 @@ int ast_type_equals(Type *a, Type *b)
         return 1;
     if (a == NULL || b == NULL)
         return 0;
+    // TYPE_NIL is compatible with any type (used for empty arrays)
+    if (a->kind == TYPE_NIL || b->kind == TYPE_NIL)
+        return 1;
     if (a->kind != b->kind)
         return 0;
 

@@ -448,8 +448,9 @@ void test_code_gen_array_type_in_function_param()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: void print_arr(long * arr) { ... }
+    // Expected: forward declaration + void print_arr(long * arr) { ... }
     const char *expected = get_expected(&arena,
+                                  "void print_arr(long *);\n\n"
                                   "void print_arr(long * print_arr) {\n"
                                   "    goto print_arr_return;\n"
                                   "print_arr_return:\n"
@@ -961,9 +962,10 @@ void test_code_gen_array_push_bool()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: bool * arr = rt_array_create_bool(0, (bool[]){}); (arr = rt_array_push_bool(arr, 1)); arr;
+    // Expected: int * arr = rt_array_create_bool(0, (int[]){}); (arr = rt_array_push_bool(arr, 1)); arr;
+    // Note: bool arrays use int* internally in runtime
     const char *expected = get_expected(&arena,
-                                  "bool * arr = rt_array_create_bool(0, (bool[]){});\n"
+                                  "int * arr = rt_array_create_bool(0, (int[]){});\n"
                                   "(arr = rt_array_push_bool(arr, 1L));\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -1477,10 +1479,10 @@ void test_code_gen_array_pop()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long result = rt_array_pop(arr); result; arr;
+    // Expected: long result = rt_array_pop_long(arr); result; arr;
     const char *expected = get_expected(&arena,
                                   "long * arr = rt_array_create_long(3, (long[]){1L, 2L, 3L});\n"
-                                  "long result = rt_array_pop(arr);\n"
+                                  "long result = rt_array_pop_long(arr);\n"
                                   "result;\n"
                                   "arr;\n"
                                   "int main() {\n"
@@ -1609,6 +1611,6 @@ void test_code_gen_array_main()
     //test_code_gen_array_clear();
     //test_code_gen_array_concat();
     //test_code_gen_array_length();
-    //test_code_gen_array_pop();
+    test_code_gen_array_pop();
     //test_code_gen_array_print();
 }

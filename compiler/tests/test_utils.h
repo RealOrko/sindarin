@@ -88,7 +88,19 @@ static const char *CODE_GEN_RUNTIME_HEADER =
     "#include <limits.h>\n\n"
     "/* Runtime string operations */\n"
     "extern char *rt_str_concat(char *, char *);\n"
-    "extern void rt_free_string(char *);\n\n"
+    "extern void rt_free_string(char *);\n"
+    "extern long rt_str_length(const char *);\n"
+    "extern char *rt_str_substring(const char *, long, long);\n"
+    "extern long rt_str_indexOf(const char *, const char *);\n"
+    "extern char **rt_str_split(const char *, const char *);\n"
+    "extern char *rt_str_trim(const char *);\n"
+    "extern char *rt_str_toUpper(const char *);\n"
+    "extern char *rt_str_toLower(const char *);\n"
+    "extern int rt_str_startsWith(const char *, const char *);\n"
+    "extern int rt_str_endsWith(const char *, const char *);\n"
+    "extern int rt_str_contains(const char *, const char *);\n"
+    "extern char *rt_str_replace(const char *, const char *, const char *);\n"
+    "extern long rt_str_charAt(const char *, long);\n\n"
     "/* Runtime print functions */\n"
     "extern void rt_print_long(long);\n"
     "extern void rt_print_double(double);\n"
@@ -233,7 +245,8 @@ static const char *CODE_GEN_RUNTIME_HEADER =
     "extern int rt_array_eq_double(double *, double *);\n"
     "extern int rt_array_eq_char(char *, char *);\n"
     "extern int rt_array_eq_bool(int *, int *);\n"
-    "extern int rt_array_eq_string(char **, char **);\n\n";
+    "extern int rt_array_eq_string(char **, char **);\n\n"
+    "/* Forward declarations */\n";
 
 /*
  * Helper to build expected code gen output.

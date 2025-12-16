@@ -11,8 +11,10 @@
 - 🎯 **Static typing** with explicit type annotations
 - 🏹 **Arrow syntax** (`=>`) for clean, readable code blocks
 - 📝 **String interpolation** with `$"Hello {name}!"`
-- 📦 **Arrays** with built-in operations (push, pop, slice, etc.)
-- 🔁 **Recursion** and standard control flow
+- 📦 **Arrays** with built-in operations (push, pop, slice, join, etc.)
+- 🔤 **String methods** (toUpper, toLower, trim, split, replace, etc.)
+- 🔁 **Control flow** with for, for-each, while, break, continue
+- ⚡ **Boolean operators** (`&&`, `||`, `!`)
 - 📚 **Module imports** for code organization
 
 ## 🚀 Quick Start
@@ -87,6 +89,18 @@ else =>
   // do something else
 ```
 
+#### Boolean Operators
+```sn
+if hasTicket && hasID =>
+  print("Entry allowed\n")
+
+if isAdmin || isModerator =>
+  print("Can moderate\n")
+
+if !isBlocked =>
+  print("Access granted\n")
+```
+
 #### While Loop
 ```sn
 var i: int = 0
@@ -98,6 +112,23 @@ while i < 10 =>
 #### For Loop
 ```sn
 for var i: int = 0; i < 10; i++ =>
+  print($"{i}\n")
+```
+
+#### For-Each Loop
+```sn
+var names: str[] = {"alice", "bob", "charlie"}
+for name in names =>
+  print($"Hello, {name}!\n")
+```
+
+#### Break and Continue
+```sn
+for var i: int = 0; i < 10; i++ =>
+  if i == 5 =>
+    break           // Exit loop early
+  if i % 2 == 0 =>
+    continue        // Skip to next iteration
   print($"{i}\n")
 ```
 
@@ -118,6 +149,40 @@ var flag: bool = true
 print($"Pi is {pi}, flag is {flag}\n")
 ```
 
+### 🔤 String Methods
+
+```sn
+var text: str = "  Hello World  "
+
+// Case conversion
+var upper: str = text.toUpper()     // "  HELLO WORLD  "
+var lower: str = text.toLower()     // "  hello world  "
+
+// Trimming
+var trimmed: str = text.trim()      // "Hello World"
+
+// Substring
+var sub: str = "Hello".substring(0, 3)  // "Hel"
+
+// Search
+var idx: int = "hello".indexOf("ll")    // 2
+var has: bool = "hello".contains("ell") // true
+var starts: bool = "hello".startsWith("he")  // true
+var ends: bool = "hello".endsWith("lo")      // true
+
+// Replace
+var replaced: str = "hello".replace("l", "L")  // "heLLo"
+
+// Split
+var parts: str[] = "a,b,c".split(",")   // {"a", "b", "c"}
+
+// Length
+var size: int = "hello".length          // 5
+
+// Method chaining
+var result: str = "  HELLO  ".trim().toLower()  // "hello"
+```
+
 ### 📦 Arrays
 
 #### Declaration & Initialization
@@ -127,47 +192,54 @@ var names: str[] = {"alice", "bob", "charlie"}
 var empty: int[] = {}
 ```
 
-#### Array Operations
-```sn
-// Length
-var size: int = len(numbers)
-
-// Access by index
-var first: int = numbers[0]
-
-// Push (append)
-numbers = push(6, numbers)
-
-// Pop (remove last)
-numbers = pop(numbers)
-
-// Reverse
-numbers = rev(numbers)
-
-// Remove at index
-numbers = rem(1, numbers)
-
-// Insert at index
-numbers = ins(99, 0, numbers)
-```
-
-#### Slicing 🔪
+#### Array Methods
 ```sn
 var arr: int[] = {1, 2, 3, 4, 5}
 
-var slice1: int[] = arr[1..3]   // {2, 3}
-var slice2: int[] = arr[2..]    // {3, 4, 5}
-var slice3: int[] = arr[..2]    // {1, 2}
+// Length
+var size: int = arr.length      // 5
+
+// Access (including negative indexing)
+var first: int = arr[0]         // 1
+var last: int = arr[-1]         // 5
+
+// Modify
+arr.push(6)                     // Append: {1, 2, 3, 4, 5, 6}
+var popped: int = arr.pop()     // Remove last, returns 6
+arr.insert(99, 2)               // Insert at index: {1, 2, 99, 3, 4, 5}
+arr.remove(2)                   // Remove at index: {1, 2, 3, 4, 5}
+arr.reverse()                   // In-place: {5, 4, 3, 2, 1}
+arr.clear()                     // Empty the array
+
+// Search
+var idx: int = arr.indexOf(3)   // 2
+var has: bool = arr.contains(3) // true
+
+// Copy and combine
+var copy: int[] = arr.clone()
+var combined: int[] = arr.concat({6, 7, 8})
+
+// Join (for string output)
+var nums: int[] = {1, 2, 3}
+var joined: str = nums.join(", ")  // "1, 2, 3"
 ```
 
-#### Method Syntax (Alternative)
+#### Slicing
 ```sn
-var arr: int[]
-arr.push(1)
-arr.push(2)
-var last: int = arr.pop()
-arr.clear()
-var size: int = arr.length
+var arr: int[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+// Range slicing
+var slice1: int[] = arr[2..5]   // {2, 3, 4}
+var slice2: int[] = arr[..3]    // {0, 1, 2}
+var slice3: int[] = arr[7..]    // {7, 8, 9}
+var copy: int[] = arr[..]       // Full copy
+
+// Step slicing
+var evens: int[] = arr[..:2]    // {0, 2, 4, 6, 8}
+var odds: int[] = arr[1..:2]    // {1, 3, 5, 7, 9}
+
+// Negative indexing in slices
+var lastTwo: int[] = arr[-2..]  // {8, 9}
 ```
 
 ### 📚 Imports
@@ -184,17 +256,6 @@ import "utils"
 
 fn main(): void =>
   helper()
-```
-
-### 🔤 Strings as Character Arrays
-
-Strings support array operations:
-
-```sn
-var text: str = "abc"
-text = push('d', text)      // "abcd"
-text = rev(text)            // "dcba"
-var sub: str = text[1..3]   // "cb"
 ```
 
 ## 🏗️ Architecture
@@ -254,10 +315,22 @@ fn is_prime(n: int): bool =>
     i = i + 1
   return true
 
+fn find_primes(limit: int): int[] =>
+  var primes: int[] = {}
+  for var n: int = 2; n <= limit; n++ =>
+    if is_prime(n) =>
+      primes.push(n)
+  return primes
+
 fn main(): void =>
-  for var num: int = 1; num <= 20; num++ =>
-    if is_prime(num) =>
-      print($"{num} is prime! 🎉\n")
+  var primes: int[] = find_primes(50)
+  print($"Found {primes.length} primes: {primes.join(\", \")}\n")
+
+  // Filter primes > 20
+  print("Primes greater than 20:\n")
+  for p in primes =>
+    if p > 20 =>
+      print($"  {p}\n")
 ```
 
 ## 🤝 Contributing

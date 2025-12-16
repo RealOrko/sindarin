@@ -10,91 +10,118 @@ static char error_buffer[128];
 
 Token lexer_scan_token(Lexer *lexer)
 {
-    DEBUG_VERBOSE("Line %d: Starting lexer_scan_token, at_line_start = %d", lexer->line, lexer->at_line_start);
+    DEBUG_VERBOSE("Line %d: Starting lexer_scan_token, at_line_start = %d, pending_indent = %d",
+                  lexer->line, lexer->at_line_start, lexer->pending_indent);
     if (lexer->at_line_start)
     {
-        int current_indent = 0;
-        const char *indent_start = lexer->current;
-        while (lexer_peek(lexer) == ' ' || lexer_peek(lexer) == '\t')
+        int current_indent;
+        const char *temp;
+
+        // Check if we have pending indent from previous multi-dedent
+        if (lexer->pending_indent >= 0)
         {
-            current_indent++;
-            lexer_advance(lexer);
-        }
-        DEBUG_VERBOSE("Line %d: Calculated indent = %d", lexer->line, current_indent);
-        const char *temp = lexer->current;
-        while (lexer_peek(lexer) == ' ' || lexer_peek(lexer) == '\t')
-        {
-            lexer_advance(lexer);
-        }
-        if (lexer_is_at_end(lexer) || lexer_peek(lexer) == '\n' ||
-            (lexer_peek(lexer) == '/' && lexer_peek_next(lexer) == '/'))
-        {
-            DEBUG_VERBOSE("Line %d: Ignoring line (whitespace or comment only)", lexer->line);
-            lexer->current = indent_start;
-            lexer->start = indent_start;
+            // Use saved values from previous DEDENT
+            current_indent = lexer->pending_indent;
+            temp = lexer->pending_current;
+            DEBUG_VERBOSE("Line %d: Using pending indent = %d", lexer->line, current_indent);
         }
         else
         {
-            lexer->current = temp;
-            lexer->start = lexer->current;
-            int top = lexer->indent_stack[lexer->indent_size - 1];
-            DEBUG_VERBOSE("Line %d: Top of indent_stack = %d, indent_size = %d",
-                          lexer->line, top, lexer->indent_size);
-            if (current_indent > top)
+            // Calculate indent normally
+            current_indent = 0;
+            const char *indent_start = lexer->current;
+            while (lexer_peek(lexer) == ' ' || lexer_peek(lexer) == '\t')
             {
-                if (lexer->indent_size >= lexer->indent_capacity)
-                {
-                    lexer->indent_capacity *= 2;
-                    lexer->indent_stack = arena_alloc(lexer->arena,
-                                                      lexer->indent_capacity * sizeof(int));
-                    if (lexer->indent_stack == NULL)
-                    {
-                        DEBUG_ERROR("Out of memory");
-                        exit(1);
-                    }
-                    DEBUG_VERBOSE("Line %d: Resized indent_stack, new capacity = %d",
-                                  lexer->line, lexer->indent_capacity);
-                }
-                lexer->indent_stack[lexer->indent_size++] = current_indent;
-                lexer->at_line_start = 0;
-                DEBUG_VERBOSE("Line %d: Pushing indent level %d, emitting INDENT",
-                              lexer->line, current_indent);
-                return lexer_make_token(lexer, TOKEN_INDENT);
+                current_indent++;
+                lexer_advance(lexer);
             }
-            else if (current_indent < top)
+            DEBUG_VERBOSE("Line %d: Calculated indent = %d", lexer->line, current_indent);
+            temp = lexer->current;
+            while (lexer_peek(lexer) == ' ' || lexer_peek(lexer) == '\t')
             {
-                lexer->indent_size--;
-                int new_top = lexer->indent_stack[lexer->indent_size - 1];
-                DEBUG_VERBOSE("Line %d: Popped indent level, new top = %d, indent_size = %d",
-                              lexer->line, new_top, lexer->indent_size);
-                if (current_indent == new_top)
+                lexer_advance(lexer);
+            }
+            if (lexer_is_at_end(lexer) || lexer_peek(lexer) == '\n' ||
+                (lexer_peek(lexer) == '/' && lexer_peek_next(lexer) == '/'))
+            {
+                DEBUG_VERBOSE("Line %d: Ignoring line (whitespace or comment only)", lexer->line);
+                lexer->current = indent_start;
+                lexer->start = indent_start;
+                goto skip_indent_processing;
+            }
+        }
+
+        lexer->current = temp;
+        lexer->start = lexer->current;
+        int top = lexer->indent_stack[lexer->indent_size - 1];
+        DEBUG_VERBOSE("Line %d: Top of indent_stack = %d, indent_size = %d",
+                      lexer->line, top, lexer->indent_size);
+        if (current_indent > top)
+        {
+            if (lexer->indent_size >= lexer->indent_capacity)
+            {
+                lexer->indent_capacity *= 2;
+                lexer->indent_stack = arena_alloc(lexer->arena,
+                                                  lexer->indent_capacity * sizeof(int));
+                if (lexer->indent_stack == NULL)
                 {
-                    lexer->at_line_start = 0;
-                    DEBUG_VERBOSE("Line %d: Emitting DEDENT, indentation matches stack",
-                                  lexer->line);
+                    DEBUG_ERROR("Out of memory");
+                    exit(1);
                 }
-                else if (current_indent > new_top)
-                {
-                    DEBUG_VERBOSE("Line %d: Error - Inconsistent indentation (current %d > new_top %d)",
-                                  lexer->line, current_indent, new_top);
-                    snprintf(error_buffer, sizeof(error_buffer), "Inconsistent indentation");
-                    return lexer_error_token(lexer, error_buffer);
-                }
-                else
-                {
-                    DEBUG_VERBOSE("Line %d: Emitting DEDENT, more dedents pending",
-                                  lexer->line);
-                }
-                return lexer_make_token(lexer, TOKEN_DEDENT);
+                DEBUG_VERBOSE("Line %d: Resized indent_stack, new capacity = %d",
+                              lexer->line, lexer->indent_capacity);
+            }
+            lexer->indent_stack[lexer->indent_size++] = current_indent;
+            lexer->at_line_start = 0;
+            lexer->pending_indent = -1;
+            lexer->pending_current = NULL;
+            DEBUG_VERBOSE("Line %d: Pushing indent level %d, emitting INDENT",
+                          lexer->line, current_indent);
+            return lexer_make_token(lexer, TOKEN_INDENT);
+        }
+        else if (current_indent < top)
+        {
+            lexer->indent_size--;
+            int new_top = lexer->indent_stack[lexer->indent_size - 1];
+            DEBUG_VERBOSE("Line %d: Popped indent level, new top = %d, indent_size = %d",
+                          lexer->line, new_top, lexer->indent_size);
+            if (current_indent == new_top)
+            {
+                lexer->at_line_start = 0;
+                lexer->pending_indent = -1;
+                lexer->pending_current = NULL;
+                DEBUG_VERBOSE("Line %d: Emitting DEDENT, indentation matches stack",
+                              lexer->line);
+            }
+            else if (current_indent > new_top)
+            {
+                lexer->pending_indent = -1;
+                lexer->pending_current = NULL;
+                DEBUG_VERBOSE("Line %d: Error - Inconsistent indentation (current %d > new_top %d)",
+                              lexer->line, current_indent, new_top);
+                snprintf(error_buffer, sizeof(error_buffer), "Inconsistent indentation");
+                return lexer_error_token(lexer, error_buffer);
             }
             else
             {
-                lexer->at_line_start = 0;
-                DEBUG_VERBOSE("Line %d: Indentation unchanged, proceeding to scan token",
-                              lexer->line);
+                // More DEDENTs pending - save current state
+                lexer->pending_indent = current_indent;
+                lexer->pending_current = temp;
+                DEBUG_VERBOSE("Line %d: Emitting DEDENT, more dedents pending (saved indent=%d)",
+                              lexer->line, current_indent);
             }
+            return lexer_make_token(lexer, TOKEN_DEDENT);
+        }
+        else
+        {
+            lexer->at_line_start = 0;
+            lexer->pending_indent = -1;
+            lexer->pending_current = NULL;
+            DEBUG_VERBOSE("Line %d: Indentation unchanged, proceeding to scan token",
+                          lexer->line);
         }
     }
+skip_indent_processing:
     DEBUG_VERBOSE("Line %d: Skipping whitespace within the line", lexer->line);
     lexer_skip_whitespace(lexer);
     lexer->start = lexer->current;

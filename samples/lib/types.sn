@@ -121,9 +121,9 @@ fn show_strings(): void =>
 
   // String comparisons
   print("\nString comparisons:\n")
-  print($"  \"abc\" == \"abc\": {\"abc\" == \"abc\"}\n")
-  print($"  \"abc\" != \"xyz\": {\"abc\" != \"xyz\"}\n")
-  print($"  \"abc\" < \"abd\": {\"abc\" < \"abd\"}\n\n")
+  print($"  \"abc\" == \"abc\": {"abc" == "abc"}\n")
+  print($"  \"abc\" != \"xyz\": {"abc" != "xyz"}\n")
+  print($"  \"abc\" < \"abd\": {"abc" < "abd"}\n\n")
 
 // ----------------------------------------------------------------------------
 // 4. Characters (char)

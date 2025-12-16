@@ -42,36 +42,43 @@ var slice4: int[] = arr[..]     // [10, 20, 30, 40, 50] (full copy)
 
 ---
 
-### Phase 2: Standalone Built-in Functions - ✅ COMPLETE
+### Phase 2: Standalone Built-in Functions - ✅ COMPLETE (Updated)
 
-Standalone functions for array manipulation are now available:
+**Note:** Most standalone functions have been **deprecated** in favor of method-style syntax. Only `len()` remains as a standalone function because it works on both arrays and strings.
 
 | Function | Syntax | Description |
 |----------|--------|-------------|
-| `len(arr)` | `var n: int = len(arr)` | Returns array length |
-| `rev(arr)` | `var r: int[] = rev(arr)` | Returns a new reversed array |
-| `push(elem, arr)` | `var a: int[] = push(5, arr)` | Returns new array with element appended |
-| `pop(arr)` | `var elem: int = pop(arr)` | Removes and returns last element |
-| `rem(index, arr)` | `var a: int[] = rem(2, arr)` | Returns new array with element at index removed |
-| `ins(elem, index, arr)` | `var a: int[] = ins(99, 0, arr)` | Returns new array with element inserted at index |
+| `len(arr)` | `var n: int = len(arr)` | Returns array/string length |
+
+For other operations, use method syntax:
+
+| Operation | Old Standalone | New Method Style |
+|-----------|---------------|------------------|
+| Reverse | ~~`rev(arr)`~~ | `arr.reverse()` |
+| Push | ~~`push(elem, arr)`~~ | `arr.push(elem)` |
+| Pop | ~~`pop(arr)`~~ | `arr.pop()` |
+| Remove | ~~`rem(index, arr)`~~ | `arr.remove(index)` |
+| Insert | ~~`ins(elem, index, arr)`~~ | `arr.insert(elem, index)` |
 
 **Example Usage:**
 ```sn
 var nums: int[] = {10, 20, 30, 40, 50}
-var length: int = len(nums)           // 5
-var reversed: int[] = rev(nums)       // [50, 40, 30, 20, 10]
-var extended: int[] = push(60, nums)  // [10, 20, 30, 40, 50, 60]
-var removed: int[] = rem(2, nums)     // [10, 20, 40, 50]
-var inserted: int[] = ins(99, 0, nums) // [99, 10, 20, 30, 40, 50]
+var length: int = len(nums)           // 5 (standalone - works for arrays and strings)
+
+// Method-style operations
+nums.push(60)                          // nums is now [10, 20, 30, 40, 50, 60]
+var last: int = nums.pop()             // Returns 60, nums is now [10, 20, 30, 40, 50]
+nums.reverse()                         // nums is now [50, 40, 30, 20, 10]
+nums.remove(2)                         // nums is now [50, 40, 20, 10]
+nums.insert(99, 0)                     // nums is now [99, 50, 40, 20, 10]
 ```
 
 **Files Modified:**
-- `parser.c` - Register built-in functions in symbol table
-- `type_checker_expr.c` - Type checking for built-in function calls
-- `runtime.c/h` - Added `rt_array_rev_*()`, `rt_array_rem_*()`, `rt_array_ins_*()`, `rt_array_push_copy_*()` functions
-- `code_gen.c` - Added extern declarations for new runtime functions
-- `code_gen_expr.c` - Generate runtime calls for built-in functions
-- `test_utils.h` - Updated expected header for code gen tests
+- `parser.c` - Register only `len()` as standalone built-in
+- `type_checker_expr.c` - Type checking for `len()` and method calls
+- `runtime.c/h` - Runtime implementations for all array operations
+- `code_gen.c` - Extern declarations for runtime functions
+- `code_gen_expr.c` - Generate runtime calls for method-style operations
 
 ---
 
@@ -133,7 +140,7 @@ arr.remove(2)                       // arr = [5, 4, 3, 2, 1]
 | **Array slicing (`arr[1..3]`)** | ✅ Complete | Phase 1 |
 | **Half-open slices (`arr[2..]`, `arr[..3]`)** | ✅ Complete | Phase 1 |
 | **Full copy slice (`arr[..]`)** | ✅ Complete | Phase 1 |
-| **Standalone functions (`len`, `rev`, `push`, `pop`, `rem`, `ins`)** | ✅ Complete | Phase 2 |
+| **Standalone function (`len` only)** | ✅ Complete | Phase 2 |
 | **`.indexOf()` method** | ✅ Complete | Phase 3 |
 | **`.contains()` method** | ✅ Complete | Phase 3 |
 | **`.clone()` method** | ✅ Complete | Phase 3 |
@@ -315,39 +322,15 @@ var reversed: int[] = arr[4..0:-1]  // {5, 4, 3, 2, 1}
 
 ### 4. Built-in Functions (Standalone)
 
-These work as function calls with the array as an argument:
+Only `len()` is available as a standalone function. It works on both arrays and strings:
 
 ```sn
-// Length
-var size: int = len(arr)
-
-// Push (returns new array with element appended)
-var extended: int[] = push(6, arr)
-
-// Pop (returns new array with last element removed)
-var shorter: int[] = pop(arr)
-
-// Reverse (returns new reversed array)
-var backwards: int[] = rev(arr)
-
-// Remove at index (returns new array)
-var without: int[] = rem(2, arr)
-
-// Insert at index (returns new array)
-var with_insert: int[] = ins(99, 0, arr)
-
-// Concatenation
-var combined: int[] = concat(arr1, arr2)
-
-// Find index of element (-1 if not found)
-var idx: int = find(3, arr)
-
-// Contains check
-var has_it: bool = contains(3, arr)
-
-// Sort (returns new sorted array)
-var sorted: int[] = sort(arr)
+// Length (works on arrays and strings)
+var arr_size: int = len(arr)
+var str_size: int = len("hello")
 ```
+
+All other array operations use method syntax (see section 5 below).
 
 ### 5. Method Syntax (Object-Oriented Style)
 
@@ -396,12 +379,12 @@ for i in 0..10 =>
 
 ### 7. String as Character Array
 
-Strings should support array operations seamlessly:
+Strings support array-like operations:
 
 ```sn
 var text: str = "hello"
 
-// Length
+// Length (standalone function works for both arrays and strings)
 var size: int = len(text)  // 5
 
 // Character access
@@ -409,14 +392,9 @@ var first: char = text[0]  // 'h'
 
 // Slicing
 var sub: str = text[1..4]  // "ell"
-
-// Push/pop for strings
-text = push('!', text)     // "hello!"
-text = pop(text)           // "hello"
-
-// Reverse
-var rev: str = rev(text)   // "olleh"
 ```
+
+Note: String mutation methods (push, pop, reverse) are not currently supported. Use string concatenation for building strings.
 
 ---
 
@@ -712,9 +690,10 @@ Strings are represented as `char*` with the same metadata header as arrays. This
    - Default step is 1
 
 5. **Mutability**
-   - **Decision:** Mixed approach
-   - Methods (`.push()`, `.reverse()`) mutate in place
-   - Functions (`push()`, `rev()`) return new arrays
+   - **Decision:** Method-style only (standalone functions deprecated)
+   - Methods (`.push()`, `.reverse()`, `.remove()`, `.insert()`) mutate in place
+   - Only `len()` remains as standalone (read-only, works on arrays and strings)
+   - For non-mutating copies, use `.clone()` first
 
 ---
 

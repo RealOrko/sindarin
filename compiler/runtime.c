@@ -547,17 +547,28 @@ char *rt_array_pop_string(char **arr) {
     return arr[meta->size];
 }
 
-/* Concat functions - append all elements from src to dest, returns dest */
+/* Concat functions - return a NEW array containing elements from both arrays (non-mutating) */
 #define DEFINE_ARRAY_CONCAT(suffix, elem_type)                                 \
-elem_type *rt_array_concat_##suffix(elem_type *dest, elem_type *src) {         \
-    if (src == NULL) {                                                         \
-        return dest;                                                           \
+elem_type *rt_array_concat_##suffix(elem_type *arr1, elem_type *arr2) {        \
+    size_t len1 = arr1 ? rt_array_length(arr1) : 0;                            \
+    size_t len2 = arr2 ? rt_array_length(arr2) : 0;                            \
+    size_t total = len1 + len2;                                                \
+    size_t capacity = total > 4 ? total : 4;                                   \
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                        \
+        fprintf(stderr, "rt_array_concat_" #suffix ": allocation failed\n");   \
+        exit(1);                                                               \
     }                                                                          \
-    size_t src_len = rt_array_length(src);                                     \
-    for (size_t i = 0; i < src_len; i++) {                                     \
-        dest = rt_array_push_##suffix(dest, src[i]);                           \
+    meta->size = total;                                                        \
+    meta->capacity = capacity;                                                 \
+    elem_type *result = (elem_type *)(meta + 1);                               \
+    for (size_t i = 0; i < len1; i++) {                                        \
+        result[i] = arr1[i];                                                   \
     }                                                                          \
-    return dest;                                                               \
+    for (size_t i = 0; i < len2; i++) {                                        \
+        result[len1 + i] = arr2[i];                                            \
+    }                                                                          \
+    return result;                                                             \
 }
 
 DEFINE_ARRAY_CONCAT(long, long)
@@ -565,15 +576,26 @@ DEFINE_ARRAY_CONCAT(double, double)
 DEFINE_ARRAY_CONCAT(char, char)
 DEFINE_ARRAY_CONCAT(bool, int)
 
-char **rt_array_concat_string(char **dest, char **src) {
-    if (src == NULL) {
-        return dest;
+char **rt_array_concat_string(char **arr1, char **arr2) {
+    size_t len1 = arr1 ? rt_array_length(arr1) : 0;
+    size_t len2 = arr2 ? rt_array_length(arr2) : 0;
+    size_t total = len1 + len2;
+    size_t capacity = total > 4 ? total : 4;
+    ArrayMetadata *meta = malloc(sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_concat_string: allocation failed\n");
+        exit(1);
     }
-    size_t src_len = rt_array_length(src);
-    for (size_t i = 0; i < src_len; i++) {
-        dest = rt_array_push_string(dest, src[i]);
+    meta->size = total;
+    meta->capacity = capacity;
+    char **result = (char **)(meta + 1);
+    for (size_t i = 0; i < len1; i++) {
+        result[i] = arr1[i] ? strdup(arr1[i]) : NULL;
     }
-    return dest;
+    for (size_t i = 0; i < len2; i++) {
+        result[len1 + i] = arr2[i] ? strdup(arr2[i]) : NULL;
+    }
+    return result;
 }
 
 /* Free array functions */
@@ -1276,4 +1298,246 @@ int rt_array_eq_string(char **a, char **b) {
         if (strcmp(a[i], b[i]) != 0) return 0;
     }
     return 1;
+}
+
+/* ============================================================
+   String Manipulation Functions
+   ============================================================ */
+
+/* Get length of string */
+long rt_str_length(const char *str) {
+    if (str == NULL) return 0;
+    return (long)strlen(str);
+}
+
+/* Get substring from start to end (exclusive) */
+char *rt_str_substring(const char *str, long start, long end) {
+    if (str == NULL) return strdup("");
+    long len = (long)strlen(str);
+
+    /* Handle negative indices */
+    if (start < 0) start = len + start;
+    if (end < 0) end = len + end;
+
+    /* Clamp to valid range */
+    if (start < 0) start = 0;
+    if (end > len) end = len;
+    if (start >= end || start >= len) return strdup("");
+
+    long sub_len = end - start;
+    char *result = malloc(sub_len + 1);
+    if (result == NULL) return strdup("");
+
+    memcpy(result, str + start, sub_len);
+    result[sub_len] = '\0';
+    return result;
+}
+
+/* Find index of substring, returns -1 if not found */
+long rt_str_indexOf(const char *str, const char *search) {
+    if (str == NULL || search == NULL) return -1;
+    const char *pos = strstr(str, search);
+    if (pos == NULL) return -1;
+    return (long)(pos - str);
+}
+
+/* Split string by delimiter, returns array of strings */
+char **rt_str_split(const char *str, const char *delimiter) {
+    if (str == NULL || delimiter == NULL) {
+        return rt_array_create_string(0, NULL);
+    }
+
+    size_t delim_len = strlen(delimiter);
+    if (delim_len == 0) {
+        /* Empty delimiter: split into individual characters */
+        size_t len = strlen(str);
+        const char **parts = malloc(sizeof(char *) * len);
+        if (parts == NULL) return rt_array_create_string(0, NULL);
+
+        for (size_t i = 0; i < len; i++) {
+            char *ch = malloc(2);
+            ch[0] = str[i];
+            ch[1] = '\0';
+            parts[i] = ch;
+        }
+
+        char **result = rt_array_create_string(len, parts);
+        /* Free the original strings since rt_array_create_string made copies */
+        for (size_t i = 0; i < len; i++) {
+            free((void *)parts[i]);
+        }
+        free(parts);
+        return result;
+    }
+
+    /* Count the number of parts */
+    size_t count = 1;
+    const char *p = str;
+    while ((p = strstr(p, delimiter)) != NULL) {
+        count++;
+        p += delim_len;
+    }
+
+    /* Allocate array for parts */
+    const char **parts = malloc(sizeof(char *) * count);
+    if (parts == NULL) return rt_array_create_string(0, NULL);
+
+    /* Split the string */
+    const char *start = str;
+    size_t idx = 0;
+    p = str;
+    while ((p = strstr(p, delimiter)) != NULL) {
+        size_t part_len = p - start;
+        char *part = malloc(part_len + 1);
+        memcpy(part, start, part_len);
+        part[part_len] = '\0';
+        parts[idx++] = part;
+        p += delim_len;
+        start = p;
+    }
+    /* Add final part */
+    parts[idx] = strdup(start);
+
+    char **result = rt_array_create_string(count, parts);
+    /* Free the original strings since rt_array_create_string made copies */
+    for (size_t i = 0; i < count; i++) {
+        free((void *)parts[i]);
+    }
+    free(parts);
+    return result;
+}
+
+/* Trim whitespace from both ends */
+char *rt_str_trim(const char *str) {
+    if (str == NULL) return strdup("");
+
+    /* Skip leading whitespace */
+    while (*str && (*str == ' ' || *str == '\t' || *str == '\n' || *str == '\r')) {
+        str++;
+    }
+
+    if (*str == '\0') return strdup("");
+
+    /* Find end, skipping trailing whitespace */
+    const char *end = str + strlen(str) - 1;
+    while (end > str && (*end == ' ' || *end == '\t' || *end == '\n' || *end == '\r')) {
+        end--;
+    }
+
+    size_t len = end - str + 1;
+    char *result = malloc(len + 1);
+    if (result == NULL) return strdup("");
+
+    memcpy(result, str, len);
+    result[len] = '\0';
+    return result;
+}
+
+/* Convert to uppercase */
+char *rt_str_toUpper(const char *str) {
+    if (str == NULL) return strdup("");
+
+    char *result = strdup(str);
+    if (result == NULL) return strdup("");
+
+    for (char *p = result; *p; p++) {
+        if (*p >= 'a' && *p <= 'z') {
+            *p = *p - 'a' + 'A';
+        }
+    }
+    return result;
+}
+
+/* Convert to lowercase */
+char *rt_str_toLower(const char *str) {
+    if (str == NULL) return strdup("");
+
+    char *result = strdup(str);
+    if (result == NULL) return strdup("");
+
+    for (char *p = result; *p; p++) {
+        if (*p >= 'A' && *p <= 'Z') {
+            *p = *p - 'A' + 'a';
+        }
+    }
+    return result;
+}
+
+/* Check if string starts with prefix */
+int rt_str_startsWith(const char *str, const char *prefix) {
+    if (str == NULL || prefix == NULL) return 0;
+    size_t prefix_len = strlen(prefix);
+    if (strlen(str) < prefix_len) return 0;
+    return strncmp(str, prefix, prefix_len) == 0;
+}
+
+/* Check if string ends with suffix */
+int rt_str_endsWith(const char *str, const char *suffix) {
+    if (str == NULL || suffix == NULL) return 0;
+    size_t str_len = strlen(str);
+    size_t suffix_len = strlen(suffix);
+    if (str_len < suffix_len) return 0;
+    return strcmp(str + str_len - suffix_len, suffix) == 0;
+}
+
+/* Check if string contains substring */
+int rt_str_contains(const char *str, const char *search) {
+    if (str == NULL || search == NULL) return 0;
+    return strstr(str, search) != NULL;
+}
+
+/* Replace all occurrences of old with new */
+char *rt_str_replace(const char *str, const char *old, const char *new_str) {
+    if (str == NULL || old == NULL || new_str == NULL) return strdup(str ? str : "");
+
+    size_t old_len = strlen(old);
+    if (old_len == 0) return strdup(str);
+
+    size_t new_len = strlen(new_str);
+
+    /* Count occurrences */
+    size_t count = 0;
+    const char *p = str;
+    while ((p = strstr(p, old)) != NULL) {
+        count++;
+        p += old_len;
+    }
+
+    if (count == 0) return strdup(str);
+
+    /* Calculate new length */
+    size_t str_len = strlen(str);
+    size_t result_len = str_len + count * (new_len - old_len);
+
+    char *result = malloc(result_len + 1);
+    if (result == NULL) return strdup(str);
+
+    /* Build result */
+    char *dst = result;
+    p = str;
+    const char *found;
+    while ((found = strstr(p, old)) != NULL) {
+        size_t prefix_len = found - p;
+        memcpy(dst, p, prefix_len);
+        dst += prefix_len;
+        memcpy(dst, new_str, new_len);
+        dst += new_len;
+        p = found + old_len;
+    }
+    /* Copy remainder */
+    strcpy(dst, p);
+
+    return result;
+}
+
+/* Get character at index (returns char cast to long for consistency) */
+long rt_str_charAt(const char *str, long index) {
+    if (str == NULL) return 0;
+    long len = (long)strlen(str);
+
+    /* Handle negative index */
+    if (index < 0) index = len + index;
+
+    if (index < 0 || index >= len) return 0;
+    return (long)(unsigned char)str[index];
 }

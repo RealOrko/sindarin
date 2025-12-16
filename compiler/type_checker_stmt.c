@@ -14,10 +14,38 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         init_type = type_check_expr(stmt->as.var_decl.initializer, table);
         if (init_type == NULL)
         {
-            symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
+            // If we have a declared type, use it; otherwise use NIL as placeholder
+            Type *fallback = decl_type ? decl_type : ast_create_primitive_type(table->arena, TYPE_NIL);
+            symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, fallback, SYMBOL_LOCAL);
             return;
         }
+        // For empty array literals, adopt the declared type for code generation
+        if (decl_type && init_type->kind == TYPE_ARRAY &&
+            init_type->as.array.element_type->kind == TYPE_NIL &&
+            decl_type->kind == TYPE_ARRAY)
+        {
+            // Update the expression's type to match the declared type
+            stmt->as.var_decl.initializer->expr_type = decl_type;
+            init_type = decl_type;
+        }
     }
+
+    // Type inference: if no declared type, infer from initializer
+    if (decl_type == NULL)
+    {
+        if (init_type == NULL)
+        {
+            type_error(&stmt->as.var_decl.name, "Cannot infer type without initializer");
+            decl_type = ast_create_primitive_type(table->arena, TYPE_NIL);
+        }
+        else
+        {
+            decl_type = init_type;
+            // Update the statement's type for code generation
+            stmt->as.var_decl.type = decl_type;
+        }
+    }
+
     symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
     if (init_type && !ast_type_equals(init_type, decl_type))
     {
@@ -208,6 +236,14 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
         break;
     case STMT_FOR_EACH:
         type_check_for_each(stmt, table, return_type);
+        break;
+    case STMT_BREAK:
+        DEBUG_VERBOSE("Type checking break statement");
+        // TODO: Verify break is inside a loop
+        break;
+    case STMT_CONTINUE:
+        DEBUG_VERBOSE("Type checking continue statement");
+        // TODO: Verify continue is inside a loop
         break;
     case STMT_IMPORT:
         DEBUG_VERBOSE("Skipping type check for import statement");

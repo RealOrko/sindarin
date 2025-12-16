@@ -7,7 +7,7 @@
 //   1. While loops
 //   2. For loops (C-style)
 //   3. For-each loops (array iteration)
-//   4. Loop control (early return)
+//   4. Break and continue
 //   5. Nested loops
 // ============================================================================
 
@@ -18,6 +18,7 @@ fn demo_loops(): void =>
   show_while_loops()
   show_for_loops()
   show_foreach_loops()
+  show_break_continue()
   show_nested_loops()
 
   print("\n=== Loop Demo Complete ===\n")
@@ -104,10 +105,50 @@ fn show_foreach_loops(): void =>
   print($"  Total = {total}\n\n")
 
 // ----------------------------------------------------------------------------
-// 4. Nested Loops
+// 4. Break and Continue
+// ----------------------------------------------------------------------------
+fn show_break_continue(): void =>
+  print("--- 4. Break and Continue ---\n")
+
+  // Break - exit loop early
+  print("Break at 5:\n")
+  for var i: int = 1; i <= 10; i++ =>
+    if i == 5 =>
+      print("  (breaking)\n")
+      break
+    print($"  i = {i}\n")
+
+  // Continue - skip to next iteration
+  print("\nContinue (skip evens):\n")
+  for var j: int = 1; j <= 6; j++ =>
+    if j % 2 == 0 =>
+      continue
+    print($"  j = {j}\n")
+
+  // Break in while loop
+  print("\nBreak in while (find first > 50 divisible by 7):\n")
+  var n: int = 50
+  while n < 100 =>
+    n++
+    if n % 7 == 0 =>
+      print($"  Found: {n}\n")
+      break
+
+  // Continue in for-each
+  print("\nContinue in for-each (skip 'banana'):\n")
+  var fruits: str[] = {"apple", "banana", "cherry", "date"}
+  for fruit in fruits =>
+    if fruit == "banana" =>
+      continue
+    print($"  {fruit}\n")
+
+  print("\n")
+
+// ----------------------------------------------------------------------------
+// 5. Nested Loops
 // ----------------------------------------------------------------------------
 fn show_nested_loops(): void =>
-  print("--- 4. Nested Loops ---\n")
+  print("--- 5. Nested Loops ---\n")
 
   // Multiplication table
   print("Multiplication table (1-3):\n")

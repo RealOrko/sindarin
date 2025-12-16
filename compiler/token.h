@@ -25,6 +25,8 @@ typedef enum
     TOKEN_ELSE,
     TOKEN_FOR,
     TOKEN_WHILE,
+    TOKEN_BREAK,
+    TOKEN_CONTINUE,
     TOKEN_IN,
     TOKEN_IMPORT,
     TOKEN_NIL,

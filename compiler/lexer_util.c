@@ -16,6 +16,8 @@ void lexer_init(Arena *arena, Lexer *lexer, const char *source, const char *file
     lexer->indent_size = 1;
     lexer->indent_stack[0] = 0;
     lexer->at_line_start = 1;
+    lexer->pending_indent = -1;
+    lexer->pending_current = NULL;
     lexer->arena = arena;
 }
 

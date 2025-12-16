@@ -24,10 +24,8 @@ Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_toke
 
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token)
 {
-    if (type == NULL)
-    {
-        return NULL;
-    }
+    // type can be NULL for type inference (will be set by type checker)
+    // But if both type and initializer are NULL, that's an error caught by parser
     Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
     if (stmt == NULL)
     {
@@ -235,6 +233,34 @@ Stmt *ast_create_for_each_stmt(Arena *arena, Token var_name, Expr *iterable, Stm
     stmt->as.for_each_stmt.var_name.filename = var_name.filename;
     stmt->as.for_each_stmt.iterable = iterable;
     stmt->as.for_each_stmt.body = body;
+    stmt->token = ast_dup_token(arena, loc_token);
+    return stmt;
+}
+
+Stmt *ast_create_break_stmt(Arena *arena, const Token *loc_token)
+{
+    Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
+    if (stmt == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(stmt, 0, sizeof(Stmt));
+    stmt->type = STMT_BREAK;
+    stmt->token = ast_dup_token(arena, loc_token);
+    return stmt;
+}
+
+Stmt *ast_create_continue_stmt(Arena *arena, const Token *loc_token)
+{
+    Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
+    if (stmt == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(stmt, 0, sizeof(Stmt));
+    stmt->type = STMT_CONTINUE;
     stmt->token = ast_dup_token(arena, loc_token);
     return stmt;
 }

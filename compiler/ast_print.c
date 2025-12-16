@@ -124,6 +124,14 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
                              stmt->as.import.module_name.length,
                              stmt->as.import.module_name.start);
         break;
+
+    case STMT_BREAK:
+        DEBUG_VERBOSE_INDENT(indent_level, "Break");
+        break;
+
+    case STMT_CONTINUE:
+        DEBUG_VERBOSE_INDENT(indent_level, "Continue");
+        break;
     }
 }
 

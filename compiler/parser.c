@@ -39,7 +39,7 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     Type *to_string_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_STRING), builtin_params, 1);
     symbol_table_add_symbol_with_kind(parser->symbol_table, to_string_token, to_string_type, SYMBOL_GLOBAL);
 
-    // Array built-in: len(arr) -> int
+    // Array built-in: len(arr) -> int (works on arrays and strings)
     Token len_token;
     len_token.start = arena_strdup(arena, "len");
     len_token.length = 3;
@@ -49,65 +49,8 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     Type *len_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_INT), builtin_params, 1);
     symbol_table_add_symbol_with_kind(parser->symbol_table, len_token, len_type, SYMBOL_GLOBAL);
 
-    // Array built-in: push(elem, arr) -> arr (2 params)
-    Token push_token;
-    push_token.start = arena_strdup(arena, "push");
-    push_token.length = 4;
-    push_token.type = TOKEN_IDENTIFIER;
-    push_token.line = 0;
-    push_token.filename = arena_strdup(arena, "<built-in>");
-    Type **push_params = arena_alloc(arena, 2 * sizeof(Type *));
-    push_params[0] = any_type;  // element
-    push_params[1] = any_type;  // array
-    Type *push_type = ast_create_function_type(arena, any_type, push_params, 2);
-    symbol_table_add_symbol_with_kind(parser->symbol_table, push_token, push_type, SYMBOL_GLOBAL);
-
-    // Array built-in: pop(arr) -> elem
-    Token pop_token;
-    pop_token.start = arena_strdup(arena, "pop");
-    pop_token.length = 3;
-    pop_token.type = TOKEN_IDENTIFIER;
-    pop_token.line = 0;
-    pop_token.filename = arena_strdup(arena, "<built-in>");
-    Type *pop_type = ast_create_function_type(arena, any_type, builtin_params, 1);
-    symbol_table_add_symbol_with_kind(parser->symbol_table, pop_token, pop_type, SYMBOL_GLOBAL);
-
-    // Array built-in: rev(arr) -> arr (reverse)
-    Token rev_token;
-    rev_token.start = arena_strdup(arena, "rev");
-    rev_token.length = 3;
-    rev_token.type = TOKEN_IDENTIFIER;
-    rev_token.line = 0;
-    rev_token.filename = arena_strdup(arena, "<built-in>");
-    Type *rev_type = ast_create_function_type(arena, any_type, builtin_params, 1);
-    symbol_table_add_symbol_with_kind(parser->symbol_table, rev_token, rev_type, SYMBOL_GLOBAL);
-
-    // Array built-in: rem(index, arr) -> arr (remove at index)
-    Token rem_token;
-    rem_token.start = arena_strdup(arena, "rem");
-    rem_token.length = 3;
-    rem_token.type = TOKEN_IDENTIFIER;
-    rem_token.line = 0;
-    rem_token.filename = arena_strdup(arena, "<built-in>");
-    Type **rem_params = arena_alloc(arena, 2 * sizeof(Type *));
-    rem_params[0] = ast_create_primitive_type(arena, TYPE_INT);  // index
-    rem_params[1] = any_type;  // array
-    Type *rem_type = ast_create_function_type(arena, any_type, rem_params, 2);
-    symbol_table_add_symbol_with_kind(parser->symbol_table, rem_token, rem_type, SYMBOL_GLOBAL);
-
-    // Array built-in: ins(elem, index, arr) -> arr (insert at index)
-    Token ins_token;
-    ins_token.start = arena_strdup(arena, "ins");
-    ins_token.length = 3;
-    ins_token.type = TOKEN_IDENTIFIER;
-    ins_token.line = 0;
-    ins_token.filename = arena_strdup(arena, "<built-in>");
-    Type **ins_params = arena_alloc(arena, 3 * sizeof(Type *));
-    ins_params[0] = any_type;  // element
-    ins_params[1] = ast_create_primitive_type(arena, TYPE_INT);  // index
-    ins_params[2] = any_type;  // array
-    Type *ins_type = ast_create_function_type(arena, any_type, ins_params, 3);
-    symbol_table_add_symbol_with_kind(parser->symbol_table, ins_token, ins_type, SYMBOL_GLOBAL);
+    // Note: Other array operations (push, pop, rev, rem, ins) are now method-style only:
+    //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
 
     parser->previous.type = TOKEN_ERROR;
     parser->previous.start = NULL;

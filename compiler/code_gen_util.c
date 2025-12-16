@@ -137,7 +137,16 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "void *");
     case TYPE_ARRAY:
     {
-        const char *element_c_type = get_c_type(arena, type->as.array.element_type);
+        // For bool arrays, use int* since runtime stores bools as int internally
+        const char *element_c_type;
+        if (type->as.array.element_type->kind == TYPE_BOOL)
+        {
+            element_c_type = "int";
+        }
+        else
+        {
+            element_c_type = get_c_type(arena, type->as.array.element_type);
+        }
         if (type->as.array.element_type->kind == TYPE_ARRAY)
         {
             size_t len = strlen(element_c_type) + 10;

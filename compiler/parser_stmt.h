@@ -3,6 +3,7 @@
 
 #include "parser.h"
 #include "ast.h"
+#include "ast_stmt.h"
 
 /* Block/indentation helpers */
 int is_at_function_boundary(Parser *parser);

@@ -116,6 +116,24 @@ Stmt *parser_statement(Parser *parser)
     {
         return parser_for_statement(parser);
     }
+    if (parser_match(parser, TOKEN_BREAK))
+    {
+        Token keyword = parser->previous;
+        if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_match(parser, TOKEN_NEWLINE))
+        {
+            parser_consume(parser, TOKEN_NEWLINE, "Expected newline after 'break'");
+        }
+        return ast_create_break_stmt(parser->arena, &keyword);
+    }
+    if (parser_match(parser, TOKEN_CONTINUE))
+    {
+        Token keyword = parser->previous;
+        if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_match(parser, TOKEN_NEWLINE))
+        {
+            parser_consume(parser, TOKEN_NEWLINE, "Expected newline after 'continue'");
+        }
+        return ast_create_continue_stmt(parser->arena, &keyword);
+    }
     if (parser_match(parser, TOKEN_RETURN))
     {
         return parser_return_statement(parser);
@@ -184,13 +202,23 @@ Stmt *parser_var_declaration(Parser *parser)
         }
     }
 
-    parser_consume(parser, TOKEN_COLON, "Expected ':' after variable name");
-    Type *type = parser_type(parser);
+    // Type annotation is optional if there's an initializer (type inference)
+    Type *type = NULL;
+    if (parser_match(parser, TOKEN_COLON))
+    {
+        type = parser_type(parser);
+    }
 
     Expr *initializer = NULL;
     if (parser_match(parser, TOKEN_EQUAL))
     {
         initializer = parser_expression(parser);
+    }
+
+    // Must have either type annotation or initializer (or both)
+    if (type == NULL && initializer == NULL)
+    {
+        parser_error_at_current(parser, "Variable declaration requires type annotation or initializer");
     }
 
     if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_match(parser, TOKEN_NEWLINE))
@@ -378,7 +406,8 @@ Stmt *parser_if_statement(Parser *parser)
                 exit(1);
             }
             block_stmts[0] = then_branch;
-            block_stmts[1] = parser_indented_block(parser);
+            Stmt *indented = parser_indented_block(parser);
+            block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
             then_branch = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
         }
     }
@@ -405,7 +434,8 @@ Stmt *parser_if_statement(Parser *parser)
                     exit(1);
                 }
                 block_stmts[0] = else_branch;
-                block_stmts[1] = parser_indented_block(parser);
+                Stmt *indented = parser_indented_block(parser);
+                block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
                 else_branch = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
             }
         }
@@ -438,7 +468,8 @@ Stmt *parser_while_statement(Parser *parser)
                 exit(1);
             }
             block_stmts[0] = body;
-            block_stmts[1] = parser_indented_block(parser);
+            Stmt *indented = parser_indented_block(parser);
+            block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
             body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
         }
     }
@@ -489,7 +520,8 @@ Stmt *parser_for_statement(Parser *parser)
                         exit(1);
                     }
                     block_stmts[0] = body;
-                    block_stmts[1] = parser_indented_block(parser);
+                    Stmt *indented = parser_indented_block(parser);
+                    block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
                     body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
                 }
             }
@@ -558,7 +590,8 @@ Stmt *parser_for_statement(Parser *parser)
                         exit(1);
                     }
                     block_stmts[0] = body;
-                    block_stmts[1] = parser_indented_block(parser);
+                    Stmt *indented = parser_indented_block(parser);
+                    block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
                     body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
                 }
             }
@@ -644,7 +677,8 @@ Stmt *parser_for_statement(Parser *parser)
                 exit(1);
             }
             block_stmts[0] = body;
-            block_stmts[1] = parser_indented_block(parser);
+            Stmt *indented = parser_indented_block(parser);
+            block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
             body = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
         }
     }

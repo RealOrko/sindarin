@@ -1,7 +1,7 @@
 // ============================================================================
 // conditionals.sn - Conditional Statements in Sindarin
 // ============================================================================
-// Demonstrates: if, if-else, comparison operators, NOT operator
+// Demonstrates: if, if-else, comparison operators, NOT, AND (&&), OR (||)
 // ============================================================================
 
 // Entry point for conditional demos
@@ -36,7 +36,39 @@ fn demo_conditionals(): void =>
   if !flag =>
     print("!false = true\n")
 
-  // 4. Comparison operators
+  // 4. AND (&&) and OR (||) operators
+  print("\n--- AND (&&) and OR (||) ---\n")
+  var hasTicket: bool = true
+  var hasID: bool = true
+  var isVIP: bool = false
+
+  // Both must be true
+  if hasTicket && hasID =>
+    print("Entry allowed (has ticket AND ID)\n")
+
+  // At least one must be true
+  if hasTicket || isVIP =>
+    print("Can enter (has ticket OR is VIP)\n")
+
+  // Combining operators
+  var temperature: int = 25
+  var humidity: int = 60
+  if temperature > 20 && temperature < 30 =>
+    print($"Temperature {temperature}C is comfortable\n")
+
+  if temperature < 10 || temperature > 35 =>
+    print("Extreme temperature!\n")
+  else =>
+    print("Temperature is moderate\n")
+
+  // Complex condition
+  var loggedIn: bool = true
+  var isAdmin: bool = false
+  var isModerator: bool = true
+  if loggedIn && (isAdmin || isModerator) =>
+    print("User can moderate content\n")
+
+  // 5. Comparison operators
   print("\n--- Comparisons ---\n")
   var a: int = 10
   var b: int = 20
@@ -46,7 +78,7 @@ fn demo_conditionals(): void =>
   print($"a < b: {a < b}\n")
   print($"a > b: {a > b}\n")
 
-  // 5. Even/odd check (inline)
+  // 6. Even/odd check (inline)
   print("\n--- Even/Odd Check ---\n")
   var n: int = 7
   if n % 2 == 0 =>
@@ -60,7 +92,7 @@ fn demo_conditionals(): void =>
   else =>
     print($"{n} is odd\n")
 
-  // 6. Max calculation (inline)
+  // 7. Max calculation (inline)
   print("\n--- Max Example ---\n")
   var p: int = 5
   var q: int = 12

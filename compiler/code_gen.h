@@ -13,7 +13,8 @@ typedef struct {
     FILE *output;
     char *current_function;
     Type *current_return_type;
-    int temp_count;  // Add this line
+    int temp_count;
+    char *for_continue_label;  // Label to jump to for continue in for loops
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);

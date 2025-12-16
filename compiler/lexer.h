@@ -14,6 +14,8 @@ typedef struct
     int indent_size;
     int indent_capacity;
     int at_line_start;
+    int pending_indent;           // Stored indentation level during multi-dedent
+    const char *pending_current;  // Stored position after whitespace during multi-dedent
     Arena *arena;
 } Lexer;
 

@@ -168,6 +168,8 @@ typedef enum
     STMT_WHILE,
     STMT_FOR,
     STMT_FOR_EACH,
+    STMT_BREAK,
+    STMT_CONTINUE,
     STMT_IMPORT
 } StmtType;
 

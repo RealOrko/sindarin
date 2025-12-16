@@ -239,14 +239,29 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     {
         cond_str = code_gen_expression(gen, stmt->condition);
     }
+
+    // Save old continue label and create new one for this for loop
+    char *old_continue_label = gen->for_continue_label;
+    int label_num = code_gen_new_label(gen);
+    char *continue_label = arena_sprintf(gen->arena, "__for_continue_%d__", label_num);
+    gen->for_continue_label = continue_label;
+
     indented_fprintf(gen, indent + 1, "while (%s) {\n", cond_str ? cond_str : "1");
     code_gen_statement(gen, stmt->body, indent + 2);
+
+    // Generate continue label before increment
+    indented_fprintf(gen, indent + 1, "%s:;\n", continue_label);
+
     if (stmt->increment)
     {
         char *inc_str = code_gen_expression(gen, stmt->increment);
         indented_fprintf(gen, indent + 2, "%s;\n", inc_str);
     }
     indented_fprintf(gen, indent + 1, "}\n");
+
+    // Restore old continue label
+    gen->for_continue_label = old_continue_label;
+
     code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
     indented_fprintf(gen, indent, "}\n");
     symbol_table_pop_scope(gen->symbol_table);
@@ -337,6 +352,21 @@ void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
         break;
     case STMT_FOR_EACH:
         code_gen_for_each_statement(gen, &stmt->as.for_each_stmt, indent);
+        break;
+    case STMT_BREAK:
+        indented_fprintf(gen, indent, "break;\n");
+        break;
+    case STMT_CONTINUE:
+        // In for loops, continue needs to jump to the continue label (before increment)
+        // In while/for-each loops, regular continue works fine
+        if (gen->for_continue_label)
+        {
+            indented_fprintf(gen, indent, "goto %s;\n", gen->for_continue_label);
+        }
+        else
+        {
+            indented_fprintf(gen, indent, "continue;\n");
+        }
         break;
     case STMT_IMPORT:
         break;

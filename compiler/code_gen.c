@@ -19,6 +19,7 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->current_function = NULL;
     gen->current_return_type = NULL;
     gen->temp_count = 0;
+    gen->for_continue_label = NULL;
     if (gen->output == NULL)
     {
         exit(1);
@@ -56,7 +57,19 @@ static void code_gen_externs(CodeGen *gen)
     DEBUG_VERBOSE("Entering code_gen_externs");
     indented_fprintf(gen, 0, "/* Runtime string operations */\n");
     indented_fprintf(gen, 0, "extern char *rt_str_concat(char *, char *);\n");
-    indented_fprintf(gen, 0, "extern void rt_free_string(char *);\n\n");
+    indented_fprintf(gen, 0, "extern void rt_free_string(char *);\n");
+    indented_fprintf(gen, 0, "extern long rt_str_length(const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_str_substring(const char *, long, long);\n");
+    indented_fprintf(gen, 0, "extern long rt_str_indexOf(const char *, const char *);\n");
+    indented_fprintf(gen, 0, "extern char **rt_str_split(const char *, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_str_trim(const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_str_toUpper(const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_str_toLower(const char *);\n");
+    indented_fprintf(gen, 0, "extern int rt_str_startsWith(const char *, const char *);\n");
+    indented_fprintf(gen, 0, "extern int rt_str_endsWith(const char *, const char *);\n");
+    indented_fprintf(gen, 0, "extern int rt_str_contains(const char *, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_str_replace(const char *, const char *, const char *);\n");
+    indented_fprintf(gen, 0, "extern long rt_str_charAt(const char *, long);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime print functions */\n");
     indented_fprintf(gen, 0, "extern void rt_print_long(long);\n");
@@ -226,12 +239,65 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_array_eq_string(char **, char **);\n\n");
 }
 
+static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
+{
+    char *fn_name = get_var_name(gen->arena, fn->name);
+
+    // Skip main - it doesn't need a forward declaration
+    if (strcmp(fn_name, "main") == 0)
+    {
+        return;
+    }
+
+    const char *ret_c = get_c_type(gen->arena, fn->return_type);
+    indented_fprintf(gen, 0, "%s %s(", ret_c, fn_name);
+
+    for (int i = 0; i < fn->param_count; i++)
+    {
+        const char *param_type = get_c_type(gen->arena, fn->params[i].type);
+        if (i > 0)
+        {
+            fprintf(gen->output, ", ");
+        }
+        fprintf(gen->output, "%s", param_type);
+    }
+
+    if (fn->param_count == 0)
+    {
+        fprintf(gen->output, "void");
+    }
+
+    fprintf(gen->output, ");\n");
+}
+
 void code_gen_module(CodeGen *gen, Module *module)
 {
     DEBUG_VERBOSE("Entering code_gen_module");
     code_gen_headers(gen);
     code_gen_externs(gen);
 
+    // First pass: emit forward declarations for all user-defined functions
+    indented_fprintf(gen, 0, "/* Forward declarations */\n");
+    int forward_decl_count = 0;
+    for (int i = 0; i < module->count; i++)
+    {
+        Stmt *stmt = module->statements[i];
+        if (stmt->type == STMT_FUNCTION)
+        {
+            char *fn_name = get_var_name(gen->arena, stmt->as.function.name);
+            if (strcmp(fn_name, "main") != 0)
+            {
+                code_gen_forward_declaration(gen, &stmt->as.function);
+                forward_decl_count++;
+            }
+        }
+    }
+    if (forward_decl_count > 0)
+    {
+        indented_fprintf(gen, 0, "\n");
+    }
+
+    // Second pass: emit full function definitions
     bool has_main = false;
     for (int i = 0; i < module->count; i++)
     {
