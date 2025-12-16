@@ -106,6 +106,7 @@ void symbol_table_init(Arena *arena, SymbolTable *table)
     table->scopes_count = 0;
     table->scopes_capacity = 8;
     table->current = NULL;
+    table->current_arena_depth = 0;
 
     DEBUG_VERBOSE("Calling symbol_table_push_scope for initial scope");
     symbol_table_push_scope(table);
@@ -163,9 +164,10 @@ void symbol_table_push_scope(SymbolTable *table)
     scope->enclosing = enclosing;
     scope->next_local_offset = enclosing ? enclosing->next_local_offset : LOCAL_BASE_OFFSET;
     scope->next_param_offset = enclosing ? enclosing->next_param_offset : PARAM_BASE_OFFSET;
+    scope->arena_depth = table->current_arena_depth;
     table->current = scope;
-    DEBUG_VERBOSE("New scope created: %p, enclosing: %p, local_offset: %d, param_offset: %d",
-                  (void *)scope, (void *)enclosing, scope->next_local_offset, scope->next_param_offset);
+    DEBUG_VERBOSE("New scope created: %p, enclosing: %p, local_offset: %d, param_offset: %d, arena_depth: %d",
+                  (void *)scope, (void *)enclosing, scope->next_local_offset, scope->next_param_offset, scope->arena_depth);
 
     if (table->scopes_count >= table->scopes_capacity)
     {
@@ -331,7 +333,10 @@ void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *typ
     symbol->name.length = name.length;
     symbol->name.line = name.line;
     symbol->name.type = name.type;
-    DEBUG_VERBOSE("Symbol name duplicated: '%s', length: %d, line: %d", name_str, symbol->name.length, symbol->name.line);
+    symbol->arena_depth = table->current_arena_depth;
+    symbol->mem_qual = MEM_DEFAULT;
+    DEBUG_VERBOSE("Symbol name duplicated: '%s', length: %d, line: %d, arena_depth: %d",
+                  name_str, symbol->name.length, symbol->name.line, symbol->arena_depth);
 
     symbol->next = table->current->symbols;
     table->current->symbols = symbol;
@@ -464,4 +469,44 @@ int symbol_table_get_symbol_offset(SymbolTable *table, Token name)
 
     DEBUG_VERBOSE("Found symbol '%s', returning offset: %d", name_str, symbol->offset);
     return symbol->offset;
+}
+
+void symbol_table_add_symbol_full(SymbolTable *table, Token name, Type *type, SymbolKind kind, MemoryQualifier mem_qual)
+{
+    char name_str[256];
+    int name_len = name.length < 255 ? name.length : 255;
+    strncpy(name_str, name.start, name_len);
+    name_str[name_len] = '\0';
+    DEBUG_VERBOSE("Adding symbol with full info: '%s', kind: %d, mem_qual: %d", name_str, kind, mem_qual);
+
+    /* First add the symbol using the standard function */
+    symbol_table_add_symbol_with_kind(table, name, type, kind);
+
+    /* Then update the memory qualifier on the newly added symbol */
+    Symbol *symbol = symbol_table_lookup_symbol_current(table, name);
+    if (symbol != NULL)
+    {
+        symbol->mem_qual = mem_qual;
+        DEBUG_VERBOSE("Updated symbol '%s' mem_qual to: %d", name_str, mem_qual);
+    }
+}
+
+void symbol_table_enter_arena(SymbolTable *table)
+{
+    table->current_arena_depth++;
+    DEBUG_VERBOSE("Entered arena, new depth: %d", table->current_arena_depth);
+}
+
+void symbol_table_exit_arena(SymbolTable *table)
+{
+    if (table->current_arena_depth > 0)
+    {
+        table->current_arena_depth--;
+    }
+    DEBUG_VERBOSE("Exited arena, new depth: %d", table->current_arena_depth);
+}
+
+int symbol_table_get_arena_depth(SymbolTable *table)
+{
+    return table->current_arena_depth;
 }

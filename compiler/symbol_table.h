@@ -29,6 +29,8 @@ typedef struct Symbol
     SymbolKind kind;
     int offset;
     struct Symbol *next;
+    int arena_depth;            /* Which arena depth owns this symbol */
+    MemoryQualifier mem_qual;   /* as val, as ref, or default */
 } Symbol;
 
 typedef struct Scope
@@ -37,6 +39,7 @@ typedef struct Scope
     struct Scope *enclosing;
     int next_local_offset;
     int next_param_offset;
+    int arena_depth;            /* Arena depth level for this scope */
 } Scope;
 
 typedef struct {
@@ -46,6 +49,7 @@ typedef struct {
     Scope **scopes;
     int scopes_count;
     int scopes_capacity;
+    int current_arena_depth;    /* Current arena nesting depth */
 } SymbolTable;
 
 int get_type_size(Type *type);
@@ -61,8 +65,14 @@ void symbol_table_begin_function_scope(SymbolTable *table);
 
 void symbol_table_add_symbol(SymbolTable *table, Token name, Type *type);
 void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *type, SymbolKind kind);
+void symbol_table_add_symbol_full(SymbolTable *table, Token name, Type *type, SymbolKind kind, MemoryQualifier mem_qual);
 Symbol *symbol_table_lookup_symbol(SymbolTable *table, Token name);
 Symbol *symbol_table_lookup_symbol_current(SymbolTable *table, Token name);
 int symbol_table_get_symbol_offset(SymbolTable *table, Token name);
+
+/* Arena depth management */
+void symbol_table_enter_arena(SymbolTable *table);
+void symbol_table_exit_arena(SymbolTable *table);
+int symbol_table_get_arena_depth(SymbolTable *table);
 
 #endif
