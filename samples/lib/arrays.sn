@@ -1,7 +1,8 @@
 // ============================================================================
 // arrays.sn - Array Features in Sindarin
 // ============================================================================
-// Demonstrates: declaration, methods, slicing, negative indexing, for-each
+// Demonstrates: declaration, methods, slicing, negative indexing, for-each,
+//               range literals, spread operator
 // ============================================================================
 
 // Entry point for array demos
@@ -237,7 +238,64 @@ fn demo_arrays(): void =>
   print($"{{1,2,3}} == {{1,2}}: {eq1 == eq4}\n")
   print($"{{1,2,3}} != {{1,2,4}}: {eq1 != eq3}\n")
 
-  // 15. Different Array Types
+  // 15. Range Literals
+  print("\n--- Range Literals ---\n")
+  var range1: int[] = 1..6
+  print("1..6 = ")
+  print(range1)
+  print("\n")
+
+  var range2: int[] = 0..10
+  print("0..10 = ")
+  print(range2)
+  print("\n")
+
+  // Range in array literal
+  var withRange: int[] = {0, 1..4, 10}
+  print("{0, 1..4, 10} = ")
+  print(withRange)
+  print("\n")
+
+  // Combining multiple ranges
+  var multiRange: int[] = {1..3, 10..13}
+  print("{1..3, 10..13} = ")
+  print(multiRange)
+  print("\n")
+
+  // 16. Spread Operator
+  print("\n--- Spread Operator ---\n")
+  var source: int[] = {1, 2, 3}
+  print("source = ")
+  print(source)
+  print("\n")
+
+  // Clone with spread
+  var spreadCopy: int[] = {...source}
+  print("{...source} = ")
+  print(spreadCopy)
+  print("\n")
+
+  // Prepend and append
+  var extended: int[] = {0, ...source, 4, 5}
+  print("{0, ...source, 4, 5} = ")
+  print(extended)
+  print("\n")
+
+  // Combine arrays
+  var arr_a: int[] = {1, 2}
+  var arr_b: int[] = {3, 4}
+  var merged: int[] = {...arr_a, ...arr_b}
+  print("{...{1,2}, ...{3,4}} = ")
+  print(merged)
+  print("\n")
+
+  // Mix spread and range
+  var mixed: int[] = {...source, 10..13}
+  print("{...source, 10..13} = ")
+  print(mixed)
+  print("\n")
+
+  // 17. Different Array Types
   print("\n--- Different Array Types ---\n")
 
   var doubles: double[] = {1.5, 2.5, 3.5}
