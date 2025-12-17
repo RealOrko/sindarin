@@ -174,6 +174,18 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
         type_error(&expr->as.assign.name, "Type mismatch in assignment");
         return NULL;
     }
+
+    // Escape analysis: check if non-primitive is escaping a private block
+    // Symbol's arena_depth tells us when it was declared
+    // Current arena_depth tells us if we're in a private block
+    int current_depth = symbol_table_get_arena_depth(table);
+    if (current_depth > sym->arena_depth && !can_escape_private(value_type))
+    {
+        type_error(&expr->as.assign.name,
+                   "Cannot assign non-primitive type to variable declared outside private block");
+        return NULL;
+    }
+
     DEBUG_VERBOSE("Assignment type matches: %d", sym->type->kind);
     return sym->type;
 }

@@ -1,0 +1,30 @@
+// MEMORY.md Section: Explicit Copies with .clone()
+// When you need an independent copy, use .clone()
+
+fn main(): void =>
+    var original: int[] = {1, 2, 3}
+    print("Original: ")
+    print(original)
+    print("\n")
+
+    // Using .clone() for independent copy
+    var copy1: int[] = original.clone()
+    copy1.push(100)
+    print("After copy1.push(100):\n")
+    print("  original = ")
+    print(original)
+    print("\n")
+    print("  copy1 = ")
+    print(copy1)
+    print("\n")
+
+    // Another clone
+    var copy2: int[] = original.clone()
+    copy2.push(200)
+    print("After copy2.push(200):\n")
+    print("  original = ")
+    print(original)
+    print("\n")
+    print("  copy2 = ")
+    print(copy2)
+    print("\n")

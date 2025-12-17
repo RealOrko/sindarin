@@ -159,12 +159,12 @@ static void type_check_block(Stmt *stmt, SymbolTable *table, Type *return_type)
     DEBUG_VERBOSE("Type checking block with %d statements", stmt->as.block.count);
 
     BlockModifier modifier = stmt->as.block.modifier;
-    if (modifier == BLOCK_PRIVATE)
+    bool is_private = modifier == BLOCK_PRIVATE;
+
+    if (is_private)
     {
         DEBUG_VERBOSE("Entering private block - escape analysis will be enforced");
-        /* Private block: reference types allocated here cannot escape to outer scope */
-        /* Full escape analysis would track assignments to outer-scope variables */
-        /* For now, we just mark the context */
+        symbol_table_enter_arena(table);
     }
     else if (modifier == BLOCK_SHARED)
     {
@@ -178,6 +178,11 @@ static void type_check_block(Stmt *stmt, SymbolTable *table, Type *return_type)
         type_check_stmt(stmt->as.block.statements[i], table, return_type);
     }
     symbol_table_pop_scope(table);
+
+    if (is_private)
+    {
+        symbol_table_exit_arena(table);
+    }
 }
 
 static void type_check_if(Stmt *stmt, SymbolTable *table, Type *return_type)
@@ -204,7 +209,20 @@ static void type_check_while(Stmt *stmt, SymbolTable *table, Type *return_type)
     {
         type_error(stmt->as.while_stmt.condition->token, "While condition must be boolean");
     }
+
+    // Non-shared loops have per-iteration arenas - enter arena context for escape analysis
+    bool is_shared = stmt->as.while_stmt.is_shared;
+    if (!is_shared)
+    {
+        symbol_table_enter_arena(table);
+    }
+
     type_check_stmt(stmt->as.while_stmt.body, table, return_type);
+
+    if (!is_shared)
+    {
+        symbol_table_exit_arena(table);
+    }
 }
 
 static void type_check_for(Stmt *stmt, SymbolTable *table, Type *return_type)
@@ -227,7 +245,21 @@ static void type_check_for(Stmt *stmt, SymbolTable *table, Type *return_type)
     {
         type_check_expr(stmt->as.for_stmt.increment, table);
     }
+
+    // Non-shared loops have per-iteration arenas - enter arena context for escape analysis
+    bool is_shared = stmt->as.for_stmt.is_shared;
+    if (!is_shared)
+    {
+        symbol_table_enter_arena(table);
+    }
+
     type_check_stmt(stmt->as.for_stmt.body, table, return_type);
+
+    if (!is_shared)
+    {
+        symbol_table_exit_arena(table);
+    }
+
     symbol_table_pop_scope(table);
 }
 
@@ -257,8 +289,20 @@ static void type_check_for_each(Stmt *stmt, SymbolTable *table, Type *return_typ
     symbol_table_push_scope(table);
     symbol_table_add_symbol_with_kind(table, stmt->as.for_each_stmt.var_name, element_type, SYMBOL_PARAM);
 
+    // Non-shared loops have per-iteration arenas - enter arena context for escape analysis
+    bool is_shared = stmt->as.for_each_stmt.is_shared;
+    if (!is_shared)
+    {
+        symbol_table_enter_arena(table);
+    }
+
     // Type check the body
     type_check_stmt(stmt->as.for_each_stmt.body, table, return_type);
+
+    if (!is_shared)
+    {
+        symbol_table_exit_arena(table);
+    }
 
     symbol_table_pop_scope(table);
 }

@@ -1,0 +1,17 @@
+// MEMORY.md Section: Block-Scoped Arenas - Loop Arena (Default)
+// Default loops create per-iteration arenas for automatic cleanup
+
+fn main(): void =>
+    var items: str[] = {"apple", "banana", "cherry"}
+
+    // Default loop: each iteration creates/destroys an arena
+    // Temporary allocations are cleaned up each iteration
+    for item in items =>
+        // This arena is created at start of iteration
+        var upper: str = item.toUpper()
+        var msg: str = $"Processing: {upper}"
+        print(msg)
+        print("\n")
+        // Arena destroyed here - upper and msg freed
+
+    print("Loop complete - all temporaries cleaned up\n")

@@ -170,7 +170,15 @@ char *code_gen_literal_expression(CodeGen *gen, LiteralExpr *expr)
 char *code_gen_variable_expression(CodeGen *gen, VariableExpr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_variable_expression");
-    return get_var_name(gen->arena, expr->name);
+    char *var_name = get_var_name(gen->arena, expr->name);
+
+    // Check if variable is 'as ref' - if so, dereference it
+    Symbol *symbol = symbol_table_lookup_symbol(gen->symbol_table, expr->name);
+    if (symbol && symbol->mem_qual == MEM_AS_REF)
+    {
+        return arena_sprintf(gen->arena, "(*%s)", var_name);
+    }
+    return var_name;
 }
 
 char *code_gen_assign_expression(CodeGen *gen, AssignExpr *expr)
@@ -184,6 +192,13 @@ char *code_gen_assign_expression(CodeGen *gen, AssignExpr *expr)
         exit(1);
     }
     Type *type = symbol->type;
+
+    // Handle 'as ref' - dereference pointer for assignment
+    if (symbol->mem_qual == MEM_AS_REF)
+    {
+        return arena_sprintf(gen->arena, "(*%s = %s)", var_name, value_str);
+    }
+
     if (type->kind == TYPE_STRING)
     {
         // Skip freeing old value in arena context - arena handles cleanup
@@ -1190,6 +1205,12 @@ char *code_gen_increment_expression(CodeGen *gen, Expr *expr)
         exit(1);
     }
     char *var_name = get_var_name(gen->arena, expr->as.operand->as.variable.name);
+    // For 'as ref' variables, they're already pointers, so pass directly
+    Symbol *symbol = symbol_table_lookup_symbol(gen->symbol_table, expr->as.operand->as.variable.name);
+    if (symbol && symbol->mem_qual == MEM_AS_REF)
+    {
+        return arena_sprintf(gen->arena, "rt_post_inc_long(%s)", var_name);
+    }
     return arena_sprintf(gen->arena, "rt_post_inc_long(&%s)", var_name);
 }
 
@@ -1201,6 +1222,12 @@ char *code_gen_decrement_expression(CodeGen *gen, Expr *expr)
         exit(1);
     }
     char *var_name = get_var_name(gen->arena, expr->as.operand->as.variable.name);
+    // For 'as ref' variables, they're already pointers, so pass directly
+    Symbol *symbol = symbol_table_lookup_symbol(gen->symbol_table, expr->as.operand->as.variable.name);
+    if (symbol && symbol->mem_qual == MEM_AS_REF)
+    {
+        return arena_sprintf(gen->arena, "rt_post_dec_long(%s)", var_name);
+    }
     return arena_sprintf(gen->arena, "rt_post_dec_long(&%s)", var_name);
 }
 

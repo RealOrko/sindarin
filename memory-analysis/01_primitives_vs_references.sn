@@ -1,0 +1,21 @@
+// MEMORY.md Section: First Principles
+// Primitives are values (copy), arrays are references (alias)
+
+fn main(): void =>
+    // Primitives: assignment copies the value
+    var a: int = 42
+    var b: int = a
+    b = 99                    // a is still 42
+    print($"a = {a}, b = {b}\n")
+
+    // Arrays: assignment creates a reference (alias)
+    var x: int[] = {1, 2, 3}
+    var y: int[] = x          // y references the same array as x
+    y.push(4)                 // x is now {1, 2, 3, 4} too!
+    print("x = ")
+    print(x)
+    print("\n")
+    print("y = ")
+    print(y)
+    print("\n")
+    print($"x.length = {x.length}, y.length = {y.length}\n")

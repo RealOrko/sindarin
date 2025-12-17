@@ -1,0 +1,31 @@
+// MEMORY.md Section: shared Loops
+// 'shared' loops use parent's arena - no per-iteration arena creation
+
+fn main(): void =>
+    var results: int[] = {}
+
+    // Shared for loop - uses parent arena, allows escapes
+    shared for var i: int = 0; i < 3; i++ =>
+        var temp: int[] = {i, i + 1, i + 2}
+        results = results.concat(temp)  // OK - both in same arena
+
+    print("Results from shared for: ")
+    print(results)
+    print("\n")
+
+    // Shared while loop
+    var count: int = 0
+    var sum: int = 0
+    shared while count < 5 =>
+        sum = sum + count
+        count = count + 1
+
+    print($"Sum from shared while: {sum}\n")
+
+    // Shared for-each loop
+    var nums: int[] = {10, 20, 30}
+    var total: int = 0
+    shared for n in nums =>
+        total = total + n
+
+    print($"Total from shared for-each: {total}\n")

@@ -1,0 +1,20 @@
+// MEMORY.md Section: shared Blocks
+// Everything inside a shared block uses the parent's arena
+// NOTE: shared blocks make all nested scopes use parent's arena
+
+fn main(): void =>
+    var sum: int = 0
+    var items: int[] = {10, 20, 30, 40, 50}
+
+    shared =>
+        // Everything here uses the function's arena
+        // No per-iteration arenas, no promotion overhead
+
+        for item in items =>
+            // These allocations stay in function arena
+            var doubled: int = item * 2
+            sum = sum + doubled
+            // No arena destroyed here - using parent's arena
+
+    print($"Sum of doubled values: {sum}\n")
+    print("Shared block uses parent's arena for all nested scopes\n")

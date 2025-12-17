@@ -1,0 +1,27 @@
+// MEMORY.md Section: private Functions
+// private functions can only return primitives - all heap memory is freed
+
+fn count_words(text: str) private: int =>
+    // All allocations here are in isolated arena
+    var words: str[] = text.split(" ")
+    var count: int = words.length
+
+    // words will be freed when function returns
+    return count  // OK: int is a primitive
+
+fn sum_lengths(items: str[]) private: int =>
+    var total: int = 0
+
+    for item in items =>
+        total = total + item.length
+
+    return total  // OK: int is a primitive
+
+fn main(): void =>
+    var text: str = "hello world from sindarin"
+    var word_count: int = count_words(text)
+    print($"Word count: {word_count}\n")
+
+    var strings: str[] = {"apple", "banana", "cherry"}
+    var total_len: int = sum_lengths(strings)
+    print($"Total length: {total_len}\n")
