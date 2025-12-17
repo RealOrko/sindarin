@@ -336,6 +336,7 @@ void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *typ
     symbol->arena_depth = table->current_arena_depth;
     symbol->mem_qual = MEM_DEFAULT;
     symbol->func_mod = FUNC_DEFAULT;
+    symbol->is_function = false;
     DEBUG_VERBOSE("Symbol name duplicated: '%s', length: %d, line: %d, arena_depth: %d",
                   name_str, symbol->name.length, symbol->name.line, symbol->arena_depth);
 
@@ -508,7 +509,8 @@ void symbol_table_add_function(SymbolTable *table, Token name, Type *type, Funct
     if (symbol != NULL)
     {
         symbol->func_mod = func_mod;
-        DEBUG_VERBOSE("Updated function symbol '%s' func_mod to: %d", name_str, func_mod);
+        symbol->is_function = true;
+        DEBUG_VERBOSE("Updated function symbol '%s' func_mod to: %d, is_function: true", name_str, func_mod);
     }
 }
 

@@ -9,6 +9,154 @@
 
 /* Forward declarations */
 char *code_gen_range_expression(CodeGen *gen, Expr *expr);
+static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr);
+
+/* Helper structure for captured variable tracking */
+typedef struct {
+    char **names;
+    Type **types;
+    int count;
+    int capacity;
+} CapturedVars;
+
+static void captured_vars_init(CapturedVars *cv, Arena *arena)
+{
+    cv->names = NULL;
+    cv->types = NULL;
+    cv->count = 0;
+    cv->capacity = 0;
+}
+
+static void captured_vars_add(CapturedVars *cv, Arena *arena, const char *name, Type *type)
+{
+    /* Check if already captured */
+    for (int i = 0; i < cv->count; i++)
+    {
+        if (strcmp(cv->names[i], name) == 0)
+            return;
+    }
+    /* Grow arrays if needed */
+    if (cv->count >= cv->capacity)
+    {
+        int new_cap = cv->capacity == 0 ? 4 : cv->capacity * 2;
+        char **new_names = arena_alloc(arena, new_cap * sizeof(char *));
+        Type **new_types = arena_alloc(arena, new_cap * sizeof(Type *));
+        for (int i = 0; i < cv->count; i++)
+        {
+            new_names[i] = cv->names[i];
+            new_types[i] = cv->types[i];
+        }
+        cv->names = new_names;
+        cv->types = new_types;
+        cv->capacity = new_cap;
+    }
+    cv->names[cv->count] = arena_strdup(arena, name);
+    cv->types[cv->count] = type;
+    cv->count++;
+}
+
+/* Helper to check if a name is a lambda parameter */
+static bool is_lambda_param(LambdaExpr *lambda, const char *name)
+{
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        char param_name[256];
+        int len = lambda->params[i].name.length < 255 ? lambda->params[i].name.length : 255;
+        strncpy(param_name, lambda->params[i].name.start, len);
+        param_name[len] = '\0';
+        if (strcmp(param_name, name) == 0)
+            return true;
+    }
+    return false;
+}
+
+/* Recursively collect captured variables from an expression */
+static void collect_captured_vars(Expr *expr, LambdaExpr *lambda, SymbolTable *table,
+                                  CapturedVars *cv, Arena *arena)
+{
+    if (expr == NULL) return;
+
+    switch (expr->type)
+    {
+    case EXPR_VARIABLE:
+    {
+        char name[256];
+        int len = expr->as.variable.name.length < 255 ? expr->as.variable.name.length : 255;
+        strncpy(name, expr->as.variable.name.start, len);
+        name[len] = '\0';
+
+        /* Skip if it's a lambda parameter */
+        if (is_lambda_param(lambda, name))
+            return;
+
+        /* Skip builtins */
+        if (strcmp(name, "print") == 0 || strcmp(name, "len") == 0)
+            return;
+
+        /* Look up in symbol table to see if it's an outer variable */
+        Symbol *sym = symbol_table_lookup_symbol(table, expr->as.variable.name);
+        if (sym != NULL)
+        {
+            /* It's a captured variable from outer scope */
+            captured_vars_add(cv, arena, name, sym->type);
+        }
+        break;
+    }
+    case EXPR_BINARY:
+        collect_captured_vars(expr->as.binary.left, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.binary.right, lambda, table, cv, arena);
+        break;
+    case EXPR_UNARY:
+        collect_captured_vars(expr->as.unary.operand, lambda, table, cv, arena);
+        break;
+    case EXPR_ASSIGN:
+        collect_captured_vars(expr->as.assign.value, lambda, table, cv, arena);
+        break;
+    case EXPR_CALL:
+        collect_captured_vars(expr->as.call.callee, lambda, table, cv, arena);
+        for (int i = 0; i < expr->as.call.arg_count; i++)
+            collect_captured_vars(expr->as.call.arguments[i], lambda, table, cv, arena);
+        break;
+    case EXPR_ARRAY:
+        for (int i = 0; i < expr->as.array.element_count; i++)
+            collect_captured_vars(expr->as.array.elements[i], lambda, table, cv, arena);
+        break;
+    case EXPR_ARRAY_ACCESS:
+        collect_captured_vars(expr->as.array_access.array, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.array_access.index, lambda, table, cv, arena);
+        break;
+    case EXPR_INCREMENT:
+    case EXPR_DECREMENT:
+        collect_captured_vars(expr->as.operand, lambda, table, cv, arena);
+        break;
+    case EXPR_INTERPOLATED:
+        for (int i = 0; i < expr->as.interpol.part_count; i++)
+            collect_captured_vars(expr->as.interpol.parts[i], lambda, table, cv, arena);
+        break;
+    case EXPR_MEMBER:
+        collect_captured_vars(expr->as.member.object, lambda, table, cv, arena);
+        break;
+    case EXPR_ARRAY_SLICE:
+        collect_captured_vars(expr->as.array_slice.array, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.array_slice.start, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.array_slice.end, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.array_slice.step, lambda, table, cv, arena);
+        break;
+    case EXPR_RANGE:
+        collect_captured_vars(expr->as.range.start, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.range.end, lambda, table, cv, arena);
+        break;
+    case EXPR_SPREAD:
+        collect_captured_vars(expr->as.spread.array, lambda, table, cv, arena);
+        break;
+    case EXPR_LAMBDA:
+        /* Don't recurse into nested lambdas - they have their own captures */
+        break;
+    case EXPR_LITERAL:
+    default:
+        break;
+    }
+}
 
 bool expression_produces_temp(Expr *expr)
 {
@@ -912,6 +1060,54 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         }
     }
 
+    /* Check if the callee is a closure (function type variable) */
+    /* Skip builtins like print and len, and skip named functions */
+    bool is_closure_call = false;
+    Type *callee_type = call->callee->expr_type;
+
+    if (callee_type && callee_type->kind == TYPE_FUNCTION && call->callee->type == EXPR_VARIABLE)
+    {
+        char *name = get_var_name(gen->arena, call->callee->as.variable.name);
+        /* Skip builtins */
+        if (strcmp(name, "print") != 0 && strcmp(name, "len") != 0)
+        {
+            /* Check if this is a named function or a closure variable */
+            Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
+            if (sym != NULL && !sym->is_function)
+            {
+                /* This is a closure variable (not a named function) */
+                is_closure_call = true;
+            }
+        }
+    }
+
+    if (is_closure_call)
+    {
+        /* Generate closure call: ((ret (*)(void*, params...))closure->fn)(closure, args...) */
+        char *closure_str = code_gen_expression(gen, call->callee);
+
+        /* Build function pointer cast */
+        const char *ret_c_type = get_c_type(gen->arena, callee_type->as.function.return_type);
+        char *param_types_str = arena_strdup(gen->arena, "void *");  /* First param is closure */
+        for (int i = 0; i < callee_type->as.function.param_count; i++)
+        {
+            const char *param_c_type = get_c_type(gen->arena, callee_type->as.function.param_types[i]);
+            param_types_str = arena_sprintf(gen->arena, "%s, %s", param_types_str, param_c_type);
+        }
+
+        /* Generate arguments */
+        char *args_str = closure_str;  /* First arg is the closure itself */
+        for (int i = 0; i < call->arg_count; i++)
+        {
+            char *arg_str = code_gen_expression(gen, call->arguments[i]);
+            args_str = arena_sprintf(gen->arena, "%s, %s", args_str, arg_str);
+        }
+
+        /* Generate the call: ((<ret> (*)(<params>))closure->fn)(args) */
+        return arena_sprintf(gen->arena, "((%s (*)(%s))%s->fn)(%s)",
+                             ret_c_type, param_types_str, closure_str, args_str);
+    }
+
     char *callee_str = code_gen_expression(gen, call->callee);
 
     char **arg_strs = arena_alloc(gen->arena, call->arg_count * sizeof(char *));
@@ -1341,6 +1537,213 @@ char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
     return arena_sprintf(gen->arena, "%s(%s, %s, %s, %s, %s)", slice_func, ARENA_VAR(gen), array_str, start_str, end_str, step_str);
 }
 
+static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_lambda_expression");
+    LambdaExpr *lambda = &expr->as.lambda;
+    int lambda_id = gen->lambda_count++;
+    FunctionModifier modifier = lambda->modifier;
+
+    /* Store the lambda_id in the expression for later reference */
+    expr->as.lambda.lambda_id = lambda_id;
+
+    /* Collect captured variables */
+    CapturedVars cv;
+    captured_vars_init(&cv, gen->arena);
+    collect_captured_vars(lambda->body, lambda, gen->symbol_table, &cv, gen->arena);
+
+    /* Get C types for return type and parameters */
+    const char *ret_c_type = get_c_type(gen->arena, lambda->return_type);
+
+    /* Build parameter list string for the static function */
+    /* First param is always the closure pointer (void *) */
+    char *params_decl = arena_strdup(gen->arena, "void *__closure__");
+
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        const char *param_c_type = get_c_type(gen->arena, lambda->params[i].type);
+        char *param_name = arena_strndup(gen->arena, lambda->params[i].name.start,
+                                         lambda->params[i].name.length);
+        params_decl = arena_sprintf(gen->arena, "%s, %s %s", params_decl, param_c_type, param_name);
+    }
+
+    /* Generate arena handling code based on modifier */
+    char *arena_setup = arena_strdup(gen->arena, "");
+    char *arena_cleanup = arena_strdup(gen->arena, "");
+    const char *lambda_arena_var = "((__Closure__ *)__closure__)->arena";
+
+    if (modifier == FUNC_PRIVATE)
+    {
+        /* Private lambda: create isolated arena, destroy before return */
+        arena_setup = arena_sprintf(gen->arena,
+            "    RtArena *__lambda_arena__ = rt_arena_create(NULL);\n"
+            "    (void)__closure__;\n");
+        arena_cleanup = arena_sprintf(gen->arena,
+            "    rt_arena_destroy(__lambda_arena__);\n");
+        lambda_arena_var = "__lambda_arena__";
+    }
+    else
+    {
+        /* Default/Shared lambda: use arena from closure */
+        arena_setup = arena_sprintf(gen->arena,
+            "    RtArena *__lambda_arena__ = ((__Closure__ *)__closure__)->arena;\n");
+        lambda_arena_var = "__lambda_arena__";
+    }
+
+    if (cv.count > 0)
+    {
+        /* Generate custom closure struct for this lambda (with arena field) */
+        char *struct_def = arena_sprintf(gen->arena,
+            "typedef struct __closure_%d__ {\n"
+            "    void *fn;\n"
+            "    RtArena *arena;\n",
+            lambda_id);
+        for (int i = 0; i < cv.count; i++)
+        {
+            const char *c_type = get_c_type(gen->arena, cv.types[i]);
+            struct_def = arena_sprintf(gen->arena, "%s    %s *%s;\n",
+                                       struct_def, c_type, cv.names[i]);
+        }
+        struct_def = arena_sprintf(gen->arena, "%s} __closure_%d__;\n",
+                                   struct_def, lambda_id);
+
+        /* Add struct def to forward declarations (before lambda functions) */
+        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
+                                                  gen->lambda_forward_decls, struct_def);
+
+        /* Generate local variable declarations for captured vars in lambda body */
+        char *capture_decls = arena_strdup(gen->arena, "");
+        for (int i = 0; i < cv.count; i++)
+        {
+            const char *c_type = get_c_type(gen->arena, cv.types[i]);
+            capture_decls = arena_sprintf(gen->arena,
+                "%s    %s %s = *((__closure_%d__ *)__closure__)->%s;\n",
+                capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
+        }
+
+        /* Generate the static lambda function body - use lambda's arena */
+        char *saved_arena_var = gen->current_arena_var;
+        gen->current_arena_var = "__lambda_arena__";
+        char *body_code = code_gen_expression(gen, lambda->body);
+        gen->current_arena_var = saved_arena_var;
+
+        /* Generate forward declaration */
+        char *forward_decl = arena_sprintf(gen->arena,
+            "static %s __lambda_%d__(%s);\n",
+            ret_c_type, lambda_id, params_decl);
+
+        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
+                                                  gen->lambda_forward_decls, forward_decl);
+
+        /* Generate the actual lambda function definition with capture access */
+        char *lambda_func;
+        if (modifier == FUNC_PRIVATE)
+        {
+            /* Private: create arena, compute result, destroy arena, return */
+            lambda_func = arena_sprintf(gen->arena,
+                "static %s __lambda_%d__(%s) {\n"
+                "%s"
+                "%s"
+                "    %s __result__ = %s;\n"
+                "%s"
+                "    return __result__;\n"
+                "}\n\n",
+                ret_c_type, lambda_id, params_decl, arena_setup, capture_decls,
+                ret_c_type, body_code, arena_cleanup);
+        }
+        else
+        {
+            lambda_func = arena_sprintf(gen->arena,
+                "static %s __lambda_%d__(%s) {\n"
+                "%s"
+                "%s"
+                "    return %s;\n"
+                "}\n\n",
+                ret_c_type, lambda_id, params_decl, arena_setup, capture_decls, body_code);
+        }
+
+        /* Append to definitions buffer */
+        gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
+                                                gen->lambda_definitions, lambda_func);
+
+        /* Return code that creates and populates the closure */
+        char *closure_init = arena_sprintf(gen->arena,
+            "({\n"
+            "    __closure_%d__ *__cl__ = rt_arena_alloc(%s, sizeof(__closure_%d__));\n"
+            "    __cl__->fn = (void *)__lambda_%d__;\n"
+            "    __cl__->arena = %s;\n",
+            lambda_id, ARENA_VAR(gen), lambda_id, lambda_id, ARENA_VAR(gen));
+
+        for (int i = 0; i < cv.count; i++)
+        {
+            closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = &%s;\n",
+                                         closure_init, cv.names[i], cv.names[i]);
+        }
+        closure_init = arena_sprintf(gen->arena,
+            "%s    (__Closure__ *)__cl__;\n"
+            "})",
+            closure_init);
+
+        return closure_init;
+    }
+    else
+    {
+        /* No captures - use simple generic closure */
+        /* Generate the static lambda function body - use lambda's arena */
+        char *saved_arena_var = gen->current_arena_var;
+        gen->current_arena_var = "__lambda_arena__";
+        char *body_code = code_gen_expression(gen, lambda->body);
+        gen->current_arena_var = saved_arena_var;
+
+        /* Generate forward declaration */
+        char *forward_decl = arena_sprintf(gen->arena,
+            "static %s __lambda_%d__(%s);\n",
+            ret_c_type, lambda_id, params_decl);
+
+        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
+                                                  gen->lambda_forward_decls, forward_decl);
+
+        /* Generate the actual lambda function definition */
+        char *lambda_func;
+        if (modifier == FUNC_PRIVATE)
+        {
+            /* Private: create arena, compute result, destroy arena, return */
+            lambda_func = arena_sprintf(gen->arena,
+                "static %s __lambda_%d__(%s) {\n"
+                "%s"
+                "    %s __result__ = %s;\n"
+                "%s"
+                "    return __result__;\n"
+                "}\n\n",
+                ret_c_type, lambda_id, params_decl, arena_setup,
+                ret_c_type, body_code, arena_cleanup);
+        }
+        else
+        {
+            lambda_func = arena_sprintf(gen->arena,
+                "static %s __lambda_%d__(%s) {\n"
+                "%s"
+                "    return %s;\n"
+                "}\n\n",
+                ret_c_type, lambda_id, params_decl, arena_setup, body_code);
+        }
+
+        /* Append to definitions buffer */
+        gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
+                                                gen->lambda_definitions, lambda_func);
+
+        /* Return code that creates the closure using generic __Closure__ type */
+        return arena_sprintf(gen->arena,
+            "({\n"
+            "    __Closure__ *__cl__ = rt_arena_alloc(%s, sizeof(__Closure__));\n"
+            "    __cl__->fn = (void *)__lambda_%d__;\n"
+            "    __cl__->arena = %s;\n"
+            "    __cl__;\n"
+            "})",
+            ARENA_VAR(gen), lambda_id, ARENA_VAR(gen));
+    }
+}
+
 char *code_gen_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_expression");
@@ -1380,6 +1783,8 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_range_expression(gen, expr);
     case EXPR_SPREAD:
         return code_gen_spread_expression(gen, expr);
+    case EXPR_LAMBDA:
+        return code_gen_lambda_expression(gen, expr);
     default:
         exit(1);
     }

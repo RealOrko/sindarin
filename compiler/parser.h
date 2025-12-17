@@ -33,6 +33,8 @@ int parser_check(Parser *parser, TokenType type);
 int parser_match(Parser *parser, TokenType type);
 
 Type *parser_type(Parser *parser);
+MemoryQualifier parser_memory_qualifier(Parser *parser);
+FunctionModifier parser_function_modifier(Parser *parser);
 
 Expr *parser_expression(Parser *parser);
 Expr *parser_assignment(Parser *parser);

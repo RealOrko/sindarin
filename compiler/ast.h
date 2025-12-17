@@ -10,6 +10,7 @@
 typedef struct Expr Expr;
 typedef struct Stmt Stmt;
 typedef struct Type Type;
+typedef struct Parameter Parameter;
 
 typedef enum
 {
@@ -86,7 +87,8 @@ typedef enum
     EXPR_MEMBER,
     EXPR_ARRAY_SLICE,
     EXPR_RANGE,
-    EXPR_SPREAD
+    EXPR_SPREAD,
+    EXPR_LAMBDA
 } ExprType;
 
 typedef struct
@@ -170,6 +172,20 @@ typedef struct
     Token member_name;
 } MemberExpr;
 
+typedef struct
+{
+    Parameter *params;
+    int param_count;
+    Type *return_type;
+    Expr *body;
+    FunctionModifier modifier;  /* shared, private, or default */
+    /* Capture info (filled during type checking) */
+    Token *captured_vars;
+    Type **captured_types;
+    int capture_count;
+    int lambda_id;  /* Unique ID for code gen */
+} LambdaExpr;
+
 struct Expr
 {
     ExprType type;
@@ -191,6 +207,7 @@ struct Expr
         Expr *operand;
         MemberExpr member;
         InterpolExpr interpol;
+        LambdaExpr lambda;
     } as;
 
     Type *expr_type;
@@ -225,12 +242,12 @@ typedef struct
     MemoryQualifier mem_qualifier;  /* as val or as ref modifier */
 } VarDeclStmt;
 
-typedef struct
+struct Parameter
 {
     Token name;
     Type *type;
     MemoryQualifier mem_qualifier;  /* as val modifier for copy semantics */
-} Parameter;
+};
 
 typedef struct
 {
@@ -348,6 +365,9 @@ Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenTyp
 Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *end, Expr *step, const Token *loc_token);
 Expr *ast_create_range_expr(Arena *arena, Expr *start, Expr *end, const Token *loc_token);
 Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token);
+Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
+                             Type *return_type, Expr *body, FunctionModifier modifier,
+                             const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token);

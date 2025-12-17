@@ -32,6 +32,7 @@ typedef struct Symbol
     int arena_depth;            /* Which arena depth owns this symbol */
     MemoryQualifier mem_qual;   /* as val, as ref, or default */
     FunctionModifier func_mod;  /* For function symbols: shared, private, or default */
+    bool is_function;           /* True if this is a named function definition */
 } Symbol;
 
 typedef struct Scope

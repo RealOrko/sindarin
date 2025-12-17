@@ -91,6 +91,8 @@ static const char *CODE_GEN_RUNTIME_HEADER =
     "extern RtArena *rt_arena_create(RtArena *parent);\n"
     "extern void rt_arena_destroy(RtArena *arena);\n"
     "extern void *rt_arena_alloc(RtArena *arena, size_t size);\n\n"
+    "/* Closure type for lambdas */\n"
+    "typedef struct __Closure__ { void *fn; RtArena *arena; } __Closure__;\n\n"
     "/* Runtime string operations */\n"
     "extern char *rt_str_concat(RtArena *, const char *, const char *);\n"
     "extern long rt_str_length(const char *);\n"

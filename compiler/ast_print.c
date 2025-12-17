@@ -389,5 +389,17 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
         DEBUG_VERBOSE_INDENT(indent_level, "Spread:");
         ast_print_expr(arena, expr->as.spread.array, indent_level + 1);
         break;
+
+    case EXPR_LAMBDA:
+        DEBUG_VERBOSE_INDENT(indent_level, "Lambda (%d params):", expr->as.lambda.param_count);
+        for (int i = 0; i < expr->as.lambda.param_count; i++)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "Param: %.*s",
+                                 expr->as.lambda.params[i].name.length,
+                                 expr->as.lambda.params[i].name.start);
+        }
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Body:");
+        ast_print_expr(arena, expr->as.lambda.body, indent_level + 2);
+        break;
     }
 }

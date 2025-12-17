@@ -663,6 +663,92 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
     }
 }
 
+static Type *type_check_lambda(Expr *expr, SymbolTable *table)
+{
+    LambdaExpr *lambda = &expr->as.lambda;
+    DEBUG_VERBOSE("Type checking lambda with %d params, modifier: %d", lambda->param_count, lambda->modifier);
+
+    /* Validate private lambda return type - only primitives allowed */
+    if (lambda->modifier == FUNC_PRIVATE)
+    {
+        if (!can_escape_private(lambda->return_type))
+        {
+            type_error(expr->token,
+                       "Private lambda can only return primitive types (int, double, bool, char)");
+            return NULL;
+        }
+    }
+
+    /* Validate parameter memory qualifiers */
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        Parameter *param = &lambda->params[i];
+
+        /* 'as ref' is only valid for primitive types (makes them heap-allocated) */
+        if (param->mem_qualifier == MEM_AS_REF)
+        {
+            if (!is_primitive_type(param->type))
+            {
+                type_error(expr->token, "'as ref' can only be used with primitive types");
+                return NULL;
+            }
+        }
+
+        /* 'as val' is only meaningful for reference types (arrays, strings) */
+        if (param->mem_qualifier == MEM_AS_VAL)
+        {
+            if (is_primitive_type(param->type))
+            {
+                type_error(expr->token, "'as val' is only meaningful for array types");
+                return NULL;
+            }
+        }
+    }
+
+    /* Push new scope for lambda parameters */
+    symbol_table_push_scope(table);
+
+    /* Add parameters to scope */
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        symbol_table_add_symbol_with_kind(table, lambda->params[i].name,
+                                          lambda->params[i].type, SYMBOL_PARAM);
+    }
+
+    /* Type check body expression */
+    Type *body_type = type_check_expr(lambda->body, table);
+    if (body_type == NULL)
+    {
+        symbol_table_pop_scope(table);
+        type_error(expr->token, "Lambda body type check failed");
+        return NULL;
+    }
+
+    /* Verify return type matches body */
+    if (!ast_type_equals(body_type, lambda->return_type))
+    {
+        symbol_table_pop_scope(table);
+        type_error(expr->token, "Lambda body type does not match declared return type");
+        return NULL;
+    }
+
+    symbol_table_pop_scope(table);
+
+    /* Build function type */
+    Type **param_types = NULL;
+    if (lambda->param_count > 0)
+    {
+        param_types = arena_alloc(table->arena, sizeof(Type *) * lambda->param_count);
+        for (int i = 0; i < lambda->param_count; i++)
+        {
+            param_types[i] = lambda->params[i].type;
+        }
+    }
+
+    return ast_create_function_type(table->arena, lambda->return_type,
+                                    param_types, lambda->param_count);
+}
+
 Type *type_check_expr(Expr *expr, SymbolTable *table)
 {
     if (expr == NULL)
@@ -721,6 +807,9 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_SPREAD:
         t = type_check_spread(expr, table);
+        break;
+    case EXPR_LAMBDA:
+        t = type_check_lambda(expr, table);
         break;
     }
     expr->expr_type = t;

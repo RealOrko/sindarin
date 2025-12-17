@@ -351,3 +351,33 @@ Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token)
     expr->token = ast_clone_token(arena, loc_token);
     return expr;
 }
+
+Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
+                             Type *return_type, Expr *body, FunctionModifier modifier,
+                             const Token *loc_token)
+{
+    if (body == NULL || return_type == NULL)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_LAMBDA;
+    expr->as.lambda.params = params;
+    expr->as.lambda.param_count = param_count;
+    expr->as.lambda.return_type = return_type;
+    expr->as.lambda.body = body;
+    expr->as.lambda.modifier = modifier;
+    expr->as.lambda.captured_vars = NULL;
+    expr->as.lambda.captured_types = NULL;
+    expr->as.lambda.capture_count = 0;
+    expr->as.lambda.lambda_id = 0;  /* Assigned during code gen */
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}

@@ -14,6 +14,8 @@ import "lib/strings"
 import "lib/functions"
 import "lib/arrays"
 import "lib/memory"
+import "lib/lambda"
+import "lib/closure"
 
 fn main(): void =>
   print("╔══════════════════════════════════════════════════════════════════╗\n")
@@ -28,6 +30,8 @@ fn main(): void =>
   demo_functions()
   demo_arrays()
   demo_memory()
+  demo_lambda()
+  demo_closure()
 
   print("╔══════════════════════════════════════════════════════════════════╗\n")
   print("║                    All Demos Complete!                           ║\n")

@@ -1,6 +1,7 @@
 #include "parser_util.h"
 #include "debug.h"
 #include <stdio.h>
+#include <string.h>
 
 int parser_is_at_end(Parser *parser)
 {
@@ -132,11 +133,55 @@ void synchronize(Parser *parser)
     }
 }
 
+static Type *parser_function_type(Parser *parser)
+{
+    /* Parse function type: fn(param_types...): return_type */
+    parser_consume(parser, TOKEN_LEFT_PAREN, "Expected '(' after 'fn' in function type");
+
+    Type **param_types = NULL;
+    int param_count = 0;
+    int param_capacity = 0;
+
+    if (!parser_check(parser, TOKEN_RIGHT_PAREN))
+    {
+        do
+        {
+            Type *param_type = parser_type(parser);
+            if (param_count >= param_capacity)
+            {
+                param_capacity = param_capacity == 0 ? 4 : param_capacity * 2;
+                Type **new_params = arena_alloc(parser->arena, sizeof(Type *) * param_capacity);
+                if (new_params == NULL)
+                {
+                    parser_error(parser, "Out of memory");
+                    return NULL;
+                }
+                if (param_types != NULL && param_count > 0)
+                {
+                    memcpy(new_params, param_types, sizeof(Type *) * param_count);
+                }
+                param_types = new_params;
+            }
+            param_types[param_count++] = param_type;
+        } while (parser_match(parser, TOKEN_COMMA));
+    }
+
+    parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after parameter types");
+    parser_consume(parser, TOKEN_COLON, "Expected ':' before return type in function type");
+    Type *return_type = parser_type(parser);
+
+    return ast_create_function_type(parser->arena, return_type, param_types, param_count);
+}
+
 Type *parser_type(Parser *parser)
 {
     Type *type = NULL;
 
-    if (parser_match(parser, TOKEN_INT))
+    if (parser_match(parser, TOKEN_FN))
+    {
+        return parser_function_type(parser);
+    }
+    else if (parser_match(parser, TOKEN_INT))
     {
         type = ast_create_primitive_type(parser->arena, TYPE_INT);
     }

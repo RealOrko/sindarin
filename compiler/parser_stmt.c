@@ -6,7 +6,7 @@
 #include <string.h>
 
 /* Parse optional "as val" or "as ref" memory qualifier */
-static MemoryQualifier parse_memory_qualifier(Parser *parser)
+MemoryQualifier parser_memory_qualifier(Parser *parser)
 {
     if (parser_match(parser, TOKEN_AS))
     {
@@ -27,7 +27,7 @@ static MemoryQualifier parse_memory_qualifier(Parser *parser)
 }
 
 /* Parse optional "shared" or "private" function modifier */
-static FunctionModifier parse_function_modifier(Parser *parser)
+FunctionModifier parser_function_modifier(Parser *parser)
 {
     if (parser_match(parser, TOKEN_SHARED))
     {
@@ -291,7 +291,7 @@ Stmt *parser_var_declaration(Parser *parser)
     {
         type = parser_type(parser);
         // Parse optional "as val" or "as ref" after type
-        mem_qualifier = parse_memory_qualifier(parser);
+        mem_qualifier = parser_memory_qualifier(parser);
     }
 
     Expr *initializer = NULL;
@@ -388,7 +388,7 @@ Stmt *parser_function_declaration(Parser *parser)
                 parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
                 Type *param_type = parser_type(parser);
                 // Parse optional "as val" for parameter
-                MemoryQualifier param_qualifier = parse_memory_qualifier(parser);
+                MemoryQualifier param_qualifier = parser_memory_qualifier(parser);
 
                 if (param_count >= param_capacity)
                 {
@@ -414,7 +414,7 @@ Stmt *parser_function_declaration(Parser *parser)
     }
 
     // Parse optional function modifier (shared/private) before return type
-    FunctionModifier func_modifier = parse_function_modifier(parser);
+    FunctionModifier func_modifier = parser_function_modifier(parser);
 
     Type *return_type = ast_create_primitive_type(parser->arena, TYPE_VOID);
     if (parser_match(parser, TOKEN_COLON))

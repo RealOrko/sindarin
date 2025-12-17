@@ -164,29 +164,8 @@ const char *get_c_type(Arena *arena, Type *type)
     }
     case TYPE_FUNCTION:
     {
-        const char *return_c_type = get_c_type(arena, type->as.function.return_type);
-        size_t len = strlen(return_c_type) + 10;
-        for (int i = 0; i < type->as.function.param_count; i++)
-        {
-            len += strlen(get_c_type(arena, type->as.function.param_types[i]));
-            if (i < type->as.function.param_count - 1)
-            {
-                len += 2;
-            }
-        }
-        char *result = arena_alloc(arena, len);
-        char *current = result;
-        current += sprintf(current, "%s (*)(", return_c_type);
-        for (int i = 0; i < type->as.function.param_count; i++)
-        {
-            current += sprintf(current, "%s", get_c_type(arena, type->as.function.param_types[i]));
-            if (i < type->as.function.param_count - 1)
-            {
-                current += sprintf(current, ", ");
-            }
-        }
-        sprintf(current, ")");
-        return result;
+        /* Function values are represented as closures */
+        return arena_strdup(arena, "__Closure__ *");
     }
     default:
         fprintf(stderr, "Error: Unknown type kind %d\n", type->kind);

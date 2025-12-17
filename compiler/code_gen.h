@@ -27,6 +27,15 @@ typedef struct {
     /* Loop arena for per-iteration cleanup */
     char *loop_arena_var;       // Name of current loop's per-iteration arena (NULL if shared loop)
     char *loop_cleanup_label;   // Label for loop cleanup (used by break/continue)
+
+    /* Lambda support */
+    int lambda_count;           // Counter for unique lambda IDs
+    char *lambda_forward_decls; // Buffer for lambda forward declarations
+    char *lambda_definitions;   // Buffer for lambda function bodies
+
+    /* Buffered output for correct ordering */
+    char *function_definitions; // Buffer for user function definitions
+    bool buffering_functions;   // Are we buffering to function_definitions?
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);

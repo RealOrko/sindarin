@@ -1,0 +1,23 @@
+fn demo_lambda(): void =>
+    // Test 1: Basic lambda
+    var double_it: fn(int): int = fn(x: int): int => x * 2
+    var result: int = double_it(5)
+    print($"Test 1 - double_it(5): {result}\n")
+
+    // Test 2: Lambda with multiple parameters
+    var add: fn(int, int): int = fn(a: int, b: int): int => a + b
+    print($"Test 2 - add(3, 4): {add(3, 4)}\n")
+
+    // Test 3: Lambda returning void is not supported yet (single expression)
+    // But we can use a lambda that just returns a value
+
+    // Test 4: Multiple calls to same lambda
+    print($"Test 4 - double_it(10): {double_it(10)}\n")
+    print($"Test 4 - double_it(100): {double_it(100)}\n")
+
+    // Test 5: Lambda as argument would require calling another function
+    // For now, test passing results around
+    var x: int = double_it(add(1, 2))
+    print($"Test 5 - double_it(add(1, 2)): {x}\n")
+
+    print("All tests passed!\n")

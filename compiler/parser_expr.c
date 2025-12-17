@@ -243,6 +243,69 @@ Expr *parser_primary(Parser *parser)
         value.int_value = 0;
         return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_NIL), false, &parser->previous);
     }
+    /* Lambda expression: fn(x: int, y: int) shared: int => x + y */
+    if (parser_match(parser, TOKEN_FN))
+    {
+        Token fn_token = parser->previous;
+        parser_consume(parser, TOKEN_LEFT_PAREN, "Expected '(' after 'fn' in lambda");
+
+        Parameter *params = NULL;
+        int param_count = 0;
+        int param_capacity = 0;
+
+        if (!parser_check(parser, TOKEN_RIGHT_PAREN))
+        {
+            do
+            {
+                /* Parse: name: type [as val|ref] */
+                Token param_name = parser->current;
+                parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
+                param_name.start = arena_strndup(parser->arena, param_name.start, param_name.length);
+
+                parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
+                Type *param_type = parser_type(parser);
+
+                /* Parse optional "as val" or "as ref" for parameter */
+                MemoryQualifier param_qualifier = parser_memory_qualifier(parser);
+
+                /* Add to params array */
+                if (param_count >= param_capacity)
+                {
+                    param_capacity = param_capacity == 0 ? 4 : param_capacity * 2;
+                    Parameter *new_params = arena_alloc(parser->arena, sizeof(Parameter) * param_capacity);
+                    if (new_params == NULL)
+                    {
+                        parser_error(parser, "Out of memory");
+                        return NULL;
+                    }
+                    if (params != NULL && param_count > 0)
+                    {
+                        memcpy(new_params, params, sizeof(Parameter) * param_count);
+                    }
+                    params = new_params;
+                }
+                params[param_count].name = param_name;
+                params[param_count].type = param_type;
+                params[param_count].mem_qualifier = param_qualifier;
+                param_count++;
+            } while (parser_match(parser, TOKEN_COMMA));
+        }
+
+        parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after lambda parameters");
+
+        /* Parse optional function modifier (shared/private) before return type */
+        FunctionModifier modifier = parser_function_modifier(parser);
+
+        /* Parse return type */
+        parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter list");
+        Type *return_type = parser_type(parser);
+
+        /* Parse body */
+        parser_consume(parser, TOKEN_ARROW, "Expected '=>' before lambda body");
+        Expr *body = parser_expression(parser);
+
+        return ast_create_lambda_expr(parser->arena, params, param_count, return_type, body, modifier, &fn_token);
+    }
     if (parser_match(parser, TOKEN_IDENTIFIER))
     {
         Token var_token = parser->previous;

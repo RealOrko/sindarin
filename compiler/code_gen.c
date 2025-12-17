@@ -32,6 +32,15 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->loop_arena_var = NULL;
     gen->loop_cleanup_label = NULL;
 
+    /* Initialize lambda fields */
+    gen->lambda_count = 0;
+    gen->lambda_forward_decls = arena_strdup(arena, "");
+    gen->lambda_definitions = arena_strdup(arena, "");
+
+    /* Initialize buffering fields */
+    gen->function_definitions = arena_strdup(arena, "");
+    gen->buffering_functions = false;
+
     if (gen->output == NULL)
     {
         exit(1);
@@ -74,6 +83,10 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern RtArena *rt_arena_create(RtArena *parent);\n");
     indented_fprintf(gen, 0, "extern void rt_arena_destroy(RtArena *arena);\n");
     indented_fprintf(gen, 0, "extern void *rt_arena_alloc(RtArena *arena, size_t size);\n\n");
+
+    /* Generic closure type for lambdas */
+    indented_fprintf(gen, 0, "/* Closure type for lambdas */\n");
+    indented_fprintf(gen, 0, "typedef struct __Closure__ { void *fn; RtArena *arena; } __Closure__;\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime string operations */\n");
     indented_fprintf(gen, 0, "extern char *rt_str_concat(RtArena *, const char *, const char *);\n");
@@ -326,7 +339,17 @@ void code_gen_module(CodeGen *gen, Module *module)
         indented_fprintf(gen, 0, "\n");
     }
 
-    // Second pass: emit full function definitions
+    // Second pass: emit full function definitions to a temp file
+    // This allows us to collect lambda forward declarations first
+    FILE *original_output = gen->output;
+    FILE *func_temp = tmpfile();
+    if (func_temp == NULL)
+    {
+        fprintf(stderr, "Error: Failed to create temp file for function buffering\n");
+        exit(1);
+    }
+    gen->output = func_temp;
+
     bool has_main = false;
     for (int i = 0; i < module->count; i++)
     {
@@ -351,5 +374,36 @@ void code_gen_module(CodeGen *gen, Module *module)
         indented_fprintf(gen, 1, "rt_arena_destroy(__arena_1__);\n");
         indented_fprintf(gen, 1, "return _return_value;\n");
         indented_fprintf(gen, 0, "}\n");
+    }
+
+    // Restore original output
+    gen->output = original_output;
+
+    /* Output accumulated lambda forward declarations BEFORE function definitions */
+    if (gen->lambda_forward_decls && strlen(gen->lambda_forward_decls) > 0)
+    {
+        indented_fprintf(gen, 0, "/* Lambda forward declarations */\n");
+        fprintf(gen->output, "%s", gen->lambda_forward_decls);
+        indented_fprintf(gen, 0, "\n");
+    }
+
+    /* Now copy the buffered function definitions */
+    fseek(func_temp, 0, SEEK_END);
+    long func_size = ftell(func_temp);
+    if (func_size > 0)
+    {
+        fseek(func_temp, 0, SEEK_SET);
+        char *func_buf = arena_alloc(gen->arena, func_size + 1);
+        size_t read_size = fread(func_buf, 1, func_size, func_temp);
+        func_buf[read_size] = '\0';
+        fprintf(gen->output, "%s", func_buf);
+    }
+    fclose(func_temp);
+
+    /* Output accumulated lambda function definitions at the end */
+    if (gen->lambda_definitions && strlen(gen->lambda_definitions) > 0)
+    {
+        indented_fprintf(gen, 0, "\n/* Lambda function definitions */\n");
+        fprintf(gen->output, "%s", gen->lambda_definitions);
     }
 }
