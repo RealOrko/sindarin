@@ -123,11 +123,11 @@ void test_code_gen_shared_function()
     ast_module_add_statement(&arena, &module, func_decl);
     code_gen_module(&gen, &module);
 
-    // Expected: shared function should NOT have arena_init/arena_free
+    // Expected: shared function receives caller's arena as hidden first parameter
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
-                                        "long helper(void);\n\n"
-                                        "long helper() {\n"
+                                        "long helper(RtArena *);\n\n"
+                                        "long helper(RtArena *__caller_arena__) {\n"
                                         "    long _return_value = 0;\n"
                                         "    _return_value = 1L;\n"
                                         "    goto helper_return;\n"

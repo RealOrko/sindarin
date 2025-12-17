@@ -31,6 +31,7 @@ typedef struct Symbol
     struct Symbol *next;
     int arena_depth;            /* Which arena depth owns this symbol */
     MemoryQualifier mem_qual;   /* as val, as ref, or default */
+    FunctionModifier func_mod;  /* For function symbols: shared, private, or default */
 } Symbol;
 
 typedef struct Scope
@@ -66,6 +67,7 @@ void symbol_table_begin_function_scope(SymbolTable *table);
 void symbol_table_add_symbol(SymbolTable *table, Token name, Type *type);
 void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *type, SymbolKind kind);
 void symbol_table_add_symbol_full(SymbolTable *table, Token name, Type *type, SymbolKind kind, MemoryQualifier mem_qual);
+void symbol_table_add_function(SymbolTable *table, Token name, Type *type, FunctionModifier func_mod);
 Symbol *symbol_table_lookup_symbol(SymbolTable *table, Token name);
 Symbol *symbol_table_lookup_symbol_current(SymbolTable *table, Token name);
 int symbol_table_get_symbol_offset(SymbolTable *table, Token name);

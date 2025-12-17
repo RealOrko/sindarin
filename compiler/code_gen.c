@@ -267,8 +267,19 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         return;
     }
 
+    bool is_shared = fn->modifier == FUNC_SHARED;
     const char *ret_c = get_c_type(gen->arena, fn->return_type);
     indented_fprintf(gen, 0, "%s %s(", ret_c, fn_name);
+
+    // Shared functions receive caller's arena as first parameter
+    if (is_shared)
+    {
+        fprintf(gen->output, "RtArena *");
+        if (fn->param_count > 0)
+        {
+            fprintf(gen->output, ", ");
+        }
+    }
 
     for (int i = 0; i < fn->param_count; i++)
     {
@@ -280,7 +291,7 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         fprintf(gen->output, "%s", param_type);
     }
 
-    if (fn->param_count == 0)
+    if (fn->param_count == 0 && !is_shared)
     {
         fprintf(gen->output, "void");
     }

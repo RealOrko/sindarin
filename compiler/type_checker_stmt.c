@@ -97,8 +97,8 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         }
     }
 
-    /* Add function symbol to current scope (e.g., global) */
-    symbol_table_add_symbol_with_kind(table, stmt->as.function.name, func_type, SYMBOL_LOCAL);
+    /* Add function symbol to current scope (e.g., global) with its modifier */
+    symbol_table_add_function(table, stmt->as.function.name, func_type, modifier);
 
     symbol_table_push_scope(table);
 

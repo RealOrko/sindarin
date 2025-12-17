@@ -1,23 +1,27 @@
 // MEMORY.md Section: Function Parameters with 'as val' (copy on call)
 // Use 'as val' to receive a copy - changes don't affect the caller's original
-// NOTE: This demonstrates the as val syntax - copy semantics
 
-fn show_copy(arr: int[] as val): void =>
-    // arr is meant to be a COPY of the caller's array
-    print("Inside function with as val, arr = ")
+fn modify_array(arr: int[] as val): void =>
+    // arr is a COPY of the caller's array
+    arr.push(999)
+    print("Inside modify_array: ")
     print(arr)
     print("\n")
-    // The 'as val' modifier indicates copy semantics
-    // Caller's array should remain unchanged
 
 fn main(): void =>
     var nums: int[] = {1, 2, 3}
-    print("Before function call: ")
+    print("Before modify_array: ")
     print(nums)
     print("\n")
 
-    show_copy(nums)
+    modify_array(nums)
 
-    print("After function call: ")
+    print("After modify_array: ")
     print(nums)
     print("\n")
+
+    // Verify original is unchanged
+    if nums.length == 3 =>
+        print("SUCCESS: as val correctly copied the array\n")
+    else =>
+        print("FAILURE: original array was modified\n")

@@ -192,10 +192,10 @@ extern int rt_array_eq_string(char **, char **);
 extern long *rt_array_range(RtArena *, long, long);
 
 /* Forward declarations */
-long add_numbers(long, long);
-long compute_sum(long, long);
+long add_numbers(RtArena *, long, long);
+long compute_sum(RtArena *, long, long);
 
-long add_numbers(long a, long b) {
+long add_numbers(RtArena *__caller_arena__, long a, long b) {
     long _return_value = 0;
     _return_value = rt_add_long(a, b);
     goto add_numbers_return;
@@ -203,7 +203,7 @@ add_numbers_return:
     return _return_value;
 }
 
-long compute_sum(long start, long end) {
+long compute_sum(RtArena *__caller_arena__, long start, long end) {
     long _return_value = 0;
     long sum = 0L;
     {
@@ -225,7 +225,7 @@ compute_sum_return:
 int main() {
     RtArena *__arena_1__ = rt_arena_create(NULL);
     int _return_value = 0;
-    long result1 = add_numbers(10L, 20L);
+    long result1 = add_numbers(__arena_1__, 10L, 20L);
     ({
         char *_str_arg0 = ({
         char *_str_part0, *_str_part1, *_str_part2;
@@ -239,7 +239,7 @@ int main() {
     });
         rt_print_string(_str_arg0);
     });
-    long result2 = compute_sum(1L, 10L);
+    long result2 = compute_sum(__arena_1__, 1L, 10L);
     ({
         char *_str_arg0 = ({
         char *_str_part0, *_str_part1, *_str_part2;
@@ -259,7 +259,7 @@ int main() {
         while (rt_le_long(i, 5L)) {
             RtArena *__loop_arena_1__ = rt_arena_create(__arena_1__);
             {
-                (total = rt_add_long(total, add_numbers(i, rt_mul_long(i, 2L))));
+                (total = rt_add_long(total, add_numbers(__loop_arena_1__, i, rt_mul_long(i, 2L))));
             }
         __loop_cleanup_1__:
             rt_arena_destroy(__loop_arena_1__);

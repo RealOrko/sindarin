@@ -335,6 +335,7 @@ void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *typ
     symbol->name.type = name.type;
     symbol->arena_depth = table->current_arena_depth;
     symbol->mem_qual = MEM_DEFAULT;
+    symbol->func_mod = FUNC_DEFAULT;
     DEBUG_VERBOSE("Symbol name duplicated: '%s', length: %d, line: %d, arena_depth: %d",
                   name_str, symbol->name.length, symbol->name.line, symbol->arena_depth);
 
@@ -488,6 +489,26 @@ void symbol_table_add_symbol_full(SymbolTable *table, Token name, Type *type, Sy
     {
         symbol->mem_qual = mem_qual;
         DEBUG_VERBOSE("Updated symbol '%s' mem_qual to: %d", name_str, mem_qual);
+    }
+}
+
+void symbol_table_add_function(SymbolTable *table, Token name, Type *type, FunctionModifier func_mod)
+{
+    char name_str[256];
+    int name_len = name.length < 255 ? name.length : 255;
+    strncpy(name_str, name.start, name_len);
+    name_str[name_len] = '\0';
+    DEBUG_VERBOSE("Adding function symbol: '%s', func_mod: %d", name_str, func_mod);
+
+    /* First add the symbol using the standard function */
+    symbol_table_add_symbol_with_kind(table, name, type, SYMBOL_LOCAL);
+
+    /* Then update the function modifier on the newly added symbol */
+    Symbol *symbol = symbol_table_lookup_symbol_current(table, name);
+    if (symbol != NULL)
+    {
+        symbol->func_mod = func_mod;
+        DEBUG_VERBOSE("Updated function symbol '%s' func_mod to: %d", name_str, func_mod);
     }
 }
 

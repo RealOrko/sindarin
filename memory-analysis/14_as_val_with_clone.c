@@ -192,40 +192,67 @@ extern int rt_array_eq_string(char **, char **);
 extern long *rt_array_range(RtArena *, long, long);
 
 /* Forward declarations */
-void modify_array(long *);
+long process(long *);
 
-void modify_array(long * arr) {
+long process(long * arr) {
     RtArena *__arena_1__ = rt_arena_create(NULL);
+    long _return_value = 0;
     arr = rt_array_clone_long(__arena_1__, arr);
-    (arr = rt_array_push_long(__arena_1__, arr, 999L));
-    rt_print_string("Inside modify_array: ");
-    rt_print_array_long(arr);
-    rt_print_string("\n");
-    goto modify_array_return;
-modify_array_return:
+    long sum = 0L;
+    {
+        long * __arr_0__ = arr;
+        long __len_0__ = rt_array_length(__arr_0__);
+        for (long __idx_0__ = 0; __idx_0__ < __len_0__; __idx_0__++) {
+            RtArena *__loop_arena_0__ = rt_arena_create(__arena_1__);
+            long item = __arr_0__[__idx_0__];
+            {
+                (sum = rt_add_long(sum, item));
+            }
+        __loop_cleanup_0__:
+            rt_arena_destroy(__loop_arena_0__);
+        }
+    }
+    _return_value = sum;
+    goto process_return;
+process_return:
     rt_arena_destroy(__arena_1__);
-    return;
+    return _return_value;
 }
 
 int main() {
     RtArena *__arena_1__ = rt_arena_create(NULL);
     int _return_value = 0;
-    long * nums = rt_array_create_long(__arena_1__, 3, (long[]){1L, 2L, 3L});
-    rt_print_string("Before modify_array: ");
-    rt_print_array_long(nums);
+    long * original = rt_array_create_long(__arena_1__, 3, (long[]){10L, 20L, 30L});
+    long * copy = rt_array_clone_long(__arena_1__, original);
+    (copy = rt_array_push_long(__arena_1__, copy, 40L));
+    rt_print_string("Original: ");
+    rt_print_array_long(original);
     rt_print_string("\n");
-    modify_array(nums);
-    rt_print_string("After modify_array: ");
-    rt_print_array_long(nums);
+    rt_print_string("Copy (with extra element): ");
+    rt_print_array_long(copy);
     rt_print_string("\n");
-    if (rt_eq_long(rt_array_length(nums), 3L)) {
+    long sum = process(original);
+    ({
+        char *_str_arg0 = ({
+        char *_str_part0, *_str_part1, *_str_part2;
+        _str_part0 = rt_to_string_string(__arena_1__, "Sum of original: ");
+        _str_part1 = rt_to_string_long(__arena_1__, sum);
+        _str_part2 = rt_to_string_string(__arena_1__, "\n");
+        char *_concat_tmp0;
+        _concat_tmp0 = rt_str_concat(__arena_1__, _str_part0, _str_part1);
+        char *_interpol_result = rt_str_concat(__arena_1__, _concat_tmp0, _str_part2);
+        _interpol_result;
+    });
+        rt_print_string(_str_arg0);
+    });
+    if (rt_eq_long(rt_array_length(original), 3L)) {
         {
-            rt_print_string("SUCCESS: as val correctly copied the array\n");
+            rt_print_string("SUCCESS: clone and as val work correctly\n");
         }
     }
     else {
         {
-            rt_print_string("FAILURE: original array was modified\n");
+            rt_print_string("FAILURE: original was modified\n");
         }
     }
     goto main_return;

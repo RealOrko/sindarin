@@ -1004,11 +1004,36 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
     }
 
+    // Check if the callee is a shared function - if so, we need to pass the arena
+    bool callee_is_shared = false;
+    if (call->callee->type == EXPR_VARIABLE)
+    {
+        Symbol *callee_sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
+        if (callee_sym && callee_sym->func_mod == FUNC_SHARED)
+        {
+            callee_is_shared = true;
+        }
+    }
+
     // Collect arg names for the call: use temp var if temp, else original str.
     char **arg_names = arena_alloc(gen->arena, sizeof(char *) * call->arg_count);
 
     // Build args list (comma-separated).
-    char *args_list = arena_strdup(gen->arena, "");
+    // If calling a shared function, prepend the current arena as first argument
+    char *args_list;
+    if (callee_is_shared && gen->current_arena_var != NULL)
+    {
+        args_list = arena_strdup(gen->arena, gen->current_arena_var);
+    }
+    else if (callee_is_shared)
+    {
+        args_list = arena_strdup(gen->arena, "NULL");
+    }
+    else
+    {
+        args_list = arena_strdup(gen->arena, "");
+    }
+
     for (int i = 0; i < call->arg_count; i++)
     {
         if (arg_is_temp[i])
@@ -1019,7 +1044,8 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         {
             arg_names[i] = arg_strs[i];
         }
-        char *new_args = arena_sprintf(gen->arena, "%s%s%s", args_list, i > 0 ? ", " : "", arg_names[i]);
+        bool need_comma = (i > 0) || callee_is_shared;
+        char *new_args = arena_sprintf(gen->arena, "%s%s%s", args_list, need_comma ? ", " : "", arg_names[i]);
         args_list = new_args;
     }
 

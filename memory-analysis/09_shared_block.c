@@ -202,14 +202,11 @@ int main() {
             long * __arr_0__ = items;
             long __len_0__ = rt_array_length(__arr_0__);
             for (long __idx_0__ = 0; __idx_0__ < __len_0__; __idx_0__++) {
-                RtArena *__loop_arena_0__ = rt_arena_create(__arena_1__);
                 long item = __arr_0__[__idx_0__];
                 {
                     long doubled = rt_mul_long(item, 2L);
                     (sum = rt_add_long(sum, doubled));
                 }
-            __loop_cleanup_0__:
-                rt_arena_destroy(__loop_arena_0__);
             }
         }
     }

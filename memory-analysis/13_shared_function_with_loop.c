@@ -192,40 +192,47 @@ extern int rt_array_eq_string(char **, char **);
 extern long *rt_array_range(RtArena *, long, long);
 
 /* Forward declarations */
-void modify_array(long *);
+long * build_doubles(RtArena *, long *);
 
-void modify_array(long * arr) {
-    RtArena *__arena_1__ = rt_arena_create(NULL);
-    arr = rt_array_clone_long(__arena_1__, arr);
-    (arr = rt_array_push_long(__arena_1__, arr, 999L));
-    rt_print_string("Inside modify_array: ");
-    rt_print_array_long(arr);
-    rt_print_string("\n");
-    goto modify_array_return;
-modify_array_return:
-    rt_arena_destroy(__arena_1__);
-    return;
+long * build_doubles(RtArena *__caller_arena__, long * arr) {
+    long * _return_value = NULL;
+    long * result = rt_array_create_long(__caller_arena__, 0, (long[]){});
+    {
+        long * __arr_0__ = arr;
+        long __len_0__ = rt_array_length(__arr_0__);
+        for (long __idx_0__ = 0; __idx_0__ < __len_0__; __idx_0__++) {
+            long item = __arr_0__[__idx_0__];
+            {
+                long doubled = rt_mul_long(item, 2L);
+                (result = rt_array_push_long(__caller_arena__, result, doubled));
+            }
+        }
+    }
+    _return_value = result;
+    goto build_doubles_return;
+build_doubles_return:
+    return _return_value;
 }
 
 int main() {
     RtArena *__arena_1__ = rt_arena_create(NULL);
     int _return_value = 0;
-    long * nums = rt_array_create_long(__arena_1__, 3, (long[]){1L, 2L, 3L});
-    rt_print_string("Before modify_array: ");
+    long * nums = rt_array_create_long(__arena_1__, 5, (long[]){1L, 2L, 3L, 4L, 5L});
+    rt_print_string("Original: ");
     rt_print_array_long(nums);
     rt_print_string("\n");
-    modify_array(nums);
-    rt_print_string("After modify_array: ");
-    rt_print_array_long(nums);
+    long * doubled = build_doubles(__arena_1__, nums);
+    rt_print_string("Doubled: ");
+    rt_print_array_long(doubled);
     rt_print_string("\n");
-    if (rt_eq_long(rt_array_length(nums), 3L)) {
+    if (rt_eq_long(rt_array_length(doubled), 5L)) {
         {
-            rt_print_string("SUCCESS: as val correctly copied the array\n");
+            rt_print_string("SUCCESS: shared function with loop works correctly\n");
         }
     }
     else {
         {
-            rt_print_string("FAILURE: original array was modified\n");
+            rt_print_string("FAILURE: unexpected result\n");
         }
     }
     goto main_return;
