@@ -22,10 +22,11 @@ for test_file in ./testing/test_*.sn; do
     echo "========================================"
 
     # Compile .sn to .c
-    #compile_output=$(timeout 5s strace -o "$s_trace" $COMPILER "$test_file" -o "$c_file" 2>&1)
+    timeout 5s strace -o "$s_trace" $COMPILER "$test_file" -o "$c_file"
     compile_output=$(timeout 5s $COMPILER "$test_file" -o "$c_file" 2>&1)
     compile_status=$?
-    echo "$compile_output" 2>&1 > "$log_file"
+    echo "Source: $test_file" 2>&1 > "$log_file"
+    echo "$compile_output" 2>&1 >> "$log_file"
 
     if [ $compile_status -ne 0 ]; then
         echo "  COMPILE FAILED (sn -> c)"
