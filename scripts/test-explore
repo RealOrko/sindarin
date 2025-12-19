@@ -1,0 +1,71 @@
+#!/bin/bash
+# Run all exploratory tests and capture results
+
+COMPILER="./bin/sn"
+OUTPUT_DIR="./testing/output"
+
+rm -rf "$OUTPUT_DIR" && mkdir -p "$OUTPUT_DIR"
+echo "=== Sindarin Exploratory Test Results ==="
+echo "Date: $(date)"
+echo ""
+
+for test_file in ./testing/test_*.sn; do
+    test_name=$(basename "$test_file" .sn)
+    c_file="$OUTPUT_DIR/${test_name}.c"
+    exe_file="$OUTPUT_DIR/${test_name}"
+    log_file="$OUTPUT_DIR/${test_name}.c.log"
+    s_trace="$OUTPUT_DIR/${test_name}.c.strace"
+
+    echo "Testing: $test_name"
+    echo "========================================"
+    echo "Test: $test_name"
+    echo "========================================"
+
+    # Compile .sn to .c
+    timeout 5s strace -o "$s_trace" $COMPILER "$test_file" -o "$c_file"
+    compile_output=$(timeout 5s $COMPILER "$test_file" -o "$c_file" 2>&1)
+    compile_status=$?
+    echo "Source: $test_file" 2>&1 > "$log_file"
+    echo "$compile_output" 2>&1 >> "$log_file"
+
+    if [ $compile_status -ne 0 ]; then
+        echo "  COMPILE FAILED (sn -> c)"
+        echo "Status: COMPILE FAILED (sn -> c)"
+        echo "Output:"
+        echo "$compile_output"
+        echo ""
+        continue
+    fi
+
+    # Compile .c to executable
+    gcc_output=$(gcc -fsanitize=address -o "$exe_file" "$c_file" ./bin/arena.o ./bin/debug.o ./bin/runtime.o 2>&1)
+    gcc_status=$?
+
+    if [ $gcc_status -ne 0 ]; then
+        echo "  COMPILE FAILED (c -> exe)"
+        echo "Status: COMPILE FAILED (c -> exe)"
+        echo "GCC Output:"
+        echo "$gcc_output"
+        echo ""
+        continue
+    fi
+
+    # Run the executable
+    # run_output=$("$exe_file" 2>&1)
+    # run_status=$?
+
+    # if [ $run_status -ne 0 ]; then
+    #     echo "  RUNTIME ERROR (exit code: $run_status)"
+    #     echo "Status: RUNTIME ERROR (exit: $run_status)"
+    # else
+    #     echo "  PASSED"
+    #     echo "Status: PASSED"
+    # fi
+
+    # echo "Output:"
+    # echo "$run_output"
+    # echo ""
+done
+
+echo ""
+echo "Results written to $RESULTS_FILE"
