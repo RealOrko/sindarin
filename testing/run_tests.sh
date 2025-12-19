@@ -21,7 +21,7 @@ for test_file in test_*.sn; do
     echo "========================================" >> "$RESULTS_FILE"
 
     # Compile .sn to .c
-    compile_output=$($COMPILER "$test_file" -o "$c_file" 2>&1)
+    compile_output=$(timeout 5s strace -o "$c_file.strace" $COMPILER "$test_file" -o "$c_file" 2>&1)
     compile_status=$?
 
     if [ $compile_status -ne 0 ]; then
