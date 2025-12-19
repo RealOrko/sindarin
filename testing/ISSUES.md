@@ -187,20 +187,6 @@ These tests appear to use valid language constructs but fail due to compiler iss
 - test_19_function_params.sn - Valid function parameters
 - test_46_lambda_returning_array.sn - Valid lambda with array return
 
-### Tests with INVALID Sindarin Syntax (Test Bug)
-
-These tests use reserved keywords as variable names or have syntax issues:
-
-- test_07_arrays_methods.sn - Uses `val` as variable name
-- test_15_nested_loops.sn - Uses `val` as variable name, indentation issues
-- test_23_scope_shadowing.sn - Uses `val` as parameter name
-- test_24_complex_expressions.sn - Uses `double` as variable name
-- test_25_boundary_values.sn - Uses `val` as variable name
-- test_33_string_basic.sn - Uses `long` as variable name
-- test_56_deep_nesting.sn - Uses `val` as variable name
-
----
-
 ## Recommendations
 
 ### Critical Priority
