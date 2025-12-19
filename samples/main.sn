@@ -1,38 +1,22 @@
-// ============================================================================
-// main.sn - Sindarin Language Demo
-// ============================================================================
-// This file demonstrates all features of the Sindarin language by importing
-// and running demo modules for each feature area.
-//
-// Run: bin/sn samples/main.sn -o /tmp/main.c && gcc /tmp/main.c bin/*.o -o /tmp/main && /tmp/main
-// ============================================================================
-
-import "lib/types"
-import "lib/loops"
-import "lib/conditionals"
-import "lib/strings"
-import "lib/functions"
-import "lib/arrays"
-import "lib/memory"
-import "lib/lambda"
-import "lib/closure"
-
-fn main(): void =>
-  print("╔══════════════════════════════════════════════════════════════════╗\n")
-  print("║           Welcome to the Sindarin Language Demo                  ║\n")
-  print("╚══════════════════════════════════════════════════════════════════╝\n\n")
-
-  // Run each feature demo
-  demo_types()
-  demo_loops()
-  demo_conditionals()
-  demo_strings()
-  demo_functions()
-  demo_arrays()
-  demo_memory()
-  demo_lambda()
-  demo_closure()
-
-  print("╔══════════════════════════════════════════════════════════════════╗\n")
-  print("║                    All Demos Complete!                           ║\n")
-  print("╚══════════════════════════════════════════════════════════════════╝\n")
+fn main(): int =>
+    # Test 1: Single int interpolation
+    var f1: fn(int): str = fn(x) => $"{x}"
+    print($"f1(42) = {f1(42)}\n")
+    
+    # Test 2: Multiple parts - text + int
+    var f2: fn(int): str = fn(x) => $"value: {x}"
+    print($"f2(99) = {f2(99)}\n")
+    
+    # Test 3: Multiple ints
+    var f3: fn(int, int): str = fn(a, b) => $"{a} + {b}"
+    print($"f3(3, 4) = {f3(3, 4)}\n")
+    
+    # Test 4: Lambda with string param
+    var f4: fn(str): str = fn(s) => $"Hello, {s}!"
+    print($"f4(\"World\") = {f4(\"World\")}\n")
+    
+    # Test 5: Mix of string and int
+    var f5: fn(str, int): str = fn(name, age) => $"{name} is {age} years old"
+    print($"f5 result: {f5(\"Alice\", 30)}\n")
+    
+    return 0

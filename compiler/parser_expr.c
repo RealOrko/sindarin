@@ -243,7 +243,8 @@ Expr *parser_primary(Parser *parser)
         value.int_value = 0;
         return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_NIL), false, &parser->previous);
     }
-    /* Lambda expression: fn(x: int, y: int) shared: int => x + y */
+    /* Lambda expression: fn(x: int, y: int) shared: int => x + y
+     * Or with type inference: fn(x, y) => x + y (types inferred from context) */
     if (parser_match(parser, TOKEN_FN))
     {
         Token fn_token = parser->previous;
@@ -257,13 +258,17 @@ Expr *parser_primary(Parser *parser)
         {
             do
             {
-                /* Parse: name: type [as val|ref] */
+                /* Parse: name [: type] [as val|ref] */
                 Token param_name = parser->current;
                 parser_consume(parser, TOKEN_IDENTIFIER, "Expected parameter name");
                 param_name.start = arena_strndup(parser->arena, param_name.start, param_name.length);
 
-                parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
-                Type *param_type = parser_type(parser);
+                /* Type is optional - if no colon, set type to NULL for inference */
+                Type *param_type = NULL;
+                if (parser_match(parser, TOKEN_COLON))
+                {
+                    param_type = parser_type(parser);
+                }
 
                 /* Parse optional "as val" or "as ref" for parameter */
                 MemoryQualifier param_qualifier = parser_memory_qualifier(parser);
@@ -296,9 +301,12 @@ Expr *parser_primary(Parser *parser)
         /* Parse optional function modifier (shared/private) before return type */
         FunctionModifier modifier = parser_function_modifier(parser);
 
-        /* Parse return type */
-        parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter list");
-        Type *return_type = parser_type(parser);
+        /* Return type is optional - if => comes next, set return_type to NULL for inference */
+        Type *return_type = NULL;
+        if (parser_match(parser, TOKEN_COLON))
+        {
+            return_type = parser_type(parser);
+        }
 
         /* Parse body */
         parser_consume(parser, TOKEN_ARROW, "Expected '=>' before lambda body");

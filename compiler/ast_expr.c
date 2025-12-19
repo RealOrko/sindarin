@@ -356,7 +356,8 @@ Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
                              Type *return_type, Expr *body, FunctionModifier modifier,
                              const Token *loc_token)
 {
-    if (body == NULL || return_type == NULL)
+    /* body is required, but return_type can be NULL for type inference */
+    if (body == NULL)
     {
         return NULL;
     }

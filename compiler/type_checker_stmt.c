@@ -3,6 +3,42 @@
 #include "type_checker_expr.h"
 #include "debug.h"
 
+/* Infer missing lambda types from a function type annotation */
+static void infer_lambda_types(Expr *lambda_expr, Type *func_type)
+{
+    if (lambda_expr == NULL || lambda_expr->type != EXPR_LAMBDA)
+        return;
+    if (func_type == NULL || func_type->kind != TYPE_FUNCTION)
+        return;
+
+    LambdaExpr *lambda = &lambda_expr->as.lambda;
+
+    /* Check parameter count matches */
+    if (lambda->param_count != func_type->as.function.param_count)
+    {
+        DEBUG_VERBOSE("Lambda param count %d doesn't match function type param count %d",
+                      lambda->param_count, func_type->as.function.param_count);
+        return;
+    }
+
+    /* Infer missing parameter types */
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        if (lambda->params[i].type == NULL)
+        {
+            lambda->params[i].type = func_type->as.function.param_types[i];
+            DEBUG_VERBOSE("Inferred parameter %d type from function type", i);
+        }
+    }
+
+    /* Infer missing return type */
+    if (lambda->return_type == NULL)
+    {
+        lambda->return_type = func_type->as.function.return_type;
+        DEBUG_VERBOSE("Inferred return type from function type");
+    }
+}
+
 static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     (void)return_type;
@@ -11,6 +47,13 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
     Type *init_type = NULL;
     if (stmt->as.var_decl.initializer)
     {
+        /* If initializer is a lambda with missing types, infer from declared type */
+        if (stmt->as.var_decl.initializer->type == EXPR_LAMBDA &&
+            decl_type != NULL && decl_type->kind == TYPE_FUNCTION)
+        {
+            infer_lambda_types(stmt->as.var_decl.initializer, decl_type);
+        }
+
         init_type = type_check_expr(stmt->as.var_decl.initializer, table);
         if (init_type == NULL)
         {

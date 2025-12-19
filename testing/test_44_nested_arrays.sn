@@ -1,0 +1,51 @@
+// Test 44: Nested arrays (multi-dimensional)
+fn main(): int =>
+    print("Test nested arrays:\n\n")
+
+    // Note: Sindarin may not support true 2D arrays like int[][]
+    // This tests what happens with arrays containing arrays
+
+    // Array of int arrays (if supported)
+    // var matrix: int[][] = {{1, 2}, {3, 4}, {5, 6}}
+    // If not supported, test workarounds
+
+    // Multiple separate arrays
+    var row1: int[] = {1, 2, 3}
+    var row2: int[] = {4, 5, 6}
+    var row3: int[] = {7, 8, 9}
+
+    print("Row 1: ")
+    print(row1)
+    print("\n")
+    print("Row 2: ")
+    print(row2)
+    print("\n")
+    print("Row 3: ")
+    print(row3)
+    print("\n")
+
+    // Access elements from each row
+    print($"\nrow1[0] = {row1[0]}\n")
+    print($"row2[1] = {row2[1]}\n")
+    print($"row3[2] = {row3[2]}\n")
+
+    // Sum all elements
+    var total: int = 0
+    for n in row1 =>
+        total = total + n
+    for n in row2 =>
+        total = total + n
+    for n in row3 =>
+        total = total + n
+    print($"Total sum: {total}\n")
+
+    // Array of strings with nested data
+    var data: str[] = {"a,b,c", "d,e,f", "g,h,i"}
+    print("\nString data:\n")
+    for row in data =>
+        print($"  {row}\n")
+        var parts: str[] = row.split(",")
+        for part in parts =>
+            print($"    - {part}\n")
+
+    return 0

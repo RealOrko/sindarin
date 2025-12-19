@@ -1,0 +1,66 @@
+// Test 42: as val (copy semantics)
+fn main(): int =>
+    print("Test as val (copy semantics):\n\n")
+
+    // Basic as val with array
+    var original: int[] = {10, 20, 30}
+    var copy: int[] as val = original
+    
+    print("Before modification:\n")
+    print("  original: ")
+    print(original)
+    print("\n")
+    print("  copy: ")
+    print(copy)
+    print("\n")
+
+    // Modify original
+    original.push(40)
+    print("\nAfter original.push(40):\n")
+    print("  original: ")
+    print(original)
+    print("\n")
+    print("  copy (unchanged): ")
+    print(copy)
+    print("\n")
+
+    // Modify copy
+    copy.push(99)
+    print("\nAfter copy.push(99):\n")
+    print("  original (unchanged): ")
+    print(original)
+    print("\n")
+    print("  copy: ")
+    print(copy)
+    print("\n")
+
+    // as val with string array
+    print("\nas val with string array:\n")
+    var strs: str[] = {"hello", "world"}
+    var strsCopy: str[] as val = strs
+    strs.push("new")
+    print("  strs: ")
+    print(strs)
+    print("\n")
+    print("  strsCopy: ")
+    print(strsCopy)
+    print("\n")
+
+    // Multiple copies
+    print("\nMultiple copies:\n")
+    var src: int[] = {1, 2, 3}
+    var copy1: int[] as val = src
+    var copy2: int[] as val = src
+    src.push(4)
+    copy1.push(5)
+    print("  src: ")
+    print(src)
+    print("\n")
+    print("  copy1: ")
+    print(copy1)
+    print("\n")
+    print("  copy2: ")
+    print(copy2)
+    print("\n")
+
+    return 0

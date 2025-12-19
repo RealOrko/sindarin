@@ -529,7 +529,13 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
         }
 
         // Build concatenation result with intermediate variables to avoid memory leaks
-        if (count == 2)
+        if (count == 1)
+        {
+            // Single part - just return the converted string directly
+            result = arena_sprintf(gen->arena, "%s        _str_part0;\n    })", result);
+            return result;
+        }
+        else if (count == 2)
         {
             // Simple case: just two parts, no intermediate needed
             result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(%s, _str_part0, _str_part1);\n", result, ARENA_VAR(gen));

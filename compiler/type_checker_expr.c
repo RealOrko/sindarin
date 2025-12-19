@@ -157,16 +157,49 @@ static Type *type_check_variable(Expr *expr, SymbolTable *table)
 static Type *type_check_assign(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking assignment to variable: %.*s", expr->as.assign.name.length, expr->as.assign.name.start);
-    Type *value_type = type_check_expr(expr->as.assign.value, table);
-    if (value_type == NULL)
-    {
-        type_error(expr->token, "Invalid value in assignment");
-        return NULL;
-    }
+
+    /* Look up symbol first to get target type for inference */
     Symbol *sym = symbol_table_lookup_symbol(table, expr->as.assign.name);
     if (sym == NULL)
     {
         type_error(&expr->as.assign.name, "Undefined variable for assignment");
+        return NULL;
+    }
+
+    /* If value is a lambda with missing types, infer from target variable's type */
+    Expr *value_expr = expr->as.assign.value;
+    if (value_expr != NULL && value_expr->type == EXPR_LAMBDA &&
+        sym->type != NULL && sym->type->kind == TYPE_FUNCTION)
+    {
+        LambdaExpr *lambda = &value_expr->as.lambda;
+        Type *func_type = sym->type;
+
+        /* Check parameter count matches */
+        if (lambda->param_count == func_type->as.function.param_count)
+        {
+            /* Infer missing parameter types */
+            for (int i = 0; i < lambda->param_count; i++)
+            {
+                if (lambda->params[i].type == NULL)
+                {
+                    lambda->params[i].type = func_type->as.function.param_types[i];
+                    DEBUG_VERBOSE("Inferred assignment lambda param %d type from target", i);
+                }
+            }
+
+            /* Infer missing return type */
+            if (lambda->return_type == NULL)
+            {
+                lambda->return_type = func_type->as.function.return_type;
+                DEBUG_VERBOSE("Inferred assignment lambda return type from target");
+            }
+        }
+    }
+
+    Type *value_type = type_check_expr(value_expr, table);
+    if (value_type == NULL)
+    {
+        type_error(expr->token, "Invalid value in assignment");
         return NULL;
     }
     if (!ast_type_equals(sym->type, value_type))
@@ -240,13 +273,44 @@ static Type *type_check_call(Expr *expr, SymbolTable *table)
     }
     for (int i = 0; i < expr->as.call.arg_count; i++)
     {
-        Type *arg_type = type_check_expr(expr->as.call.arguments[i], table);
+        Expr *arg_expr = expr->as.call.arguments[i];
+        Type *param_type = callee_type->as.function.param_types[i];
+
+        /* If argument is a lambda with missing types, infer from parameter type */
+        if (arg_expr != NULL && arg_expr->type == EXPR_LAMBDA &&
+            param_type != NULL && param_type->kind == TYPE_FUNCTION)
+        {
+            LambdaExpr *lambda = &arg_expr->as.lambda;
+            Type *func_type = param_type;
+
+            /* Check parameter count matches */
+            if (lambda->param_count == func_type->as.function.param_count)
+            {
+                /* Infer missing parameter types */
+                for (int j = 0; j < lambda->param_count; j++)
+                {
+                    if (lambda->params[j].type == NULL)
+                    {
+                        lambda->params[j].type = func_type->as.function.param_types[j];
+                        DEBUG_VERBOSE("Inferred call argument lambda param %d type", j);
+                    }
+                }
+
+                /* Infer missing return type */
+                if (lambda->return_type == NULL)
+                {
+                    lambda->return_type = func_type->as.function.return_type;
+                    DEBUG_VERBOSE("Inferred call argument lambda return type");
+                }
+            }
+        }
+
+        Type *arg_type = type_check_expr(arg_expr, table);
         if (arg_type == NULL)
         {
             type_error(expr->token, "Invalid argument in function call");
             return NULL;
         }
-        Type *param_type = callee_type->as.function.param_types[i];
         if (param_type->kind == TYPE_ANY)
         {
             if (!is_printable_type(arg_type))
@@ -667,6 +731,24 @@ static Type *type_check_lambda(Expr *expr, SymbolTable *table)
 {
     LambdaExpr *lambda = &expr->as.lambda;
     DEBUG_VERBOSE("Type checking lambda with %d params, modifier: %d", lambda->param_count, lambda->modifier);
+
+    /* Check for missing types that couldn't be inferred */
+    if (lambda->return_type == NULL)
+    {
+        type_error(expr->token,
+                   "Cannot infer lambda return type. Provide explicit type or use typed variable declaration.");
+        return NULL;
+    }
+
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        if (lambda->params[i].type == NULL)
+        {
+            type_error(expr->token,
+                       "Cannot infer lambda parameter type. Provide explicit type or use typed variable declaration.");
+            return NULL;
+        }
+    }
 
     /* Validate private lambda return type - only primitives allowed */
     if (lambda->modifier == FUNC_PRIVATE)
