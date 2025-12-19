@@ -26,8 +26,8 @@ fn main(): int =>
     print($"hello + world = \"{concat2}\"\n")
 
     // Multiple concat
-    var long: str = "A" + "B" + "C" + "D" + "E"
-    print($"Multiple: \"{long}\"\n")
+    var l: str = "A" + "B" + "C" + "D" + "E"
+    print($"Multiple: \"{l}\"\n")
 
     // Comparison
     print("\nComparisons:\n")

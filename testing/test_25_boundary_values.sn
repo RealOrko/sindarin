@@ -45,13 +45,13 @@ fn main(): int =>
     print($"First: {large[0]}, Last: {large[-1]}\n")
 
     print("\n=== Deeply Nested Conditions ===\n")
-    var val: int = 50
-    if val > 0 =>
-        if val > 10 =>
-            if val > 20 =>
-                if val > 30 =>
-                    if val > 40 =>
-                        print("val > 40\n")
+    var value: int = 50
+    if value > 0 =>
+        if value > 10 =>
+            if value > 20 =>
+                if value > 30 =>
+                    if value > 40 =>
+                        print("value > 40\n")
 
     print("\n=== Long String ===\n")
     var long: str = "This is a fairly long string that contains many characters to test string handling"

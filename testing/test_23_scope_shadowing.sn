@@ -59,6 +59,6 @@ fn main(): int =>
 
     return 0
 
-fn modify_local(val: int): void =>
-    val = val + 50
-    print($"Inside function, val: {val}\n")
+fn modify_local(value: int): void =>
+    value = value + 50
+    print($"Inside function, value: {value}\n")

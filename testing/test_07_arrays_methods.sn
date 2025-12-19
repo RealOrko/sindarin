@@ -17,8 +17,8 @@ fn main(): int =>
 
     // Pop from single element
     var single: int[] = {99}
-    var val: int = single.pop()
-    print($"Pop from single: {val}, remaining length: {single.length}\n")
+    var value: int = single.pop()
+    print($"Pop from single: {value}, remaining length: {single.length}\n")
 
     print("\n=== Insert and Remove ===\n")
     var items: int[] = {1, 2, 3, 4, 5}

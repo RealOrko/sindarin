@@ -24,18 +24,18 @@ fn main(): int =>
 
     // Nested blocks
     print("\nNested blocks (5 levels):\n")
-    var val: int = 0
+    var value: int = 0
     shared =>
-        val = val + 1
+        value = value + 1
         shared =>
-            val = val + 2
+            value = value + 2
             shared =>
-                val = val + 3
+                value = value + 3
                 shared =>
-                    val = val + 4
+                    value = value + 4
                     shared =>
-                        val = val + 5
-    print($"val after nested blocks: {val}\n")
+                        value = value + 5
+    print($"value after nested blocks: {value}\n")
 
     // Mix of nesting types
     print("\nMixed nesting:\n")
