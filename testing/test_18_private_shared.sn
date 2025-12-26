@@ -38,7 +38,7 @@ fn main(): int =>
 
     print("\n=== Shared Loop ===\n")
     var sum: int = 0
-    for i in 1..6 shared =>
+    shared for i in 1..6 =>
         sum = sum + i
     print($"sum after shared loop: {sum}\n")
 

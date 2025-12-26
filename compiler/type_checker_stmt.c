@@ -124,7 +124,12 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     Arena *arena = table->arena;
     Type **param_types = (Type **)arena_alloc(arena, sizeof(Type *) * stmt->as.function.param_count);
     for (int i = 0; i < stmt->as.function.param_count; i++) {
-        param_types[i] = stmt->as.function.params[i].type;
+        Type *param_type = stmt->as.function.params[i].type;
+        /* Handle null parameter type - use NIL as placeholder */
+        if (param_type == NULL) {
+            param_type = ast_create_primitive_type(arena, TYPE_NIL);
+        }
+        param_types[i] = param_type;
     }
     Type *func_type = ast_create_function_type(arena, stmt->as.function.return_type, param_types, stmt->as.function.param_count);
 
@@ -149,6 +154,13 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     {
         Parameter param = stmt->as.function.params[i];
         DEBUG_VERBOSE("Adding parameter %d: %.*s", i, param.name.length, param.name.start);
+
+        /* Check for null parameter type - report error and use placeholder */
+        if (param.type == NULL)
+        {
+            type_error(&param.name, "Parameter type is missing");
+            param.type = ast_create_primitive_type(arena, TYPE_NIL);
+        }
 
         /* Validate parameter memory qualifier */
         if (param.mem_qualifier == MEM_AS_VAL)

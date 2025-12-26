@@ -285,6 +285,7 @@ char *code_gen_type_suffix(Type *type)
     {
     case TYPE_INT:
     case TYPE_LONG:
+    case TYPE_CHAR:
         return "long";
     case TYPE_DOUBLE:
         return "double";

@@ -380,7 +380,10 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
 void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_return_statement");
-    if (stmt->value)
+    /* Check if returning from a void function/lambda */
+    int is_void_return = (gen->current_return_type && gen->current_return_type->kind == TYPE_VOID);
+
+    if (stmt->value && !is_void_return)
     {
         char *value_str = code_gen_expression(gen, stmt->value);
         indented_fprintf(gen, indent, "_return_value = %s;\n", value_str);

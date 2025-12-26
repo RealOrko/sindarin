@@ -78,6 +78,7 @@ typedef enum
     EXPR_LITERAL,
     EXPR_VARIABLE,
     EXPR_ASSIGN,
+    EXPR_INDEX_ASSIGN,
     EXPR_CALL,
     EXPR_ARRAY,
     EXPR_ARRAY_ACCESS,
@@ -121,6 +122,13 @@ typedef struct
     Token name;
     Expr *value;
 } AssignExpr;
+
+typedef struct
+{
+    Expr *array;
+    Expr *index;
+    Expr *value;
+} IndexAssignExpr;
 
 typedef struct
 {
@@ -177,7 +185,10 @@ typedef struct
     Parameter *params;
     int param_count;
     Type *return_type;
-    Expr *body;
+    Expr *body;              /* Expression body for single-line lambdas (NULL if has_stmt_body) */
+    struct Stmt **body_stmts; /* Statement body for multi-line lambdas (NULL if !has_stmt_body) */
+    int body_stmt_count;      /* Number of statements in body_stmts */
+    int has_stmt_body;        /* True if lambda has statement body instead of expression body */
     FunctionModifier modifier;  /* shared, private, or default */
     /* Capture info (filled during type checking) */
     Token *captured_vars;
@@ -198,6 +209,7 @@ struct Expr
         LiteralExpr literal;
         VariableExpr variable;
         AssignExpr assign;
+        IndexAssignExpr index_assign;
         CallExpr call;
         ArrayExpr array;
         ArrayAccessExpr array_access;
@@ -354,6 +366,7 @@ Expr *ast_create_unary_expr(Arena *arena, TokenType operator, Expr *operand, con
 Expr *ast_create_literal_expr(Arena *arena, LiteralValue value, Type *type, bool is_interpolated, const Token *loc_token);
 Expr *ast_create_variable_expr(Arena *arena, Token name, const Token *loc_token);
 Expr *ast_create_assign_expr(Arena *arena, Token name, Expr *value, const Token *loc_token);
+Expr *ast_create_index_assign_expr(Arena *arena, Expr *array, Expr *index, Expr *value, const Token *loc_token);
 Expr *ast_create_call_expr(Arena *arena, Expr *callee, Expr **arguments, int arg_count, const Token *loc_token);
 Expr *ast_create_array_expr(Arena *arena, Expr **elements, int element_count, const Token *loc_token);
 Expr *ast_create_array_access_expr(Arena *arena, Expr *array, Expr *index, const Token *loc_token);
@@ -368,6 +381,9 @@ Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token);
 Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
                              Type *return_type, Expr *body, FunctionModifier modifier,
                              const Token *loc_token);
+Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_count,
+                                  Type *return_type, struct Stmt **body_stmts, int body_stmt_count,
+                                  FunctionModifier modifier, const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token);

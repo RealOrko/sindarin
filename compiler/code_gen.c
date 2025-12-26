@@ -36,6 +36,9 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->lambda_count = 0;
     gen->lambda_forward_decls = arena_strdup(arena, "");
     gen->lambda_definitions = arena_strdup(arena, "");
+    gen->enclosing_lambdas = NULL;
+    gen->enclosing_lambda_count = 0;
+    gen->enclosing_lambda_capacity = 0;
 
     /* Initialize buffering fields */
     gen->function_definitions = arena_strdup(arena, "");

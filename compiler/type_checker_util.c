@@ -163,3 +163,40 @@ bool memory_context_is_private(MemoryContext *ctx)
 {
     return ctx->in_private_block || ctx->in_private_function;
 }
+
+bool can_promote_numeric(Type *from, Type *to)
+{
+    if (from == NULL || to == NULL) return false;
+    /* int can promote to double or long */
+    if (from->kind == TYPE_INT && (to->kind == TYPE_DOUBLE || to->kind == TYPE_LONG))
+        return true;
+    /* long can promote to double */
+    if (from->kind == TYPE_LONG && to->kind == TYPE_DOUBLE)
+        return true;
+    return false;
+}
+
+Type *get_promoted_type(Arena *arena, Type *left, Type *right)
+{
+    if (left == NULL || right == NULL) return NULL;
+
+    /* If both are the same type, return it */
+    if (ast_type_equals(left, right))
+        return left;
+
+    /* Check for numeric type promotion */
+    if (is_numeric_type(left) && is_numeric_type(right))
+    {
+        /* double is the widest numeric type */
+        if (left->kind == TYPE_DOUBLE || right->kind == TYPE_DOUBLE)
+            return ast_create_primitive_type(arena, TYPE_DOUBLE);
+        /* long is wider than int */
+        if (left->kind == TYPE_LONG || right->kind == TYPE_LONG)
+            return ast_create_primitive_type(arena, TYPE_LONG);
+        /* both are int */
+        return left;
+    }
+
+    /* No valid promotion */
+    return NULL;
+}

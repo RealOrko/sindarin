@@ -587,6 +587,56 @@ void test_array_slice_full_copy_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_array_element_assignment_parsing()
+{
+    printf("Testing parser_execute array element assignment (arr[i] = value)...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main():void =>\n"
+        "  var arr:int[] = {1, 2, 3}\n"
+        "  arr[0] = 100\n"
+        "  arr[-1] = 300\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 3);
+
+    // First assignment: arr[0] = 100
+    Stmt *assign1_stmt = fn->as.function.body[1];
+    assert(assign1_stmt->type == STMT_EXPR);
+    Expr *assign1 = assign1_stmt->as.expression.expression;
+    assert(assign1->type == EXPR_INDEX_ASSIGN);
+    assert(assign1->as.index_assign.array->type == EXPR_VARIABLE);
+    assert(strcmp(assign1->as.index_assign.array->as.variable.name.start, "arr") == 0);
+    assert(assign1->as.index_assign.index->type == EXPR_LITERAL);
+    assert(assign1->as.index_assign.index->as.literal.value.int_value == 0);
+    assert(assign1->as.index_assign.value->type == EXPR_LITERAL);
+    assert(assign1->as.index_assign.value->as.literal.value.int_value == 100);
+
+    // Second assignment: arr[-1] = 300
+    Stmt *assign2_stmt = fn->as.function.body[2];
+    assert(assign2_stmt->type == STMT_EXPR);
+    Expr *assign2 = assign2_stmt->as.expression.expression;
+    assert(assign2->type == EXPR_INDEX_ASSIGN);
+    assert(assign2->as.index_assign.array->type == EXPR_VARIABLE);
+    assert(strcmp(assign2->as.index_assign.array->as.variable.name.start, "arr") == 0);
+    // Negative index is parsed as unary minus on literal
+    assert(assign2->as.index_assign.index->type == EXPR_UNARY);
+    assert(assign2->as.index_assign.value->type == EXPR_LITERAL);
+    assert(assign2->as.index_assign.value->as.literal.value.int_value == 300);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_parser_array_main()
 {
     test_array_declaration_parsing();
@@ -600,6 +650,7 @@ void test_parser_array_main()
     test_array_print_and_interpolated_parsing_no_trailing_literal();
     test_array_function_params_and_return_parsing();
     test_array_access_parsing();
+    test_array_element_assignment_parsing();
     // Slice tests
     test_array_slice_full_parsing();
     test_array_slice_from_start_parsing();

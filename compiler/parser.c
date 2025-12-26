@@ -218,9 +218,13 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
             }
 
             int new_all_count = all_count + imported_module->count;
-            if (new_all_count > all_capacity)
+            int old_capacity = all_capacity;
+            while (new_all_count > all_capacity)
             {
                 all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+            }
+            if (all_capacity > old_capacity || all_statements == NULL)
+            {
                 Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
                 if (!new_statements)
                 {
@@ -229,7 +233,7 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
                     lexer_cleanup(&lexer);
                     return NULL;
                 }
-                if (all_count > 0)
+                if (all_count > 0 && all_statements != NULL)
                 {
                     memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
                 }
@@ -248,9 +252,13 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
     }
 
     int new_all_count = all_count + module->count;
-    if (new_all_count > all_capacity)
+    int old_capacity = all_capacity;
+    while (new_all_count > all_capacity)
     {
         all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+    }
+    if (all_capacity > old_capacity || all_statements == NULL)
+    {
         Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
         if (!new_statements)
         {
@@ -259,7 +267,7 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
             lexer_cleanup(&lexer);
             return NULL;
         }
-        if (all_count > 0)
+        if (all_count > 0 && all_statements != NULL)
         {
             memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
         }

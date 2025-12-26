@@ -1,5 +1,6 @@
 #include "parser_expr.h"
 #include "parser_util.h"
+#include "parser_stmt.h"
 #include "debug.h"
 #include <stdlib.h>
 #include <string.h>
@@ -47,6 +48,13 @@ Expr *parser_assignment(Parser *parser)
             }
             name.start = new_start;
             return ast_create_assign_expr(parser->arena, name, value, &equals);
+        }
+        else if (expr->type == EXPR_ARRAY_ACCESS)
+        {
+            return ast_create_index_assign_expr(parser->arena,
+                expr->as.array_access.array,
+                expr->as.array_access.index,
+                value, &equals);
         }
         parser_error(parser, "Invalid assignment target");
     }
@@ -310,8 +318,32 @@ Expr *parser_primary(Parser *parser)
 
         /* Parse body */
         parser_consume(parser, TOKEN_ARROW, "Expected '=>' before lambda body");
-        Expr *body = parser_expression(parser);
 
+        /* Check for multi-line lambda body (newline followed by indent) */
+        if (parser_check(parser, TOKEN_NEWLINE))
+        {
+            skip_newlines(parser);
+            if (parser_check(parser, TOKEN_INDENT))
+            {
+                /* Multi-line lambda with statement body */
+                Stmt *block = parser_indented_block(parser);
+                if (block == NULL)
+                {
+                    parser_error(parser, "Expected indented block for lambda body");
+                    return NULL;
+                }
+                Stmt **stmts = block->as.block.statements;
+                int stmt_count = block->as.block.count;
+                return ast_create_lambda_stmt_expr(parser->arena, params, param_count,
+                                                   return_type, stmts, stmt_count, modifier, &fn_token);
+            }
+            /* Newline but no indent - single expression on next line is not valid */
+            parser_error(parser, "Expected expression or indented block after '=>'");
+            return NULL;
+        }
+
+        /* Single-line lambda with expression body */
+        Expr *body = parser_expression(parser);
         return ast_create_lambda_expr(parser->arena, params, param_count, return_type, body, modifier, &fn_token);
     }
     if (parser_match(parser, TOKEN_IDENTIFIER))

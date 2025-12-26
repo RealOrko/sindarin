@@ -21,6 +21,10 @@ bool is_comparison_operator(TokenType op);
 bool is_arithmetic_operator(TokenType op);
 bool is_printable_type(Type *type);
 
+/* Type promotion for numeric operations (int -> double) */
+bool can_promote_numeric(Type *from, Type *to);
+Type *get_promoted_type(Arena *arena, Type *left, Type *right);
+
 /* Memory management type predicates */
 bool is_primitive_type(Type *type);
 bool is_reference_type(Type *type);

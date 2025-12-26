@@ -1,5 +1,6 @@
 #include "code_gen_expr.h"
 #include "code_gen_util.h"
+#include "code_gen_stmt.h"
 #include "debug.h"
 #include "symbol_table.h"
 #include <stdlib.h>
@@ -55,6 +56,159 @@ static void captured_vars_add(CapturedVars *cv, Arena *arena, const char *name, 
     cv->count++;
 }
 
+/* Helper structure for local variable tracking in lambda bodies */
+typedef struct {
+    char **names;
+    int count;
+    int capacity;
+} LocalVars;
+
+/* Helper structure for tracking enclosing lambda parameters */
+typedef struct EnclosingLambdaContext {
+    LambdaExpr **lambdas;
+    int count;
+    int capacity;
+} EnclosingLambdaContext;
+
+static void enclosing_lambda_init(EnclosingLambdaContext *ctx)
+{
+    ctx->lambdas = NULL;
+    ctx->count = 0;
+    ctx->capacity = 0;
+}
+
+static void enclosing_lambda_push(EnclosingLambdaContext *ctx, Arena *arena, LambdaExpr *lambda)
+{
+    if (ctx->count >= ctx->capacity)
+    {
+        int new_cap = ctx->capacity == 0 ? 4 : ctx->capacity * 2;
+        LambdaExpr **new_lambdas = arena_alloc(arena, new_cap * sizeof(LambdaExpr *));
+        for (int i = 0; i < ctx->count; i++)
+        {
+            new_lambdas[i] = ctx->lambdas[i];
+        }
+        ctx->lambdas = new_lambdas;
+        ctx->capacity = new_cap;
+    }
+    ctx->lambdas[ctx->count++] = lambda;
+}
+
+/* Check if a name is a parameter of any enclosing lambda, and get its type */
+static Type *find_enclosing_lambda_param(EnclosingLambdaContext *ctx, const char *name)
+{
+    if (ctx == NULL) return NULL;
+    for (int i = 0; i < ctx->count; i++)
+    {
+        LambdaExpr *lambda = ctx->lambdas[i];
+        for (int j = 0; j < lambda->param_count; j++)
+        {
+            char param_name[256];
+            int len = lambda->params[j].name.length < 255 ? lambda->params[j].name.length : 255;
+            strncpy(param_name, lambda->params[j].name.start, len);
+            param_name[len] = '\0';
+            if (strcmp(param_name, name) == 0)
+            {
+                return lambda->params[j].type;
+            }
+        }
+    }
+    return NULL;
+}
+
+static void local_vars_init(LocalVars *lv)
+{
+    lv->names = NULL;
+    lv->count = 0;
+    lv->capacity = 0;
+}
+
+static void local_vars_add(LocalVars *lv, Arena *arena, const char *name)
+{
+    /* Check if already tracked */
+    for (int i = 0; i < lv->count; i++)
+    {
+        if (strcmp(lv->names[i], name) == 0)
+            return;
+    }
+    /* Grow array if needed */
+    if (lv->count >= lv->capacity)
+    {
+        int new_cap = lv->capacity == 0 ? 8 : lv->capacity * 2;
+        char **new_names = arena_alloc(arena, new_cap * sizeof(char *));
+        for (int i = 0; i < lv->count; i++)
+        {
+            new_names[i] = lv->names[i];
+        }
+        lv->names = new_names;
+        lv->capacity = new_cap;
+    }
+    lv->names[lv->count] = arena_strdup(arena, name);
+    lv->count++;
+}
+
+static bool is_local_var(LocalVars *lv, const char *name)
+{
+    for (int i = 0; i < lv->count; i++)
+    {
+        if (strcmp(lv->names[i], name) == 0)
+            return true;
+    }
+    return false;
+}
+
+/* Forward declaration for collecting locals from statements */
+static void collect_local_vars_from_stmt(Stmt *stmt, LocalVars *lv, Arena *arena);
+
+/* Collect local variable declarations from a statement */
+static void collect_local_vars_from_stmt(Stmt *stmt, LocalVars *lv, Arena *arena)
+{
+    if (stmt == NULL) return;
+
+    switch (stmt->type)
+    {
+    case STMT_VAR_DECL:
+    {
+        /* Add this variable to locals */
+        char name[256];
+        int len = stmt->as.var_decl.name.length < 255 ? stmt->as.var_decl.name.length : 255;
+        strncpy(name, stmt->as.var_decl.name.start, len);
+        name[len] = '\0';
+        local_vars_add(lv, arena, name);
+        break;
+    }
+    case STMT_BLOCK:
+        for (int i = 0; i < stmt->as.block.count; i++)
+            collect_local_vars_from_stmt(stmt->as.block.statements[i], lv, arena);
+        break;
+    case STMT_IF:
+        collect_local_vars_from_stmt(stmt->as.if_stmt.then_branch, lv, arena);
+        if (stmt->as.if_stmt.else_branch)
+            collect_local_vars_from_stmt(stmt->as.if_stmt.else_branch, lv, arena);
+        break;
+    case STMT_WHILE:
+        collect_local_vars_from_stmt(stmt->as.while_stmt.body, lv, arena);
+        break;
+    case STMT_FOR:
+        if (stmt->as.for_stmt.initializer)
+            collect_local_vars_from_stmt(stmt->as.for_stmt.initializer, lv, arena);
+        collect_local_vars_from_stmt(stmt->as.for_stmt.body, lv, arena);
+        break;
+    case STMT_FOR_EACH:
+    {
+        /* The loop variable is a local */
+        char name[256];
+        int len = stmt->as.for_each_stmt.var_name.length < 255 ? stmt->as.for_each_stmt.var_name.length : 255;
+        strncpy(name, stmt->as.for_each_stmt.var_name.start, len);
+        name[len] = '\0';
+        local_vars_add(lv, arena, name);
+        collect_local_vars_from_stmt(stmt->as.for_each_stmt.body, lv, arena);
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 /* Helper to check if a name is a lambda parameter */
 static bool is_lambda_param(LambdaExpr *lambda, const char *name)
 {
@@ -70,9 +224,13 @@ static bool is_lambda_param(LambdaExpr *lambda, const char *name)
     return false;
 }
 
+/* Forward declaration for statement traversal */
+static void collect_captured_vars_from_stmt(Stmt *stmt, LambdaExpr *lambda, SymbolTable *table,
+                                            CapturedVars *cv, LocalVars *lv, EnclosingLambdaContext *enclosing, Arena *arena);
+
 /* Recursively collect captured variables from an expression */
 static void collect_captured_vars(Expr *expr, LambdaExpr *lambda, SymbolTable *table,
-                                  CapturedVars *cv, Arena *arena)
+                                  CapturedVars *cv, LocalVars *lv, EnclosingLambdaContext *enclosing, Arena *arena)
 {
     if (expr == NULL) return;
 
@@ -89,6 +247,10 @@ static void collect_captured_vars(Expr *expr, LambdaExpr *lambda, SymbolTable *t
         if (is_lambda_param(lambda, name))
             return;
 
+        /* Skip if it's a local variable declared in the lambda body */
+        if (lv != NULL && is_local_var(lv, name))
+            return;
+
         /* Skip builtins */
         if (strcmp(name, "print") == 0 || strcmp(name, "len") == 0)
             return;
@@ -100,59 +262,146 @@ static void collect_captured_vars(Expr *expr, LambdaExpr *lambda, SymbolTable *t
             /* It's a captured variable from outer scope */
             captured_vars_add(cv, arena, name, sym->type);
         }
+        else
+        {
+            /* Check if it's a parameter from an enclosing lambda */
+            Type *enclosing_type = find_enclosing_lambda_param(enclosing, name);
+            if (enclosing_type != NULL)
+            {
+                captured_vars_add(cv, arena, name, enclosing_type);
+            }
+        }
         break;
     }
     case EXPR_BINARY:
-        collect_captured_vars(expr->as.binary.left, lambda, table, cv, arena);
-        collect_captured_vars(expr->as.binary.right, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.binary.left, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.binary.right, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_UNARY:
-        collect_captured_vars(expr->as.unary.operand, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.unary.operand, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_ASSIGN:
-        collect_captured_vars(expr->as.assign.value, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.assign.value, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case EXPR_INDEX_ASSIGN:
+        collect_captured_vars(expr->as.index_assign.array, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.index_assign.index, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.index_assign.value, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_CALL:
-        collect_captured_vars(expr->as.call.callee, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.call.callee, lambda, table, cv, lv, enclosing, arena);
         for (int i = 0; i < expr->as.call.arg_count; i++)
-            collect_captured_vars(expr->as.call.arguments[i], lambda, table, cv, arena);
+            collect_captured_vars(expr->as.call.arguments[i], lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_ARRAY:
         for (int i = 0; i < expr->as.array.element_count; i++)
-            collect_captured_vars(expr->as.array.elements[i], lambda, table, cv, arena);
+            collect_captured_vars(expr->as.array.elements[i], lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_ARRAY_ACCESS:
-        collect_captured_vars(expr->as.array_access.array, lambda, table, cv, arena);
-        collect_captured_vars(expr->as.array_access.index, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.array_access.array, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.array_access.index, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_INCREMENT:
     case EXPR_DECREMENT:
-        collect_captured_vars(expr->as.operand, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.operand, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_INTERPOLATED:
         for (int i = 0; i < expr->as.interpol.part_count; i++)
-            collect_captured_vars(expr->as.interpol.parts[i], lambda, table, cv, arena);
+            collect_captured_vars(expr->as.interpol.parts[i], lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_MEMBER:
-        collect_captured_vars(expr->as.member.object, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.member.object, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_ARRAY_SLICE:
-        collect_captured_vars(expr->as.array_slice.array, lambda, table, cv, arena);
-        collect_captured_vars(expr->as.array_slice.start, lambda, table, cv, arena);
-        collect_captured_vars(expr->as.array_slice.end, lambda, table, cv, arena);
-        collect_captured_vars(expr->as.array_slice.step, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.array_slice.array, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.array_slice.start, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.array_slice.end, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.array_slice.step, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_RANGE:
-        collect_captured_vars(expr->as.range.start, lambda, table, cv, arena);
-        collect_captured_vars(expr->as.range.end, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.range.start, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars(expr->as.range.end, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_SPREAD:
-        collect_captured_vars(expr->as.spread.array, lambda, table, cv, arena);
+        collect_captured_vars(expr->as.spread.array, lambda, table, cv, lv, enclosing, arena);
         break;
     case EXPR_LAMBDA:
-        /* Don't recurse into nested lambdas - they have their own captures */
+        /* Recurse into nested lambdas to collect transitive captures */
+        /* Variables captured by nested lambdas that are from outer scopes
+           need to be captured by this lambda too */
+        {
+            LambdaExpr *nested_lambda = &expr->as.lambda;
+            if (nested_lambda->has_stmt_body)
+            {
+                for (int i = 0; i < nested_lambda->body_stmt_count; i++)
+                {
+                    collect_captured_vars_from_stmt(nested_lambda->body_stmts[i], lambda, table, cv, lv, enclosing, arena);
+                }
+            }
+            else if (nested_lambda->body)
+            {
+                collect_captured_vars(nested_lambda->body, lambda, table, cv, lv, enclosing, arena);
+            }
+        }
         break;
     case EXPR_LITERAL:
+    default:
+        break;
+    }
+}
+
+/* Recursively collect captured variables from a statement */
+static void collect_captured_vars_from_stmt(Stmt *stmt, LambdaExpr *lambda, SymbolTable *table,
+                                            CapturedVars *cv, LocalVars *lv, EnclosingLambdaContext *enclosing, Arena *arena)
+{
+    if (stmt == NULL) return;
+
+    switch (stmt->type)
+    {
+    case STMT_EXPR:
+        collect_captured_vars(stmt->as.expression.expression, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_VAR_DECL:
+        if (stmt->as.var_decl.initializer)
+            collect_captured_vars(stmt->as.var_decl.initializer, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_RETURN:
+        if (stmt->as.return_stmt.value)
+            collect_captured_vars(stmt->as.return_stmt.value, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_BLOCK:
+        for (int i = 0; i < stmt->as.block.count; i++)
+            collect_captured_vars_from_stmt(stmt->as.block.statements[i], lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_IF:
+        collect_captured_vars(stmt->as.if_stmt.condition, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars_from_stmt(stmt->as.if_stmt.then_branch, lambda, table, cv, lv, enclosing, arena);
+        if (stmt->as.if_stmt.else_branch)
+            collect_captured_vars_from_stmt(stmt->as.if_stmt.else_branch, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_WHILE:
+        collect_captured_vars(stmt->as.while_stmt.condition, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars_from_stmt(stmt->as.while_stmt.body, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_FOR:
+        if (stmt->as.for_stmt.initializer)
+            collect_captured_vars_from_stmt(stmt->as.for_stmt.initializer, lambda, table, cv, lv, enclosing, arena);
+        if (stmt->as.for_stmt.condition)
+            collect_captured_vars(stmt->as.for_stmt.condition, lambda, table, cv, lv, enclosing, arena);
+        if (stmt->as.for_stmt.increment)
+            collect_captured_vars(stmt->as.for_stmt.increment, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars_from_stmt(stmt->as.for_stmt.body, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_FOR_EACH:
+        collect_captured_vars(stmt->as.for_each_stmt.iterable, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars_from_stmt(stmt->as.for_each_stmt.body, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_FUNCTION:
+        /* Don't recurse into nested functions - they have their own scope */
+        break;
+    case STMT_BREAK:
+    case STMT_CONTINUE:
+    case STMT_IMPORT:
     default:
         break;
     }
@@ -167,6 +416,7 @@ bool expression_produces_temp(Expr *expr)
     {
     case EXPR_VARIABLE:
     case EXPR_ASSIGN:
+    case EXPR_INDEX_ASSIGN:
     case EXPR_LITERAL:
         return false;
     case EXPR_BINARY:
@@ -178,12 +428,45 @@ bool expression_produces_temp(Expr *expr)
     }
 }
 
+/* Helper to determine if a type is numeric */
+static bool is_numeric(Type *type)
+{
+    return type && (type->kind == TYPE_INT || type->kind == TYPE_LONG || type->kind == TYPE_DOUBLE);
+}
+
+/* Helper to get the promoted type for binary operations with mixed numeric types */
+static Type *get_binary_promoted_type(Type *left, Type *right)
+{
+    if (left == NULL || right == NULL) return left;
+
+    /* If both are numeric, promote to the wider type */
+    if (is_numeric(left) && is_numeric(right))
+    {
+        /* double is the widest */
+        if (left->kind == TYPE_DOUBLE || right->kind == TYPE_DOUBLE)
+        {
+            /* Return whichever is double */
+            return left->kind == TYPE_DOUBLE ? left : right;
+        }
+        /* long is wider than int */
+        if (left->kind == TYPE_LONG || right->kind == TYPE_LONG)
+        {
+            return left->kind == TYPE_LONG ? left : right;
+        }
+    }
+    /* Otherwise use left type */
+    return left;
+}
+
 char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_binary_expression");
     char *left_str = code_gen_expression(gen, expr->left);
     char *right_str = code_gen_expression(gen, expr->right);
-    Type *type = expr->left->expr_type;
+    Type *left_type = expr->left->expr_type;
+    Type *right_type = expr->right->expr_type;
+    /* Use promoted type for mixed numeric operations */
+    Type *type = get_binary_promoted_type(left_type, right_type);
     TokenType op = expr->operator;
     if (op == TOKEN_AND)
     {
@@ -361,6 +644,33 @@ char *code_gen_assign_expression(CodeGen *gen, AssignExpr *expr)
     {
         return arena_sprintf(gen->arena, "(%s = %s)", var_name, value_str);
     }
+}
+
+char *code_gen_index_assign_expression(CodeGen *gen, IndexAssignExpr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_index_assign_expression");
+    char *array_str = code_gen_expression(gen, expr->array);
+    char *index_str = code_gen_expression(gen, expr->index);
+    char *value_str = code_gen_expression(gen, expr->value);
+
+    // Handle negative index - arr[idx < 0 ? len + idx : idx] = value
+    if (expr->index->type == EXPR_LITERAL && expr->index->as.literal.type->kind == TYPE_INT)
+    {
+        long idx_val = expr->index->as.literal.value.int_value;
+        if (idx_val >= 0)
+        {
+            // Positive literal index
+            return arena_sprintf(gen->arena, "(%s[%s] = %s)",
+                                 array_str, index_str, value_str);
+        }
+        // Negative literal - adjust by array length
+        return arena_sprintf(gen->arena, "(%s[rt_array_length(%s) + %s] = %s)",
+                             array_str, array_str, index_str, value_str);
+    }
+
+    // For variable indices, generate runtime check for negative index
+    return arena_sprintf(gen->arena, "(%s[(%s) < 0 ? rt_array_length(%s) + (%s) : (%s)] = %s)",
+                         array_str, index_str, array_str, index_str, index_str, value_str);
 }
 
 char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
@@ -1543,6 +1853,46 @@ char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
     return arena_sprintf(gen->arena, "%s(%s, %s, %s, %s, %s)", slice_func, ARENA_VAR(gen), array_str, start_str, end_str, step_str);
 }
 
+/* Helper to generate statement body code for lambda
+ * lambda_func_name: the generated function name like "__lambda_5__"
+ * This sets up context so return statements work correctly */
+static char *code_gen_lambda_stmt_body(CodeGen *gen, LambdaExpr *lambda, int indent,
+                                        const char *lambda_func_name, Type *return_type)
+{
+    /* Save current context */
+    char *old_function = gen->current_function;
+    Type *old_return_type = gen->current_return_type;
+
+    /* Set up lambda context - use the lambda function name for return labels */
+    gen->current_function = (char *)lambda_func_name;
+    gen->current_return_type = return_type;
+
+    /* Generate code for each statement in the lambda body */
+    /* We need to capture the output since code_gen_statement writes to gen->output */
+    FILE *old_output = gen->output;
+    char *body_buffer = NULL;
+    size_t body_size = 0;
+    gen->output = open_memstream(&body_buffer, &body_size);
+
+    for (int i = 0; i < lambda->body_stmt_count; i++)
+    {
+        code_gen_statement(gen, lambda->body_stmts[i], indent);
+    }
+
+    fclose(gen->output);
+    gen->output = old_output;
+
+    /* Restore context */
+    gen->current_function = old_function;
+    gen->current_return_type = old_return_type;
+
+    /* Copy to arena and free temp buffer */
+    char *result = arena_strdup(gen->arena, body_buffer ? body_buffer : "");
+    free(body_buffer);
+
+    return result;
+}
+
 static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_lambda_expression");
@@ -1553,10 +1903,39 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
     /* Store the lambda_id in the expression for later reference */
     expr->as.lambda.lambda_id = lambda_id;
 
-    /* Collect captured variables */
+    /* Collect captured variables - from expression body or statement body */
     CapturedVars cv;
     captured_vars_init(&cv, gen->arena);
-    collect_captured_vars(lambda->body, lambda, gen->symbol_table, &cv, gen->arena);
+
+    /* First collect local variables declared in the lambda body */
+    LocalVars lv;
+    local_vars_init(&lv);
+    if (lambda->has_stmt_body)
+    {
+        for (int i = 0; i < lambda->body_stmt_count; i++)
+        {
+            collect_local_vars_from_stmt(lambda->body_stmts[i], &lv, gen->arena);
+        }
+    }
+
+    /* Build enclosing lambda context from CodeGen state */
+    EnclosingLambdaContext enclosing;
+    enclosing.lambdas = gen->enclosing_lambdas;
+    enclosing.count = gen->enclosing_lambda_count;
+    enclosing.capacity = gen->enclosing_lambda_capacity;
+
+    /* Now collect captured variables, skipping locals */
+    if (lambda->has_stmt_body)
+    {
+        for (int i = 0; i < lambda->body_stmt_count; i++)
+        {
+            collect_captured_vars_from_stmt(lambda->body_stmts[i], lambda, gen->symbol_table, &cv, &lv, &enclosing, gen->arena);
+        }
+    }
+    else
+    {
+        collect_captured_vars(lambda->body, lambda, gen->symbol_table, &cv, NULL, &enclosing, gen->arena);
+    }
 
     /* Get C types for return type and parameters */
     const char *ret_c_type = get_c_type(gen->arena, lambda->return_type);
@@ -1630,8 +2009,20 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         /* Generate the static lambda function body - use lambda's arena */
         char *saved_arena_var = gen->current_arena_var;
         gen->current_arena_var = "__lambda_arena__";
-        char *body_code = code_gen_expression(gen, lambda->body);
-        gen->current_arena_var = saved_arena_var;
+
+        /* Push this lambda to enclosing context for nested lambdas */
+        if (gen->enclosing_lambda_count >= gen->enclosing_lambda_capacity)
+        {
+            int new_cap = gen->enclosing_lambda_capacity == 0 ? 4 : gen->enclosing_lambda_capacity * 2;
+            LambdaExpr **new_lambdas = arena_alloc(gen->arena, new_cap * sizeof(LambdaExpr *));
+            for (int i = 0; i < gen->enclosing_lambda_count; i++)
+            {
+                new_lambdas[i] = gen->enclosing_lambdas[i];
+            }
+            gen->enclosing_lambdas = new_lambdas;
+            gen->enclosing_lambda_capacity = new_cap;
+        }
+        gen->enclosing_lambdas[gen->enclosing_lambda_count++] = lambda;
 
         /* Generate forward declaration */
         char *forward_decl = arena_sprintf(gen->arena,
@@ -1643,30 +2034,110 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         /* Generate the actual lambda function definition with capture access */
         char *lambda_func;
-        if (modifier == FUNC_PRIVATE)
+        char *lambda_func_name = arena_sprintf(gen->arena, "__lambda_%d__", lambda_id);
+        if (lambda->has_stmt_body)
         {
-            /* Private: create arena, compute result, destroy arena, return */
-            lambda_func = arena_sprintf(gen->arena,
-                "static %s __lambda_%d__(%s) {\n"
-                "%s"
-                "%s"
-                "    %s __result__ = %s;\n"
-                "%s"
-                "    return __result__;\n"
-                "}\n\n",
-                ret_c_type, lambda_id, params_decl, arena_setup, capture_decls,
-                ret_c_type, body_code, arena_cleanup);
+            /* Multi-line lambda with statement body - needs return value and label */
+            char *body_code = code_gen_lambda_stmt_body(gen, lambda, 1, lambda_func_name, lambda->return_type);
+
+            /* Check if void return type - special handling needed */
+            int is_void_return = (lambda->return_type && lambda->return_type->kind == TYPE_VOID);
+
+            if (is_void_return)
+            {
+                /* Void return - no return value declaration needed */
+                if (modifier == FUNC_PRIVATE)
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static void %s(%s) {\n"
+                        "%s"
+                        "%s"
+                        "%s"
+                        "%s_return:\n"
+                        "%s"
+                        "    return;\n"
+                        "}\n\n",
+                        lambda_func_name, params_decl, arena_setup, capture_decls,
+                        body_code, lambda_func_name, arena_cleanup);
+                }
+                else
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static void %s(%s) {\n"
+                        "%s"
+                        "%s"
+                        "%s"
+                        "%s_return:\n"
+                        "    return;\n"
+                        "}\n\n",
+                        lambda_func_name, params_decl, arena_setup, capture_decls,
+                        body_code, lambda_func_name);
+                }
+            }
+            else
+            {
+                const char *default_val = get_default_value(lambda->return_type);
+                if (modifier == FUNC_PRIVATE)
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static %s %s(%s) {\n"
+                        "%s"
+                        "%s"
+                        "    %s _return_value = %s;\n"
+                        "%s"
+                        "%s_return:\n"
+                        "%s"
+                        "    return _return_value;\n"
+                        "}\n\n",
+                        ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls,
+                        ret_c_type, default_val, body_code, lambda_func_name, arena_cleanup);
+                }
+                else
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static %s %s(%s) {\n"
+                        "%s"
+                        "%s"
+                        "    %s _return_value = %s;\n"
+                        "%s"
+                        "%s_return:\n"
+                        "    return _return_value;\n"
+                        "}\n\n",
+                        ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls,
+                        ret_c_type, default_val, body_code, lambda_func_name);
+                }
+            }
         }
         else
         {
-            lambda_func = arena_sprintf(gen->arena,
-                "static %s __lambda_%d__(%s) {\n"
-                "%s"
-                "%s"
-                "    return %s;\n"
-                "}\n\n",
-                ret_c_type, lambda_id, params_decl, arena_setup, capture_decls, body_code);
+            /* Single-line lambda with expression body */
+            char *body_code = code_gen_expression(gen, lambda->body);
+            if (modifier == FUNC_PRIVATE)
+            {
+                /* Private: create arena, compute result, destroy arena, return */
+                lambda_func = arena_sprintf(gen->arena,
+                    "static %s %s(%s) {\n"
+                    "%s"
+                    "%s"
+                    "    %s __result__ = %s;\n"
+                    "%s"
+                    "    return __result__;\n"
+                    "}\n\n",
+                    ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls,
+                    ret_c_type, body_code, arena_cleanup);
+            }
+            else
+            {
+                lambda_func = arena_sprintf(gen->arena,
+                    "static %s %s(%s) {\n"
+                    "%s"
+                    "%s"
+                    "    return %s;\n"
+                    "}\n\n",
+                    ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls, body_code);
+            }
         }
+        gen->current_arena_var = saved_arena_var;
 
         /* Append to definitions buffer */
         gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
@@ -1690,6 +2161,9 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
             "})",
             closure_init);
 
+        /* Pop this lambda from enclosing context */
+        gen->enclosing_lambda_count--;
+
         return closure_init;
     }
     else
@@ -1698,45 +2172,137 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         /* Generate the static lambda function body - use lambda's arena */
         char *saved_arena_var = gen->current_arena_var;
         gen->current_arena_var = "__lambda_arena__";
-        char *body_code = code_gen_expression(gen, lambda->body);
-        gen->current_arena_var = saved_arena_var;
+
+        /* Push this lambda to enclosing context for nested lambdas */
+        if (gen->enclosing_lambda_count >= gen->enclosing_lambda_capacity)
+        {
+            int new_cap = gen->enclosing_lambda_capacity == 0 ? 4 : gen->enclosing_lambda_capacity * 2;
+            LambdaExpr **new_lambdas = arena_alloc(gen->arena, new_cap * sizeof(LambdaExpr *));
+            for (int i = 0; i < gen->enclosing_lambda_count; i++)
+            {
+                new_lambdas[i] = gen->enclosing_lambdas[i];
+            }
+            gen->enclosing_lambdas = new_lambdas;
+            gen->enclosing_lambda_capacity = new_cap;
+        }
+        gen->enclosing_lambdas[gen->enclosing_lambda_count++] = lambda;
+
+        char *lambda_func_name = arena_sprintf(gen->arena, "__lambda_%d__", lambda_id);
 
         /* Generate forward declaration */
         char *forward_decl = arena_sprintf(gen->arena,
-            "static %s __lambda_%d__(%s);\n",
-            ret_c_type, lambda_id, params_decl);
+            "static %s %s(%s);\n",
+            ret_c_type, lambda_func_name, params_decl);
 
         gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
                                                   gen->lambda_forward_decls, forward_decl);
 
         /* Generate the actual lambda function definition */
         char *lambda_func;
-        if (modifier == FUNC_PRIVATE)
+        if (lambda->has_stmt_body)
         {
-            /* Private: create arena, compute result, destroy arena, return */
-            lambda_func = arena_sprintf(gen->arena,
-                "static %s __lambda_%d__(%s) {\n"
-                "%s"
-                "    %s __result__ = %s;\n"
-                "%s"
-                "    return __result__;\n"
-                "}\n\n",
-                ret_c_type, lambda_id, params_decl, arena_setup,
-                ret_c_type, body_code, arena_cleanup);
+            /* Multi-line lambda with statement body - needs return value and label */
+            char *body_code = code_gen_lambda_stmt_body(gen, lambda, 1, lambda_func_name, lambda->return_type);
+
+            /* Check if void return type - special handling needed */
+            int is_void_return = (lambda->return_type && lambda->return_type->kind == TYPE_VOID);
+
+            if (is_void_return)
+            {
+                /* Void return - no return value declaration needed */
+                if (modifier == FUNC_PRIVATE)
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static void %s(%s) {\n"
+                        "%s"
+                        "%s"
+                        "%s_return:\n"
+                        "%s"
+                        "    return;\n"
+                        "}\n\n",
+                        lambda_func_name, params_decl, arena_setup,
+                        body_code, lambda_func_name, arena_cleanup);
+                }
+                else
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static void %s(%s) {\n"
+                        "%s"
+                        "%s"
+                        "%s_return:\n"
+                        "    return;\n"
+                        "}\n\n",
+                        lambda_func_name, params_decl, arena_setup,
+                        body_code, lambda_func_name);
+                }
+            }
+            else
+            {
+                const char *default_val = get_default_value(lambda->return_type);
+                if (modifier == FUNC_PRIVATE)
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static %s %s(%s) {\n"
+                        "%s"
+                        "    %s _return_value = %s;\n"
+                        "%s"
+                        "%s_return:\n"
+                        "%s"
+                        "    return _return_value;\n"
+                        "}\n\n",
+                        ret_c_type, lambda_func_name, params_decl, arena_setup,
+                        ret_c_type, default_val, body_code, lambda_func_name, arena_cleanup);
+                }
+                else
+                {
+                    lambda_func = arena_sprintf(gen->arena,
+                        "static %s %s(%s) {\n"
+                        "%s"
+                        "    %s _return_value = %s;\n"
+                        "%s"
+                        "%s_return:\n"
+                        "    return _return_value;\n"
+                        "}\n\n",
+                        ret_c_type, lambda_func_name, params_decl, arena_setup,
+                        ret_c_type, default_val, body_code, lambda_func_name);
+                }
+            }
         }
         else
         {
-            lambda_func = arena_sprintf(gen->arena,
-                "static %s __lambda_%d__(%s) {\n"
-                "%s"
-                "    return %s;\n"
-                "}\n\n",
-                ret_c_type, lambda_id, params_decl, arena_setup, body_code);
+            /* Single-line lambda with expression body */
+            char *body_code = code_gen_expression(gen, lambda->body);
+            if (modifier == FUNC_PRIVATE)
+            {
+                /* Private: create arena, compute result, destroy arena, return */
+                lambda_func = arena_sprintf(gen->arena,
+                    "static %s %s(%s) {\n"
+                    "%s"
+                    "    %s __result__ = %s;\n"
+                    "%s"
+                    "    return __result__;\n"
+                    "}\n\n",
+                    ret_c_type, lambda_func_name, params_decl, arena_setup,
+                    ret_c_type, body_code, arena_cleanup);
+            }
+            else
+            {
+                lambda_func = arena_sprintf(gen->arena,
+                    "static %s %s(%s) {\n"
+                    "%s"
+                    "    return %s;\n"
+                    "}\n\n",
+                    ret_c_type, lambda_func_name, params_decl, arena_setup, body_code);
+            }
         }
+        gen->current_arena_var = saved_arena_var;
 
         /* Append to definitions buffer */
         gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
                                                 gen->lambda_definitions, lambda_func);
+
+        /* Pop this lambda from enclosing context */
+        gen->enclosing_lambda_count--;
 
         /* Return code that creates the closure using generic __Closure__ type */
         return arena_sprintf(gen->arena,
@@ -1769,6 +2335,8 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_variable_expression(gen, &expr->as.variable);
     case EXPR_ASSIGN:
         return code_gen_assign_expression(gen, &expr->as.assign);
+    case EXPR_INDEX_ASSIGN:
+        return code_gen_index_assign_expression(gen, &expr->as.index_assign);
     case EXPR_CALL:
         return code_gen_call_expression(gen, expr);
     case EXPR_ARRAY:

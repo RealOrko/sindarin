@@ -140,6 +140,28 @@ Expr *ast_create_assign_expr(Arena *arena, Token name, Expr *value, const Token 
     return expr;
 }
 
+Expr *ast_create_index_assign_expr(Arena *arena, Expr *array, Expr *index, Expr *value, const Token *loc_token)
+{
+    if (array == NULL || index == NULL || value == NULL)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_INDEX_ASSIGN;
+    expr->as.index_assign.array = array;
+    expr->as.index_assign.index = index;
+    expr->as.index_assign.value = value;
+    expr->expr_type = NULL;
+    expr->token = ast_dup_token(arena, loc_token);
+    return expr;
+}
+
 Expr *ast_create_call_expr(Arena *arena, Expr *callee, Expr **arguments, int arg_count, const Token *loc_token)
 {
     if (callee == NULL)
@@ -373,6 +395,43 @@ Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
     expr->as.lambda.param_count = param_count;
     expr->as.lambda.return_type = return_type;
     expr->as.lambda.body = body;
+    expr->as.lambda.body_stmts = NULL;
+    expr->as.lambda.body_stmt_count = 0;
+    expr->as.lambda.has_stmt_body = 0;  /* Expression body */
+    expr->as.lambda.modifier = modifier;
+    expr->as.lambda.captured_vars = NULL;
+    expr->as.lambda.captured_types = NULL;
+    expr->as.lambda.capture_count = 0;
+    expr->as.lambda.lambda_id = 0;  /* Assigned during code gen */
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}
+
+Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_count,
+                                  Type *return_type, Stmt **body_stmts, int body_stmt_count,
+                                  FunctionModifier modifier, const Token *loc_token)
+{
+    /* body_stmts is required for statement-body lambdas */
+    if (body_stmts == NULL && body_stmt_count > 0)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_LAMBDA;
+    expr->as.lambda.params = params;
+    expr->as.lambda.param_count = param_count;
+    expr->as.lambda.return_type = return_type;
+    expr->as.lambda.body = NULL;
+    expr->as.lambda.body_stmts = body_stmts;
+    expr->as.lambda.body_stmt_count = body_stmt_count;
+    expr->as.lambda.has_stmt_body = 1;  /* Statement body */
     expr->as.lambda.modifier = modifier;
     expr->as.lambda.captured_vars = NULL;
     expr->as.lambda.captured_types = NULL;

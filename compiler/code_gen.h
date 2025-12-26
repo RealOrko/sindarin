@@ -33,6 +33,11 @@ typedef struct {
     char *lambda_forward_decls; // Buffer for lambda forward declarations
     char *lambda_definitions;   // Buffer for lambda function bodies
 
+    /* Enclosing lambda tracking for nested lambda capture */
+    LambdaExpr **enclosing_lambdas;
+    int enclosing_lambda_count;
+    int enclosing_lambda_capacity;
+
     /* Buffered output for correct ordering */
     char *function_definitions; // Buffer for user function definitions
     bool buffering_functions;   // Are we buffering to function_definitions?

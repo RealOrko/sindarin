@@ -54,9 +54,9 @@ fn main(): int =>
                         print("value > 40\n")
 
     print("\n=== Long String ===\n")
-    var long: str = "This is a fairly long string that contains many characters to test string handling"
-    print($"Long string length: {long.length}\n")
-    print($"First 20 chars: {long.substring(0, 20)}\n")
+    var longstr: str = "This is a fairly long string that contains many characters to test string handling"
+    print($"Long string length: {longstr.length}\n")
+    print($"First 20 chars: {longstr.substring(0, 20)}\n")
 
     print("\n=== Many Concatenations ===\n")
     var concat: str = "a" + "b" + "c" + "d" + "e" + "f" + "g" + "h"

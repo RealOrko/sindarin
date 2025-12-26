@@ -54,21 +54,21 @@ fn main(): int =>
                 print($"{i} divisible by 2 only\n")
 
     print("\n=== Reassignment ===\n")
-    var x: int = 1
-    print($"x initial: {x}\n")
-    x = 2
-    print($"x after 1st assign: {x}\n")
-    x = 3
-    print($"x after 2nd assign: {x}\n")
-    x = x + 1
-    print($"x after x = x + 1: {x}\n")
+    var r: int = 1
+    print($"r initial: {r}\n")
+    r = 2
+    print($"r after 1st assign: {r}\n")
+    r = 3
+    print($"r after 2nd assign: {r}\n")
+    r = r + 1
+    print($"r after r = r + 1: {r}\n")
 
     print("\n=== Type Coercion in Print ===\n")
-    var i: int = 42
-    var d: double = 3.14
-    var s: str = "text"
-    var c: char = 'X'
-    var bl: bool = true
-    print($"int={i}, double={d}, str={s}, char={c}, bool={bl}\n")
+    var i2: int = 42
+    var d2: double = 3.14
+    var s2: str = "text"
+    var c2: char = 'X'
+    var bl2: bool = true
+    print($"int={i2}, double={d2}, str={s2}, char={c2}, bool={bl2}\n")
 
     return 0

@@ -221,11 +221,115 @@ void test_recursive_function_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_interpolated_string_with_postfix_decrement_parsing()
+{
+    printf("Testing parser_execute interpolated string with postfix decrement...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test postfix decrement operator inside string interpolation: $"{x--}"
+     * NOTE: Sindarin only supports POSTFIX increment/decrement, not prefix.
+     * Prefix --x is NOT supported by the language. */
+    const char *source = "print($\"Result: {x--}\\n\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    assert(print_stmt->as.expression.expression->type == EXPR_CALL);
+    assert(print_stmt->as.expression.expression->as.call.arg_count == 1);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 3);
+    /* Part 0: "Result: " literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[0]->as.literal.value.string_value, "Result: ") == 0);
+    /* Part 1: x-- postfix decrement expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_DECREMENT);
+    assert(arg->as.interpol.parts[1]->as.operand->type == EXPR_VARIABLE);
+    assert(strncmp(arg->as.interpol.parts[1]->as.operand->as.variable.name.start, "x", 1) == 0);
+    /* Part 2: "\n" literal */
+    assert(arg->as.interpol.parts[2]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[2]->as.literal.value.string_value, "\n") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_postfix_increment_parsing()
+{
+    printf("Testing parser_execute interpolated string with postfix increment...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test postfix increment operator inside string interpolation: $"{count++}"
+     * NOTE: Sindarin only supports POSTFIX increment/decrement, not prefix. */
+    const char *source = "print($\"Count: {count++}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 0: "Count: " literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    /* Part 1: count++ postfix increment expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_INCREMENT);
+    assert(arg->as.interpol.parts[1]->as.operand->type == EXPR_VARIABLE);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_unary_negate_parsing()
+{
+    printf("Testing parser_execute interpolated string with unary negate operator...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test unary negate inside string interpolation: $"{-x}" */
+    const char *source = "print($\"Negated: {-x}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 0: "Negated: " literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    /* Part 1: -x unary negate expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_UNARY);
+    assert(arg->as.interpol.parts[1]->as.unary.operator == TOKEN_MINUS);
+    assert(arg->as.interpol.parts[1]->as.unary.operand->type == EXPR_VARIABLE);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_parser_control_main()
 {
     test_while_loop_parsing();
     test_for_loop_parsing();
     test_interpolated_string_parsing();
+    test_interpolated_string_with_postfix_decrement_parsing();
+    test_interpolated_string_with_postfix_increment_parsing();
+    test_interpolated_string_with_unary_negate_parsing();
     test_literal_types_parsing();
     test_recursive_function_parsing();
 }

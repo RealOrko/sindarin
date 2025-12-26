@@ -306,9 +306,22 @@ Stmt *parser_var_declaration(Parser *parser)
         parser_error_at_current(parser, "Variable declaration requires type annotation or initializer");
     }
 
+    /* After multi-line lambda with statement body, we may be at the next statement already
+     * (no NEWLINE token between DEDENT and the next statement). Also handle DEDENT case
+     * when the var declaration is the last statement in a block. */
     if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_match(parser, TOKEN_NEWLINE))
     {
-        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after variable declaration");
+        /* Allow if we're at the next statement (IDENTIFIER covers print, etc.),
+         * a keyword that starts a statement, end of block (DEDENT), or EOF */
+        if (!parser_check(parser, TOKEN_IDENTIFIER) && !parser_check(parser, TOKEN_VAR) &&
+            !parser_check(parser, TOKEN_FN) && !parser_check(parser, TOKEN_IF) &&
+            !parser_check(parser, TOKEN_WHILE) && !parser_check(parser, TOKEN_FOR) &&
+            !parser_check(parser, TOKEN_RETURN) && !parser_check(parser, TOKEN_BREAK) &&
+            !parser_check(parser, TOKEN_CONTINUE) &&
+            !parser_check(parser, TOKEN_DEDENT) && !parser_check(parser, TOKEN_EOF))
+        {
+            parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after variable declaration");
+        }
     }
 
     Stmt *stmt = ast_create_var_decl_stmt(parser->arena, name, type, initializer, &var_token);

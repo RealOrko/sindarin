@@ -304,6 +304,84 @@ void test_type_check_param_as_val()
     arena_free(&arena);
 }
 
+void test_type_check_null_stmt_handling()
+{
+    printf("Testing type checker handles null statements gracefully...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable table;
+    symbol_table_init(&arena, &table);
+
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+
+    // Create a function with a NULL statement in the body (edge case)
+    // This tests that type_check_stmt handles null properly
+    Stmt *body[2];
+
+    Token ret_tok;
+    setup_token(&ret_tok, TOKEN_RETURN, "return", 1, "test.sn", &arena);
+    body[0] = ast_create_return_stmt(&arena, ret_tok, NULL, &ret_tok);
+    body[1] = NULL;  // Null statement in body
+
+    Token func_name_tok;
+    setup_token(&func_name_tok, TOKEN_IDENTIFIER, "test_null", 1, "test.sn", &arena);
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, void_type, body, 2, &func_name_tok);
+
+    ast_module_add_statement(&arena, &module, func_decl);
+
+    // Should not crash even with null statement in body
+    int no_error = type_check_module(&module, &table);
+    // No assertion on result, just checking it doesn't crash
+    (void)no_error;
+
+    symbol_table_cleanup(&table);
+    arena_free(&arena);
+}
+
+void test_type_check_function_with_null_param_type()
+{
+    printf("Testing type checker handles function with null parameter type...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable table;
+    symbol_table_init(&arena, &table);
+
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+
+    // Create a function with a parameter that has NULL type (edge case)
+    Parameter *params = (Parameter *)arena_alloc(&arena, sizeof(Parameter));
+    Token param_name_tok;
+    setup_token(&param_name_tok, TOKEN_IDENTIFIER, "x", 1, "test.sn", &arena);
+    params[0].name = param_name_tok;
+    params[0].type = NULL;  // NULL type - edge case
+    params[0].mem_qualifier = MEM_DEFAULT;
+
+    Stmt *body[0];
+    Token func_name_tok;
+    setup_token(&func_name_tok, TOKEN_IDENTIFIER, "test_null_param", 1, "test.sn", &arena);
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, params, 1, void_type, body, 0, &func_name_tok);
+
+    ast_module_add_statement(&arena, &module, func_decl);
+
+    // Should not crash even with null param type
+    int no_error = type_check_module(&module, &table);
+    // No assertion on result, just checking it doesn't crash
+    (void)no_error;
+
+    symbol_table_cleanup(&table);
+    arena_free(&arena);
+}
+
 void test_type_checker_memory_main()
 {
     test_type_check_var_as_ref_primitive();
@@ -314,4 +392,6 @@ void test_type_checker_memory_main()
     test_type_check_shared_function();
     test_type_check_param_as_ref_error();
     test_type_check_param_as_val();
+    test_type_check_null_stmt_handling();
+    test_type_check_function_with_null_param_type();
 }

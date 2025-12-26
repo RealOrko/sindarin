@@ -1,5 +1,6 @@
 #include "type_checker_expr.h"
 #include "type_checker_util.h"
+#include "type_checker_stmt.h"
 #include "debug.h"
 #include <string.h>
 
@@ -16,30 +17,43 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
     TokenType op = expr->as.binary.operator;
     if (is_comparison_operator(op))
     {
+        /* Allow numeric type promotion for comparisons (int vs double) */
         if (!ast_type_equals(left, right))
         {
-            type_error(expr->token, "Type mismatch in comparison");
-            return NULL;
+            /* Check if both are numeric types - promotion is allowed */
+            if (is_numeric_type(left) && is_numeric_type(right))
+            {
+                /* This is valid - int and double can be compared */
+                DEBUG_VERBOSE("Numeric type promotion in comparison allowed");
+            }
+            else
+            {
+                type_error(expr->token, "Type mismatch in comparison");
+                return NULL;
+            }
         }
         DEBUG_VERBOSE("Returning BOOL type for comparison operator");
         return ast_create_primitive_type(table->arena, TYPE_BOOL);
     }
     else if (is_arithmetic_operator(op))
     {
-        if (!ast_type_equals(left, right) || !is_numeric_type(left))
+        Type *promoted = get_promoted_type(table->arena, left, right);
+        if (promoted == NULL)
         {
             type_error(expr->token, "Invalid types for arithmetic operator");
             return NULL;
         }
-        DEBUG_VERBOSE("Returning left operand type for arithmetic operator");
-        return left;
+        DEBUG_VERBOSE("Returning promoted type for arithmetic operator");
+        return promoted;
     }
     else if (op == TOKEN_PLUS)
     {
-        if (is_numeric_type(left) && ast_type_equals(left, right))
+        /* Check for numeric type promotion */
+        Type *promoted = get_promoted_type(table->arena, left, right);
+        if (promoted != NULL)
         {
-            DEBUG_VERBOSE("Returning left operand type for numeric + operator");
-            return left;
+            DEBUG_VERBOSE("Returning promoted type for numeric + operator");
+            return promoted;
         }
         else if (left->kind == TYPE_STRING && is_printable_type(right))
         {
@@ -221,6 +235,60 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
 
     DEBUG_VERBOSE("Assignment type matches: %d", sym->type->kind);
     return sym->type;
+}
+
+static Type *type_check_index_assign(Expr *expr, SymbolTable *table)
+{
+    DEBUG_VERBOSE("Type checking index assignment");
+
+    /* Type check the array expression */
+    Type *array_type = type_check_expr(expr->as.index_assign.array, table);
+    if (array_type == NULL)
+    {
+        type_error(expr->token, "Invalid array in index assignment");
+        return NULL;
+    }
+
+    if (array_type->kind != TYPE_ARRAY)
+    {
+        type_error(expr->token, "Cannot index into non-array type");
+        return NULL;
+    }
+
+    /* Type check the index expression */
+    Type *index_type = type_check_expr(expr->as.index_assign.index, table);
+    if (index_type == NULL)
+    {
+        type_error(expr->token, "Invalid index expression");
+        return NULL;
+    }
+
+    if (index_type->kind != TYPE_INT)
+    {
+        type_error(expr->token, "Array index must be an integer");
+        return NULL;
+    }
+
+    /* Get element type from array */
+    Type *element_type = array_type->as.array.element_type;
+
+    /* Type check the value expression */
+    Type *value_type = type_check_expr(expr->as.index_assign.value, table);
+    if (value_type == NULL)
+    {
+        type_error(expr->token, "Invalid value in index assignment");
+        return NULL;
+    }
+
+    /* Check that value type matches element type */
+    if (!ast_type_equals(element_type, value_type))
+    {
+        type_error(expr->token, "Type mismatch in index assignment");
+        return NULL;
+    }
+
+    DEBUG_VERBOSE("Index assignment type check passed");
+    return element_type;
 }
 
 static bool is_builtin_name(Expr *callee, const char *name)
@@ -550,9 +618,9 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
     }
     else if (object_type->kind == TYPE_ARRAY && strcmp(expr->as.member.member_name.start, "push") == 0)
     {
-        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *element_type = object_type->as.array.element_type;
         Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
-        Type *param_types[1] = {int_type};
+        Type *param_types[1] = {element_type};
         DEBUG_VERBOSE("Returning function type for array push method");
         return ast_create_function_type(table->arena, void_type, param_types, 1);
     }
@@ -797,21 +865,33 @@ static Type *type_check_lambda(Expr *expr, SymbolTable *table)
                                           lambda->params[i].type, SYMBOL_PARAM);
     }
 
-    /* Type check body expression */
-    Type *body_type = type_check_expr(lambda->body, table);
-    if (body_type == NULL)
+    if (lambda->has_stmt_body)
     {
-        symbol_table_pop_scope(table);
-        type_error(expr->token, "Lambda body type check failed");
-        return NULL;
+        /* Multi-line lambda with statement body */
+        for (int i = 0; i < lambda->body_stmt_count; i++)
+        {
+            type_check_stmt(lambda->body_stmts[i], table, lambda->return_type);
+        }
+        /* Return type checking is handled by return statements within the body */
     }
-
-    /* Verify return type matches body */
-    if (!ast_type_equals(body_type, lambda->return_type))
+    else
     {
-        symbol_table_pop_scope(table);
-        type_error(expr->token, "Lambda body type does not match declared return type");
-        return NULL;
+        /* Single-line lambda with expression body */
+        Type *body_type = type_check_expr(lambda->body, table);
+        if (body_type == NULL)
+        {
+            symbol_table_pop_scope(table);
+            type_error(expr->token, "Lambda body type check failed");
+            return NULL;
+        }
+
+        /* Verify return type matches body */
+        if (!ast_type_equals(body_type, lambda->return_type))
+        {
+            symbol_table_pop_scope(table);
+            type_error(expr->token, "Lambda body type does not match declared return type");
+            return NULL;
+        }
     }
 
     symbol_table_pop_scope(table);
@@ -861,6 +941,9 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_ASSIGN:
         t = type_check_assign(expr, table);
+        break;
+    case EXPR_INDEX_ASSIGN:
+        t = type_check_index_assign(expr, table);
         break;
     case EXPR_CALL:
         t = type_check_call(expr, table);

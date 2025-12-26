@@ -341,6 +341,75 @@ void test_regular_for_each_loop_not_shared_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_shared_cstyle_for_loop_parsing()
+{
+    printf("Testing parser_execute shared C-style for loop...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main(): void =>\n"
+        "  var sum: int = 0\n"
+        "  shared for var i: int = 0; i < 5; i++ =>\n"
+        "    sum = sum + i\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 2);
+    Stmt *for_stmt = fn->as.function.body[1];
+    assert(for_stmt->type == STMT_FOR);
+    assert(for_stmt->as.for_stmt.is_shared == true);
+    /* Verify loop structure */
+    assert(for_stmt->as.for_stmt.initializer != NULL);
+    assert(for_stmt->as.for_stmt.initializer->type == STMT_VAR_DECL);
+    assert(for_stmt->as.for_stmt.condition != NULL);
+    assert(for_stmt->as.for_stmt.increment != NULL);
+    assert(for_stmt->as.for_stmt.body != NULL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_regular_cstyle_for_loop_not_shared_parsing()
+{
+    printf("Testing parser_execute regular C-style for loop is not shared...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn main(): void =>\n"
+        "  var sum: int = 0\n"
+        "  for var i: int = 0; i < 5; i++ =>\n"
+        "    sum = sum + i\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.body_count == 2);
+    Stmt *for_stmt = fn->as.function.body[1];
+    assert(for_stmt->type == STMT_FOR);
+    assert(for_stmt->as.for_stmt.is_shared == false);
+    /* Verify loop structure */
+    assert(for_stmt->as.for_stmt.initializer != NULL);
+    assert(for_stmt->as.for_stmt.condition != NULL);
+    assert(for_stmt->as.for_stmt.increment != NULL);
+    assert(for_stmt->as.for_stmt.body != NULL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_parser_memory_main()
 {
     test_var_decl_as_val_parsing();
@@ -354,6 +423,8 @@ void test_parser_memory_main()
     test_private_block_parsing();
     test_shared_while_loop_parsing();
     test_shared_for_each_loop_parsing();
+    test_shared_cstyle_for_loop_parsing();
     test_regular_while_loop_not_shared_parsing();
     test_regular_for_each_loop_not_shared_parsing();
+    test_regular_cstyle_for_loop_not_shared_parsing();
 }
