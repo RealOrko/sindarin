@@ -343,7 +343,8 @@ void test_type_check_array_printable()
     setup_token(&interp_tok, TOKEN_INTERPOL_STRING, "$\"{arr}\"", 2, "test.sn", &arena);
     Expr *var_arr = ast_create_variable_expr(&arena, arr_tok, NULL);
     Expr *parts[1] = {var_arr};
-    Expr *interp = ast_create_interpolated_expr(&arena, parts, 1, &interp_tok);
+    char *fmts[1] = {NULL};
+    Expr *interp = ast_create_interpolated_expr(&arena, parts, fmts, 1, &interp_tok);
     Stmt *interp_stmt = ast_create_expr_stmt(&arena, interp, &interp_tok);
 
     ast_module_add_statement(&arena, &module, arr_decl);

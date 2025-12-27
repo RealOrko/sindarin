@@ -235,6 +235,12 @@ Expr *parser_primary(Parser *parser)
     }
     if (parser_match(parser, TOKEN_STRING_LITERAL))
     {
+        // Handle error case where string literal content is NULL (e.g., unterminated string)
+        if (parser->previous.literal.string_value == NULL)
+        {
+            parser_error(parser, "Invalid string literal");
+            return NULL;
+        }
         LiteralValue value;
         value.string_value = arena_strdup(parser->arena, parser->previous.literal.string_value);
         return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_STRING), false, &parser->previous);
@@ -413,11 +419,20 @@ Expr *parser_primary(Parser *parser)
     {
         Token interpol_token = parser->previous;
         const char *content = parser->previous.literal.string_value;
+
+        // Handle error case where string literal content is NULL (e.g., unterminated string)
+        if (content == NULL)
+        {
+            parser_error(parser, "Invalid interpolated string");
+            return NULL;
+        }
+
         Expr **parts = NULL;
+        char **format_specs = NULL;  // Format specifiers for each part
         int capacity = 0;
         int count = 0;
 
-        // Helper to add a string segment to parts
+        // Helper to add a string segment to parts (no format spec for literals)
         #define ADD_STRING_PART(str) do { \
             LiteralValue v; \
             v.string_value = str; \
@@ -425,23 +440,37 @@ Expr *parser_primary(Parser *parser)
             if (count >= capacity) { \
                 capacity = capacity == 0 ? 8 : capacity * 2; \
                 Expr **new_parts = arena_alloc(parser->arena, sizeof(Expr *) * capacity); \
-                if (new_parts == NULL) exit(1); \
-                if (parts != NULL && count > 0) memcpy(new_parts, parts, sizeof(Expr *) * count); \
+                char **new_formats = arena_alloc(parser->arena, sizeof(char *) * capacity); \
+                if (new_parts == NULL || new_formats == NULL) exit(1); \
+                if (parts != NULL && count > 0) { \
+                    memcpy(new_parts, parts, sizeof(Expr *) * count); \
+                    memcpy(new_formats, format_specs, sizeof(char *) * count); \
+                } \
                 parts = new_parts; \
+                format_specs = new_formats; \
             } \
-            parts[count++] = seg_expr; \
+            parts[count] = seg_expr; \
+            format_specs[count] = NULL; \
+            count++; \
         } while(0)
 
-        // Helper to add an expression to parts
-        #define ADD_EXPR_PART(expr) do { \
+        // Helper to add an expression with optional format spec
+        #define ADD_EXPR_PART(expr, fmt) do { \
             if (count >= capacity) { \
                 capacity = capacity == 0 ? 8 : capacity * 2; \
                 Expr **new_parts = arena_alloc(parser->arena, sizeof(Expr *) * capacity); \
-                if (new_parts == NULL) exit(1); \
-                if (parts != NULL && count > 0) memcpy(new_parts, parts, sizeof(Expr *) * count); \
+                char **new_formats = arena_alloc(parser->arena, sizeof(char *) * capacity); \
+                if (new_parts == NULL || new_formats == NULL) exit(1); \
+                if (parts != NULL && count > 0) { \
+                    memcpy(new_parts, parts, sizeof(Expr *) * count); \
+                    memcpy(new_formats, format_specs, sizeof(char *) * count); \
+                } \
                 parts = new_parts; \
+                format_specs = new_formats; \
             } \
-            parts[count++] = expr; \
+            parts[count] = expr; \
+            format_specs[count] = fmt; \
+            count++; \
         } while(0)
 
         const char *p = content;
@@ -465,7 +494,7 @@ Expr *parser_primary(Parser *parser)
                 p += 2;
                 continue;
             }
-            // Handle interpolation expression {expr}
+            // Handle interpolation expression {expr} or {expr:format}
             if (*p == '{')
             {
                 // Flush accumulated text segment
@@ -479,21 +508,154 @@ Expr *parser_primary(Parser *parser)
 
                 p++; // skip {
                 const char *expr_start = p;
-                int brace_depth = 1;
-                while (*p && brace_depth > 0)
+                const char *colon_pos = NULL;  // Position of format specifier colon
+
+                // Use a state stack to track nesting
+                // State types: 0 = in code (top level), 1 = in regular string,
+                //              2 = in interp string text, 3 = in code within interp string
+                #define MAX_NESTING 64
+                int state_stack[MAX_NESTING];
+                int stack_top = 0;
+                state_stack[stack_top] = 0;  // Start in code mode (within our brace)
+
+                while (*p && stack_top >= 0)
                 {
-                    if (*p == '{') brace_depth++;
-                    else if (*p == '}') brace_depth--;
-                    if (brace_depth > 0) p++;
+                    int state = state_stack[stack_top];
+
+                    if (state == 1)  // In regular string
+                    {
+                        if (*p == '\\' && *(p + 1))
+                        {
+                            p += 2;
+                            continue;
+                        }
+                        if (*p == '"')
+                        {
+                            stack_top--;  // Exit regular string
+                            p++;
+                            continue;
+                        }
+                        p++;
+                        continue;
+                    }
+
+                    if (state == 2)  // In interpolated string text
+                    {
+                        if (*p == '\\' && *(p + 1))
+                        {
+                            p += 2;
+                            continue;
+                        }
+                        if (*p == '"')
+                        {
+                            stack_top--;  // Exit interp string
+                            p++;
+                            continue;
+                        }
+                        if (*p == '{')
+                        {
+                            // Entering brace expression within interp string
+                            // Change current state to "code within interp"
+                            state_stack[stack_top] = 3;
+                            p++;
+                            continue;
+                        }
+                        p++;
+                        continue;
+                    }
+
+                    // state == 0 or 3: In code (0 = top level, 3 = within interp string)
+                    if (*p == '$' && *(p + 1) == '"')
+                    {
+                        // Start nested interpolated string
+                        if (stack_top < MAX_NESTING - 1)
+                        {
+                            stack_top++;
+                            state_stack[stack_top] = 2;  // interp string text
+                        }
+                        p += 2;
+                        continue;
+                    }
+                    if (*p == '"')
+                    {
+                        // Start regular string
+                        if (stack_top < MAX_NESTING - 1)
+                        {
+                            stack_top++;
+                            state_stack[stack_top] = 1;  // regular string
+                        }
+                        p++;
+                        continue;
+                    }
+                    if (*p == '{')
+                    {
+                        // Nested brace in code
+                        if (stack_top < MAX_NESTING - 1)
+                        {
+                            stack_top++;
+                            state_stack[stack_top] = state;  // preserve whether we're in interp (3) or top level (0)
+                        }
+                        p++;
+                        continue;
+                    }
+                    if (*p == '}')
+                    {
+                        if (stack_top == 0)
+                        {
+                            // This closes our original brace
+                            break;
+                        }
+                        // Pop the state and check if we should return to interp text
+                        if (state_stack[stack_top] == 3)
+                        {
+                            // We were in code within an interp string, return to text mode
+                            state_stack[stack_top] = 2;
+                        }
+                        else
+                        {
+                            // We were in nested code braces, pop the stack
+                            stack_top--;
+                        }
+                        p++;
+                        continue;
+                    }
+                    if (*p == ':' && stack_top == 0 && colon_pos == NULL)
+                    {
+                        // Track colon for format specifier (only at our expression level)
+                        colon_pos = p;
+                    }
+                    p++;
                 }
-                if (!*p && brace_depth > 0)
+                #undef MAX_NESTING
+                if (!*p && stack_top > 0)
                 {
                     parser_error_at_current(parser, "Unterminated interpolated expression");
                     LiteralValue zero = {0};
                     return ast_create_literal_expr(parser->arena, zero, ast_create_primitive_type(parser->arena, TYPE_STRING), false, NULL);
                 }
-                int expr_len = p - expr_start;
-                char *expr_src = arena_strndup(parser->arena, expr_start, expr_len);
+
+                // Extract expression and optional format specifier
+                char *expr_src;
+                char *format_spec = NULL;
+
+                if (colon_pos != NULL)
+                {
+                    // We have a format specifier: {expr:format}
+                    int expr_len = colon_pos - expr_start;
+                    expr_src = arena_strndup(parser->arena, expr_start, expr_len);
+
+                    int format_len = p - (colon_pos + 1);
+                    if (format_len > 0)
+                    {
+                        format_spec = arena_strndup(parser->arena, colon_pos + 1, format_len);
+                    }
+                }
+                else
+                {
+                    // No format specifier: {expr}
+                    int expr_len = p - expr_start;
+                    expr_src = arena_strndup(parser->arena, expr_start, expr_len);
+                }
 
                 Lexer sub_lexer;
                 lexer_init(parser->arena, &sub_lexer, expr_src, "interpolated");
@@ -509,7 +671,7 @@ Expr *parser_primary(Parser *parser)
                     return ast_create_literal_expr(parser->arena, zero, ast_create_primitive_type(parser->arena, TYPE_STRING), false, NULL);
                 }
 
-                ADD_EXPR_PART(inner);
+                ADD_EXPR_PART(inner, format_spec);
 
                 if (parser->interp_count >= parser->interp_capacity)
                 {
@@ -541,7 +703,7 @@ Expr *parser_primary(Parser *parser)
         #undef ADD_STRING_PART
         #undef ADD_EXPR_PART
 
-        return ast_create_interpolated_expr(parser->arena, parts, count, &interpol_token);
+        return ast_create_interpolated_expr(parser->arena, parts, format_specs, count, &interpol_token);
     }
 
     parser_error_at_current(parser, "Expected expression");

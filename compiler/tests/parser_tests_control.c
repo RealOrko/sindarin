@@ -322,6 +322,653 @@ void test_interpolated_string_with_unary_negate_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+/* ====== Tests for escaped quotes and escape sequences in interpolation ====== */
+
+void test_interpolated_string_with_string_literal_in_braces()
+{
+    printf("Testing parser_execute interpolated string with string literal in braces...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test string literal directly in interpolation: $"Result: {"hello"}" */
+    const char *source = "print($\"Result: {\"hello\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 0: "Result: " literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[0]->as.literal.value.string_value, "Result: ") == 0);
+    /* Part 1: "hello" string literal expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_LITERAL);
+    assert(arg->as.interpol.parts[1]->as.literal.type->kind == TYPE_STRING);
+    assert(strcmp(arg->as.interpol.parts[1]->as.literal.value.string_value, "hello") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_func_call_string_arg()
+{
+    printf("Testing parser_execute interpolated string with function call with string arg...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test function call with string argument: $"Result: {func("arg")}" */
+    const char *source = "print($\"Result: {func(\"arg\")}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 0: "Result: " literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[0]->as.literal.value.string_value, "Result: ") == 0);
+    /* Part 1: func("arg") call expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_CALL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.call.callee->as.variable.name.start, "func") == 0);
+    assert(arg->as.interpol.parts[1]->as.call.arg_count == 1);
+    assert(arg->as.interpol.parts[1]->as.call.arguments[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.call.arguments[0]->as.literal.value.string_value, "arg") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_newline_escape_in_braces()
+{
+    printf("Testing parser_execute interpolated string with \\n in nested string...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test \n escape sequence in nested string: $"Result: {"\n"}" */
+    const char *source = "print($\"Result: {\"\\n\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "\n" string literal expression - should contain actual newline */
+    assert(arg->as.interpol.parts[1]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.literal.value.string_value, "\n") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_tab_escape_in_braces()
+{
+    printf("Testing parser_execute interpolated string with \\t in nested string...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test \t escape sequence in nested string: $"Tab: {"\t"}" */
+    const char *source = "print($\"Tab: {\"\\t\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "\t" string literal expression - should contain actual tab */
+    assert(arg->as.interpol.parts[1]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.literal.value.string_value, "\t") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_backslash_escape_in_braces()
+{
+    printf("Testing parser_execute interpolated string with \\\\ in nested string...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test \\ escape sequence in nested string: $"Slash: {"\\"}" */
+    const char *source = "print($\"Slash: {\"\\\\\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "\\" string literal expression - should contain single backslash */
+    assert(arg->as.interpol.parts[1]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.literal.value.string_value, "\\") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_carriage_return_escape_in_braces()
+{
+    printf("Testing parser_execute interpolated string with \\r in nested string...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test \r escape sequence in nested string: $"CR: {"\r"}" */
+    const char *source = "print($\"CR: {\"\\r\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "\r" string literal expression - should contain actual carriage return */
+    assert(arg->as.interpol.parts[1]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.literal.value.string_value, "\r") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_empty_string_in_braces()
+{
+    printf("Testing parser_execute interpolated string with empty string in braces...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test empty string in braces: $"Empty: {""}" */
+    const char *source = "print($\"Empty: {\"\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "" empty string literal */
+    assert(arg->as.interpol.parts[1]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.literal.value.string_value, "") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_nested_parens()
+{
+    printf("Testing parser_execute interpolated string with nested parentheses...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test nested parentheses in expression: $"Result: {((x + y) * 2)}" */
+    const char *source = "print($\"Result: {((x + y) * 2)}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: ((x + y) * 2) expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_BINARY);
+    assert(arg->as.interpol.parts[1]->as.binary.operator == TOKEN_STAR);
+    /* Left side should be (x + y) */
+    assert(arg->as.interpol.parts[1]->as.binary.left->type == EXPR_BINARY);
+    assert(arg->as.interpol.parts[1]->as.binary.left->as.binary.operator == TOKEN_PLUS);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_multiple_string_literals()
+{
+    printf("Testing parser_execute interpolated string with multiple string literals...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test multiple string literals concatenated: $"Result: {"a" + "b" + "c"}" */
+    const char *source = "print($\"Result: {\"a\" + \"b\" + \"c\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "a" + "b" + "c" binary expression chain */
+    assert(arg->as.interpol.parts[1]->type == EXPR_BINARY);
+    assert(arg->as.interpol.parts[1]->as.binary.operator == TOKEN_PLUS);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_string_method_on_literal()
+{
+    printf("Testing parser_execute interpolated string with method on string literal...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test string method on literal: $"Upper: {"test".toUpper()}" */
+    const char *source = "print($\"Upper: {\"test\".toUpper()}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "test".toUpper() call expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_CALL);
+    assert(arg->as.interpol.parts[1]->as.call.callee->type == EXPR_MEMBER);
+    assert(strcmp(arg->as.interpol.parts[1]->as.call.callee->as.member.member_name.start, "toUpper") == 0);
+    /* The object of the member access should be "test" literal */
+    assert(arg->as.interpol.parts[1]->as.call.callee->as.member.object->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.call.callee->as.member.object->as.literal.value.string_value, "test") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_complex_escape_sequence()
+{
+    printf("Testing parser_execute interpolated string with complex escape sequences...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test complex escapes: $"Data: {"a\tb\nc"}" */
+    const char *source = "print($\"Data: {\"a\\tb\\nc\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: "a\tb\nc" string with escapes */
+    assert(arg->as.interpol.parts[1]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.literal.value.string_value, "a\tb\nc") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_braces_escape()
+{
+    printf("Testing parser_execute interpolated string with braces escape sequence...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test escaped braces {{ and }}: $"Braces: {{curly}}" */
+    const char *source = "print($\"Braces: {{curly}}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    /* The whole string becomes a single literal since {{ and }} escape to { and } */
+    assert(arg->as.interpol.part_count == 1);
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[0]->as.literal.value.string_value, "Braces: {curly}") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+/* ====== Tests for nested interpolated strings ====== */
+
+void test_nested_interpolated_string_basic()
+{
+    printf("Testing parser_execute nested interpolated string basic...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test basic nested interpolation: $"outer {$"inner {x}"}" */
+    const char *source = "print($\"outer {$\"inner {x}\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 0: "outer " literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[0]->as.literal.value.string_value, "outer ") == 0);
+    /* Part 1: nested interpolated string $"inner {x}" */
+    assert(arg->as.interpol.parts[1]->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.parts[1]->as.interpol.part_count == 2);
+    /* Inner Part 0: "inner " literal */
+    assert(arg->as.interpol.parts[1]->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.interpol.parts[0]->as.literal.value.string_value, "inner ") == 0);
+    /* Inner Part 1: x variable */
+    assert(arg->as.interpol.parts[1]->as.interpol.parts[1]->type == EXPR_VARIABLE);
+    assert(strncmp(arg->as.interpol.parts[1]->as.interpol.parts[1]->as.variable.name.start, "x", 1) == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_nested_interpolated_string_with_expression()
+{
+    printf("Testing parser_execute nested interpolated string with expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test nested interpolation with expression: $"Result: {$"Value: {x + 1}"}" */
+    const char *source = "print($\"Result: {$\"Value: {x + 1}\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: nested interpolated string */
+    assert(arg->as.interpol.parts[1]->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.parts[1]->as.interpol.part_count == 2);
+    /* Inner Part 1: x + 1 binary expression */
+    assert(arg->as.interpol.parts[1]->as.interpol.parts[1]->type == EXPR_BINARY);
+    assert(arg->as.interpol.parts[1]->as.interpol.parts[1]->as.binary.operator == TOKEN_PLUS);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_nested_interpolated_string_double_nested()
+{
+    printf("Testing parser_execute double nested interpolated string...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test double nesting: $"a{$"b{$"c{x}"}"}d" */
+    const char *source = "print($\"a{$\"b{$\"c{x}\"}\"}d\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 3);  /* "a", nested, "d" */
+    /* Part 0: "a" literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[0]->as.literal.value.string_value, "a") == 0);
+    /* Part 1: first nested level */
+    assert(arg->as.interpol.parts[1]->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.parts[1]->as.interpol.part_count == 2);  /* "b", nested */
+    /* Part 1 -> Part 1: second nested level */
+    assert(arg->as.interpol.parts[1]->as.interpol.parts[1]->type == EXPR_INTERPOLATED);
+    /* Part 2: "d" literal */
+    assert(arg->as.interpol.parts[2]->type == EXPR_LITERAL);
+    assert(strcmp(arg->as.interpol.parts[2]->as.literal.value.string_value, "d") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_nested_interpolated_string_with_func_call()
+{
+    printf("Testing parser_execute nested interpolated string with function call...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test nested interpolation with function: $"outer {format($"inner {x}")}" */
+    const char *source = "print($\"outer {format($\"inner {x}\")}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: format($"inner {x}") call expression */
+    assert(arg->as.interpol.parts[1]->type == EXPR_CALL);
+    assert(strcmp(arg->as.interpol.parts[1]->as.call.callee->as.variable.name.start, "format") == 0);
+    assert(arg->as.interpol.parts[1]->as.call.arg_count == 1);
+    /* The argument to format() is the nested interpolated string */
+    assert(arg->as.interpol.parts[1]->as.call.arguments[0]->type == EXPR_INTERPOLATED);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_nested_interpolated_string_adjacent()
+{
+    printf("Testing parser_execute adjacent nested interpolated strings...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test adjacent nested strings: $"a{$"x"}{$"y"}b" */
+    const char *source = "print($\"a{$\"x\"}{$\"y\"}b\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 4);  /* "a", $"x", $"y", "b" */
+    /* Part 0: "a" literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    /* Part 1: $"x" nested interp */
+    assert(arg->as.interpol.parts[1]->type == EXPR_INTERPOLATED);
+    /* Part 2: $"y" nested interp */
+    assert(arg->as.interpol.parts[2]->type == EXPR_INTERPOLATED);
+    /* Part 3: "b" literal */
+    assert(arg->as.interpol.parts[3]->type == EXPR_LITERAL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+/* ====== Tests for format specifiers in interpolation ====== */
+
+void test_interpolated_string_with_format_specifier()
+{
+    printf("Testing parser_execute interpolated string with format specifier...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test format specifier: $"Value: {x:05d}" */
+    const char *source = "print($\"Value: {x:05d}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 0: "Value: " literal - no format */
+    assert(arg->as.interpol.format_specs[0] == NULL);
+    /* Part 1: x variable with format "05d" */
+    assert(arg->as.interpol.parts[1]->type == EXPR_VARIABLE);
+    assert(strncmp(arg->as.interpol.parts[1]->as.variable.name.start, "x", 1) == 0);
+    assert(arg->as.interpol.format_specs[1] != NULL);
+    assert(strcmp(arg->as.interpol.format_specs[1], "05d") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_format_specifier_float()
+{
+    printf("Testing parser_execute interpolated string with float format specifier...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test float format: $"Pi: {pi:.2f}" */
+    const char *source = "print($\"Pi: {pi:.2f}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: pi variable with format ".2f" */
+    assert(arg->as.interpol.parts[1]->type == EXPR_VARIABLE);
+    assert(arg->as.interpol.format_specs[1] != NULL);
+    assert(strcmp(arg->as.interpol.format_specs[1], ".2f") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_interpolated_string_with_format_specifier_and_expr()
+{
+    printf("Testing parser_execute interpolated string with format on expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test format on expression: $"Result: {x + 1:x}" */
+    const char *source = "print($\"Result: {x + 1:x}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 1: x + 1 expression with format "x" */
+    assert(arg->as.interpol.parts[1]->type == EXPR_BINARY);
+    assert(arg->as.interpol.format_specs[1] != NULL);
+    assert(strcmp(arg->as.interpol.format_specs[1], "x") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_format_specifier_not_detected_in_nested()
+{
+    printf("Testing format specifier not detected inside nested interp string...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test that colon in nested string is not a format specifier: $"A: {$"B: {x}"}" */
+    const char *source = "print($\"A: {$\"B: {x}\"}\")\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *print_stmt = module->statements[0];
+    assert(print_stmt->type == STMT_EXPR);
+    Expr *arg = print_stmt->as.expression.expression->as.call.arguments[0];
+    assert(arg->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.part_count == 2);
+    /* Part 0: "A: " literal */
+    assert(arg->as.interpol.parts[0]->type == EXPR_LITERAL);
+    /* Part 1: nested interp string - no format specifier (colon is inside nested) */
+    assert(arg->as.interpol.parts[1]->type == EXPR_INTERPOLATED);
+    assert(arg->as.interpol.format_specs[1] == NULL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_parser_control_main()
 {
     test_while_loop_parsing();
@@ -332,4 +979,28 @@ void test_parser_control_main()
     test_interpolated_string_with_unary_negate_parsing();
     test_literal_types_parsing();
     test_recursive_function_parsing();
+    /* New tests for escaped quotes and escape sequences in interpolation */
+    test_interpolated_string_with_string_literal_in_braces();
+    test_interpolated_string_with_func_call_string_arg();
+    test_interpolated_string_with_newline_escape_in_braces();
+    test_interpolated_string_with_tab_escape_in_braces();
+    test_interpolated_string_with_backslash_escape_in_braces();
+    test_interpolated_string_with_carriage_return_escape_in_braces();
+    test_interpolated_string_with_empty_string_in_braces();
+    test_interpolated_string_with_nested_parens();
+    test_interpolated_string_with_multiple_string_literals();
+    test_interpolated_string_with_string_method_on_literal();
+    test_interpolated_string_with_complex_escape_sequence();
+    test_interpolated_string_with_braces_escape();
+    /* New tests for nested interpolated strings */
+    test_nested_interpolated_string_basic();
+    test_nested_interpolated_string_with_expression();
+    test_nested_interpolated_string_double_nested();
+    test_nested_interpolated_string_with_func_call();
+    test_nested_interpolated_string_adjacent();
+    /* New tests for format specifiers */
+    test_interpolated_string_with_format_specifier();
+    test_interpolated_string_with_format_specifier_float();
+    test_interpolated_string_with_format_specifier_and_expr();
+    test_format_specifier_not_detected_in_nested();
 }

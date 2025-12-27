@@ -268,14 +268,20 @@ Token lexer_scan_string(Lexer *lexer)
     }
     int buffer_index = 0;
     int brace_depth = 0;  // Track depth inside {} for interpolated strings
-    int in_nested_string = 0;  // Track if we're inside a string within {}
+    int start_line = lexer->line;  // Save the line where the string starts for error reporting
+
+    // Stack to track nested string states (simple strings vs interpolated strings)
+    // Each entry: 0 = regular string, 1 = interpolated string ($"...")
+    // We use a simple depth counter for regular strings and track interpolated ones
+    int string_depth = 0;  // How many nested strings deep we are (within braces)
+    int interpol_depth = 0;  // How many nested interpolated strings deep (within braces)
 
     while (!lexer_is_at_end(lexer))
     {
         char c = lexer_peek(lexer);
 
-        // Only stop on " if we're not inside {} interpolation
-        if (c == '"' && brace_depth == 0 && !in_nested_string)
+        // Only stop on " if we're not inside {} interpolation and not in nested string
+        if (c == '"' && brace_depth == 0 && string_depth == 0)
         {
             break;
         }
@@ -287,31 +293,30 @@ Token lexer_scan_string(Lexer *lexer)
 
         if (c == '\\')
         {
-            buffer[buffer_index++] = c;
             lexer_advance(lexer);
             if (!lexer_is_at_end(lexer))
             {
                 // Handle escape sequences
                 char escaped = lexer_peek(lexer);
-                if (brace_depth == 0)
+                if (brace_depth == 0 && string_depth == 0)
                 {
-                    // Outside braces, process escape sequences
+                    // Outside braces and nested strings, process escape sequences
                     switch (escaped)
                     {
                     case '\\':
-                        buffer[buffer_index - 1] = '\\';
+                        buffer[buffer_index++] = '\\';
                         break;
                     case 'n':
-                        buffer[buffer_index - 1] = '\n';
+                        buffer[buffer_index++] = '\n';
                         break;
                     case 'r':
-                        buffer[buffer_index - 1] = '\r';
+                        buffer[buffer_index++] = '\r';
                         break;
                     case 't':
-                        buffer[buffer_index - 1] = '\t';
+                        buffer[buffer_index++] = '\t';
                         break;
                     case '"':
-                        buffer[buffer_index - 1] = '"';
+                        buffer[buffer_index++] = '"';
                         break;
                     default:
                         snprintf(error_buffer, sizeof(error_buffer), "Invalid escape sequence");
@@ -320,34 +325,69 @@ Token lexer_scan_string(Lexer *lexer)
                 }
                 else
                 {
-                    // Inside braces, keep escape sequence as-is for sub-parser
+                    // Inside braces or nested strings, keep escape sequence as-is for sub-parser
+                    buffer[buffer_index++] = '\\';
                     buffer[buffer_index++] = escaped;
                 }
                 lexer_advance(lexer);
             }
+            else
+            {
+                // Backslash at end of string
+                buffer[buffer_index++] = '\\';
+            }
+        }
+        else if (c == '$' && brace_depth > 0 && string_depth == 0 && lexer_peek_next(lexer) == '"')
+        {
+            // Nested interpolated string: $"..." inside braces
+            // Copy $" and track we're entering an interpolated string
+            buffer[buffer_index++] = '$';
+            lexer_advance(lexer);
+            buffer[buffer_index++] = '"';
+            lexer_advance(lexer);
+            string_depth++;
+            interpol_depth++;
+        }
+        else if (c == '"' && brace_depth > 0)
+        {
+            // Quote inside braces - could be start or end of nested string
+            if (string_depth > 0)
+            {
+                // Closing a nested string
+                buffer[buffer_index++] = '"';
+                lexer_advance(lexer);
+                string_depth--;
+                if (interpol_depth > 0) interpol_depth--;
+            }
+            else
+            {
+                // Opening a regular nested string (not interpolated)
+                buffer[buffer_index++] = '"';
+                lexer_advance(lexer);
+                string_depth++;
+            }
+        }
+        else if (c == '{' && string_depth == 0)
+        {
+            // Only track braces when not inside a nested string literal
+            brace_depth++;
+            buffer[buffer_index++] = c;
+            lexer_advance(lexer);
+        }
+        else if (c == '}' && string_depth == 0)
+        {
+            // Only track braces when not inside a nested string literal
+            if (brace_depth > 0) brace_depth--;
+            buffer[buffer_index++] = c;
+            lexer_advance(lexer);
         }
         else
         {
-            // Track brace depth for interpolation
-            if (c == '{' && !in_nested_string)
-            {
-                brace_depth++;
-            }
-            else if (c == '}' && !in_nested_string)
-            {
-                if (brace_depth > 0) brace_depth--;
-            }
-            // Track nested strings inside braces
-            else if (c == '"' && brace_depth > 0)
-            {
-                in_nested_string = !in_nested_string;
-            }
-
             buffer[buffer_index++] = c;
             lexer_advance(lexer);
         }
 
-        if (buffer_index >= buffer_size - 1)
+        if (buffer_index >= buffer_size - 2)  // -2 for potential $" pair
         {
             buffer_size *= 2;
             char *new_buffer = arena_alloc(lexer->arena, buffer_size);
@@ -362,8 +402,13 @@ Token lexer_scan_string(Lexer *lexer)
     }
     if (lexer_is_at_end(lexer))
     {
-        snprintf(error_buffer, sizeof(error_buffer), "Unterminated string");
-        return lexer_error_token(lexer, error_buffer);
+        // Report error at the line where the string started
+        int saved_line = lexer->line;
+        lexer->line = start_line;
+        snprintf(error_buffer, sizeof(error_buffer), "Unterminated string starting at line %d", start_line);
+        Token error_tok = lexer_error_token(lexer, error_buffer);
+        lexer->line = saved_line;
+        return error_tok;
     }
     lexer_advance(lexer);
     buffer[buffer_index] = '\0';

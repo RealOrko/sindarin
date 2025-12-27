@@ -262,7 +262,7 @@ Expr *ast_create_decrement_expr(Arena *arena, Expr *operand, const Token *loc_to
     return expr;
 }
 
-Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, const Token *loc_token)
+Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, char **format_specs, int part_count, const Token *loc_token)
 {
     Expr *expr = arena_alloc(arena, sizeof(Expr));
     if (expr == NULL)
@@ -273,6 +273,7 @@ Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, int part_count, c
     memset(expr, 0, sizeof(Expr));
     expr->type = EXPR_INTERPOLATED;
     expr->as.interpol.parts = parts;
+    expr->as.interpol.format_specs = format_specs;
     expr->as.interpol.part_count = part_count;
     expr->expr_type = NULL;
     expr->token = ast_dup_token(arena, loc_token);

@@ -377,29 +377,39 @@ void test_ast_create_interpolated_expr()
     Expr *parts[2];
     parts[0] = ast_create_literal_expr(&arena, (LiteralValue){.string_value = "hello "}, ast_create_primitive_type(&arena, TYPE_STRING), true, loc);
     parts[1] = ast_create_variable_expr(&arena, create_dummy_token(&arena, "name"), loc);
-    Expr *interp = ast_create_interpolated_expr(&arena, parts, 2, loc);
+    char *fmts[2] = {NULL, NULL};
+    Expr *interp = ast_create_interpolated_expr(&arena, parts, fmts, 2, loc);
     assert(interp != NULL);
     assert(interp->type == EXPR_INTERPOLATED);
     assert(interp->as.interpol.part_count == 2);
     assert(interp->as.interpol.parts[0] == parts[0]);
     assert(interp->as.interpol.parts[1] == parts[1]);
+    assert(interp->as.interpol.format_specs[0] == NULL);
+    assert(interp->as.interpol.format_specs[1] == NULL);
     assert(tokens_equal(interp->token, loc));
     assert(interp->expr_type == NULL);
 
+    // Test with format specifiers
+    char *fmts_with_spec[2] = {NULL, ".2f"};
+    Expr *interp_fmt = ast_create_interpolated_expr(&arena, parts, fmts_with_spec, 2, loc);
+    assert(interp_fmt != NULL);
+    assert(interp_fmt->as.interpol.format_specs[0] == NULL);
+    assert(strcmp(interp_fmt->as.interpol.format_specs[1], ".2f") == 0);
+
     // Empty parts
-    Expr *interp_empty = ast_create_interpolated_expr(&arena, NULL, 0, loc);
+    Expr *interp_empty = ast_create_interpolated_expr(&arena, NULL, NULL, 0, loc);
     assert(interp_empty != NULL);
     assert(interp_empty->as.interpol.part_count == 0);
     assert(interp_empty->as.interpol.parts == NULL);
 
     // NULL parts with count > 0
-    Expr *interp_null_parts = ast_create_interpolated_expr(&arena, NULL, 2, loc);
+    Expr *interp_null_parts = ast_create_interpolated_expr(&arena, NULL, NULL, 2, loc);
     assert(interp_null_parts != NULL);
     assert(interp_null_parts->as.interpol.parts == NULL);
     assert(interp_null_parts->as.interpol.part_count == 2);
 
     // NULL loc
-    Expr *interp_null_loc = ast_create_interpolated_expr(&arena, parts, 2, NULL);
+    Expr *interp_null_loc = ast_create_interpolated_expr(&arena, parts, fmts, 2, NULL);
     assert(interp_null_loc != NULL);
     assert(interp_null_loc->token == NULL);
 

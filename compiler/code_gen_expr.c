@@ -716,6 +716,34 @@ char *code_gen_index_assign_expression(CodeGen *gen, IndexAssignExpr *expr)
                          array_str, index_str, array_str, index_str, index_str, value_str);
 }
 
+/* Helper to get the format function for a type kind */
+static const char *get_rt_format_func(TypeKind kind)
+{
+    switch (kind)
+    {
+    case TYPE_INT:
+    case TYPE_LONG:
+        return "rt_format_long";
+    case TYPE_DOUBLE:
+        return "rt_format_double";
+    case TYPE_STRING:
+        return "rt_format_string";
+    default:
+        return NULL;  /* No format function for this type */
+    }
+}
+
+/* Check if any part has a format specifier */
+static bool has_any_format_spec(InterpolExpr *expr)
+{
+    if (expr->format_specs == NULL) return false;
+    for (int i = 0; i < expr->part_count; i++)
+    {
+        if (expr->format_specs[i] != NULL) return true;
+    }
+    return false;
+}
+
 char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_interpolated_expression");
@@ -734,6 +762,7 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
 
     int non_literal_count = 0;
     int needs_conversion_count = 0;
+    bool uses_format_specs = has_any_format_spec(expr);
 
     for (int i = 0; i < count; i++)
     {
@@ -746,14 +775,14 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
         if (part_types[i]->kind != TYPE_STRING) needs_conversion_count++;
     }
 
-    /* Optimization: Single string literal - use directly */
-    if (count == 1 && is_literal[0])
+    /* Optimization: Single string literal without format - use directly */
+    if (count == 1 && is_literal[0] && !uses_format_specs)
     {
         return part_strs[0];
     }
 
-    /* Optimization: Single string variable/temp - return as is or copy */
-    if (count == 1 && part_types[0]->kind == TYPE_STRING)
+    /* Optimization: Single string variable/temp without format - return as is or copy */
+    if (count == 1 && part_types[0]->kind == TYPE_STRING && !uses_format_specs)
     {
         if (is_temp[0])
         {
@@ -770,8 +799,8 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
         }
     }
 
-    /* Optimization: Two string literals or all literals - simple concat */
-    if (count == 2 && needs_conversion_count == 0 && !is_temp[0] && !is_temp[1])
+    /* Optimization: Two string literals or all literals without format - simple concat */
+    if (count == 2 && needs_conversion_count == 0 && !is_temp[0] && !is_temp[1] && !uses_format_specs)
     {
         return arena_sprintf(gen->arena, "rt_str_concat(%s, %s, %s)", ARENA_VAR(gen), part_strs[0], part_strs[1]);
     }
@@ -783,12 +812,35 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
     char **use_strs = arena_alloc(gen->arena, count * sizeof(char *));
     int temp_var_count = 0;
 
-    /* First pass: convert non-strings and capture temps */
+    /* First pass: convert non-strings and capture temps, handle format specifiers */
     for (int i = 0; i < count; i++)
     {
-        if (part_types[i]->kind != TYPE_STRING)
+        char *format_spec = (expr->format_specs != NULL) ? expr->format_specs[i] : NULL;
+
+        if (format_spec != NULL)
         {
-            /* Non-string needs conversion */
+            /* Has format specifier - use rt_format_* functions */
+            const char *format_func = get_rt_format_func(part_types[i]->kind);
+            if (format_func != NULL)
+            {
+                result = arena_sprintf(gen->arena, "%s        char *_p%d = %s(%s, %s, \"%s\");\n",
+                                       result, temp_var_count, format_func, ARENA_VAR(gen), part_strs[i], format_spec);
+            }
+            else
+            {
+                /* Fallback: convert to string first, then format */
+                const char *to_str = get_rt_to_string_func(part_types[i]->kind);
+                result = arena_sprintf(gen->arena, "%s        char *_tmp%d = %s(%s, %s);\n",
+                                       result, temp_var_count, to_str, ARENA_VAR(gen), part_strs[i]);
+                result = arena_sprintf(gen->arena, "%s        char *_p%d = rt_format_string(%s, _tmp%d, \"%s\");\n",
+                                       result, temp_var_count, ARENA_VAR(gen), temp_var_count, format_spec);
+            }
+            use_strs[i] = arena_sprintf(gen->arena, "_p%d", temp_var_count);
+            temp_var_count++;
+        }
+        else if (part_types[i]->kind != TYPE_STRING)
+        {
+            /* Non-string needs conversion (no format specifier) */
             const char *to_str = get_rt_to_string_func(part_types[i]->kind);
             result = arena_sprintf(gen->arena, "%s        char *_p%d = %s(%s, %s);\n",
                                    result, temp_var_count, to_str, ARENA_VAR(gen), part_strs[i]);

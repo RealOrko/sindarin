@@ -168,7 +168,8 @@ void test_type_check_var_decl_function_call_array()
     setup_token(&interp_tok, TOKEN_INTERPOL_STRING, "$\"Int Array: {arr}\"", 18, "test.sn", &arena);
     Expr *arr_param_var = ast_create_variable_expr(&arena, print_params[0].name, NULL);
     Expr *interp_parts[2] = {str_part, arr_param_var};
-    Expr *interp = ast_create_interpolated_expr(&arena, interp_parts, 2, &interp_tok);
+    char *interp_fmts[2] = {NULL, NULL};
+    Expr *interp = ast_create_interpolated_expr(&arena, interp_parts, interp_fmts, 2, &interp_tok);
 
     Expr *print_callee = ast_create_variable_expr(&arena, print_tok, NULL);
     Expr *print_args[1] = {interp};

@@ -32,8 +32,8 @@ fn demo_strings(): void =>
   var combined: str = first + " " + second
   print($"Combined: \"{combined}\"\n")
 
-  // 4. Interpolation
-  print("\n--- Interpolation ---\n")
+  // 4. Basic Interpolation
+  print("\n--- Basic Interpolation ---\n")
   var name: str = "Alice"
   var age: int = 30
   print($"Name: {name}, Age: {age}\n")
@@ -42,6 +42,66 @@ fn demo_strings(): void =>
   var y: int = 3
   print($"{x} + {y} = {x + y}\n")
   print($"{x} * {y} = {x * y}\n")
+
+  // 4a. Escaped quotes in interpolation
+  print("\n--- Escaped Quotes in Interpolation ---\n")
+  var item: str = "widget"
+  print($"Item name: \"{item}\"\n")
+  print($"Nested quotes: \"She said \\\"hello\\\"\"\n")
+
+  // 4b. Format specifiers
+  print("\n--- Format Specifiers ---\n")
+  var pi: double = 3.14159265359
+  var price: double = 42.5
+  var num: int = 255
+  var count: int = 7
+
+  // Floating point precision
+  print($"Pi (2 decimals): {pi:.2f}\n")
+  print($"Pi (4 decimals): {pi:.4f}\n")
+  print($"Price: ${price:.2f}\n")
+
+  // Hexadecimal formatting
+  print($"255 in hex (lower): {num:x}\n")
+  print($"255 in hex (upper): {num:X}\n")
+
+  // Zero-padded integers
+  print($"Count (3 digits): {count:03d}\n")
+  print($"Count (5 digits): {count:05d}\n")
+
+  // 4c. Multi-line interpolated strings
+  print("\n--- Multi-line Interpolation ---\n")
+  var user: str = "Bob"
+  var score: int = 95
+  var profile: str = $"User Profile:
+  Name: {user}
+  Score: {score}
+  Grade: A"
+  print(profile)
+  print("\n")
+
+  // Multi-line with indentation
+  var a: int = 10
+  var b: int = 20
+  var report: str = $"Calculation Report:
+    Value A: {a}
+    Value B: {b}
+    Sum: {a + b}
+    Product: {a * b}"
+  print(report)
+  print("\n")
+
+  // 4d. Nested interpolation
+  print("\n--- Nested Interpolation ---\n")
+  var inner_val: int = 42
+  var outer: str = $"Outer contains: {$"inner value is {inner_val}"}"
+  print(outer)
+  print("\n")
+
+  // Deeper nesting
+  var level: int = 3
+  var deep: str = $"L1: {$"L2: {$"L3: {level}"}"}"
+  print($"Deep nesting: {deep}\n")
 
   // 5. Escape sequences
   print("\n--- Escape Sequences ---\n")

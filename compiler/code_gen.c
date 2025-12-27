@@ -129,6 +129,11 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char *rt_to_string_void(RtArena *);\n");
     indented_fprintf(gen, 0, "extern char *rt_to_string_pointer(RtArena *, void *);\n\n");
 
+    indented_fprintf(gen, 0, "/* Runtime format specifier functions */\n");
+    indented_fprintf(gen, 0, "extern char *rt_format_long(RtArena *, long, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_format_double(RtArena *, double, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_format_string(RtArena *, const char *, const char *);\n\n");
+
     indented_fprintf(gen, 0, "/* Runtime long arithmetic */\n");
     indented_fprintf(gen, 0, "extern long rt_add_long(long, long);\n");
     indented_fprintf(gen, 0, "extern long rt_sub_long(long, long);\n");
