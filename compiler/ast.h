@@ -20,11 +20,14 @@ typedef enum
     TYPE_CHAR,
     TYPE_STRING,
     TYPE_BOOL,
+    TYPE_BYTE,
     TYPE_VOID,
     TYPE_ARRAY,
     TYPE_FUNCTION,
     TYPE_NIL,
-    TYPE_ANY
+    TYPE_ANY,
+    TYPE_TEXT_FILE,
+    TYPE_BINARY_FILE
 } TypeKind;
 
 /* Memory qualifier for variables and parameters */
@@ -89,7 +92,8 @@ typedef enum
     EXPR_ARRAY_SLICE,
     EXPR_RANGE,
     EXPR_SPREAD,
-    EXPR_LAMBDA
+    EXPR_LAMBDA,
+    EXPR_STATIC_CALL
 } ExprType;
 
 typedef struct
@@ -184,6 +188,14 @@ typedef struct
 
 typedef struct
 {
+    Token type_name;     // The type name (e.g., "TextFile", "Bytes", "Path")
+    Token method_name;   // The method name (e.g., "open", "fromHex")
+    Expr **arguments;    // Arguments to the method
+    int arg_count;
+} StaticCallExpr;
+
+typedef struct
+{
     Parameter *params;
     int param_count;
     Type *return_type;
@@ -222,6 +234,7 @@ struct Expr
         MemberExpr member;
         InterpolExpr interpol;
         LambdaExpr lambda;
+        StaticCallExpr static_call;
     } as;
 
     Type *expr_type;

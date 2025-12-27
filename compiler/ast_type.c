@@ -27,9 +27,12 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_CHAR:
     case TYPE_STRING:
     case TYPE_BOOL:
+    case TYPE_BYTE:
     case TYPE_VOID:
     case TYPE_NIL:
     case TYPE_ANY:
+    case TYPE_TEXT_FILE:
+    case TYPE_BINARY_FILE:
         break;
 
     case TYPE_ARRAY:
@@ -139,6 +142,10 @@ int ast_type_equals(Type *a, Type *b)
     // TYPE_NIL is compatible with any type (used for empty arrays)
     if (a->kind == TYPE_NIL || b->kind == TYPE_NIL)
         return 1;
+    // Allow int literals to be assigned to byte variables (implicit narrowing)
+    if ((a->kind == TYPE_BYTE && b->kind == TYPE_INT) ||
+        (a->kind == TYPE_INT && b->kind == TYPE_BYTE))
+        return 1;
     if (a->kind != b->kind)
         return 0;
 
@@ -183,12 +190,18 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "string");
     case TYPE_BOOL:
         return arena_strdup(arena, "bool");
+    case TYPE_BYTE:
+        return arena_strdup(arena, "byte");
     case TYPE_VOID:
         return arena_strdup(arena, "void");
     case TYPE_NIL:
         return arena_strdup(arena, "nil");
     case TYPE_ANY:
         return arena_strdup(arena, "any");
+    case TYPE_TEXT_FILE:
+        return arena_strdup(arena, "TextFile");
+    case TYPE_BINARY_FILE:
+        return arena_strdup(arena, "BinaryFile");
 
     case TYPE_ARRAY:
     {

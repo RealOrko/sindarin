@@ -71,6 +71,16 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
             stmt->as.var_decl.initializer->expr_type = decl_type;
             init_type = decl_type;
         }
+        // For int[] assigned to byte[], update the expression type to byte[]
+        // This allows int literals to be used in byte array literals
+        if (decl_type && decl_type->kind == TYPE_ARRAY &&
+            decl_type->as.array.element_type->kind == TYPE_BYTE &&
+            init_type->kind == TYPE_ARRAY &&
+            init_type->as.array.element_type->kind == TYPE_INT)
+        {
+            stmt->as.var_decl.initializer->expr_type = decl_type;
+            init_type = decl_type;
+        }
     }
 
     // Type inference: if no declared type, infer from initializer

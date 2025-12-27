@@ -49,6 +49,47 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     Type *len_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_INT), builtin_params, 1);
     symbol_table_add_symbol_with_kind(parser->symbol_table, len_token, len_type, SYMBOL_GLOBAL);
 
+    // Console I/O convenience functions
+    // readLine() -> str
+    Token readLine_token;
+    readLine_token.start = arena_strdup(arena, "readLine");
+    readLine_token.length = 8;
+    readLine_token.type = TOKEN_IDENTIFIER;
+    readLine_token.line = 0;
+    readLine_token.filename = arena_strdup(arena, "<built-in>");
+    Type *readLine_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_STRING), NULL, 0);
+    symbol_table_add_symbol_with_kind(parser->symbol_table, readLine_token, readLine_type, SYMBOL_GLOBAL);
+
+    // println(any) -> void
+    Token println_token;
+    println_token.start = arena_strdup(arena, "println");
+    println_token.length = 7;
+    println_token.type = TOKEN_IDENTIFIER;
+    println_token.line = 0;
+    println_token.filename = arena_strdup(arena, "<built-in>");
+    Type *println_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_VOID), builtin_params, 1);
+    symbol_table_add_symbol_with_kind(parser->symbol_table, println_token, println_type, SYMBOL_GLOBAL);
+
+    // printErr(any) -> void
+    Token printErr_token;
+    printErr_token.start = arena_strdup(arena, "printErr");
+    printErr_token.length = 8;
+    printErr_token.type = TOKEN_IDENTIFIER;
+    printErr_token.line = 0;
+    printErr_token.filename = arena_strdup(arena, "<built-in>");
+    Type *printErr_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_VOID), builtin_params, 1);
+    symbol_table_add_symbol_with_kind(parser->symbol_table, printErr_token, printErr_type, SYMBOL_GLOBAL);
+
+    // printErrLn(any) -> void
+    Token printErrLn_token;
+    printErrLn_token.start = arena_strdup(arena, "printErrLn");
+    printErrLn_token.length = 10;
+    printErrLn_token.type = TOKEN_IDENTIFIER;
+    printErrLn_token.line = 0;
+    printErrLn_token.filename = arena_strdup(arena, "<built-in>");
+    Type *printErrLn_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_VOID), builtin_params, 1);
+    symbol_table_add_symbol_with_kind(parser->symbol_table, printErrLn_token, printErrLn_type, SYMBOL_GLOBAL);
+
     // Note: Other array operations (push, pop, rev, rem, ins) are now method-style only:
     //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
 

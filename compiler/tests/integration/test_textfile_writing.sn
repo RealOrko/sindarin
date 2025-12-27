@@ -1,0 +1,122 @@
+# Test TextFile instance writing methods
+
+fn main(): int =>
+    # Test write() - write string without newline
+    var f1: TextFile = TextFile.open("test_write.txt")
+    f1.write("Hello")
+    f1.write(" ")
+    f1.write("World")
+    f1.close()
+
+    var content1: str = TextFile.readAll("test_write.txt")
+    if content1 != "Hello World" =>
+        print("FAIL: write() expected 'Hello World', got: ")
+        print(content1)
+        print("\n")
+        return 1
+
+    # Test writeLine() - write string with newline
+    var f2: TextFile = TextFile.open("test_writeline.txt")
+    f2.writeLine("Line 1")
+    f2.writeLine("Line 2")
+    f2.writeLine("Line 3")
+    f2.close()
+
+    var content2: str = TextFile.readAll("test_writeline.txt")
+    if content2 != "Line 1\nLine 2\nLine 3\n" =>
+        print("FAIL: writeLine() produced wrong content\n")
+        print(content2)
+        return 1
+
+    # Test writeChar() - write single characters
+    var f3: TextFile = TextFile.open("test_writechar.txt")
+    f3.writeChar('A')
+    f3.writeChar('B')
+    f3.writeChar('C')
+    f3.writeChar('\n')
+    f3.close()
+
+    var content3: str = TextFile.readAll("test_writechar.txt")
+    if content3 != "ABC\n" =>
+        print("FAIL: writeChar() expected 'ABC\\n', got: ")
+        print(content3)
+        return 1
+
+    # Test print() - write string (same as write)
+    var f4: TextFile = TextFile.open("test_print.txt")
+    f4.print("Value: ")
+    f4.print("42")
+    f4.close()
+
+    var content4: str = TextFile.readAll("test_print.txt")
+    if content4 != "Value: 42" =>
+        print("FAIL: print() expected 'Value: 42', got: ")
+        print(content4)
+        return 1
+
+    # Test println() - write string with newline
+    var f5: TextFile = TextFile.open("test_println.txt")
+    f5.println("First line")
+    f5.println("Second line")
+    f5.close()
+
+    var content5: str = TextFile.readAll("test_println.txt")
+    if content5 != "First line\nSecond line\n" =>
+        print("FAIL: println() produced wrong content\n")
+        print(content5)
+        return 1
+
+    # Test print with interpolated strings
+    var f6: TextFile = TextFile.open("test_interp.txt")
+    var x: int = 100
+    var name: str = "Alice"
+    f6.println($"Name: {name}")
+    f6.println($"Value: {x}")
+    f6.println($"Sum: {x + 23}")
+    f6.close()
+
+    var content6: str = TextFile.readAll("test_interp.txt")
+    if content6 != "Name: Alice\nValue: 100\nSum: 123\n" =>
+        print("FAIL: interpolated print produced wrong content\n")
+        print(content6)
+        return 1
+
+    # Test mixed reading and writing
+    var f7: TextFile = TextFile.open("test_mixed.txt")
+    f7.writeLine("Header")
+    f7.writeLine("Data 1")
+    f7.writeLine("Data 2")
+    f7.close()
+
+    # Re-open and read to verify
+    var f8: TextFile = TextFile.open("test_mixed.txt")
+    var lines: str[] = f8.readLines()
+    f8.close()
+
+    if lines.length != 3 =>
+        print("FAIL: expected 3 lines\n")
+        return 1
+
+    if lines[0] != "Header" =>
+        print("FAIL: lines[0] != 'Header'\n")
+        return 1
+
+    if lines[1] != "Data 1" =>
+        print("FAIL: lines[1] != 'Data 1'\n")
+        return 1
+
+    if lines[2] != "Data 2" =>
+        print("FAIL: lines[2] != 'Data 2'\n")
+        return 1
+
+    # Cleanup test files
+    TextFile.delete("test_write.txt")
+    TextFile.delete("test_writeline.txt")
+    TextFile.delete("test_writechar.txt")
+    TextFile.delete("test_print.txt")
+    TextFile.delete("test_println.txt")
+    TextFile.delete("test_interp.txt")
+    TextFile.delete("test_mixed.txt")
+
+    print("All TextFile writing method tests passed!\n")
+    return 0

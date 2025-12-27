@@ -442,3 +442,48 @@ Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_cou
     expr->token = ast_clone_token(arena, loc_token);
     return expr;
 }
+
+Expr *ast_create_static_call_expr(Arena *arena, Token type_name, Token method_name,
+                                   Expr **arguments, int arg_count, const Token *loc_token)
+{
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_STATIC_CALL;
+
+    // Clone type_name token
+    char *type_start = arena_strndup(arena, type_name.start, type_name.length);
+    if (type_start == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    expr->as.static_call.type_name.start = type_start;
+    expr->as.static_call.type_name.length = type_name.length;
+    expr->as.static_call.type_name.line = type_name.line;
+    expr->as.static_call.type_name.type = type_name.type;
+    expr->as.static_call.type_name.filename = type_name.filename;
+
+    // Clone method_name token
+    char *method_start = arena_strndup(arena, method_name.start, method_name.length);
+    if (method_start == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    expr->as.static_call.method_name.start = method_start;
+    expr->as.static_call.method_name.length = method_name.length;
+    expr->as.static_call.method_name.line = method_name.line;
+    expr->as.static_call.method_name.type = method_name.type;
+    expr->as.static_call.method_name.filename = method_name.filename;
+
+    expr->as.static_call.arguments = arguments;
+    expr->as.static_call.arg_count = arg_count;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}

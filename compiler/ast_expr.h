@@ -21,5 +21,8 @@ Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenTyp
 Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *end, Expr *step, const Token *loc_token);
 Expr *ast_create_range_expr(Arena *arena, Expr *start, Expr *end, const Token *loc_token);
 Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token);
+Expr *ast_create_static_call_expr(Arena *arena, Token type_name, Token method_name,
+                                   Expr **arguments, int arg_count, const Token *loc_token);
+Expr *ast_create_index_assign_expr(Arena *arena, Expr *array, Expr *index, Expr *value, const Token *loc_token);
 
 #endif /* AST_EXPR_H */

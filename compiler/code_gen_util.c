@@ -129,12 +129,18 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "char *");
     case TYPE_BOOL:
         return arena_strdup(arena, "bool");
+    case TYPE_BYTE:
+        return arena_strdup(arena, "unsigned char");
     case TYPE_VOID:
         return arena_strdup(arena, "void");
     case TYPE_NIL:
         return arena_strdup(arena, "void *");
     case TYPE_ANY:
         return arena_strdup(arena, "void *");
+    case TYPE_TEXT_FILE:
+        return arena_strdup(arena, "RtTextFile *");
+    case TYPE_BINARY_FILE:
+        return arena_strdup(arena, "RtBinaryFile *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally
@@ -191,12 +197,16 @@ const char *get_rt_to_string_func(TypeKind kind)
         return "rt_to_string_string";
     case TYPE_BOOL:
         return "rt_to_string_bool";
+    case TYPE_BYTE:
+        return "rt_to_string_byte";
     case TYPE_VOID:
         return "rt_to_string_void";
     case TYPE_NIL:
     case TYPE_ANY:
     case TYPE_ARRAY:
     case TYPE_FUNCTION:
+    case TYPE_TEXT_FILE:
+    case TYPE_BINARY_FILE:
         return "rt_to_string_pointer";
     default:
         exit(1);
@@ -207,7 +217,8 @@ const char *get_rt_to_string_func(TypeKind kind)
 const char *get_default_value(Type *type)
 {
     DEBUG_VERBOSE("Entering get_default_value");
-    if (type->kind == TYPE_STRING || type->kind == TYPE_ARRAY)
+    if (type->kind == TYPE_STRING || type->kind == TYPE_ARRAY ||
+        type->kind == TYPE_TEXT_FILE || type->kind == TYPE_BINARY_FILE)
     {
         return "NULL";
     }
@@ -286,6 +297,7 @@ char *code_gen_type_suffix(Type *type)
     case TYPE_INT:
     case TYPE_LONG:
     case TYPE_CHAR:
+    case TYPE_BYTE:
         return "long";
     case TYPE_DOUBLE:
         return "double";
@@ -789,6 +801,7 @@ static bool type_needs_arena(Type *type)
     case TYPE_DOUBLE:
     case TYPE_CHAR:
     case TYPE_BOOL:
+    case TYPE_BYTE:
     case TYPE_VOID:
     case TYPE_NIL:
     case TYPE_ANY:

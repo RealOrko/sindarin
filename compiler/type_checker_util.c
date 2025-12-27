@@ -25,18 +25,21 @@ const char *type_name(Type *type)
 {
     if (type == NULL) return "unknown";
     switch (type->kind) {
-        case TYPE_INT:      return "int";
-        case TYPE_LONG:     return "long";
-        case TYPE_DOUBLE:   return "double";
-        case TYPE_CHAR:     return "char";
-        case TYPE_STRING:   return "str";
-        case TYPE_BOOL:     return "bool";
-        case TYPE_VOID:     return "void";
-        case TYPE_NIL:      return "nil";
-        case TYPE_ANY:      return "any";
-        case TYPE_ARRAY:    return "array";
-        case TYPE_FUNCTION: return "function";
-        default:            return "unknown";
+        case TYPE_INT:         return "int";
+        case TYPE_LONG:        return "long";
+        case TYPE_DOUBLE:      return "double";
+        case TYPE_CHAR:        return "char";
+        case TYPE_STRING:      return "str";
+        case TYPE_BOOL:        return "bool";
+        case TYPE_BYTE:        return "byte";
+        case TYPE_VOID:        return "void";
+        case TYPE_NIL:         return "nil";
+        case TYPE_ANY:         return "any";
+        case TYPE_ARRAY:       return "array";
+        case TYPE_FUNCTION:    return "function";
+        case TYPE_TEXT_FILE:   return "TextFile";
+        case TYPE_BINARY_FILE: return "BinaryFile";
+        default:               return "unknown";
     }
 }
 
@@ -136,7 +139,7 @@ bool is_printable_type(Type *type)
     bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG ||
                            type->kind == TYPE_DOUBLE || type->kind == TYPE_CHAR ||
                            type->kind == TYPE_STRING || type->kind == TYPE_BOOL ||
-                           type->kind == TYPE_ARRAY);
+                           type->kind == TYPE_BYTE || type->kind == TYPE_ARRAY);
     DEBUG_VERBOSE("Checking if type is printable: %s", result ? "true" : "false");
     return result;
 }
@@ -149,6 +152,7 @@ bool is_primitive_type(Type *type)
                   type->kind == TYPE_DOUBLE ||
                   type->kind == TYPE_CHAR ||
                   type->kind == TYPE_BOOL ||
+                  type->kind == TYPE_BYTE ||
                   type->kind == TYPE_VOID;
     DEBUG_VERBOSE("Checking if type is primitive: %s", result ? "true" : "false");
     return result;
@@ -159,7 +163,9 @@ bool is_reference_type(Type *type)
     if (type == NULL) return false;
     bool result = type->kind == TYPE_STRING ||
                   type->kind == TYPE_ARRAY ||
-                  type->kind == TYPE_FUNCTION;
+                  type->kind == TYPE_FUNCTION ||
+                  type->kind == TYPE_TEXT_FILE ||
+                  type->kind == TYPE_BINARY_FILE;
     DEBUG_VERBOSE("Checking if type is reference: %s", result ? "true" : "false");
     return result;
 }

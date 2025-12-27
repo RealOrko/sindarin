@@ -1,0 +1,18 @@
+toBytes length: 5
+First byte (H): 0x48
+Last byte (o): 0x6F
+Round-trip string: Hello
+fromHex result: Hello
+toHex: 414243
+Hex round-trip: ABC
+fromBase64 result: Hello
+toBase64: TWFu
+Base64 round-trip: Man
+Empty string bytes length: 0
+Empty hex bytes length: 0
+Empty base64 bytes length: 0
+Uppercase hex result: AB
+Base64 no padding: Man
+Base64 one padding: Ma
+Base64 two padding: M
+All string-to-bytes tests completed!

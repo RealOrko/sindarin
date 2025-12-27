@@ -1,0 +1,40 @@
+Words count: 4
+Word 0: hello
+Word 1: world
+Word 2: foo
+Word 3: bar
+Mixed whitespace count: 4
+Mixed 0: a
+Mixed 1: b
+Mixed 2: c
+Mixed 3: d
+Empty split count: 0
+Only whitespace count: 0
+Unix lines count: 3
+Unix line 0: line1
+Unix line 1: line2
+Unix line 2: line3
+Windows lines count: 3
+Win line 0: line1
+Win line 1: line2
+Win line 2: line3
+Mac lines count: 3
+Mac line 0: line1
+Mac line 1: line2
+Mac line 2: line3
+Mixed lines count: 3
+Mixed line 0: unix
+Mixed line 1: win
+Mixed line 2: mac
+Empty lines count: 0
+Empty isBlank: true
+Spaces isBlank: true
+Tabs isBlank: true
+Mixed ws isBlank: true
+Text isBlank: false
+Text with spaces isBlank: false
+File lines count: 3
+Line 0 word count: 3
+Line 1 word count: 3
+Line 2 word count: 1
+All string split tests completed!

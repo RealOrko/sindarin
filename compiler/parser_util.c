@@ -205,9 +205,33 @@ Type *parser_type(Parser *parser)
     {
         type = ast_create_primitive_type(parser->arena, TYPE_BOOL);
     }
+    else if (parser_match(parser, TOKEN_BYTE))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_BYTE);
+    }
     else if (parser_match(parser, TOKEN_VOID))
     {
         type = ast_create_primitive_type(parser->arena, TYPE_VOID);
+    }
+    else if (parser_check(parser, TOKEN_IDENTIFIER))
+    {
+        /* Check for file types: TextFile, BinaryFile */
+        Token id = parser->current;
+        if (id.length == 8 && strncmp(id.start, "TextFile", 8) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_TEXT_FILE);
+        }
+        else if (id.length == 10 && strncmp(id.start, "BinaryFile", 10) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_BINARY_FILE);
+        }
+        else
+        {
+            parser_error_at_current(parser, "Expected type");
+            return ast_create_primitive_type(parser->arena, TYPE_NIL);
+        }
     }
     else
     {
@@ -226,4 +250,30 @@ Type *parser_type(Parser *parser)
     }
 
     return type;
+}
+
+/* List of known static type names that support static method calls */
+static const char *static_type_names[] = {
+    "TextFile",
+    "BinaryFile",
+    "Path",
+    "Directory",
+    "Bytes",
+    "Stdin",
+    "Stdout",
+    "Stderr",
+    NULL
+};
+
+int parser_is_static_type_name(const char *name, int length)
+{
+    for (int i = 0; static_type_names[i] != NULL; i++)
+    {
+        if (strlen(static_type_names[i]) == (size_t)length &&
+            strncmp(name, static_type_names[i], length) == 0)
+        {
+            return 1;
+        }
+    }
+    return 0;
 }

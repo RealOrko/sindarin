@@ -3,3 +3,4 @@ log/
 *.o
 .idea/
 testing/output/
+.claude-looper/

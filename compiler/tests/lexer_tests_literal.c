@@ -74,7 +74,7 @@ void test_lexer_keywords()
     DEBUG_INFO("Starting test_lexer_keywords");
     printf("Testing lexer with various keywords\n");
 
-    const char *source = "fn if else for while return var int bool str char double long void nil import";
+    const char *source = "fn if else for while return var int bool str char double long void nil import byte";
     Arena arena;
     arena_init(&arena, 1024 * 2);
     Lexer lexer;
@@ -112,9 +112,11 @@ void test_lexer_keywords()
     assert(t15.type == TOKEN_NIL);
     Token t16 = lexer_scan_token(&lexer);
     assert(t16.type == TOKEN_IMPORT);
-
     Token t17 = lexer_scan_token(&lexer);
-    assert(t17.type == TOKEN_EOF);
+    assert(t17.type == TOKEN_BYTE);
+
+    Token t18 = lexer_scan_token(&lexer);
+    assert(t18.type == TOKEN_EOF);
 
     lexer_cleanup(&lexer);
     arena_free(&arena);

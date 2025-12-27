@@ -1,0 +1,56 @@
+# Test TextFile static methods
+
+fn main(): int =>
+    # Test writeAll - create a test file
+    TextFile.writeAll("test_output.txt", "Hello, World!\nLine 2\n")
+
+    # Test exists - file should exist after creating
+    var exists1: bool = TextFile.exists("test_output.txt")
+    if !exists1 =>
+        print("FAIL: exists should return true for existing file\n")
+        return 1
+
+    # Test exists - file should not exist
+    var exists2: bool = TextFile.exists("nonexistent_file_xyz123.txt")
+    if exists2 =>
+        print("FAIL: exists should return false for non-existent file\n")
+        return 1
+
+    # Test readAll - read the file we created
+    var content: str = TextFile.readAll("test_output.txt")
+    if content != "Hello, World!\nLine 2\n" =>
+        print("FAIL: readAll returned wrong content\n")
+        print(content)
+        return 1
+
+    # Test copy - copy the file
+    TextFile.copy("test_output.txt", "test_copy.txt")
+    var copyContent: str = TextFile.readAll("test_copy.txt")
+    if copyContent != "Hello, World!\nLine 2\n" =>
+        print("FAIL: copy did not preserve content\n")
+        return 1
+
+    # Test move - move the copy to a new name
+    TextFile.move("test_copy.txt", "test_moved.txt")
+    if TextFile.exists("test_copy.txt") =>
+        print("FAIL: move should have deleted source file\n")
+        return 1
+
+    var movedContent: str = TextFile.readAll("test_moved.txt")
+    if movedContent != "Hello, World!\nLine 2\n" =>
+        print("FAIL: move did not preserve content\n")
+        return 1
+
+    # Test delete - delete the files
+    TextFile.delete("test_output.txt")
+    if TextFile.exists("test_output.txt") =>
+        print("FAIL: delete should have removed file\n")
+        return 1
+
+    TextFile.delete("test_moved.txt")
+    if TextFile.exists("test_moved.txt") =>
+        print("FAIL: delete should have removed moved file\n")
+        return 1
+
+    print("All TextFile static method tests passed!\n")
+    return 0

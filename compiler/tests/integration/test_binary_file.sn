@@ -1,0 +1,197 @@
+# Test BinaryFile type with all methods
+
+fn main(): int =>
+    # Test static methods: writeAll and readAll
+    # "Hello" in bytes: 72, 101, 108, 108, 111
+    var data1: byte[] = {72, 101, 108, 108, 111}
+    BinaryFile.writeAll("test_binary.bin", data1)
+
+    # Test exists
+    if !BinaryFile.exists("test_binary.bin") =>
+        print("FAIL: BinaryFile.exists returned false for existing file\n")
+        return 1
+
+    if BinaryFile.exists("nonexistent_binary.bin") =>
+        print("FAIL: BinaryFile.exists returned true for non-existing file\n")
+        return 1
+
+    # Test static readAll
+    var data2: byte[] = BinaryFile.readAll("test_binary.bin")
+    if len(data2) != 5 =>
+        print("FAIL: BinaryFile.readAll returned wrong length, expected 5, got: ")
+        print($"{len(data2)}")
+        print("\n")
+        return 1
+
+    if data2[0] != 72 =>
+        print("FAIL: data2[0] expected 72, got: ")
+        print($"{data2[0]}")
+        print("\n")
+        return 1
+
+    if data2[4] != 111 =>
+        print("FAIL: data2[4] expected 111, got: ")
+        print($"{data2[4]}")
+        print("\n")
+        return 1
+
+    # Test instance methods: open, readByte, readBytes
+    var f1: BinaryFile = BinaryFile.open("test_binary.bin")
+
+    # Test path property
+    var filePath: str = f1.path
+    if filePath != "test_binary.bin" =>
+        print("FAIL: path expected 'test_binary.bin', got: ")
+        print(filePath)
+        print("\n")
+        return 1
+
+    # Test name property
+    var fileName: str = f1.name
+    if fileName != "test_binary.bin" =>
+        print("FAIL: name expected 'test_binary.bin', got: ")
+        print(fileName)
+        print("\n")
+        return 1
+
+    # Test size property
+    var fileSize: int = f1.size
+    if fileSize != 5 =>
+        print("FAIL: size expected 5, got: ")
+        print($"{fileSize}")
+        print("\n")
+        return 1
+
+    # Test readByte
+    var b1: int = f1.readByte()
+    if b1 != 72 =>
+        print("FAIL: readByte expected 72, got: ")
+        print($"{b1}")
+        print("\n")
+        return 1
+
+    var b2: int = f1.readByte()
+    if b2 != 101 =>
+        print("FAIL: readByte expected 101, got: ")
+        print($"{b2}")
+        print("\n")
+        return 1
+
+    # Test position
+    var pos1: int = f1.position()
+    if pos1 != 2 =>
+        print("FAIL: position expected 2, got: ")
+        print($"{pos1}")
+        print("\n")
+        return 1
+
+    # Test seek
+    f1.seek(0)
+    var pos2: int = f1.position()
+    if pos2 != 0 =>
+        print("FAIL: position after seek(0) expected 0, got: ")
+        print($"{pos2}")
+        print("\n")
+        return 1
+
+    # Test readBytes
+    var bytes3: byte[] = f1.readBytes(3)
+    if len(bytes3) != 3 =>
+        print("FAIL: readBytes(3) returned wrong length\n")
+        return 1
+
+    if bytes3[0] != 72 =>
+        print("FAIL: bytes3[0] expected 72\n")
+        return 1
+
+    if bytes3[2] != 108 =>
+        print("FAIL: bytes3[2] expected 108\n")
+        return 1
+
+    # Test rewind
+    f1.rewind()
+    var pos3: int = f1.position()
+    if pos3 != 0 =>
+        print("FAIL: position after rewind expected 0, got: ")
+        print($"{pos3}")
+        print("\n")
+        return 1
+
+    # Test instance readAll
+    var allBytes: byte[] = f1.readAll()
+    if len(allBytes) != 5 =>
+        print("FAIL: instance readAll returned wrong length\n")
+        return 1
+
+    # Test isEof and hasBytes at EOF
+    if !f1.isEof() =>
+        print("FAIL: isEof should be true after readAll\n")
+        return 1
+
+    if f1.hasBytes() =>
+        print("FAIL: hasBytes should be false at EOF\n")
+        return 1
+
+    # Read at EOF should return -1
+    var eofByte: int = f1.readByte()
+    if eofByte != -1 =>
+        print("FAIL: readByte at EOF expected -1, got: ")
+        print($"{eofByte}")
+        print("\n")
+        return 1
+
+    f1.close()
+
+    # Test writing methods
+    var f2: BinaryFile = BinaryFile.open("test_write_binary.bin")
+    f2.writeByte(65)
+    f2.writeByte(66)
+    f2.writeByte(67)
+
+    var moreBytes: byte[] = {68, 69}
+    f2.writeBytes(moreBytes)
+    f2.flush()
+    f2.close()
+
+    # Verify written content
+    var written: byte[] = BinaryFile.readAll("test_write_binary.bin")
+    if len(written) != 5 =>
+        print("FAIL: written file should have 5 bytes\n")
+        return 1
+
+    if written[0] != 65 =>
+        print("FAIL: written[0] expected 65\n")
+        return 1
+
+    if written[4] != 69 =>
+        print("FAIL: written[4] expected 69\n")
+        return 1
+
+    # Test copy
+    BinaryFile.copy("test_binary.bin", "test_copy_binary.bin")
+    var copyData: byte[] = BinaryFile.readAll("test_copy_binary.bin")
+    if len(copyData) != 5 =>
+        print("FAIL: copy did not preserve file size\n")
+        return 1
+
+    if copyData[0] != 72 =>
+        print("FAIL: copy did not preserve content\n")
+        return 1
+
+    # Test move
+    BinaryFile.move("test_copy_binary.bin", "test_moved_binary.bin")
+    if BinaryFile.exists("test_copy_binary.bin") =>
+        print("FAIL: move should delete source file\n")
+        return 1
+
+    if !BinaryFile.exists("test_moved_binary.bin") =>
+        print("FAIL: move should create destination file\n")
+        return 1
+
+    # Cleanup
+    BinaryFile.delete("test_binary.bin")
+    BinaryFile.delete("test_write_binary.bin")
+    BinaryFile.delete("test_moved_binary.bin")
+
+    print("All BinaryFile tests passed!\n")
+    return 0

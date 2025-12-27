@@ -1,0 +1,23 @@
+directory of /home/user/file.txt: /home/user
+directory of /home/user/: /home/user
+directory of file.txt: .
+directory of /file.txt: /
+filename of /home/user/file.txt: file.txt
+filename of file.txt: file.txt
+filename of /home/user/: 
+extension of file.txt: txt
+extension of file.tar.gz: gz
+extension of .bashrc: 
+extension of file (no ext): 
+join /home, user: /home/user
+join /home/, user: /home/user
+join /home, user, file.txt: /home/user/file.txt
+join /home, /absolute/path: /absolute/path
+exists /: true
+exists /nonexistent/path/xyz: false
+isDirectory /: true
+isFile /: false
+directory of test file: compiler/tests/integration
+filename of test file: test_path.sn
+extension of test file: sn
+All path tests completed!

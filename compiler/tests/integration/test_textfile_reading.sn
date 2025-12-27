@@ -1,0 +1,139 @@
+# Test TextFile instance reading methods
+
+fn main(): int =>
+    # Create a test file with known content
+    TextFile.writeAll("test_reading.txt", "Hello World\nLine 2\nLine 3\nfoo bar baz\n")
+
+    # Test readLine() - open file and read lines
+    var f1: TextFile = TextFile.open("test_reading.txt")
+    var line1: str = f1.readLine()
+    if line1 != "Hello World" =>
+        print("FAIL: readLine expected 'Hello World', got: ")
+        print(line1)
+        print("\n")
+        return 1
+
+    var line2: str = f1.readLine()
+    if line2 != "Line 2" =>
+        print("FAIL: readLine expected 'Line 2', got: ")
+        print(line2)
+        print("\n")
+        return 1
+    f1.close()
+
+    # Test readAll() (instance) - read remaining content
+    var f2: TextFile = TextFile.open("test_reading.txt")
+    var discard1: str = f2.readLine()  # Skip first line
+    var remaining: str = f2.readAll()
+    if remaining != "Line 2\nLine 3\nfoo bar baz\n" =>
+        print("FAIL: instance readAll returned wrong content\n")
+        print(remaining)
+        return 1
+    f2.close()
+
+    # Test readLines() - read all lines as array
+    var f3: TextFile = TextFile.open("test_reading.txt")
+    var lines: str[] = f3.readLines()
+    if lines.length != 4 =>
+        print("FAIL: readLines expected 4 lines, got: ")
+        print($"{lines.length}")
+        print("\n")
+        return 1
+
+    if lines[0] != "Hello World" =>
+        print("FAIL: lines[0] != 'Hello World'\n")
+        return 1
+
+    if lines[1] != "Line 2" =>
+        print("FAIL: lines[1] != 'Line 2'\n")
+        return 1
+
+    if lines[2] != "Line 3" =>
+        print("FAIL: lines[2] != 'Line 3'\n")
+        return 1
+
+    if lines[3] != "foo bar baz" =>
+        print("FAIL: lines[3] != 'foo bar baz'\n")
+        return 1
+    f3.close()
+
+    # Test readWord() - read whitespace-delimited tokens
+    TextFile.writeAll("test_words.txt", "  alpha  beta\tgamma\ndelta  ")
+    var f4: TextFile = TextFile.open("test_words.txt")
+    var word1: str = f4.readWord()
+    if word1 != "alpha" =>
+        print("FAIL: readWord expected 'alpha', got: ")
+        print(word1)
+        print("\n")
+        return 1
+
+    var word2: str = f4.readWord()
+    if word2 != "beta" =>
+        print("FAIL: readWord expected 'beta', got: ")
+        print(word2)
+        print("\n")
+        return 1
+
+    var word3: str = f4.readWord()
+    if word3 != "gamma" =>
+        print("FAIL: readWord expected 'gamma', got: ")
+        print(word3)
+        print("\n")
+        return 1
+
+    var word4: str = f4.readWord()
+    if word4 != "delta" =>
+        print("FAIL: readWord expected 'delta', got: ")
+        print(word4)
+        print("\n")
+        return 1
+
+    # Next word should be empty (EOF)
+    var word5: str = f4.readWord()
+    if word5 != "" =>
+        print("FAIL: readWord at EOF expected empty string, got: ")
+        print(word5)
+        print("\n")
+        return 1
+    f4.close()
+
+    # Test readChar() - read single characters
+    TextFile.writeAll("test_chars.txt", "ABC")
+    var f5: TextFile = TextFile.open("test_chars.txt")
+    var ch1: int = f5.readChar()
+    if ch1 != 65 =>
+        print("FAIL: readChar expected 65 (A), got: ")
+        print($"{ch1}")
+        print("\n")
+        return 1
+
+    var ch2: int = f5.readChar()
+    if ch2 != 66 =>
+        print("FAIL: readChar expected 66 (B), got: ")
+        print($"{ch2}")
+        print("\n")
+        return 1
+
+    var ch3: int = f5.readChar()
+    if ch3 != 67 =>
+        print("FAIL: readChar expected 67 (C), got: ")
+        print($"{ch3}")
+        print("\n")
+        return 1
+
+    # Next read should return -1 (EOF)
+    var ch4: int = f5.readChar()
+    if ch4 != -1 =>
+        print("FAIL: readChar at EOF expected -1, got: ")
+        print($"{ch4}")
+        print("\n")
+        return 1
+    f5.close()
+
+    # Cleanup test files
+    TextFile.delete("test_reading.txt")
+    TextFile.delete("test_words.txt")
+    TextFile.delete("test_chars.txt")
+
+    print("All TextFile reading method tests passed!\n")
+    return 0

@@ -36,6 +36,7 @@ typedef enum
     TOKEN_CHAR,
     TOKEN_STR,
     TOKEN_BOOL,
+    TOKEN_BYTE,
     TOKEN_VOID,
     // Memory management keywords
     TOKEN_SHARED,

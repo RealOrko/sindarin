@@ -110,6 +110,8 @@ const char *token_type_to_string(TokenType type)
         return "STR";
     case TOKEN_BOOL:
         return "BOOL";
+    case TOKEN_BYTE:
+        return "BYTE";
     case TOKEN_VOID:
         return "VOID";
     case TOKEN_SHARED:

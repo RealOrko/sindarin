@@ -1,0 +1,167 @@
+# Test TextFile state methods and properties
+
+fn main(): int =>
+    # Create a test file with known content
+    TextFile.writeAll("test_state.txt", "Hello World\nLine 2\nLine 3\n")
+
+    # Test properties
+    var f1: TextFile = TextFile.open("test_state.txt")
+
+    # Test path property
+    var filePath: str = f1.path
+    if filePath != "test_state.txt" =>
+        print("FAIL: path expected 'test_state.txt', got: ")
+        print(filePath)
+        print("\n")
+        return 1
+
+    # Test name property
+    var fileName: str = f1.name
+    if fileName != "test_state.txt" =>
+        print("FAIL: name expected 'test_state.txt', got: ")
+        print(fileName)
+        print("\n")
+        return 1
+
+    # Test size property
+    var fileSize: int = f1.size
+    # "Hello World\nLine 2\nLine 3\n" = 26 bytes
+    if fileSize != 26 =>
+        print("FAIL: size expected 26, got: ")
+        print($"{fileSize}")
+        print("\n")
+        return 1
+    f1.close()
+
+    # Test position and seek
+    var f2: TextFile = TextFile.open("test_state.txt")
+
+    # Initial position should be 0
+    var pos1: int = f2.position()
+    if pos1 != 0 =>
+        print("FAIL: initial position expected 0, got: ")
+        print($"{pos1}")
+        print("\n")
+        return 1
+
+    # Read first line and check position
+    var line1: str = f2.readLine()
+    var pos2: int = f2.position()
+    # After "Hello World\n" (12 bytes), position should be 12
+    if pos2 != 12 =>
+        print("FAIL: position after readLine expected 12, got: ")
+        print($"{pos2}")
+        print("\n")
+        return 1
+
+    # Test seek - go to byte 6 (middle of "Hello World")
+    f2.seek(6)
+    var pos3: int = f2.position()
+    if pos3 != 6 =>
+        print("FAIL: position after seek(6) expected 6, got: ")
+        print($"{pos3}")
+        print("\n")
+        return 1
+
+    # Test rewind
+    f2.rewind()
+    var pos4: int = f2.position()
+    if pos4 != 0 =>
+        print("FAIL: position after rewind expected 0, got: ")
+        print($"{pos4}")
+        print("\n")
+        return 1
+    f2.close()
+
+    # Test isEof and hasChars/hasLines
+    var f3: TextFile = TextFile.open("test_state.txt")
+
+    # At start, should not be at EOF
+    if f3.isEof() =>
+        print("FAIL: isEof should be false at start\n")
+        return 1
+
+    # Should have chars available
+    if !f3.hasChars() =>
+        print("FAIL: hasChars should be true at start\n")
+        return 1
+
+    # Should have lines available
+    if !f3.hasLines() =>
+        print("FAIL: hasLines should be true at start\n")
+        return 1
+
+    # Read all content to reach EOF
+    var all: str = f3.readAll()
+
+    # Now should be at EOF
+    if !f3.isEof() =>
+        print("FAIL: isEof should be true after readAll\n")
+        return 1
+
+    # Should not have chars available
+    if f3.hasChars() =>
+        print("FAIL: hasChars should be false at EOF\n")
+        return 1
+
+    # Should not have lines available
+    if f3.hasLines() =>
+        print("FAIL: hasLines should be false at EOF\n")
+        return 1
+    f3.close()
+
+    # Test hasWords
+    TextFile.writeAll("test_words.txt", "  alpha  beta  ")
+    var f4: TextFile = TextFile.open("test_words.txt")
+
+    # Should have words available
+    if !f4.hasWords() =>
+        print("FAIL: hasWords should be true when words exist\n")
+        return 1
+
+    # Read first word
+    var word1: str = f4.readWord()
+    if word1 != "alpha" =>
+        print("FAIL: first word expected 'alpha', got: ")
+        print(word1)
+        print("\n")
+        return 1
+
+    # Should still have words
+    if !f4.hasWords() =>
+        print("FAIL: hasWords should be true after reading first word\n")
+        return 1
+
+    # Read second word
+    var word2: str = f4.readWord()
+    if word2 != "beta" =>
+        print("FAIL: second word expected 'beta', got: ")
+        print(word2)
+        print("\n")
+        return 1
+
+    # After last word, should not have more words
+    if f4.hasWords() =>
+        print("FAIL: hasWords should be false after last word\n")
+        return 1
+    f4.close()
+
+    # Test flush (just verify it doesn't error)
+    var f5: TextFile = TextFile.open("test_flush.txt")
+    f5.writeLine("Test data")
+    f5.flush()  # Should not error
+    f5.close()
+
+    # Verify flush wrote data
+    var flushContent: str = TextFile.readAll("test_flush.txt")
+    if flushContent != "Test data\n" =>
+        print("FAIL: flush test - content not written correctly\n")
+        return 1
+
+    # Cleanup test files
+    TextFile.delete("test_state.txt")
+    TextFile.delete("test_words.txt")
+    TextFile.delete("test_flush.txt")
+
+    print("All TextFile state method tests passed!\n")
+    return 0

@@ -401,5 +401,16 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Body:");
         ast_print_expr(arena, expr->as.lambda.body, indent_level + 2);
         break;
+
+    case EXPR_STATIC_CALL:
+        DEBUG_VERBOSE_INDENT(indent_level, "Static Call: %.*s.%.*s",
+                             expr->as.static_call.type_name.length, expr->as.static_call.type_name.start,
+                             expr->as.static_call.method_name.length, expr->as.static_call.method_name.start);
+        for (int i = 0; i < expr->as.static_call.arg_count; i++)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "Arg %d:", i);
+            ast_print_expr(arena, expr->as.static_call.arguments[i], indent_level + 2);
+        }
+        break;
     }
 }

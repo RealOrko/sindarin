@@ -621,6 +621,9 @@ static Type *type_check_spread(Expr *expr, SymbolTable *table)
     return array_t->as.array.element_type;
 }
 
+/* Forward declaration for token_equals used in type_check_member */
+static bool token_equals(Token tok, const char *str);
+
 static Type *type_check_member(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking member access: %s", expr->as.member.member_name.start);
@@ -716,6 +719,43 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         DEBUG_VERBOSE("Returning function type for array remove method");
         return ast_create_function_type(table->arena, element_type, param_types, 1);
     }
+    /* Byte array extension methods - only available on byte[] */
+    else if (object_type->kind == TYPE_ARRAY &&
+             object_type->as.array.element_type->kind == TYPE_BYTE &&
+             strcmp(expr->as.member.member_name.start, "toString") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for byte array toString method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_ARRAY &&
+             object_type->as.array.element_type->kind == TYPE_BYTE &&
+             strcmp(expr->as.member.member_name.start, "toStringLatin1") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for byte array toStringLatin1 method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_ARRAY &&
+             object_type->as.array.element_type->kind == TYPE_BYTE &&
+             strcmp(expr->as.member.member_name.start, "toHex") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for byte array toHex method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_ARRAY &&
+             object_type->as.array.element_type->kind == TYPE_BYTE &&
+             strcmp(expr->as.member.member_name.start, "toBase64") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for byte array toBase64 method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
     // String methods
     else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "length") == 0)
     {
@@ -805,6 +845,336 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         Type *param_types[1] = {int_type};
         DEBUG_VERBOSE("Returning function type for string charAt method");
         return ast_create_function_type(table->arena, char_type, param_types, 1);
+    }
+    /* String toBytes() method - encodes string to UTF-8 byte array */
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "toBytes") == 0)
+    {
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *byte_array_type = ast_create_array_type(table->arena, byte_type);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for string toBytes method");
+        return ast_create_function_type(table->arena, byte_array_type, param_types, 0);
+    }
+    /* String splitWhitespace() method - splits on any whitespace */
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "splitWhitespace") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *str_array_type = ast_create_array_type(table->arena, string_type);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for string splitWhitespace method");
+        return ast_create_function_type(table->arena, str_array_type, param_types, 0);
+    }
+    /* String splitLines() method - splits on line endings (\n, \r\n, \r) */
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "splitLines") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *str_array_type = ast_create_array_type(table->arena, string_type);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for string splitLines method");
+        return ast_create_function_type(table->arena, str_array_type, param_types, 0);
+    }
+    /* String isBlank() method - checks if empty or whitespace only */
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "isBlank") == 0)
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for string isBlank method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+    /* TextFile instance methods */
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "readChar"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile readChar method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "readWord"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile readWord method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "readLine"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile readLine method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "readAll"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile readAll method");
+        return ast_create_function_type(table->arena, string_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "readLines"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *str_array_type = ast_create_array_type(table->arena, string_type);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile readLines method");
+        return ast_create_function_type(table->arena, str_array_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "readInto"))
+    {
+        Type *char_type = ast_create_primitive_type(table->arena, TYPE_CHAR);
+        Type *char_array_type = ast_create_array_type(table->arena, char_type);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {char_array_type};
+        DEBUG_VERBOSE("Returning function type for TextFile readInto method");
+        return ast_create_function_type(table->arena, int_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "close"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile close method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    /* TextFile instance writing methods */
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "writeChar"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *char_type = ast_create_primitive_type(table->arena, TYPE_CHAR);
+        Type *param_types[1] = {char_type};
+        DEBUG_VERBOSE("Returning function type for TextFile writeChar method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "write"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for TextFile write method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "writeLine"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for TextFile writeLine method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "print"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for TextFile print method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "println"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for TextFile println method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    /* TextFile state query methods */
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "hasChars"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile hasChars method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "hasWords"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile hasWords method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "hasLines"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile hasLines method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "isEof"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile isEof method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+    /* TextFile position manipulation methods */
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "position"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile position method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "seek"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for TextFile seek method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "rewind"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile rewind method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "flush"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for TextFile flush method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    /* TextFile properties (accessed as member, but return value directly) */
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "path"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning string type for TextFile path property");
+        return string_type;
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "name"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning string type for TextFile name property");
+        return string_type;
+    }
+    else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "size"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning int type for TextFile size property");
+        return int_type;
+    }
+    /* BinaryFile instance reading methods */
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "readByte"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile readByte method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "readBytes"))
+    {
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *byte_array_type = ast_create_array_type(table->arena, byte_type);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for BinaryFile readBytes method");
+        return ast_create_function_type(table->arena, byte_array_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "readAll"))
+    {
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *byte_array_type = ast_create_array_type(table->arena, byte_type);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile readAll method");
+        return ast_create_function_type(table->arena, byte_array_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "readInto"))
+    {
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *byte_array_type = ast_create_array_type(table->arena, byte_type);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {byte_array_type};
+        DEBUG_VERBOSE("Returning function type for BinaryFile readInto method");
+        return ast_create_function_type(table->arena, int_type, param_types, 1);
+    }
+    /* BinaryFile instance writing methods */
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "writeByte"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for BinaryFile writeByte method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "writeBytes"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *byte_array_type = ast_create_array_type(table->arena, byte_type);
+        Type *param_types[1] = {byte_array_type};
+        DEBUG_VERBOSE("Returning function type for BinaryFile writeBytes method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    /* BinaryFile state query methods */
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "hasBytes"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile hasBytes method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "isEof"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile isEof method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+    /* BinaryFile position manipulation methods */
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "position"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile position method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "seek"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for BinaryFile seek method");
+        return ast_create_function_type(table->arena, void_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "rewind"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile rewind method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "flush"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile flush method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "close"))
+    {
+        Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for BinaryFile close method");
+        return ast_create_function_type(table->arena, void_type, param_types, 0);
+    }
+    /* BinaryFile properties */
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "path"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning string type for BinaryFile path property");
+        return string_type;
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "name"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning string type for BinaryFile name property");
+        return string_type;
+    }
+    else if (object_type->kind == TYPE_BINARY_FILE && token_equals(expr->as.member.member_name, "size"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning int type for BinaryFile size property");
+        return int_type;
     }
     else
     {
@@ -936,6 +1306,789 @@ static Type *type_check_lambda(Expr *expr, SymbolTable *table)
                                     param_types, lambda->param_count);
 }
 
+static bool token_equals(Token tok, const char *str)
+{
+    size_t len = strlen(str);
+    return tok.length == (int)len && strncmp(tok.start, str, len) == 0;
+}
+
+static Type *type_check_static_call(Expr *expr, SymbolTable *table)
+{
+    StaticCallExpr *call = &expr->as.static_call;
+    Token type_name = call->type_name;
+    Token method_name = call->method_name;
+
+    /* Type check all arguments first */
+    for (int i = 0; i < call->arg_count; i++)
+    {
+        Type *arg_type = type_check_expr(call->arguments[i], table);
+        if (arg_type == NULL)
+        {
+            return NULL;
+        }
+    }
+
+    /* TextFile static methods */
+    if (token_equals(type_name, "TextFile"))
+    {
+        if (token_equals(method_name, "open"))
+        {
+            /* TextFile.open(path: str): TextFile */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "TextFile.open requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.open requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_TEXT_FILE);
+        }
+        else if (token_equals(method_name, "exists"))
+        {
+            /* TextFile.exists(path: str): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "TextFile.exists requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.exists requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "readAll"))
+        {
+            /* TextFile.readAll(path: str): str */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "TextFile.readAll requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.readAll requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "writeAll"))
+        {
+            /* TextFile.writeAll(path: str, content: str): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "TextFile.writeAll requires exactly 2 arguments (path, content)");
+                return NULL;
+            }
+            Type *path_type = call->arguments[0]->expr_type;
+            Type *content_type = call->arguments[1]->expr_type;
+            if (path_type == NULL || path_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.writeAll first argument must be a string path");
+                return NULL;
+            }
+            if (content_type == NULL || content_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.writeAll second argument must be a string content");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "delete"))
+        {
+            /* TextFile.delete(path: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "TextFile.delete requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.delete requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "copy"))
+        {
+            /* TextFile.copy(src: str, dst: str): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "TextFile.copy requires exactly 2 arguments (src, dst)");
+                return NULL;
+            }
+            Type *src_type = call->arguments[0]->expr_type;
+            Type *dst_type = call->arguments[1]->expr_type;
+            if (src_type == NULL || src_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.copy first argument must be a string source path");
+                return NULL;
+            }
+            if (dst_type == NULL || dst_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.copy second argument must be a string destination path");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "move"))
+        {
+            /* TextFile.move(src: str, dst: str): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "TextFile.move requires exactly 2 arguments (src, dst)");
+                return NULL;
+            }
+            Type *src_type = call->arguments[0]->expr_type;
+            Type *dst_type = call->arguments[1]->expr_type;
+            if (src_type == NULL || src_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.move first argument must be a string source path");
+                return NULL;
+            }
+            if (dst_type == NULL || dst_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "TextFile.move second argument must be a string destination path");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown TextFile static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* BinaryFile static methods */
+    if (token_equals(type_name, "BinaryFile"))
+    {
+        if (token_equals(method_name, "open"))
+        {
+            /* BinaryFile.open(path: str): BinaryFile */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "BinaryFile.open requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.open requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BINARY_FILE);
+        }
+        else if (token_equals(method_name, "exists"))
+        {
+            /* BinaryFile.exists(path: str): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "BinaryFile.exists requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.exists requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "readAll"))
+        {
+            /* BinaryFile.readAll(path: str): byte[] */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "BinaryFile.readAll requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.readAll requires a string argument");
+                return NULL;
+            }
+            Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+            return ast_create_array_type(table->arena, byte_type);
+        }
+        else if (token_equals(method_name, "writeAll"))
+        {
+            /* BinaryFile.writeAll(path: str, data: byte[]): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "BinaryFile.writeAll requires exactly 2 arguments (path, data)");
+                return NULL;
+            }
+            Type *path_type = call->arguments[0]->expr_type;
+            Type *data_type = call->arguments[1]->expr_type;
+            if (path_type == NULL || path_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.writeAll first argument must be a string path");
+                return NULL;
+            }
+            if (data_type == NULL || data_type->kind != TYPE_ARRAY ||
+                data_type->as.array.element_type->kind != TYPE_BYTE)
+            {
+                type_error(&method_name, "BinaryFile.writeAll second argument must be a byte array");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "delete"))
+        {
+            /* BinaryFile.delete(path: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "BinaryFile.delete requires exactly 1 argument (path)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.delete requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "copy"))
+        {
+            /* BinaryFile.copy(src: str, dst: str): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "BinaryFile.copy requires exactly 2 arguments (src, dst)");
+                return NULL;
+            }
+            Type *src_type = call->arguments[0]->expr_type;
+            Type *dst_type = call->arguments[1]->expr_type;
+            if (src_type == NULL || src_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.copy first argument must be a string source path");
+                return NULL;
+            }
+            if (dst_type == NULL || dst_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.copy second argument must be a string destination path");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "move"))
+        {
+            /* BinaryFile.move(src: str, dst: str): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "BinaryFile.move requires exactly 2 arguments (src, dst)");
+                return NULL;
+            }
+            Type *src_type = call->arguments[0]->expr_type;
+            Type *dst_type = call->arguments[1]->expr_type;
+            if (src_type == NULL || src_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.move first argument must be a string source path");
+                return NULL;
+            }
+            if (dst_type == NULL || dst_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "BinaryFile.move second argument must be a string destination path");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown BinaryFile static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Stdin static methods - console input */
+    if (token_equals(type_name, "Stdin"))
+    {
+        if (token_equals(method_name, "readLine"))
+        {
+            /* Stdin.readLine(): str */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stdin.readLine takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "readChar"))
+        {
+            /* Stdin.readChar(): int */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stdin.readChar takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_INT);
+        }
+        else if (token_equals(method_name, "readWord"))
+        {
+            /* Stdin.readWord(): str */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stdin.readWord takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "hasChars"))
+        {
+            /* Stdin.hasChars(): bool */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stdin.hasChars takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "hasLines"))
+        {
+            /* Stdin.hasLines(): bool */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stdin.hasLines takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "isEof"))
+        {
+            /* Stdin.isEof(): bool */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stdin.isEof takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Stdin method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Stdout static methods - console output */
+    if (token_equals(type_name, "Stdout"))
+    {
+        if (token_equals(method_name, "write"))
+        {
+            /* Stdout.write(text: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Stdout.write requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Stdout.write requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "writeLine"))
+        {
+            /* Stdout.writeLine(text: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Stdout.writeLine requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Stdout.writeLine requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "flush"))
+        {
+            /* Stdout.flush(): void */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stdout.flush takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Stdout method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Stderr static methods - error output */
+    if (token_equals(type_name, "Stderr"))
+    {
+        if (token_equals(method_name, "write"))
+        {
+            /* Stderr.write(text: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Stderr.write requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Stderr.write requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "writeLine"))
+        {
+            /* Stderr.writeLine(text: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Stderr.writeLine requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Stderr.writeLine requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "flush"))
+        {
+            /* Stderr.flush(): void */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Stderr.flush takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Stderr method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Bytes static methods - byte array decoding utilities */
+    if (token_equals(type_name, "Bytes"))
+    {
+        if (token_equals(method_name, "fromHex"))
+        {
+            /* Bytes.fromHex(hex: str): byte[] */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Bytes.fromHex requires exactly 1 argument (hex string)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Bytes.fromHex requires a string argument");
+                return NULL;
+            }
+            Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+            return ast_create_array_type(table->arena, byte_type);
+        }
+        else if (token_equals(method_name, "fromBase64"))
+        {
+            /* Bytes.fromBase64(b64: str): byte[] */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Bytes.fromBase64 requires exactly 1 argument (Base64 string)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Bytes.fromBase64 requires a string argument");
+                return NULL;
+            }
+            Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+            return ast_create_array_type(table->arena, byte_type);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Bytes static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Path static methods - path manipulation utilities */
+    if (token_equals(type_name, "Path"))
+    {
+        if (token_equals(method_name, "directory"))
+        {
+            /* Path.directory(path: str): str */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Path.directory requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Path.directory requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "filename"))
+        {
+            /* Path.filename(path: str): str */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Path.filename requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Path.filename requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "extension"))
+        {
+            /* Path.extension(path: str): str */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Path.extension requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Path.extension requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "join"))
+        {
+            /* Path.join(paths...: str): str - variable arguments, at least 2 */
+            if (call->arg_count < 2)
+            {
+                type_error(&method_name, "Path.join requires at least 2 arguments");
+                return NULL;
+            }
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                Type *arg_type = call->arguments[i]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Path.join requires all arguments to be strings");
+                    return NULL;
+                }
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "absolute"))
+        {
+            /* Path.absolute(path: str): str */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Path.absolute requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Path.absolute requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_STRING);
+        }
+        else if (token_equals(method_name, "exists"))
+        {
+            /* Path.exists(path: str): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Path.exists requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Path.exists requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "isFile"))
+        {
+            /* Path.isFile(path: str): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Path.isFile requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Path.isFile requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "isDirectory"))
+        {
+            /* Path.isDirectory(path: str): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Path.isDirectory requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Path.isDirectory requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Path static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Directory static methods - directory operations */
+    if (token_equals(type_name, "Directory"))
+    {
+        if (token_equals(method_name, "list"))
+        {
+            /* Directory.list(path: str): str[] */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Directory.list requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Directory.list requires a string argument");
+                return NULL;
+            }
+            Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+            return ast_create_array_type(table->arena, string_type);
+        }
+        else if (token_equals(method_name, "listRecursive"))
+        {
+            /* Directory.listRecursive(path: str): str[] */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Directory.listRecursive requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Directory.listRecursive requires a string argument");
+                return NULL;
+            }
+            Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+            return ast_create_array_type(table->arena, string_type);
+        }
+        else if (token_equals(method_name, "create"))
+        {
+            /* Directory.create(path: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Directory.create requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Directory.create requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "delete"))
+        {
+            /* Directory.delete(path: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Directory.delete requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Directory.delete requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "deleteRecursive"))
+        {
+            /* Directory.deleteRecursive(path: str): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Directory.deleteRecursive requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Directory.deleteRecursive requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Directory static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    type_error(&type_name, "Unknown static type");
+    return NULL;
+}
+
 Type *type_check_expr(Expr *expr, SymbolTable *table)
 {
     if (expr == NULL)
@@ -1000,6 +2153,9 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_LAMBDA:
         t = type_check_lambda(expr, table);
+        break;
+    case EXPR_STATIC_CALL:
+        t = type_check_static_call(expr, table);
         break;
     }
     expr->expr_type = t;

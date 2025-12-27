@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <math.h>
 #include <limits.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "runtime.h"
 
 static const char *null_str = "(null)";
@@ -41,6 +44,7 @@ RtArena *rt_arena_create_sized(RtArena *parent, size_t block_size)
     arena->parent = parent;
     arena->default_block_size = block_size;
     arena->total_allocated = 0;
+    arena->open_files = NULL;  /* Initialize file handle list to empty */
 
     /* Create initial block */
     arena->first = rt_arena_new_block(block_size);
@@ -174,6 +178,16 @@ void rt_arena_destroy(RtArena *arena)
         return;
     }
 
+    /* Close all tracked file handles first */
+    RtFileHandle *fh = arena->open_files;
+    while (fh != NULL) {
+        if (fh->is_open && fh->fp != NULL) {
+            fclose((FILE *)fh->fp);
+            fh->is_open = false;
+        }
+        fh = fh->next;
+    }
+
     /* Free all blocks */
     RtArenaBlock *block = arena->first;
     while (block != NULL) {
@@ -191,6 +205,17 @@ void rt_arena_reset(RtArena *arena)
     if (arena == NULL) {
         return;
     }
+
+    /* Close all tracked file handles first */
+    RtFileHandle *fh = arena->open_files;
+    while (fh != NULL) {
+        if (fh->is_open && fh->fp != NULL) {
+            fclose((FILE *)fh->fp);
+            fh->is_open = false;
+        }
+        fh = fh->next;
+    }
+    arena->open_files = NULL;
 
     /* Free all blocks except the first */
     RtArenaBlock *block = arena->first->next;
@@ -235,6 +260,120 @@ size_t rt_arena_total_allocated(RtArena *arena)
     return arena->total_allocated;
 }
 
+/* ============================================================================
+ * File Handle Tracking Implementation
+ * ============================================================================ */
+
+/* Track a file handle in an arena */
+RtFileHandle *rt_arena_track_file(RtArena *arena, void *fp, const char *path, bool is_text)
+{
+    if (arena == NULL || fp == NULL) {
+        return NULL;
+    }
+
+    /* Allocate handle from arena */
+    RtFileHandle *handle = rt_arena_alloc(arena, sizeof(RtFileHandle));
+    if (handle == NULL) {
+        return NULL;
+    }
+
+    handle->fp = fp;
+    handle->path = rt_arena_strdup(arena, path);
+    handle->is_open = true;
+    handle->is_text = is_text;
+
+    /* Add to front of arena's file list */
+    handle->next = arena->open_files;
+    arena->open_files = handle;
+
+    return handle;
+}
+
+/* Untrack a file handle from an arena (removes from list but doesn't close) */
+void rt_arena_untrack_file(RtArena *arena, RtFileHandle *handle)
+{
+    if (arena == NULL || handle == NULL) {
+        return;
+    }
+
+    /* Find and remove from list */
+    RtFileHandle **curr = &arena->open_files;
+    while (*curr != NULL) {
+        if (*curr == handle) {
+            *curr = handle->next;
+            handle->next = NULL;
+            return;
+        }
+        curr = &(*curr)->next;
+    }
+}
+
+/* Promote a text file handle to a destination arena */
+RtTextFile *rt_text_file_promote(RtArena *dest, RtArena *src_arena, RtTextFile *src)
+{
+    if (dest == NULL || src == NULL || !src->is_open) {
+        return NULL;
+    }
+
+    /* Allocate new handle in destination arena */
+    RtTextFile *promoted = rt_arena_alloc(dest, sizeof(RtTextFile));
+    if (promoted == NULL) {
+        return NULL;
+    }
+
+    /* Copy file state */
+    promoted->fp = src->fp;
+    promoted->path = rt_arena_promote_string(dest, src->path);
+    promoted->is_open = src->is_open;
+
+    /* Track in destination arena */
+    promoted->handle = rt_arena_track_file(dest, src->fp, promoted->path, true);
+
+    /* Untrack from source arena (file is no longer owned by source) */
+    if (src->handle != NULL) {
+        rt_arena_untrack_file(src_arena, src->handle);
+    }
+
+    /* Mark source as closed (ownership transferred) */
+    src->is_open = false;
+    src->fp = NULL;
+
+    return promoted;
+}
+
+/* Promote a binary file handle to a destination arena */
+RtBinaryFile *rt_binary_file_promote(RtArena *dest, RtArena *src_arena, RtBinaryFile *src)
+{
+    if (dest == NULL || src == NULL || !src->is_open) {
+        return NULL;
+    }
+
+    /* Allocate new handle in destination arena */
+    RtBinaryFile *promoted = rt_arena_alloc(dest, sizeof(RtBinaryFile));
+    if (promoted == NULL) {
+        return NULL;
+    }
+
+    /* Copy file state */
+    promoted->fp = src->fp;
+    promoted->path = rt_arena_promote_string(dest, src->path);
+    promoted->is_open = src->is_open;
+
+    /* Track in destination arena */
+    promoted->handle = rt_arena_track_file(dest, src->fp, promoted->path, false);
+
+    /* Untrack from source arena (file is no longer owned by source) */
+    if (src->handle != NULL) {
+        rt_arena_untrack_file(src_arena, src->handle);
+    }
+
+    /* Mark source as closed (ownership transferred) */
+    src->is_open = false;
+    src->fp = NULL;
+
+    return promoted;
+}
+
 char *rt_str_concat(RtArena *arena, const char *left, const char *right) {
     const char *l = left ? left : "";
     const char *r = right ? right : "";
@@ -276,6 +415,13 @@ char *rt_to_string_char(RtArena *arena, char val)
 char *rt_to_string_bool(RtArena *arena, int val)
 {
     return rt_arena_strdup(arena, val ? "true" : "false");
+}
+
+char *rt_to_string_byte(RtArena *arena, unsigned char val)
+{
+    char buf[8];
+    snprintf(buf, sizeof(buf), "0x%02X", val);
+    return rt_arena_strdup(arena, buf);
 }
 
 char *rt_to_string_string(RtArena *arena, const char *val)
@@ -632,6 +778,11 @@ void rt_print_bool(long b)
     printf("%s", b ? "true" : "false");
 }
 
+void rt_print_byte(unsigned char b)
+{
+    printf("0x%02X", b);
+}
+
 long rt_add_long(long a, long b)
 {
     if ((b > 0 && a > LONG_MAX - b) || (b < 0 && a < LONG_MIN - b))
@@ -887,6 +1038,7 @@ DEFINE_ARRAY_PUSH(long, long, element)
 DEFINE_ARRAY_PUSH(double, double, element)
 DEFINE_ARRAY_PUSH(char, char, element)
 DEFINE_ARRAY_PUSH(bool, int, element)
+DEFINE_ARRAY_PUSH(byte, unsigned char, element)
 
 /* String arrays need special handling for strdup */
 char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
@@ -992,6 +1144,18 @@ void rt_print_array_bool(int *arr) {
     printf("]");
 }
 
+void rt_print_array_byte(unsigned char *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("0x%02X", arr[i]);
+        }
+    }
+    printf("]");
+}
+
 void rt_print_array_string(char **arr) {
     printf("[");
     if (arr != NULL) {
@@ -1033,6 +1197,7 @@ DEFINE_ARRAY_POP(long, long, 0)
 DEFINE_ARRAY_POP(double, double, 0.0)
 DEFINE_ARRAY_POP(char, char, '\0')
 DEFINE_ARRAY_POP(bool, int, 0)
+DEFINE_ARRAY_POP(byte, unsigned char, 0)
 
 char *rt_array_pop_string(char **arr) {
     if (arr == NULL) {
@@ -1076,6 +1241,7 @@ DEFINE_ARRAY_CONCAT(long, long)
 DEFINE_ARRAY_CONCAT(double, double)
 DEFINE_ARRAY_CONCAT(char, char)
 DEFINE_ARRAY_CONCAT(bool, int)
+DEFINE_ARRAY_CONCAT(byte, unsigned char)
 
 char **rt_array_concat_string(RtArena *arena, char **arr1, char **arr2) {
     size_t len1 = arr1 ? rt_array_length(arr1) : 0;
@@ -1163,6 +1329,7 @@ DEFINE_ARRAY_SLICE(long, long)
 DEFINE_ARRAY_SLICE(double, double)
 DEFINE_ARRAY_SLICE(char, char)
 DEFINE_ARRAY_SLICE(bool, int)
+DEFINE_ARRAY_SLICE(byte, unsigned char)
 
 /* String slice needs special handling to strdup elements */
 char **rt_array_slice_string(RtArena *arena, char **arr, long start, long end, long step) {
@@ -1249,6 +1416,7 @@ DEFINE_ARRAY_REV(long, long)
 DEFINE_ARRAY_REV(double, double)
 DEFINE_ARRAY_REV(char, char)
 DEFINE_ARRAY_REV(bool, int)
+DEFINE_ARRAY_REV(byte, unsigned char)
 
 /* String reverse needs special handling to strdup elements */
 char **rt_array_rev_string(RtArena *arena, char **arr) {
@@ -1311,6 +1479,7 @@ DEFINE_ARRAY_REM(long, long)
 DEFINE_ARRAY_REM(double, double)
 DEFINE_ARRAY_REM(char, char)
 DEFINE_ARRAY_REM(bool, int)
+DEFINE_ARRAY_REM(byte, unsigned char)
 
 /* String remove needs special handling to strdup elements */
 char **rt_array_rem_string(RtArena *arena, char **arr, long index) {
@@ -1374,6 +1543,7 @@ DEFINE_ARRAY_INS(long, long)
 DEFINE_ARRAY_INS(double, double)
 DEFINE_ARRAY_INS(char, char)
 DEFINE_ARRAY_INS(bool, int)
+DEFINE_ARRAY_INS(byte, unsigned char)
 
 /* String insert needs special handling to strdup elements */
 char **rt_array_ins_string(RtArena *arena, char **arr, const char *elem, long index) {
@@ -1425,6 +1595,7 @@ DEFINE_ARRAY_PUSH_COPY(long, long)
 DEFINE_ARRAY_PUSH_COPY(double, double)
 DEFINE_ARRAY_PUSH_COPY(char, char)
 DEFINE_ARRAY_PUSH_COPY(bool, int)
+DEFINE_ARRAY_PUSH_COPY(byte, unsigned char)
 
 /* String push copy needs special handling to strdup elements */
 char **rt_array_push_copy_string(RtArena *arena, char **arr, const char *elem) {
@@ -1465,6 +1636,7 @@ DEFINE_ARRAY_INDEXOF(long, long, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(double, double, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(char, char, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(bool, int, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(byte, unsigned char, arr[i] == elem)
 
 /* String indexOf needs special comparison */
 long rt_array_indexOf_string(char **arr, const char *elem) {
@@ -1493,6 +1665,7 @@ DEFINE_ARRAY_CONTAINS(long, long)
 DEFINE_ARRAY_CONTAINS(double, double)
 DEFINE_ARRAY_CONTAINS(char, char)
 DEFINE_ARRAY_CONTAINS(bool, int)
+DEFINE_ARRAY_CONTAINS(byte, unsigned char)
 
 int rt_array_contains_string(char **arr, const char *elem) {
     return rt_array_indexOf_string(arr, elem) >= 0;
@@ -1525,6 +1698,7 @@ DEFINE_ARRAY_CLONE(long, long)
 DEFINE_ARRAY_CLONE(double, double)
 DEFINE_ARRAY_CLONE(char, char)
 DEFINE_ARRAY_CLONE(bool, int)
+DEFINE_ARRAY_CLONE(byte, unsigned char)
 
 /* String clone needs special handling to strdup elements */
 char **rt_array_clone_string(RtArena *arena, char **arr) {
@@ -1650,6 +1824,31 @@ char *rt_array_join_bool(RtArena *arena, int *arr, const char *separator) {
     return result;
 }
 
+char *rt_array_join_byte(RtArena *arena, unsigned char *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    /* "0xXX" (4 chars) + separators */
+    size_t buf_size = len * 4 + (len - 1) * sep_len + 1;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_byte: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "0x%02X", arr[i]);
+    }
+    return result;
+}
+
 char *rt_array_join_string(RtArena *arena, char **arr, const char *separator) {
     if (arr == NULL || rt_array_length(arr) == 0) {
         return rt_arena_strdup(arena, "");
@@ -1714,6 +1913,23 @@ DEFINE_ARRAY_CREATE(long, long)
 DEFINE_ARRAY_CREATE(double, double)
 DEFINE_ARRAY_CREATE(char, char)
 DEFINE_ARRAY_CREATE(bool, int)
+DEFINE_ARRAY_CREATE(byte, unsigned char)
+
+/* Create an uninitialized byte array for filling in later (e.g., file reads) */
+unsigned char *rt_array_create_byte_uninit(RtArena *arena, size_t count) {
+    size_t capacity = count > 4 ? count : 4;
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(unsigned char));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_create_byte_uninit: allocation failed\n");
+        exit(1);
+    }
+    meta->size = count;
+    meta->capacity = capacity;
+    unsigned char *arr = (unsigned char *)(meta + 1);
+    /* Zero-initialize for safety */
+    memset(arr, 0, count);
+    return arr;
+}
 
 /* String array create needs special handling for strdup */
 char **rt_array_create_string(RtArena *arena, size_t count, const char **data) {
@@ -1757,6 +1973,7 @@ DEFINE_ARRAY_EQ(long, long, a[i] == b[i])
 DEFINE_ARRAY_EQ(double, double, a[i] == b[i])
 DEFINE_ARRAY_EQ(char, char, a[i] == b[i])
 DEFINE_ARRAY_EQ(bool, int, a[i] == b[i])
+DEFINE_ARRAY_EQ(byte, unsigned char, a[i] == b[i])
 
 /* String array equality needs strcmp */
 int rt_array_eq_string(char **a, char **b) {
@@ -2063,4 +2280,2669 @@ long rt_str_charAt(const char *str, long index) {
 
     if (index < 0 || index >= len) return 0;
     return (long)(unsigned char)str[index];
+}
+
+/* ============================================================
+   TextFile Static Methods
+   ============================================================ */
+
+/* Open file for reading and writing (panics if file doesn't exist) */
+RtTextFile *rt_text_file_open(RtArena *arena, const char *path) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.open: arena is NULL\n");
+        exit(1);
+    }
+    if (path == NULL) {
+        fprintf(stderr, "TextFile.open: path is NULL\n");
+        exit(1);
+    }
+
+    FILE *fp = fopen(path, "r+");
+    if (fp == NULL) {
+        /* Try to create if doesn't exist for write */
+        fp = fopen(path, "w+");
+        if (fp == NULL) {
+            fprintf(stderr, "TextFile.open: failed to open file '%s': %s\n", path, strerror(errno));
+            exit(1);
+        }
+    }
+
+    /* Allocate TextFile struct from arena */
+    RtTextFile *file = rt_arena_alloc(arena, sizeof(RtTextFile));
+    if (file == NULL) {
+        fclose(fp);
+        fprintf(stderr, "TextFile.open: memory allocation failed\n");
+        exit(1);
+    }
+
+    file->fp = fp;
+    file->path = rt_arena_strdup(arena, path);
+    file->is_open = true;
+
+    /* Track in arena for auto-close */
+    file->handle = rt_arena_track_file(arena, fp, path, true);
+
+    return file;
+}
+
+/* Check if file exists without opening */
+int rt_text_file_exists(const char *path) {
+    if (path == NULL) {
+        return 0;
+    }
+    FILE *fp = fopen(path, "r");
+    if (fp == NULL) {
+        return 0;
+    }
+    fclose(fp);
+    return 1;
+}
+
+/* Read entire file contents as string */
+char *rt_text_file_read_all(RtArena *arena, const char *path) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.readAll: arena is NULL\n");
+        exit(1);
+    }
+    if (path == NULL) {
+        fprintf(stderr, "TextFile.readAll: path is NULL\n");
+        exit(1);
+    }
+
+    FILE *fp = fopen(path, "r");
+    if (fp == NULL) {
+        fprintf(stderr, "TextFile.readAll: failed to open file '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+
+    /* Get file size */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        fprintf(stderr, "TextFile.readAll: failed to seek in file '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+
+    long size = ftell(fp);
+    if (size < 0) {
+        fclose(fp);
+        fprintf(stderr, "TextFile.readAll: failed to get size of file '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        fclose(fp);
+        fprintf(stderr, "TextFile.readAll: failed to seek in file '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+
+    /* Allocate buffer from arena */
+    char *content = rt_arena_alloc(arena, (size_t)size + 1);
+    if (content == NULL) {
+        fclose(fp);
+        fprintf(stderr, "TextFile.readAll: memory allocation failed\n");
+        exit(1);
+    }
+
+    /* Read file contents */
+    size_t bytes_read = fread(content, 1, (size_t)size, fp);
+    if (ferror(fp)) {
+        fclose(fp);
+        fprintf(stderr, "TextFile.readAll: failed to read file '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+
+    content[bytes_read] = '\0';
+    fclose(fp);
+
+    return content;
+}
+
+/* Write string to file (creates or overwrites) */
+void rt_text_file_write_all(const char *path, const char *content) {
+    if (path == NULL) {
+        fprintf(stderr, "TextFile.writeAll: path is NULL\n");
+        exit(1);
+    }
+    if (content == NULL) {
+        content = "";
+    }
+
+    FILE *fp = fopen(path, "w");
+    if (fp == NULL) {
+        fprintf(stderr, "TextFile.writeAll: failed to open file '%s' for writing: %s\n", path, strerror(errno));
+        exit(1);
+    }
+
+    size_t len = strlen(content);
+    if (len > 0) {
+        size_t written = fwrite(content, 1, len, fp);
+        if (written != len) {
+            fclose(fp);
+            fprintf(stderr, "TextFile.writeAll: failed to write to file '%s': %s\n", path, strerror(errno));
+            exit(1);
+        }
+    }
+
+    if (fclose(fp) != 0) {
+        fprintf(stderr, "TextFile.writeAll: failed to close file '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+}
+
+/* Delete file (panics if fails) */
+void rt_text_file_delete(const char *path) {
+    if (path == NULL) {
+        fprintf(stderr, "TextFile.delete: path is NULL\n");
+        exit(1);
+    }
+
+    if (remove(path) != 0) {
+        fprintf(stderr, "TextFile.delete: failed to delete file '%s': %s\n", path, strerror(errno));
+        exit(1);
+    }
+}
+
+/* Copy file to new location */
+void rt_text_file_copy(const char *src, const char *dst) {
+    if (src == NULL) {
+        fprintf(stderr, "TextFile.copy: source path is NULL\n");
+        exit(1);
+    }
+    if (dst == NULL) {
+        fprintf(stderr, "TextFile.copy: destination path is NULL\n");
+        exit(1);
+    }
+
+    FILE *src_fp = fopen(src, "r");
+    if (src_fp == NULL) {
+        fprintf(stderr, "TextFile.copy: failed to open source file '%s': %s\n", src, strerror(errno));
+        exit(1);
+    }
+
+    FILE *dst_fp = fopen(dst, "w");
+    if (dst_fp == NULL) {
+        fclose(src_fp);
+        fprintf(stderr, "TextFile.copy: failed to open destination file '%s': %s\n", dst, strerror(errno));
+        exit(1);
+    }
+
+    char buffer[4096];
+    size_t bytes;
+    while ((bytes = fread(buffer, 1, sizeof(buffer), src_fp)) > 0) {
+        if (fwrite(buffer, 1, bytes, dst_fp) != bytes) {
+            fclose(src_fp);
+            fclose(dst_fp);
+            fprintf(stderr, "TextFile.copy: failed to write to destination file '%s': %s\n", dst, strerror(errno));
+            exit(1);
+        }
+    }
+
+    if (ferror(src_fp)) {
+        fclose(src_fp);
+        fclose(dst_fp);
+        fprintf(stderr, "TextFile.copy: failed to read from source file '%s': %s\n", src, strerror(errno));
+        exit(1);
+    }
+
+    fclose(src_fp);
+    if (fclose(dst_fp) != 0) {
+        fprintf(stderr, "TextFile.copy: failed to close destination file '%s': %s\n", dst, strerror(errno));
+        exit(1);
+    }
+}
+
+/* Move/rename file */
+void rt_text_file_move(const char *src, const char *dst) {
+    if (src == NULL) {
+        fprintf(stderr, "TextFile.move: source path is NULL\n");
+        exit(1);
+    }
+    if (dst == NULL) {
+        fprintf(stderr, "TextFile.move: destination path is NULL\n");
+        exit(1);
+    }
+
+    if (rename(src, dst) != 0) {
+        /* rename() may fail across filesystems, try copy+delete instead */
+        rt_text_file_copy(src, dst);
+        if (remove(src) != 0) {
+            fprintf(stderr, "TextFile.move: failed to remove source file '%s' after copy: %s\n", src, strerror(errno));
+            exit(1);
+        }
+    }
+}
+
+/* Close an open text file */
+void rt_text_file_close(RtTextFile *file) {
+    if (file == NULL) {
+        return;
+    }
+    if (file->is_open && file->fp != NULL) {
+        fclose((FILE *)file->fp);
+        file->is_open = false;
+        file->fp = NULL;
+        /* Mark handle as closed too */
+        if (file->handle != NULL) {
+            file->handle->is_open = false;
+        }
+    }
+}
+
+/* ============================================================
+   TextFile Instance Reading Methods
+   ============================================================ */
+
+/* Read single character, returns -1 on EOF */
+long rt_text_file_read_char(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.readChar: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.readChar: file is not open\n");
+        exit(1);
+    }
+
+    int c = fgetc((FILE *)file->fp);
+    if (c == EOF) {
+        if (ferror((FILE *)file->fp)) {
+            fprintf(stderr, "TextFile.readChar: read error on file '%s': %s\n",
+                    file->path ? file->path : "(unknown)", strerror(errno));
+            exit(1);
+        }
+        return -1;  /* EOF */
+    }
+    return (long)c;
+}
+
+/* Read whitespace-delimited word, returns empty string on EOF */
+char *rt_text_file_read_word(RtArena *arena, RtTextFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.readWord: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.readWord: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.readWord: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Skip leading whitespace */
+    int c;
+    while ((c = fgetc(fp)) != EOF && (c == ' ' || c == '\t' || c == '\n' || c == '\r')) {
+        /* Skip whitespace */
+    }
+
+    if (c == EOF) {
+        /* Return empty string on EOF */
+        char *empty = rt_arena_alloc(arena, 1);
+        empty[0] = '\0';
+        return empty;
+    }
+
+    /* Read word into a temporary buffer, then copy to arena */
+    size_t capacity = 64;
+    size_t length = 0;
+    char *buffer = rt_arena_alloc(arena, capacity);
+
+    buffer[length++] = (char)c;
+
+    while ((c = fgetc(fp)) != EOF && c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+        if (length >= capacity - 1) {
+            /* Need more space - allocate new buffer and copy */
+            size_t new_capacity = capacity * 2;
+            char *new_buffer = rt_arena_alloc(arena, new_capacity);
+            memcpy(new_buffer, buffer, length);
+            buffer = new_buffer;
+            capacity = new_capacity;
+        }
+        buffer[length++] = (char)c;
+    }
+
+    /* Put back the whitespace character if not EOF */
+    if (c != EOF) {
+        ungetc(c, fp);
+    }
+
+    buffer[length] = '\0';
+    return buffer;
+}
+
+/* Read single line (strips trailing newline), returns NULL on EOF */
+char *rt_text_file_read_line(RtArena *arena, RtTextFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.readLine: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.readLine: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.readLine: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Check for immediate EOF */
+    int c = fgetc(fp);
+    if (c == EOF) {
+        if (ferror(fp)) {
+            fprintf(stderr, "TextFile.readLine: read error on file '%s': %s\n",
+                    file->path ? file->path : "(unknown)", strerror(errno));
+            exit(1);
+        }
+        return NULL;  /* EOF - return NULL */
+    }
+    ungetc(c, fp);
+
+    /* Read line into buffer */
+    size_t capacity = 256;
+    size_t length = 0;
+    char *buffer = rt_arena_alloc(arena, capacity);
+
+    while ((c = fgetc(fp)) != EOF && c != '\n') {
+        if (length >= capacity - 1) {
+            size_t new_capacity = capacity * 2;
+            char *new_buffer = rt_arena_alloc(arena, new_capacity);
+            memcpy(new_buffer, buffer, length);
+            buffer = new_buffer;
+            capacity = new_capacity;
+        }
+        buffer[length++] = (char)c;
+    }
+
+    /* Strip trailing \r if present (for Windows line endings) */
+    if (length > 0 && buffer[length - 1] == '\r') {
+        length--;
+    }
+
+    buffer[length] = '\0';
+    return buffer;
+}
+
+/* Read all remaining content from open file */
+char *rt_text_file_instance_read_all(RtArena *arena, RtTextFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.readAll: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.readAll: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.readAll: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Get current position and file size */
+    long current_pos = ftell(fp);
+    if (current_pos < 0) {
+        fprintf(stderr, "TextFile.readAll: failed to get position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fprintf(stderr, "TextFile.readAll: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    long end_pos = ftell(fp);
+    if (end_pos < 0) {
+        fprintf(stderr, "TextFile.readAll: failed to get size of file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Seek back to current position */
+    if (fseek(fp, current_pos, SEEK_SET) != 0) {
+        fprintf(stderr, "TextFile.readAll: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Calculate remaining bytes */
+    size_t remaining = (size_t)(end_pos - current_pos);
+
+    /* Allocate buffer from arena */
+    char *content = rt_arena_alloc(arena, remaining + 1);
+    if (content == NULL) {
+        fprintf(stderr, "TextFile.readAll: memory allocation failed\n");
+        exit(1);
+    }
+
+    /* Read remaining content */
+    size_t bytes_read = fread(content, 1, remaining, fp);
+    if (ferror(fp)) {
+        fprintf(stderr, "TextFile.readAll: failed to read file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    content[bytes_read] = '\0';
+    return content;
+}
+
+/* Read all remaining lines as array of strings */
+char **rt_text_file_read_lines(RtArena *arena, RtTextFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.readLines: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.readLines: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.readLines: file is not open\n");
+        exit(1);
+    }
+
+    /* Start with empty array */
+    char **lines = rt_array_create_string(arena, 0, NULL);
+
+    /* Read lines until EOF */
+    char *line;
+    while ((line = rt_text_file_read_line(arena, file)) != NULL) {
+        lines = rt_array_push_string(arena, lines, line);
+    }
+
+    return lines;
+}
+
+/* Read into character buffer, returns number of chars read */
+long rt_text_file_read_into(RtTextFile *file, char *buffer) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.readInto: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.readInto: file is not open\n");
+        exit(1);
+    }
+    if (buffer == NULL) {
+        fprintf(stderr, "TextFile.readInto: buffer is NULL\n");
+        exit(1);
+    }
+
+    /* Get the buffer's length from its metadata */
+    size_t buf_len = rt_array_length(buffer);
+    if (buf_len == 0) {
+        return 0;  /* Empty buffer, nothing to read */
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Read up to buf_len characters */
+    size_t bytes_read = fread(buffer, 1, buf_len, fp);
+    if (ferror(fp)) {
+        fprintf(stderr, "TextFile.readInto: read error on file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    return (long)bytes_read;
+}
+
+/* ============================================================
+   TextFile Instance Writing Methods
+   ============================================================ */
+
+/* Write single character to file */
+void rt_text_file_write_char(RtTextFile *file, long ch) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.writeChar: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.writeChar: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    if (fputc((int)ch, fp) == EOF) {
+        fprintf(stderr, "TextFile.writeChar: write error on file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+}
+
+/* Write string to file */
+void rt_text_file_write(RtTextFile *file, const char *text) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.write: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.write: file is not open\n");
+        exit(1);
+    }
+    if (text == NULL) {
+        return;  /* Nothing to write */
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    size_t len = strlen(text);
+    if (len > 0) {
+        size_t written = fwrite(text, 1, len, fp);
+        if (written != len) {
+            fprintf(stderr, "TextFile.write: write error on file '%s': %s\n",
+                    file->path ? file->path : "(unknown)", strerror(errno));
+            exit(1);
+        }
+    }
+}
+
+/* Write string followed by newline */
+void rt_text_file_write_line(RtTextFile *file, const char *text) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.writeLine: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.writeLine: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Write the text if not null */
+    if (text != NULL) {
+        size_t len = strlen(text);
+        if (len > 0) {
+            size_t written = fwrite(text, 1, len, fp);
+            if (written != len) {
+                fprintf(stderr, "TextFile.writeLine: write error on file '%s': %s\n",
+                        file->path ? file->path : "(unknown)", strerror(errno));
+                exit(1);
+            }
+        }
+    }
+
+    /* Write the newline */
+    if (fputc('\n', fp) == EOF) {
+        fprintf(stderr, "TextFile.writeLine: write error on file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+}
+
+/* Write string to file (alias for write, used with interpolated strings) */
+void rt_text_file_print(RtTextFile *file, const char *text) {
+    rt_text_file_write(file, text);
+}
+
+/* Write string followed by newline (alias for writeLine) */
+void rt_text_file_println(RtTextFile *file, const char *text) {
+    rt_text_file_write_line(file, text);
+}
+
+/* ============================================================
+   TextFile State Methods
+   ============================================================ */
+
+/* Check if more characters are available to read */
+int rt_text_file_has_chars(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.hasChars: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.hasChars: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    int c = fgetc(fp);
+    if (c == EOF) {
+        return 0;  /* No more characters */
+    }
+    ungetc(c, fp);
+    return 1;  /* More characters available */
+}
+
+/* Check if more whitespace-delimited words are available */
+int rt_text_file_has_words(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.hasWords: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.hasWords: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    long original_pos = ftell(fp);
+
+    /* Skip whitespace */
+    int c;
+    while ((c = fgetc(fp)) != EOF && (c == ' ' || c == '\t' || c == '\n' || c == '\r')) {
+        /* Skip whitespace */
+    }
+
+    int has_word = (c != EOF);
+
+    /* Restore original position */
+    fseek(fp, original_pos, SEEK_SET);
+
+    return has_word;
+}
+
+/* Check if more lines are available to read */
+int rt_text_file_has_lines(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.hasLines: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.hasLines: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    int c = fgetc(fp);
+    if (c == EOF) {
+        return 0;  /* No more content */
+    }
+    ungetc(c, fp);
+    return 1;  /* More lines available */
+}
+
+/* Check if at end of file */
+int rt_text_file_is_eof(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.isEof: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.isEof: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    int c = fgetc(fp);
+    if (c == EOF) {
+        return 1;  /* At EOF */
+    }
+    ungetc(c, fp);
+    return 0;  /* Not at EOF */
+}
+
+/* Get current byte position in file */
+long rt_text_file_position(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.position: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.position: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    long pos = ftell(fp);
+    if (pos < 0) {
+        fprintf(stderr, "TextFile.position: failed to get position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+    return pos;
+}
+
+/* Seek to byte position */
+void rt_text_file_seek(RtTextFile *file, long pos) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.seek: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.seek: file is not open\n");
+        exit(1);
+    }
+    if (pos < 0) {
+        fprintf(stderr, "TextFile.seek: invalid position %ld\n", pos);
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    if (fseek(fp, pos, SEEK_SET) != 0) {
+        fprintf(stderr, "TextFile.seek: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+}
+
+/* Return to beginning of file */
+void rt_text_file_rewind(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.rewind: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.rewind: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    rewind(fp);
+}
+
+/* Force buffered data to disk */
+void rt_text_file_flush(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.flush: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.flush: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    if (fflush(fp) != 0) {
+        fprintf(stderr, "TextFile.flush: failed to flush file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+}
+
+/* ============================================================
+   TextFile Properties
+   ============================================================ */
+
+/* Get full file path */
+char *rt_text_file_get_path(RtArena *arena, RtTextFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.path: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.path: file is NULL\n");
+        exit(1);
+    }
+
+    if (file->path == NULL) {
+        /* Return empty string if path is not set */
+        char *empty = rt_arena_alloc(arena, 1);
+        empty[0] = '\0';
+        return empty;
+    }
+
+    /* Copy path string to arena */
+    size_t len = strlen(file->path);
+    char *result = rt_arena_alloc(arena, len + 1);
+    memcpy(result, file->path, len + 1);
+    return result;
+}
+
+/* Get filename only (without directory) */
+char *rt_text_file_get_name(RtArena *arena, RtTextFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "TextFile.name: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.name: file is NULL\n");
+        exit(1);
+    }
+
+    if (file->path == NULL) {
+        /* Return empty string if path is not set */
+        char *empty = rt_arena_alloc(arena, 1);
+        empty[0] = '\0';
+        return empty;
+    }
+
+    /* Find last path separator */
+    const char *path = file->path;
+    const char *last_sep = strrchr(path, '/');
+    #ifdef _WIN32
+    const char *last_backslash = strrchr(path, '\\');
+    if (last_backslash != NULL && (last_sep == NULL || last_backslash > last_sep)) {
+        last_sep = last_backslash;
+    }
+    #endif
+
+    const char *name = (last_sep != NULL) ? last_sep + 1 : path;
+    size_t len = strlen(name);
+    char *result = rt_arena_alloc(arena, len + 1);
+    memcpy(result, name, len + 1);
+    return result;
+}
+
+/* Get file size in bytes */
+long rt_text_file_get_size(RtTextFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "TextFile.size: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "TextFile.size: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Save current position */
+    long current_pos = ftell(fp);
+    if (current_pos < 0) {
+        fprintf(stderr, "TextFile.size: failed to get position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Seek to end to get size */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fprintf(stderr, "TextFile.size: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    long size = ftell(fp);
+    if (size < 0) {
+        fprintf(stderr, "TextFile.size: failed to get size of file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Restore original position */
+    if (fseek(fp, current_pos, SEEK_SET) != 0) {
+        fprintf(stderr, "TextFile.size: failed to restore position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    return size;
+}
+
+/* ============================================================
+   BinaryFile Static Methods
+   ============================================================ */
+
+/* Open binary file for reading and writing (panics if file doesn't exist) */
+RtBinaryFile *rt_binary_file_open(RtArena *arena, const char *path) {
+    if (arena == NULL) {
+        fprintf(stderr, "BinaryFile.open: arena is NULL\n");
+        exit(1);
+    }
+    if (path == NULL) {
+        fprintf(stderr, "BinaryFile.open: path is NULL\n");
+        exit(1);
+    }
+
+    /* Try to open in r+b (read/write binary, must exist) */
+    FILE *fp = fopen(path, "r+b");
+    if (fp == NULL) {
+        /* If file doesn't exist, create it with w+b */
+        fp = fopen(path, "w+b");
+        if (fp == NULL) {
+            fprintf(stderr, "BinaryFile.open: failed to open file '%s': %s\n",
+                    path, strerror(errno));
+            exit(1);
+        }
+    }
+
+    /* Allocate file handle */
+    RtBinaryFile *file = rt_arena_alloc(arena, sizeof(RtBinaryFile));
+    if (file == NULL) {
+        fclose(fp);
+        fprintf(stderr, "BinaryFile.open: memory allocation failed\n");
+        exit(1);
+    }
+
+    /* Copy path to arena */
+    size_t path_len = strlen(path);
+    char *path_copy = rt_arena_alloc(arena, path_len + 1);
+    if (path_copy == NULL) {
+        fclose(fp);
+        fprintf(stderr, "BinaryFile.open: memory allocation failed for path\n");
+        exit(1);
+    }
+    memcpy(path_copy, path, path_len + 1);
+
+    file->fp = fp;
+    file->path = path_copy;
+    file->is_open = true;
+
+    /* Track file handle in arena for auto-close */
+    RtFileHandle *handle = rt_arena_alloc(arena, sizeof(RtFileHandle));
+    if (handle == NULL) {
+        fclose(fp);
+        fprintf(stderr, "BinaryFile.open: memory allocation failed for handle\n");
+        exit(1);
+    }
+    handle->fp = fp;
+    handle->path = path_copy;
+    handle->is_open = true;
+    handle->next = arena->open_files;
+    arena->open_files = handle;
+    file->handle = handle;
+
+    return file;
+}
+
+/* Check if binary file exists without opening */
+int rt_binary_file_exists(const char *path) {
+    if (path == NULL) {
+        return 0;
+    }
+    FILE *fp = fopen(path, "rb");
+    if (fp == NULL) {
+        return 0;
+    }
+    fclose(fp);
+    return 1;
+}
+
+/* Read entire binary file contents as byte array */
+unsigned char *rt_binary_file_read_all(RtArena *arena, const char *path) {
+    if (arena == NULL) {
+        fprintf(stderr, "BinaryFile.readAll: arena is NULL\n");
+        exit(1);
+    }
+    if (path == NULL) {
+        fprintf(stderr, "BinaryFile.readAll: path is NULL\n");
+        exit(1);
+    }
+
+    FILE *fp = fopen(path, "rb");
+    if (fp == NULL) {
+        fprintf(stderr, "BinaryFile.readAll: failed to open file '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+
+    /* Get file size */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fclose(fp);
+        fprintf(stderr, "BinaryFile.readAll: failed to seek in file '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+
+    long size = ftell(fp);
+    if (size < 0) {
+        fclose(fp);
+        fprintf(stderr, "BinaryFile.readAll: failed to get size of file '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        fclose(fp);
+        fprintf(stderr, "BinaryFile.readAll: failed to rewind file '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+
+    /* Create byte array with metadata */
+    unsigned char *data = rt_array_create_byte_uninit(arena, (size_t)size);
+
+    /* Read file contents */
+    if (size > 0) {
+        size_t bytes_read = fread(data, 1, (size_t)size, fp);
+        if (bytes_read != (size_t)size) {
+            fclose(fp);
+            fprintf(stderr, "BinaryFile.readAll: failed to read file '%s': %s\n",
+                    path, strerror(errno));
+            exit(1);
+        }
+    }
+
+    fclose(fp);
+    return data;
+}
+
+/* Write byte array to binary file (creates or overwrites) */
+void rt_binary_file_write_all(const char *path, unsigned char *data) {
+    if (path == NULL) {
+        fprintf(stderr, "BinaryFile.writeAll: path is NULL\n");
+        exit(1);
+    }
+
+    FILE *fp = fopen(path, "wb");
+    if (fp == NULL) {
+        fprintf(stderr, "BinaryFile.writeAll: failed to create file '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+
+    if (data != NULL) {
+        size_t len = rt_array_length(data);
+        if (len > 0) {
+            size_t written = fwrite(data, 1, len, fp);
+            if (written != len) {
+                fclose(fp);
+                fprintf(stderr, "BinaryFile.writeAll: failed to write file '%s': %s\n",
+                        path, strerror(errno));
+                exit(1);
+            }
+        }
+    }
+
+    fclose(fp);
+}
+
+/* Delete binary file (panics if fails) */
+void rt_binary_file_delete(const char *path) {
+    if (path == NULL) {
+        fprintf(stderr, "BinaryFile.delete: path is NULL\n");
+        exit(1);
+    }
+
+    if (remove(path) != 0) {
+        fprintf(stderr, "BinaryFile.delete: failed to delete file '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+}
+
+/* Copy binary file to new location */
+void rt_binary_file_copy(const char *src, const char *dst) {
+    if (src == NULL) {
+        fprintf(stderr, "BinaryFile.copy: source path is NULL\n");
+        exit(1);
+    }
+    if (dst == NULL) {
+        fprintf(stderr, "BinaryFile.copy: destination path is NULL\n");
+        exit(1);
+    }
+
+    FILE *src_fp = fopen(src, "rb");
+    if (src_fp == NULL) {
+        fprintf(stderr, "BinaryFile.copy: failed to open source file '%s': %s\n",
+                src, strerror(errno));
+        exit(1);
+    }
+
+    FILE *dst_fp = fopen(dst, "wb");
+    if (dst_fp == NULL) {
+        fclose(src_fp);
+        fprintf(stderr, "BinaryFile.copy: failed to create destination file '%s': %s\n",
+                dst, strerror(errno));
+        exit(1);
+    }
+
+    /* Copy in chunks */
+    unsigned char buffer[4096];
+    size_t bytes_read;
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), src_fp)) > 0) {
+        size_t bytes_written = fwrite(buffer, 1, bytes_read, dst_fp);
+        if (bytes_written != bytes_read) {
+            fclose(src_fp);
+            fclose(dst_fp);
+            fprintf(stderr, "BinaryFile.copy: failed to write to '%s': %s\n",
+                    dst, strerror(errno));
+            exit(1);
+        }
+    }
+
+    if (ferror(src_fp)) {
+        fclose(src_fp);
+        fclose(dst_fp);
+        fprintf(stderr, "BinaryFile.copy: failed to read from '%s': %s\n",
+                src, strerror(errno));
+        exit(1);
+    }
+
+    fclose(src_fp);
+    fclose(dst_fp);
+}
+
+/* Move/rename binary file */
+void rt_binary_file_move(const char *src, const char *dst) {
+    if (src == NULL) {
+        fprintf(stderr, "BinaryFile.move: source path is NULL\n");
+        exit(1);
+    }
+    if (dst == NULL) {
+        fprintf(stderr, "BinaryFile.move: destination path is NULL\n");
+        exit(1);
+    }
+
+    /* Try rename first (efficient, same filesystem) */
+    if (rename(src, dst) == 0) {
+        return;
+    }
+
+    /* If rename fails, try copy + delete (cross-filesystem) */
+    rt_binary_file_copy(src, dst);
+    if (remove(src) != 0) {
+        fprintf(stderr, "BinaryFile.move: failed to remove source file '%s': %s\n",
+                src, strerror(errno));
+        exit(1);
+    }
+}
+
+/* Close an open binary file */
+void rt_binary_file_close(RtBinaryFile *file) {
+    if (file == NULL) {
+        return;
+    }
+    if (file->is_open && file->fp != NULL) {
+        fclose((FILE *)file->fp);
+        file->is_open = false;
+        file->fp = NULL;
+        /* Mark handle as closed too */
+        if (file->handle != NULL) {
+            file->handle->is_open = false;
+        }
+    }
+}
+
+/* ============================================================
+   BinaryFile Instance Reading Methods
+   ============================================================ */
+
+/* Read single byte, returns -1 on EOF */
+long rt_binary_file_read_byte(RtBinaryFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.readByte: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.readByte: file is not open\n");
+        exit(1);
+    }
+
+    int c = fgetc((FILE *)file->fp);
+    if (c == EOF) {
+        if (ferror((FILE *)file->fp)) {
+            fprintf(stderr, "BinaryFile.readByte: read error on file '%s': %s\n",
+                    file->path ? file->path : "(unknown)", strerror(errno));
+            exit(1);
+        }
+        return -1;  /* EOF */
+    }
+    return (long)(unsigned char)c;
+}
+
+/* Read N bytes into new array */
+unsigned char *rt_binary_file_read_bytes(RtArena *arena, RtBinaryFile *file, long count) {
+    if (arena == NULL) {
+        fprintf(stderr, "BinaryFile.readBytes: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.readBytes: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.readBytes: file is not open\n");
+        exit(1);
+    }
+    if (count < 0) {
+        fprintf(stderr, "BinaryFile.readBytes: count cannot be negative\n");
+        exit(1);
+    }
+
+    /* Create byte array */
+    unsigned char *data = rt_array_create_byte_uninit(arena, (size_t)count);
+
+    /* Read bytes */
+    if (count > 0) {
+        size_t bytes_read = fread(data, 1, (size_t)count, (FILE *)file->fp);
+        /* If we read fewer bytes, we need to update the array length */
+        if (bytes_read < (size_t)count) {
+            /* Update the metadata in the ArrayMetadata struct */
+            ArrayMetadata *meta = ((ArrayMetadata *)data) - 1;
+            meta->size = bytes_read;
+        }
+    }
+
+    return data;
+}
+
+/* Read all remaining bytes from open file */
+unsigned char *rt_binary_file_instance_read_all(RtArena *arena, RtBinaryFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "BinaryFile.readAll: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.readAll: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.readAll: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Get current position and file size */
+    long current_pos = ftell(fp);
+    if (current_pos < 0) {
+        fprintf(stderr, "BinaryFile.readAll: failed to get position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fprintf(stderr, "BinaryFile.readAll: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    long end_pos = ftell(fp);
+    if (end_pos < 0) {
+        fprintf(stderr, "BinaryFile.readAll: failed to get size of file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Seek back to current position */
+    if (fseek(fp, current_pos, SEEK_SET) != 0) {
+        fprintf(stderr, "BinaryFile.readAll: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Calculate remaining bytes */
+    size_t remaining = (size_t)(end_pos - current_pos);
+
+    /* Create byte array */
+    unsigned char *data = rt_array_create_byte_uninit(arena, remaining);
+
+    /* Read remaining content */
+    if (remaining > 0) {
+        size_t bytes_read = fread(data, 1, remaining, fp);
+        if (ferror(fp)) {
+            fprintf(stderr, "BinaryFile.readAll: failed to read file '%s': %s\n",
+                    file->path ? file->path : "(unknown)", strerror(errno));
+            exit(1);
+        }
+        /* Update length if fewer bytes read */
+        if (bytes_read < remaining) {
+            ArrayMetadata *meta = ((ArrayMetadata *)data) - 1;
+            meta->size = bytes_read;
+        }
+    }
+
+    return data;
+}
+
+/* Read into byte buffer, returns number of bytes read */
+long rt_binary_file_read_into(RtBinaryFile *file, unsigned char *buffer) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.readInto: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.readInto: file is not open\n");
+        exit(1);
+    }
+    if (buffer == NULL) {
+        fprintf(stderr, "BinaryFile.readInto: buffer is NULL\n");
+        exit(1);
+    }
+
+    /* Get the buffer's length from its metadata */
+    size_t buf_len = rt_array_length(buffer);
+    if (buf_len == 0) {
+        return 0;  /* Empty buffer, nothing to read */
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Read up to buf_len bytes */
+    size_t bytes_read = fread(buffer, 1, buf_len, fp);
+    if (ferror(fp)) {
+        fprintf(stderr, "BinaryFile.readInto: read error on file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    return (long)bytes_read;
+}
+
+/* ============================================================
+   BinaryFile Instance Writing Methods
+   ============================================================ */
+
+/* Write single byte to file */
+void rt_binary_file_write_byte(RtBinaryFile *file, long b) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.writeByte: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.writeByte: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    if (fputc((unsigned char)b, fp) == EOF) {
+        fprintf(stderr, "BinaryFile.writeByte: write error on file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+}
+
+/* Write byte array to file */
+void rt_binary_file_write_bytes(RtBinaryFile *file, unsigned char *data) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.writeBytes: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.writeBytes: file is not open\n");
+        exit(1);
+    }
+    if (data == NULL) {
+        return;  /* Nothing to write */
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    size_t len = rt_array_length(data);
+    if (len > 0) {
+        size_t written = fwrite(data, 1, len, fp);
+        if (written != len) {
+            fprintf(stderr, "BinaryFile.writeBytes: write error on file '%s': %s\n",
+                    file->path ? file->path : "(unknown)", strerror(errno));
+            exit(1);
+        }
+    }
+}
+
+/* ============================================================
+   BinaryFile State Methods
+   ============================================================ */
+
+/* Check if more bytes are available to read */
+int rt_binary_file_has_bytes(RtBinaryFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.hasBytes: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.hasBytes: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    int c = fgetc(fp);
+    if (c == EOF) {
+        return 0;  /* No more bytes */
+    }
+    ungetc(c, fp);
+    return 1;  /* More bytes available */
+}
+
+/* Check if at end of file */
+int rt_binary_file_is_eof(RtBinaryFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.isEof: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.isEof: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    int c = fgetc(fp);
+    if (c == EOF) {
+        return 1;  /* At EOF */
+    }
+    ungetc(c, fp);
+    return 0;  /* Not at EOF */
+}
+
+/* Get current byte position in file */
+long rt_binary_file_position(RtBinaryFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.position: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.position: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    long pos = ftell(fp);
+    if (pos < 0) {
+        fprintf(stderr, "BinaryFile.position: failed to get position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+    return pos;
+}
+
+/* Seek to byte position */
+void rt_binary_file_seek(RtBinaryFile *file, long pos) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.seek: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.seek: file is not open\n");
+        exit(1);
+    }
+    if (pos < 0) {
+        fprintf(stderr, "BinaryFile.seek: invalid position %ld\n", pos);
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    if (fseek(fp, pos, SEEK_SET) != 0) {
+        fprintf(stderr, "BinaryFile.seek: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+}
+
+/* Return to beginning of file */
+void rt_binary_file_rewind(RtBinaryFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.rewind: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.rewind: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    rewind(fp);
+}
+
+/* Force buffered data to disk */
+void rt_binary_file_flush(RtBinaryFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.flush: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.flush: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+    if (fflush(fp) != 0) {
+        fprintf(stderr, "BinaryFile.flush: failed to flush file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+}
+
+/* ============================================================
+   BinaryFile Properties
+   ============================================================ */
+
+/* Get full file path */
+char *rt_binary_file_get_path(RtArena *arena, RtBinaryFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "BinaryFile.path: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.path: file is NULL\n");
+        exit(1);
+    }
+
+    if (file->path == NULL) {
+        /* Return empty string if path is not set */
+        char *empty = rt_arena_alloc(arena, 1);
+        empty[0] = '\0';
+        return empty;
+    }
+
+    /* Copy path string to arena */
+    size_t len = strlen(file->path);
+    char *result = rt_arena_alloc(arena, len + 1);
+    memcpy(result, file->path, len + 1);
+    return result;
+}
+
+/* Get filename only (without directory) */
+char *rt_binary_file_get_name(RtArena *arena, RtBinaryFile *file) {
+    if (arena == NULL) {
+        fprintf(stderr, "BinaryFile.name: arena is NULL\n");
+        exit(1);
+    }
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.name: file is NULL\n");
+        exit(1);
+    }
+
+    if (file->path == NULL) {
+        /* Return empty string if path is not set */
+        char *empty = rt_arena_alloc(arena, 1);
+        empty[0] = '\0';
+        return empty;
+    }
+
+    /* Find last path separator */
+    const char *path = file->path;
+    const char *last_sep = strrchr(path, '/');
+    #ifdef _WIN32
+    const char *last_backslash = strrchr(path, '\\');
+    if (last_backslash != NULL && (last_sep == NULL || last_backslash > last_sep)) {
+        last_sep = last_backslash;
+    }
+    #endif
+
+    const char *name = (last_sep != NULL) ? last_sep + 1 : path;
+    size_t len = strlen(name);
+    char *result = rt_arena_alloc(arena, len + 1);
+    memcpy(result, name, len + 1);
+    return result;
+}
+
+/* Get file size in bytes */
+long rt_binary_file_get_size(RtBinaryFile *file) {
+    if (file == NULL) {
+        fprintf(stderr, "BinaryFile.size: file is NULL\n");
+        exit(1);
+    }
+    if (!file->is_open || file->fp == NULL) {
+        fprintf(stderr, "BinaryFile.size: file is not open\n");
+        exit(1);
+    }
+
+    FILE *fp = (FILE *)file->fp;
+
+    /* Save current position */
+    long current_pos = ftell(fp);
+    if (current_pos < 0) {
+        fprintf(stderr, "BinaryFile.size: failed to get position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Seek to end to get size */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        fprintf(stderr, "BinaryFile.size: failed to seek in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    long size = ftell(fp);
+    if (size < 0) {
+        fprintf(stderr, "BinaryFile.size: failed to get size of file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    /* Restore original position */
+    if (fseek(fp, current_pos, SEEK_SET) != 0) {
+        fprintf(stderr, "BinaryFile.size: failed to restore position in file '%s': %s\n",
+                file->path ? file->path : "(unknown)", strerror(errno));
+        exit(1);
+    }
+
+    return size;
+}
+
+/* ============================================================================
+ * Standard Stream Operations (Stdin, Stdout, Stderr)
+ * ============================================================================ */
+
+/* Stdin - read line from standard input */
+char *rt_stdin_read_line(RtArena *arena) {
+    /* Read a line from stdin, stripping trailing newline */
+    char buffer[4096];
+    if (fgets(buffer, sizeof(buffer), stdin) == NULL) {
+        /* EOF or error - return empty string */
+        char *result = rt_arena_alloc(arena, 1);
+        result[0] = '\0';
+        return result;
+    }
+    
+    /* Strip trailing newline if present */
+    size_t len = strlen(buffer);
+    if (len > 0 && buffer[len - 1] == '\n') {
+        buffer[len - 1] = '\0';
+        len--;
+    }
+    
+    char *result = rt_arena_alloc(arena, len + 1);
+    memcpy(result, buffer, len + 1);
+    return result;
+}
+
+/* Stdin - read single character from standard input */
+long rt_stdin_read_char(void) {
+    int ch = fgetc(stdin);
+    return ch;  /* Returns -1 on EOF */
+}
+
+/* Stdin - read whitespace-delimited word from standard input */
+char *rt_stdin_read_word(RtArena *arena) {
+    char buffer[4096];
+    if (scanf("%4095s", buffer) != 1) {
+        /* EOF or error - return empty string */
+        char *result = rt_arena_alloc(arena, 1);
+        result[0] = '\0';
+        return result;
+    }
+    
+    size_t len = strlen(buffer);
+    char *result = rt_arena_alloc(arena, len + 1);
+    memcpy(result, buffer, len + 1);
+    return result;
+}
+
+/* Stdin - check if characters available */
+int rt_stdin_has_chars(void) {
+    int ch = fgetc(stdin);
+    if (ch == EOF) {
+        return 0;
+    }
+    ungetc(ch, stdin);
+    return 1;
+}
+
+/* Stdin - check if lines available */
+int rt_stdin_has_lines(void) {
+    /* Same as has_chars for stdin */
+    return rt_stdin_has_chars();
+}
+
+/* Stdin - check if at EOF */
+int rt_stdin_is_eof(void) {
+    return feof(stdin);
+}
+
+/* Stdout - write text */
+void rt_stdout_write(const char *text) {
+    if (text != NULL) {
+        fputs(text, stdout);
+    }
+}
+
+/* Stdout - write text with newline */
+void rt_stdout_write_line(const char *text) {
+    if (text != NULL) {
+        fputs(text, stdout);
+    }
+    fputc('\n', stdout);
+}
+
+/* Stdout - flush output */
+void rt_stdout_flush(void) {
+    fflush(stdout);
+}
+
+/* Stderr - write text */
+void rt_stderr_write(const char *text) {
+    if (text != NULL) {
+        fputs(text, stderr);
+    }
+}
+
+/* Stderr - write text with newline */
+void rt_stderr_write_line(const char *text) {
+    if (text != NULL) {
+        fputs(text, stderr);
+    }
+    fputc('\n', stderr);
+}
+
+/* Stderr - flush output */
+void rt_stderr_flush(void) {
+    fflush(stderr);
+}
+
+/* Global convenience: read line */
+char *rt_read_line(RtArena *arena) {
+    return rt_stdin_read_line(arena);
+}
+
+/* Global convenience: print with newline */
+void rt_println(const char *text) {
+    rt_stdout_write_line(text);
+}
+
+/* Global convenience: print to stderr */
+void rt_print_err(const char *text) {
+    rt_stderr_write(text);
+}
+
+/* Global convenience: print to stderr with newline */
+void rt_print_err_ln(const char *text) {
+    rt_stderr_write_line(text);
+}
+
+/* ============================================================================
+ * Byte Array Extension Methods
+ * ============================================================================ */
+
+/* Base64 encoding table */
+static const char base64_chars[] = 
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/* Convert byte array to string using UTF-8 decoding
+ * Note: This is a simple passthrough since our strings are already UTF-8.
+ * Invalid UTF-8 sequences are passed through as-is. */
+char *rt_byte_array_to_string(RtArena *arena, unsigned char *bytes) {
+    if (bytes == NULL) {
+        char *result = rt_arena_alloc(arena, 1);
+        result[0] = '\0';
+        return result;
+    }
+    
+    size_t len = rt_array_length(bytes);
+    char *result = rt_arena_alloc(arena, len + 1);
+    
+    for (size_t i = 0; i < len; i++) {
+        result[i] = (char)bytes[i];
+    }
+    result[len] = '\0';
+    
+    return result;
+}
+
+/* Convert byte array to string using Latin-1/ISO-8859-1 decoding
+ * Each byte directly maps to its Unicode code point (0x00-0xFF).
+ * This requires UTF-8 encoding for values 0x80-0xFF. */
+char *rt_byte_array_to_string_latin1(RtArena *arena, unsigned char *bytes) {
+    if (bytes == NULL) {
+        char *result = rt_arena_alloc(arena, 1);
+        result[0] = '\0';
+        return result;
+    }
+    
+    size_t len = rt_array_length(bytes);
+    
+    /* Calculate output size: bytes 0x00-0x7F = 1 byte, 0x80-0xFF = 2 bytes in UTF-8 */
+    size_t out_len = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (bytes[i] < 0x80) {
+            out_len += 1;
+        } else {
+            out_len += 2;  /* UTF-8 encoding for 0x80-0xFF */
+        }
+    }
+    
+    char *result = rt_arena_alloc(arena, out_len + 1);
+    size_t out_idx = 0;
+    
+    for (size_t i = 0; i < len; i++) {
+        if (bytes[i] < 0x80) {
+            result[out_idx++] = (char)bytes[i];
+        } else {
+            /* UTF-8 encoding for code points 0x80-0xFF: 110xxxxx 10xxxxxx */
+            result[out_idx++] = (char)(0xC0 | (bytes[i] >> 6));
+            result[out_idx++] = (char)(0x80 | (bytes[i] & 0x3F));
+        }
+    }
+    result[out_idx] = '\0';
+    
+    return result;
+}
+
+/* Convert byte array to hexadecimal string */
+char *rt_byte_array_to_hex(RtArena *arena, unsigned char *bytes) {
+    static const char hex_chars[] = "0123456789abcdef";
+    
+    if (bytes == NULL) {
+        char *result = rt_arena_alloc(arena, 1);
+        result[0] = '\0';
+        return result;
+    }
+    
+    size_t len = rt_array_length(bytes);
+    char *result = rt_arena_alloc(arena, len * 2 + 1);
+    
+    for (size_t i = 0; i < len; i++) {
+        result[i * 2] = hex_chars[(bytes[i] >> 4) & 0xF];
+        result[i * 2 + 1] = hex_chars[bytes[i] & 0xF];
+    }
+    result[len * 2] = '\0';
+    
+    return result;
+}
+
+/* Convert byte array to Base64 string */
+char *rt_byte_array_to_base64(RtArena *arena, unsigned char *bytes) {
+    if (bytes == NULL) {
+        char *result = rt_arena_alloc(arena, 1);
+        result[0] = '\0';
+        return result;
+    }
+    
+    size_t len = rt_array_length(bytes);
+    
+    /* Calculate output size: 4 output chars for every 3 input bytes, rounded up */
+    size_t out_len = ((len + 2) / 3) * 4;
+    char *result = rt_arena_alloc(arena, out_len + 1);
+    
+    size_t i = 0;
+    size_t out_idx = 0;
+    
+    while (i + 2 < len) {
+        /* Process 3 bytes at a time */
+        unsigned int val = ((unsigned int)bytes[i] << 16) |
+                          ((unsigned int)bytes[i + 1] << 8) |
+                          ((unsigned int)bytes[i + 2]);
+        
+        result[out_idx++] = base64_chars[(val >> 18) & 0x3F];
+        result[out_idx++] = base64_chars[(val >> 12) & 0x3F];
+        result[out_idx++] = base64_chars[(val >> 6) & 0x3F];
+        result[out_idx++] = base64_chars[val & 0x3F];
+        
+        i += 3;
+    }
+    
+    /* Handle remaining bytes */
+    if (i < len) {
+        unsigned int val = (unsigned int)bytes[i] << 16;
+        if (i + 1 < len) {
+            val |= (unsigned int)bytes[i + 1] << 8;
+        }
+        
+        result[out_idx++] = base64_chars[(val >> 18) & 0x3F];
+        result[out_idx++] = base64_chars[(val >> 12) & 0x3F];
+        
+        if (i + 1 < len) {
+            result[out_idx++] = base64_chars[(val >> 6) & 0x3F];
+        } else {
+            result[out_idx++] = '=';
+        }
+        result[out_idx++] = '=';
+    }
+
+    result[out_idx] = '\0';
+
+    return result;
+}
+
+/* ============================================================================
+ * String to Byte Array Conversions
+ * ============================================================================ */
+
+/* Convert string to UTF-8 byte array
+ * Since our strings are already UTF-8, this is a simple copy. */
+unsigned char *rt_string_to_bytes(RtArena *arena, const char *str) {
+    if (str == NULL) {
+        /* Return empty byte array */
+        return rt_array_create_byte_uninit(arena, 0);
+    }
+
+    size_t len = strlen(str);
+    unsigned char *bytes = rt_array_create_byte_uninit(arena, len);
+
+    for (size_t i = 0; i < len; i++) {
+        bytes[i] = (unsigned char)str[i];
+    }
+
+    return bytes;
+}
+
+/* Base64 decoding lookup table */
+static const signed char base64_decode_table[256] = {
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
+    52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1, -1, -1, -1,
+    -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+    -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
+    41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
+
+/* Decode hexadecimal string to byte array */
+unsigned char *rt_bytes_from_hex(RtArena *arena, const char *hex) {
+    if (hex == NULL) {
+        return rt_array_create_byte_uninit(arena, 0);
+    }
+
+    size_t hex_len = strlen(hex);
+
+    /* Hex string must have even length */
+    if (hex_len % 2 != 0) {
+        fprintf(stderr, "Error: Hex string must have even length\n");
+        exit(1);
+    }
+
+    size_t byte_len = hex_len / 2;
+    unsigned char *bytes = rt_array_create_byte_uninit(arena, byte_len);
+
+    for (size_t i = 0; i < byte_len; i++) {
+        unsigned char hi = hex[i * 2];
+        unsigned char lo = hex[i * 2 + 1];
+
+        int hi_val, lo_val;
+
+        /* Parse high nibble */
+        if (hi >= '0' && hi <= '9') {
+            hi_val = hi - '0';
+        } else if (hi >= 'a' && hi <= 'f') {
+            hi_val = hi - 'a' + 10;
+        } else if (hi >= 'A' && hi <= 'F') {
+            hi_val = hi - 'A' + 10;
+        } else {
+            fprintf(stderr, "Error: Invalid hex character '%c'\n", hi);
+            exit(1);
+        }
+
+        /* Parse low nibble */
+        if (lo >= '0' && lo <= '9') {
+            lo_val = lo - '0';
+        } else if (lo >= 'a' && lo <= 'f') {
+            lo_val = lo - 'a' + 10;
+        } else if (lo >= 'A' && lo <= 'F') {
+            lo_val = lo - 'A' + 10;
+        } else {
+            fprintf(stderr, "Error: Invalid hex character '%c'\n", lo);
+            exit(1);
+        }
+
+        bytes[i] = (unsigned char)((hi_val << 4) | lo_val);
+    }
+
+    return bytes;
+}
+
+/* Decode Base64 string to byte array */
+unsigned char *rt_bytes_from_base64(RtArena *arena, const char *b64) {
+    if (b64 == NULL) {
+        return rt_array_create_byte_uninit(arena, 0);
+    }
+
+    size_t len = strlen(b64);
+    if (len == 0) {
+        return rt_array_create_byte_uninit(arena, 0);
+    }
+
+    /* Count padding characters */
+    size_t padding = 0;
+    if (len >= 1 && b64[len - 1] == '=') padding++;
+    if (len >= 2 && b64[len - 2] == '=') padding++;
+
+    /* Calculate output size: 3 output bytes for every 4 input chars */
+    size_t out_len = (len / 4) * 3 - padding;
+    unsigned char *bytes = rt_array_create_byte_uninit(arena, out_len);
+
+    size_t i = 0;
+    size_t out_idx = 0;
+
+    while (i < len) {
+        /* Skip whitespace */
+        while (i < len && (b64[i] == ' ' || b64[i] == '\n' || b64[i] == '\r' || b64[i] == '\t')) {
+            i++;
+        }
+        if (i >= len) break;
+
+        /* Read 4 characters (some may be padding) */
+        unsigned int vals[4] = {0, 0, 0, 0};
+        int valid_chars = 0;
+
+        for (int j = 0; j < 4 && i < len; j++, i++) {
+            if (b64[i] == '=') {
+                vals[j] = 0;
+            } else {
+                signed char val = base64_decode_table[(unsigned char)b64[i]];
+                if (val < 0) {
+                    fprintf(stderr, "Error: Invalid Base64 character '%c'\n", b64[i]);
+                    exit(1);
+                }
+                vals[j] = (unsigned int)val;
+                valid_chars++;
+            }
+        }
+
+        /* Decode: combine 4 6-bit values into 3 8-bit values */
+        unsigned int combined = (vals[0] << 18) | (vals[1] << 12) | (vals[2] << 6) | vals[3];
+
+        if (out_idx < out_len) {
+            bytes[out_idx++] = (unsigned char)((combined >> 16) & 0xFF);
+        }
+        if (out_idx < out_len && valid_chars >= 3) {
+            bytes[out_idx++] = (unsigned char)((combined >> 8) & 0xFF);
+        }
+        if (out_idx < out_len && valid_chars >= 4) {
+            bytes[out_idx++] = (unsigned char)(combined & 0xFF);
+        }
+    }
+
+    return bytes;
+}
+
+/* ============================================================================
+ * Path Utilities
+ * ============================================================================ */
+
+/* Platform-specific path separator */
+#ifdef _WIN32
+#define PATH_SEPARATOR '\\'
+#define PATH_SEPARATOR_STR "\\"
+#else
+#define PATH_SEPARATOR '/'
+#define PATH_SEPARATOR_STR "/"
+#endif
+
+/* Helper: Check if character is a path separator */
+static int is_path_separator(char c) {
+#ifdef _WIN32
+    return c == '/' || c == '\\';
+#else
+    return c == '/';
+#endif
+}
+
+/* Helper: Find the last path separator in a string */
+static const char *find_last_separator(const char *path) {
+    const char *last = NULL;
+    for (const char *p = path; *p; p++) {
+        if (is_path_separator(*p)) {
+            last = p;
+        }
+    }
+    return last;
+}
+
+/* Extract directory portion of a path */
+char *rt_path_directory(RtArena *arena, const char *path) {
+    if (path == NULL || *path == '\0') {
+        return rt_arena_strdup(arena, ".");
+    }
+
+    const char *last_sep = find_last_separator(path);
+    if (last_sep == NULL) {
+        /* No separator found - return current directory */
+        return rt_arena_strdup(arena, ".");
+    }
+
+    /* Handle root path (/ or C:\) */
+    if (last_sep == path) {
+        return rt_arena_strdup(arena, PATH_SEPARATOR_STR);
+    }
+
+#ifdef _WIN32
+    /* Handle Windows drive letter like C:\ */
+    if (last_sep == path + 2 && path[1] == ':') {
+        char *result = rt_arena_alloc(arena, 4);
+        result[0] = path[0];
+        result[1] = ':';
+        result[2] = PATH_SEPARATOR;
+        result[3] = '\0';
+        return result;
+    }
+#endif
+
+    /* Return everything up to (not including) the last separator */
+    size_t dir_len = last_sep - path;
+    char *result = rt_arena_alloc(arena, dir_len + 1);
+    memcpy(result, path, dir_len);
+    result[dir_len] = '\0';
+    return result;
+}
+
+/* Extract filename (with extension) from a path */
+char *rt_path_filename(RtArena *arena, const char *path) {
+    if (path == NULL || *path == '\0') {
+        return rt_arena_strdup(arena, "");
+    }
+
+    const char *last_sep = find_last_separator(path);
+    if (last_sep == NULL) {
+        /* No separator - the whole thing is the filename */
+        return rt_arena_strdup(arena, path);
+    }
+
+    /* Return everything after the last separator */
+    return rt_arena_strdup(arena, last_sep + 1);
+}
+
+/* Extract file extension (without dot) from a path */
+char *rt_path_extension(RtArena *arena, const char *path) {
+    if (path == NULL || *path == '\0') {
+        return rt_arena_strdup(arena, "");
+    }
+
+    /* Get just the filename part first */
+    const char *last_sep = find_last_separator(path);
+    const char *filename = last_sep ? last_sep + 1 : path;
+
+    /* Find the last dot in the filename */
+    const char *last_dot = NULL;
+    for (const char *p = filename; *p; p++) {
+        if (*p == '.') {
+            last_dot = p;
+        }
+    }
+
+    /* No dot, or dot is at start (hidden file like .bashrc) */
+    if (last_dot == NULL || last_dot == filename) {
+        return rt_arena_strdup(arena, "");
+    }
+
+    /* Return extension without the dot */
+    return rt_arena_strdup(arena, last_dot + 1);
+}
+
+/* Join two path components */
+char *rt_path_join2(RtArena *arena, const char *path1, const char *path2) {
+    if (path1 == NULL) path1 = "";
+    if (path2 == NULL) path2 = "";
+
+    size_t len1 = strlen(path1);
+    size_t len2 = strlen(path2);
+
+    /* If path2 is absolute, return it directly */
+    if (len2 > 0 && is_path_separator(path2[0])) {
+        return rt_arena_strdup(arena, path2);
+    }
+#ifdef _WIN32
+    /* Check for Windows absolute path like C:\ */
+    if (len2 > 2 && path2[1] == ':' && is_path_separator(path2[2])) {
+        return rt_arena_strdup(arena, path2);
+    }
+#endif
+
+    /* If path1 is empty, return path2 */
+    if (len1 == 0) {
+        return rt_arena_strdup(arena, path2);
+    }
+
+    /* Check if path1 already ends with separator */
+    int has_trailing_sep = is_path_separator(path1[len1 - 1]);
+
+    /* Allocate: path1 + optional separator + path2 + null */
+    size_t result_len = len1 + (has_trailing_sep ? 0 : 1) + len2 + 1;
+    char *result = rt_arena_alloc(arena, result_len);
+
+    memcpy(result, path1, len1);
+    size_t pos = len1;
+    if (!has_trailing_sep) {
+        result[pos++] = PATH_SEPARATOR;
+    }
+    memcpy(result + pos, path2, len2);
+    result[pos + len2] = '\0';
+
+    return result;
+}
+
+/* Join three path components */
+char *rt_path_join3(RtArena *arena, const char *path1, const char *path2, const char *path3) {
+    char *temp = rt_path_join2(arena, path1, path2);
+    return rt_path_join2(arena, temp, path3);
+}
+
+/* Resolve a path to its absolute form */
+char *rt_path_absolute(RtArena *arena, const char *path) {
+    if (path == NULL || *path == '\0') {
+        /* Empty path - return current working directory */
+        char cwd[4096];
+        if (getcwd(cwd, sizeof(cwd)) != NULL) {
+            return rt_arena_strdup(arena, cwd);
+        }
+        /* Fallback if getcwd fails */
+        return rt_arena_strdup(arena, ".");
+    }
+
+#ifdef _WIN32
+    char resolved[_MAX_PATH];
+    if (_fullpath(resolved, path, _MAX_PATH) != NULL) {
+        return rt_arena_strdup(arena, resolved);
+    }
+#else
+    char resolved[PATH_MAX];
+    if (realpath(path, resolved) != NULL) {
+        return rt_arena_strdup(arena, resolved);
+    }
+
+    /* realpath fails if path doesn't exist - try to resolve manually */
+    if (path[0] == '/') {
+        /* Already absolute */
+        return rt_arena_strdup(arena, path);
+    }
+
+    /* Prepend current working directory */
+    char cwd[4096];
+    if (getcwd(cwd, sizeof(cwd)) != NULL) {
+        return rt_path_join2(arena, cwd, path);
+    }
+#endif
+
+    /* Fallback - return as-is */
+    return rt_arena_strdup(arena, path);
+}
+
+/* Check if a path exists */
+int rt_path_exists(const char *path) {
+    if (path == NULL) return 0;
+    struct stat st;
+    return stat(path, &st) == 0;
+}
+
+/* Check if a path points to a regular file */
+int rt_path_is_file(const char *path) {
+    if (path == NULL) return 0;
+    struct stat st;
+    if (stat(path, &st) != 0) return 0;
+    return S_ISREG(st.st_mode);
+}
+
+/* Check if a path points to a directory */
+int rt_path_is_directory(const char *path) {
+    if (path == NULL) return 0;
+    struct stat st;
+    if (stat(path, &st) != 0) return 0;
+    return S_ISDIR(st.st_mode);
+}
+
+/* ============================================================================
+ * Directory Operations
+ * ============================================================================ */
+
+#include <dirent.h>
+
+/* Helper: Create a string array with metadata (similar to other array types) */
+static char **create_string_array(RtArena *arena, size_t initial_capacity) {
+    size_t capacity = initial_capacity > 4 ? initial_capacity : 4;
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "create_string_array: allocation failed\n");
+        exit(1);
+    }
+    meta->size = 0;
+    meta->capacity = capacity;
+    return (char **)(meta + 1);
+}
+
+/* Helper: Push a string onto a string array */
+static char **push_string_to_array(RtArena *arena, char **arr, const char *str) {
+    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
+
+    if ((size_t)meta->size >= meta->capacity) {
+        /* Need to grow the array */
+        size_t new_capacity = meta->capacity * 2;
+        ArrayMetadata *new_meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + new_capacity * sizeof(char *));
+        if (new_meta == NULL) {
+            fprintf(stderr, "push_string_to_array: allocation failed\n");
+            exit(1);
+        }
+        new_meta->size = meta->size;
+        new_meta->capacity = new_capacity;
+        char **new_arr = (char **)(new_meta + 1);
+        memcpy(new_arr, arr, meta->size * sizeof(char *));
+        arr = new_arr;
+        meta = new_meta;
+    }
+
+    arr[meta->size] = rt_arena_strdup(arena, str);
+    meta->size++;
+    return arr;
+}
+
+/* List files in a directory (non-recursive) */
+char **rt_directory_list(RtArena *arena, const char *path) {
+    if (path == NULL) {
+        fprintf(stderr, "Directory.list: path cannot be null\n");
+        exit(1);
+    }
+
+    DIR *dir = opendir(path);
+    if (dir == NULL) {
+        fprintf(stderr, "Directory.list: cannot open directory '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+
+    char **result = create_string_array(arena, 16);
+    struct dirent *entry;
+
+    while ((entry = readdir(dir)) != NULL) {
+        /* Skip . and .. */
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+        result = push_string_to_array(arena, result, entry->d_name);
+    }
+
+    closedir(dir);
+    return result;
+}
+
+/* Helper for recursive directory listing */
+static char **list_recursive_helper(RtArena *arena, char **result, const char *base_path, const char *rel_prefix) {
+    DIR *dir = opendir(base_path);
+    if (dir == NULL) {
+        return result;  /* Skip directories we can't open */
+    }
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        /* Skip . and .. */
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        /* Build full path for stat check */
+        char *full_path = rt_path_join2(arena, base_path, entry->d_name);
+
+        /* Build relative path for result */
+        char *rel_path;
+        if (rel_prefix[0] == '\0') {
+            rel_path = rt_arena_strdup(arena, entry->d_name);
+        } else {
+            rel_path = rt_path_join2(arena, rel_prefix, entry->d_name);
+        }
+
+        /* Add this entry */
+        result = push_string_to_array(arena, result, rel_path);
+
+        /* If it's a directory, recurse */
+        struct stat st;
+        if (stat(full_path, &st) == 0 && S_ISDIR(st.st_mode)) {
+            result = list_recursive_helper(arena, result, full_path, rel_path);
+        }
+    }
+
+    closedir(dir);
+    return result;
+}
+
+/* List files in a directory recursively */
+char **rt_directory_list_recursive(RtArena *arena, const char *path) {
+    if (path == NULL) {
+        fprintf(stderr, "Directory.listRecursive: path cannot be null\n");
+        exit(1);
+    }
+
+    if (!rt_path_is_directory(path)) {
+        fprintf(stderr, "Directory.listRecursive: '%s' is not a directory\n", path);
+        exit(1);
+    }
+
+    char **result = create_string_array(arena, 64);
+    return list_recursive_helper(arena, result, path, "");
+}
+
+/* Helper: Create directory and all parents */
+static int create_directory_recursive(const char *path) {
+    if (path == NULL || *path == '\0') return 0;
+
+    /* Check if it already exists */
+    struct stat st;
+    if (stat(path, &st) == 0) {
+        if (S_ISDIR(st.st_mode)) {
+            return 0;  /* Already exists and is a directory */
+        }
+        return -1;  /* Exists but is not a directory */
+    }
+
+    /* Make a copy we can modify */
+    size_t len = strlen(path);
+    char *path_copy = malloc(len + 1);
+    if (path_copy == NULL) return -1;
+    strcpy(path_copy, path);
+
+    /* Create parent directories first */
+    char *p = path_copy;
+
+    /* Skip leading slashes for absolute paths */
+    while (*p == '/') p++;
+
+    while (*p) {
+        /* Find next slash */
+        while (*p && *p != '/') p++;
+
+        if (*p == '/') {
+            *p = '\0';
+            if (path_copy[0] != '\0') {
+                if (stat(path_copy, &st) != 0) {
+                    if (mkdir(path_copy, 0755) != 0 && errno != EEXIST) {
+                        free(path_copy);
+                        return -1;
+                    }
+                }
+            }
+            *p = '/';
+            p++;
+        }
+    }
+
+    /* Create final directory */
+    int result = mkdir(path_copy, 0755);
+    free(path_copy);
+
+    if (result != 0 && errno != EEXIST) {
+        return -1;
+    }
+    return 0;
+}
+
+/* Create a directory (including parents if needed) */
+void rt_directory_create(const char *path) {
+    if (path == NULL) {
+        fprintf(stderr, "Directory.create: path cannot be null\n");
+        exit(1);
+    }
+
+    if (create_directory_recursive(path) != 0) {
+        fprintf(stderr, "Directory.create: failed to create directory '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+}
+
+/* Delete an empty directory */
+void rt_directory_delete(const char *path) {
+    if (path == NULL) {
+        fprintf(stderr, "Directory.delete: path cannot be null\n");
+        exit(1);
+    }
+
+    if (rmdir(path) != 0) {
+        if (errno == ENOTEMPTY) {
+            fprintf(stderr, "Directory.delete: directory '%s' is not empty\n", path);
+        } else {
+            fprintf(stderr, "Directory.delete: failed to delete directory '%s': %s\n",
+                    path, strerror(errno));
+        }
+        exit(1);
+    }
+}
+
+/* Helper: Recursively delete directory contents */
+static int delete_recursive_helper(const char *path) {
+    DIR *dir = opendir(path);
+    if (dir == NULL) {
+        return -1;
+    }
+
+    struct dirent *entry;
+    int result = 0;
+
+    while ((entry = readdir(dir)) != NULL && result == 0) {
+        /* Skip . and .. */
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        /* Build full path */
+        size_t path_len = strlen(path);
+        size_t name_len = strlen(entry->d_name);
+        char *full_path = malloc(path_len + 1 + name_len + 1);
+        if (full_path == NULL) {
+            result = -1;
+            break;
+        }
+
+        strcpy(full_path, path);
+        full_path[path_len] = '/';
+        strcpy(full_path + path_len + 1, entry->d_name);
+
+        struct stat st;
+        if (stat(full_path, &st) == 0) {
+            if (S_ISDIR(st.st_mode)) {
+                /* Recursively delete subdirectory */
+                result = delete_recursive_helper(full_path);
+                if (result == 0) {
+                    result = rmdir(full_path);
+                }
+            } else {
+                /* Delete file */
+                result = unlink(full_path);
+            }
+        }
+
+        free(full_path);
+    }
+
+    closedir(dir);
+    return result;
+}
+
+/* Delete a directory and all its contents recursively */
+void rt_directory_delete_recursive(const char *path) {
+    if (path == NULL) {
+        fprintf(stderr, "Directory.deleteRecursive: path cannot be null\n");
+        exit(1);
+    }
+
+    if (!rt_path_is_directory(path)) {
+        fprintf(stderr, "Directory.deleteRecursive: '%s' is not a directory\n", path);
+        exit(1);
+    }
+
+    /* First delete contents recursively */
+    if (delete_recursive_helper(path) != 0) {
+        fprintf(stderr, "Directory.deleteRecursive: failed to delete contents of '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+
+    /* Then delete the directory itself */
+    if (rmdir(path) != 0) {
+        fprintf(stderr, "Directory.deleteRecursive: failed to delete directory '%s': %s\n",
+                path, strerror(errno));
+        exit(1);
+    }
+}
+
+/* ============================================================================
+ * String Splitting Methods
+ * ============================================================================ */
+
+/* Helper: Check if character is whitespace */
+static int is_whitespace(char c) {
+    return c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\v' || c == '\f';
+}
+
+/* Split string on any whitespace character */
+char **rt_str_split_whitespace(RtArena *arena, const char *str) {
+    if (str == NULL) {
+        return create_string_array(arena, 4);
+    }
+
+    char **result = create_string_array(arena, 16);
+    const char *p = str;
+
+    while (*p) {
+        /* Skip leading whitespace */
+        while (*p && is_whitespace(*p)) {
+            p++;
+        }
+
+        if (*p == '\0') break;
+
+        /* Find end of word */
+        const char *start = p;
+        while (*p && !is_whitespace(*p)) {
+            p++;
+        }
+
+        /* Add word to result */
+        size_t len = p - start;
+        char *word = rt_arena_alloc(arena, len + 1);
+        memcpy(word, start, len);
+        word[len] = '\0';
+        result = push_string_to_array(arena, result, word);
+    }
+
+    return result;
+}
+
+/* Split string on line endings (\n, \r\n, \r) */
+char **rt_str_split_lines(RtArena *arena, const char *str) {
+    if (str == NULL) {
+        return create_string_array(arena, 4);
+    }
+
+    char **result = create_string_array(arena, 16);
+    const char *p = str;
+    const char *start = str;
+
+    while (*p) {
+        if (*p == '\n') {
+            /* Unix line ending or end of Windows \r\n */
+            size_t len = p - start;
+            char *line = rt_arena_alloc(arena, len + 1);
+            memcpy(line, start, len);
+            line[len] = '\0';
+            result = push_string_to_array(arena, result, line);
+            p++;
+            start = p;
+        } else if (*p == '\r') {
+            /* Carriage return - check for \r\n or standalone \r */
+            size_t len = p - start;
+            char *line = rt_arena_alloc(arena, len + 1);
+            memcpy(line, start, len);
+            line[len] = '\0';
+            result = push_string_to_array(arena, result, line);
+            p++;
+            if (*p == '\n') {
+                /* Windows \r\n - skip the \n too */
+                p++;
+            }
+            start = p;
+        } else {
+            p++;
+        }
+    }
+
+    /* Add final line if there's remaining content */
+    if (p > start) {
+        size_t len = p - start;
+        char *line = rt_arena_alloc(arena, len + 1);
+        memcpy(line, start, len);
+        line[len] = '\0';
+        result = push_string_to_array(arena, result, line);
+    }
+
+    return result;
+}
+
+/* Check if string is empty or contains only whitespace */
+int rt_str_is_blank(const char *str) {
+    if (str == NULL || *str == '\0') {
+        return 1;  /* NULL or empty string is blank */
+    }
+
+    const char *p = str;
+    while (*p) {
+        if (!is_whitespace(*p)) {
+            return 0;  /* Found non-whitespace character */
+        }
+        p++;
+    }
+
+    return 1;  /* All characters were whitespace */
 }

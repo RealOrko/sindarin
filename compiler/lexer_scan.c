@@ -33,6 +33,8 @@ TokenType lexer_identifier_type(Lexer *lexer)
                 return lexer_check_keyword(lexer, 2, 2, "ol", TOKEN_BOOL);
             case 'r':
                 return lexer_check_keyword(lexer, 2, 3, "eak", TOKEN_BREAK);
+            case 'y':
+                return lexer_check_keyword(lexer, 2, 2, "te", TOKEN_BYTE);
             }
         }
         break;

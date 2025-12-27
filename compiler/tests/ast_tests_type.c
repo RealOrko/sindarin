@@ -32,6 +32,10 @@ void test_ast_create_primitive_type()
     assert(t_bool != NULL);
     assert(t_bool->kind == TYPE_BOOL);
 
+    Type *t_byte = ast_create_primitive_type(&arena, TYPE_BYTE);
+    assert(t_byte != NULL);
+    assert(t_byte->kind == TYPE_BYTE);
+
     Type *t_void = ast_create_primitive_type(&arena, TYPE_VOID);
     assert(t_void != NULL);
     assert(t_void->kind == TYPE_VOID);
@@ -248,6 +252,7 @@ void test_ast_type_to_string()
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_CHAR)), "char") == 0);
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_STRING)), "string") == 0);
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_BOOL)), "bool") == 0);
+    assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_BYTE)), "byte") == 0);
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_VOID)), "void") == 0);
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_NIL)), "nil") == 0);
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_ANY)), "any") == 0);

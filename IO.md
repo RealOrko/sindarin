@@ -2,6 +2,8 @@
 
 This document outlines the design for file I/O and streaming in the Sindarin language.
 
+ALWAYS EXECUTE COMPILATION AND BINARIES WITH 'timeout' TO AVOID CRASHING THE COMPUTER.
+
 ## Design Principles
 
 1. **Consistency** - Method naming follows existing conventions (camelCase like arrays/strings)

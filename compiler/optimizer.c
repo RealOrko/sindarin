@@ -360,6 +360,13 @@ void collect_used_variables(Expr *expr, Token **used_vars, int *used_count,
         }
         break;
 
+    case EXPR_STATIC_CALL:
+        for (int i = 0; i < expr->as.static_call.arg_count; i++)
+        {
+            collect_used_variables(expr->as.static_call.arguments[i], used_vars, used_count, used_capacity, arena);
+        }
+        break;
+
     case EXPR_LITERAL:
     default:
         break;

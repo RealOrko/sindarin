@@ -344,6 +344,12 @@ static void collect_captured_vars(Expr *expr, LambdaExpr *lambda, SymbolTable *t
             }
         }
         break;
+    case EXPR_STATIC_CALL:
+        for (int i = 0; i < expr->as.static_call.arg_count; i++)
+        {
+            collect_captured_vars(expr->as.static_call.arguments[i], lambda, table, cv, lv, enclosing, arena);
+        }
+        break;
     case EXPR_LITERAL:
     default:
         break;
@@ -514,6 +520,9 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
                 break;
             case TYPE_BOOL:
                 arr_suffix = "bool";
+                break;
+            case TYPE_BYTE:
+                arr_suffix = "byte";
                 break;
             case TYPE_STRING:
                 arr_suffix = "string";
@@ -938,6 +947,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BOOL:
                         push_func = "rt_array_push_bool";
                         break;
+                    case TYPE_BYTE:
+                        push_func = "rt_array_push_byte";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for push\n");
                         exit(1);
@@ -974,6 +986,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BOOL:
                         pop_func = "rt_array_pop_bool";
                         break;
+                    case TYPE_BYTE:
+                        pop_func = "rt_array_pop_byte";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for pop\n");
                         exit(1);
@@ -1001,6 +1016,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         break;
                     case TYPE_BOOL:
                         concat_func = "rt_array_concat_bool";
+                        break;
+                    case TYPE_BYTE:
+                        concat_func = "rt_array_concat_byte";
                         break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for concat\n");
@@ -1031,6 +1049,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BOOL:
                         indexof_func = "rt_array_indexOf_bool";
                         break;
+                    case TYPE_BYTE:
+                        indexof_func = "rt_array_indexOf_byte";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for indexOf\n");
                         exit(1);
@@ -1059,6 +1080,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BOOL:
                         contains_func = "rt_array_contains_bool";
                         break;
+                    case TYPE_BYTE:
+                        contains_func = "rt_array_contains_byte";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for contains\n");
                         exit(1);
@@ -1085,6 +1109,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         break;
                     case TYPE_BOOL:
                         clone_func = "rt_array_clone_bool";
+                        break;
+                    case TYPE_BYTE:
+                        clone_func = "rt_array_clone_byte";
                         break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for clone\n");
@@ -1114,6 +1141,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BOOL:
                         join_func = "rt_array_join_bool";
                         break;
+                    case TYPE_BYTE:
+                        join_func = "rt_array_join_byte";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for join\n");
                         exit(1);
@@ -1140,6 +1170,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         break;
                     case TYPE_BOOL:
                         rev_func = "rt_array_rev_bool";
+                        break;
+                    case TYPE_BYTE:
+                        rev_func = "rt_array_rev_byte";
                         break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for reverse\n");
@@ -1174,6 +1207,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BOOL:
                         ins_func = "rt_array_ins_bool";
                         break;
+                    case TYPE_BYTE:
+                        ins_func = "rt_array_ins_byte";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for insert\n");
                         exit(1);
@@ -1206,6 +1242,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BOOL:
                         rem_func = "rt_array_rem_bool";
                         break;
+                    case TYPE_BYTE:
+                        rem_func = "rt_array_rem_byte";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for remove\n");
                         exit(1);
@@ -1215,6 +1254,33 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     return arena_sprintf(gen->arena, "(%s = %s(%s, %s, %s))", object_str, rem_func, ARENA_VAR(gen), object_str, idx_str);
                 }
                 return arena_sprintf(gen->arena, "%s(%s, %s, %s)", rem_func, ARENA_VAR(gen), object_str, idx_str);
+            }
+
+            /* Byte array extension methods - only for byte[] */
+            if (element_type->kind == TYPE_BYTE) {
+                // Handle toString() - UTF-8 decoding
+                if (strcmp(member_name_str, "toString") == 0 && call->arg_count == 0) {
+                    return arena_sprintf(gen->arena, "rt_byte_array_to_string(%s, %s)",
+                        ARENA_VAR(gen), object_str);
+                }
+
+                // Handle toStringLatin1() - Latin-1/ISO-8859-1 decoding
+                if (strcmp(member_name_str, "toStringLatin1") == 0 && call->arg_count == 0) {
+                    return arena_sprintf(gen->arena, "rt_byte_array_to_string_latin1(%s, %s)",
+                        ARENA_VAR(gen), object_str);
+                }
+
+                // Handle toHex() - hexadecimal encoding
+                if (strcmp(member_name_str, "toHex") == 0 && call->arg_count == 0) {
+                    return arena_sprintf(gen->arena, "rt_byte_array_to_hex(%s, %s)",
+                        ARENA_VAR(gen), object_str);
+                }
+
+                // Handle toBase64() - Base64 encoding
+                if (strcmp(member_name_str, "toBase64") == 0 && call->arg_count == 0) {
+                    return arena_sprintf(gen->arena, "rt_byte_array_to_base64(%s, %s)",
+                        ARENA_VAR(gen), object_str);
+                }
             }
         }
 
@@ -1378,7 +1444,271 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 return arena_sprintf(gen->arena, "(char)rt_str_charAt(%s, %s)", object_str, index_str);
             }
 
+            // Handle toBytes() - returns byte array (UTF-8 encoding)
+            if (strcmp(member_name_str, "toBytes") == 0 && call->arg_count == 0) {
+                if (object_is_temp) {
+                    if (gen->current_arena_var != NULL) {
+                        return arena_sprintf(gen->arena,
+                            "({ char *_obj_tmp = %s; unsigned char *_res = rt_string_to_bytes(%s, _obj_tmp); _res; })",
+                            object_str, ARENA_VAR(gen));
+                    }
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; unsigned char *_res = rt_string_to_bytes(%s, _obj_tmp); rt_free_string(_obj_tmp); _res; })",
+                        object_str, ARENA_VAR(gen));
+                }
+                return arena_sprintf(gen->arena, "rt_string_to_bytes(%s, %s)", ARENA_VAR(gen), object_str);
+            }
+
+            // Handle splitWhitespace() - returns string array
+            if (strcmp(member_name_str, "splitWhitespace") == 0 && call->arg_count == 0) {
+                if (object_is_temp) {
+                    if (gen->current_arena_var != NULL) {
+                        return arena_sprintf(gen->arena,
+                            "({ char *_obj_tmp = %s; char **_res = rt_str_split_whitespace(%s, _obj_tmp); _res; })",
+                            object_str, ARENA_VAR(gen));
+                    }
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; char **_res = rt_str_split_whitespace(%s, _obj_tmp); rt_free_string(_obj_tmp); _res; })",
+                        object_str, ARENA_VAR(gen));
+                }
+                return arena_sprintf(gen->arena, "rt_str_split_whitespace(%s, %s)", ARENA_VAR(gen), object_str);
+            }
+
+            // Handle splitLines() - returns string array
+            if (strcmp(member_name_str, "splitLines") == 0 && call->arg_count == 0) {
+                if (object_is_temp) {
+                    if (gen->current_arena_var != NULL) {
+                        return arena_sprintf(gen->arena,
+                            "({ char *_obj_tmp = %s; char **_res = rt_str_split_lines(%s, _obj_tmp); _res; })",
+                            object_str, ARENA_VAR(gen));
+                    }
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; char **_res = rt_str_split_lines(%s, _obj_tmp); rt_free_string(_obj_tmp); _res; })",
+                        object_str, ARENA_VAR(gen));
+                }
+                return arena_sprintf(gen->arena, "rt_str_split_lines(%s, %s)", ARENA_VAR(gen), object_str);
+            }
+
+            // Handle isBlank() - returns bool
+            if (strcmp(member_name_str, "isBlank") == 0 && call->arg_count == 0) {
+                if (object_is_temp) {
+                    if (gen->current_arena_var != NULL) {
+                        return arena_sprintf(gen->arena,
+                            "({ char *_obj_tmp = %s; int _res = rt_str_is_blank(_obj_tmp); _res; })",
+                            object_str);
+                    }
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; int _res = rt_str_is_blank(_obj_tmp); rt_free_string(_obj_tmp); _res; })",
+                        object_str);
+                }
+                return arena_sprintf(gen->arena, "rt_str_is_blank(%s)", object_str);
+            }
+
             #undef STRING_METHOD_RETURNING_STRING
+        }
+
+        /* TextFile instance methods */
+        if (object_type->kind == TYPE_TEXT_FILE) {
+            char *object_str = code_gen_expression(gen, member->object);
+
+            /* readChar() -> rt_text_file_read_char(file) returns long (-1 on EOF) */
+            if (strcmp(member_name_str, "readChar") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_read_char(%s)", object_str);
+            }
+
+            /* readWord() -> rt_text_file_read_word(arena, file) */
+            if (strcmp(member_name_str, "readWord") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_read_word(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* readLine() -> rt_text_file_read_line(arena, file) */
+            if (strcmp(member_name_str, "readLine") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_read_line(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* readAll() (instance) -> rt_text_file_instance_read_all(arena, file) */
+            if (strcmp(member_name_str, "readAll") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_instance_read_all(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* readLines() -> rt_text_file_read_lines(arena, file) */
+            if (strcmp(member_name_str, "readLines") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_read_lines(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* readInto(buffer) -> rt_text_file_read_into(file, buffer) */
+            if (strcmp(member_name_str, "readInto") == 0 && call->arg_count == 1) {
+                char *buffer_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_text_file_read_into(%s, %s)",
+                    object_str, buffer_str);
+            }
+
+            /* close() -> rt_text_file_close(file) */
+            if (strcmp(member_name_str, "close") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_close(%s)", object_str);
+            }
+
+            /* writeChar(ch) -> rt_text_file_write_char(file, ch) */
+            if (strcmp(member_name_str, "writeChar") == 0 && call->arg_count == 1) {
+                char *ch_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_text_file_write_char(%s, %s)",
+                    object_str, ch_str);
+            }
+
+            /* write(text) -> rt_text_file_write(file, text) */
+            if (strcmp(member_name_str, "write") == 0 && call->arg_count == 1) {
+                char *text_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_text_file_write(%s, %s)",
+                    object_str, text_str);
+            }
+
+            /* writeLine(text) -> rt_text_file_write_line(file, text) */
+            if (strcmp(member_name_str, "writeLine") == 0 && call->arg_count == 1) {
+                char *text_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_text_file_write_line(%s, %s)",
+                    object_str, text_str);
+            }
+
+            /* print(text) -> rt_text_file_print(file, text) */
+            if (strcmp(member_name_str, "print") == 0 && call->arg_count == 1) {
+                char *text_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_text_file_print(%s, %s)",
+                    object_str, text_str);
+            }
+
+            /* println(text) -> rt_text_file_println(file, text) */
+            if (strcmp(member_name_str, "println") == 0 && call->arg_count == 1) {
+                char *text_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_text_file_println(%s, %s)",
+                    object_str, text_str);
+            }
+
+            /* hasChars() -> rt_text_file_has_chars(file) */
+            if (strcmp(member_name_str, "hasChars") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_has_chars(%s)", object_str);
+            }
+
+            /* hasWords() -> rt_text_file_has_words(file) */
+            if (strcmp(member_name_str, "hasWords") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_has_words(%s)", object_str);
+            }
+
+            /* hasLines() -> rt_text_file_has_lines(file) */
+            if (strcmp(member_name_str, "hasLines") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_has_lines(%s)", object_str);
+            }
+
+            /* isEof() -> rt_text_file_is_eof(file) */
+            if (strcmp(member_name_str, "isEof") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_is_eof(%s)", object_str);
+            }
+
+            /* position() -> rt_text_file_position(file) */
+            if (strcmp(member_name_str, "position") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_position(%s)", object_str);
+            }
+
+            /* seek(pos) -> rt_text_file_seek(file, pos) */
+            if (strcmp(member_name_str, "seek") == 0 && call->arg_count == 1) {
+                char *pos_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_text_file_seek(%s, %s)",
+                    object_str, pos_str);
+            }
+
+            /* rewind() -> rt_text_file_rewind(file) */
+            if (strcmp(member_name_str, "rewind") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_rewind(%s)", object_str);
+            }
+
+            /* flush() -> rt_text_file_flush(file) */
+            if (strcmp(member_name_str, "flush") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_text_file_flush(%s)", object_str);
+            }
+        }
+
+        /* BinaryFile instance methods */
+        if (object_type->kind == TYPE_BINARY_FILE) {
+            char *object_str = code_gen_expression(gen, member->object);
+
+            /* readByte() -> rt_binary_file_read_byte(file) returns long (-1 on EOF) */
+            if (strcmp(member_name_str, "readByte") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_read_byte(%s)", object_str);
+            }
+
+            /* readBytes(count) -> rt_binary_file_read_bytes(arena, file, count) */
+            if (strcmp(member_name_str, "readBytes") == 0 && call->arg_count == 1) {
+                char *count_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_binary_file_read_bytes(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, count_str);
+            }
+
+            /* readAll() (instance) -> rt_binary_file_instance_read_all(arena, file) */
+            if (strcmp(member_name_str, "readAll") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_instance_read_all(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* readInto(buffer) -> rt_binary_file_read_into(file, buffer) */
+            if (strcmp(member_name_str, "readInto") == 0 && call->arg_count == 1) {
+                char *buffer_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_binary_file_read_into(%s, %s)",
+                    object_str, buffer_str);
+            }
+
+            /* close() -> rt_binary_file_close(file) */
+            if (strcmp(member_name_str, "close") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_close(%s)", object_str);
+            }
+
+            /* writeByte(b) -> rt_binary_file_write_byte(file, b) */
+            if (strcmp(member_name_str, "writeByte") == 0 && call->arg_count == 1) {
+                char *byte_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_binary_file_write_byte(%s, %s)",
+                    object_str, byte_str);
+            }
+
+            /* writeBytes(data) -> rt_binary_file_write_bytes(file, data) */
+            if (strcmp(member_name_str, "writeBytes") == 0 && call->arg_count == 1) {
+                char *data_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_binary_file_write_bytes(%s, %s)",
+                    object_str, data_str);
+            }
+
+            /* hasBytes() -> rt_binary_file_has_bytes(file) */
+            if (strcmp(member_name_str, "hasBytes") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_has_bytes(%s)", object_str);
+            }
+
+            /* isEof() -> rt_binary_file_is_eof(file) */
+            if (strcmp(member_name_str, "isEof") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_is_eof(%s)", object_str);
+            }
+
+            /* position() -> rt_binary_file_position(file) */
+            if (strcmp(member_name_str, "position") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_position(%s)", object_str);
+            }
+
+            /* seek(pos) -> rt_binary_file_seek(file, pos) */
+            if (strcmp(member_name_str, "seek") == 0 && call->arg_count == 1) {
+                char *pos_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_binary_file_seek(%s, %s)",
+                    object_str, pos_str);
+            }
+
+            /* rewind() -> rt_binary_file_rewind(file) */
+            if (strcmp(member_name_str, "rewind") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_rewind(%s)", object_str);
+            }
+
+            /* flush() -> rt_binary_file_flush(file) */
+            if (strcmp(member_name_str, "flush") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_binary_file_flush(%s)", object_str);
+            }
         }
     }
 
@@ -1391,7 +1721,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
     {
         char *name = get_var_name(gen->arena, call->callee->as.variable.name);
         /* Skip builtins */
-        if (strcmp(name, "print") != 0 && strcmp(name, "len") != 0)
+        if (strcmp(name, "print") != 0 && strcmp(name, "len") != 0 &&
+            strcmp(name, "readLine") != 0 && strcmp(name, "println") != 0 &&
+            strcmp(name, "printErr") != 0 && strcmp(name, "printErrLn") != 0)
         {
             /* Check if this is a named function or a closure variable */
             Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
@@ -1472,6 +1804,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             case TYPE_BOOL:
                 print_func = "rt_print_bool";
                 break;
+            case TYPE_BYTE:
+                print_func = "rt_print_byte";
+                break;
             case TYPE_STRING:
                 print_func = "rt_print_string";
                 break;
@@ -1492,6 +1827,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     break;
                 case TYPE_BOOL:
                     print_func = "rt_print_array_bool";
+                    break;
+                case TYPE_BYTE:
+                    print_func = "rt_print_array_byte";
                     break;
                 case TYPE_STRING:
                     print_func = "rt_print_array_string";
@@ -1517,6 +1855,56 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 return arena_sprintf(gen->arena, "(long)strlen(%s)", arg_strs[0]);
             }
             return arena_sprintf(gen->arena, "rt_array_length(%s)", arg_strs[0]);
+        }
+        // readLine() -> rt_read_line(arena)
+        else if (strcmp(callee_name, "readLine") == 0 && call->arg_count == 0)
+        {
+            return arena_sprintf(gen->arena, "rt_read_line(%s)", ARENA_VAR(gen));
+        }
+        // println(arg) -> rt_println(to_string(arg))
+        else if (strcmp(callee_name, "println") == 0 && call->arg_count == 1)
+        {
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type->kind == TYPE_STRING)
+            {
+                return arena_sprintf(gen->arena, "rt_println(%s)", arg_strs[0]);
+            }
+            else
+            {
+                const char *to_str_func = get_rt_to_string_func(arg_type->kind);
+                return arena_sprintf(gen->arena, "rt_println(%s(%s, %s))",
+                                     to_str_func, ARENA_VAR(gen), arg_strs[0]);
+            }
+        }
+        // printErr(arg) -> rt_print_err(to_string(arg))
+        else if (strcmp(callee_name, "printErr") == 0 && call->arg_count == 1)
+        {
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type->kind == TYPE_STRING)
+            {
+                return arena_sprintf(gen->arena, "rt_print_err(%s)", arg_strs[0]);
+            }
+            else
+            {
+                const char *to_str_func = get_rt_to_string_func(arg_type->kind);
+                return arena_sprintf(gen->arena, "rt_print_err(%s(%s, %s))",
+                                     to_str_func, ARENA_VAR(gen), arg_strs[0]);
+            }
+        }
+        // printErrLn(arg) -> rt_print_err_ln(to_string(arg))
+        else if (strcmp(callee_name, "printErrLn") == 0 && call->arg_count == 1)
+        {
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type->kind == TYPE_STRING)
+            {
+                return arena_sprintf(gen->arena, "rt_print_err_ln(%s)", arg_strs[0]);
+            }
+            else
+            {
+                const char *to_str_func = get_rt_to_string_func(arg_type->kind);
+                return arena_sprintf(gen->arena, "rt_print_err_ln(%s(%s, %s))",
+                                     to_str_func, ARENA_VAR(gen), arg_strs[0]);
+            }
         }
         // Note: Other array operations are method-style only:
         //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
@@ -1653,6 +2041,7 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
         case TYPE_DOUBLE: suffix = "double"; break;
         case TYPE_CHAR: suffix = "char"; break;
         case TYPE_BOOL: suffix = "bool"; break;
+        case TYPE_BYTE: suffix = "byte"; break;
         case TYPE_STRING: suffix = "string"; break;
         default: suffix = NULL; break;
     }
@@ -1793,6 +2182,40 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
         return arena_sprintf(gen->arena, "rt_str_length(%s)", object_str);
     }
 
+    // Handle TextFile.path
+    if (object_type->kind == TYPE_TEXT_FILE && strcmp(member_name_str, "path") == 0) {
+        return arena_sprintf(gen->arena, "rt_text_file_get_path(%s, %s)",
+            ARENA_VAR(gen), object_str);
+    }
+
+    // Handle TextFile.name
+    if (object_type->kind == TYPE_TEXT_FILE && strcmp(member_name_str, "name") == 0) {
+        return arena_sprintf(gen->arena, "rt_text_file_get_name(%s, %s)",
+            ARENA_VAR(gen), object_str);
+    }
+
+    // Handle TextFile.size
+    if (object_type->kind == TYPE_TEXT_FILE && strcmp(member_name_str, "size") == 0) {
+        return arena_sprintf(gen->arena, "rt_text_file_get_size(%s)", object_str);
+    }
+
+    // Handle BinaryFile.path
+    if (object_type->kind == TYPE_BINARY_FILE && strcmp(member_name_str, "path") == 0) {
+        return arena_sprintf(gen->arena, "rt_binary_file_get_path(%s, %s)",
+            ARENA_VAR(gen), object_str);
+    }
+
+    // Handle BinaryFile.name
+    if (object_type->kind == TYPE_BINARY_FILE && strcmp(member_name_str, "name") == 0) {
+        return arena_sprintf(gen->arena, "rt_binary_file_get_name(%s, %s)",
+            ARENA_VAR(gen), object_str);
+    }
+
+    // Handle BinaryFile.size
+    if (object_type->kind == TYPE_BINARY_FILE && strcmp(member_name_str, "size") == 0) {
+        return arena_sprintf(gen->arena, "rt_binary_file_get_size(%s)", object_str);
+    }
+
     // Generic struct member access (not currently supported)
     fprintf(stderr, "Error: Unsupported member access on type\n");
     exit(1);
@@ -1850,6 +2273,9 @@ char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
             break;
         case TYPE_BOOL:
             slice_func = "rt_array_slice_bool";
+            break;
+        case TYPE_BYTE:
+            slice_func = "rt_array_slice_byte";
             break;
         default:
             fprintf(stderr, "Error: Unsupported array element type for slice\n");
@@ -2322,6 +2748,298 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
     }
 }
 
+static bool codegen_token_equals(Token tok, const char *str)
+{
+    size_t len = strlen(str);
+    return tok.length == (int)len && strncmp(tok.start, str, len) == 0;
+}
+
+static char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_static_call_expression");
+    StaticCallExpr *call = &expr->as.static_call;
+    Token type_name = call->type_name;
+    Token method_name = call->method_name;
+
+    /* Generate argument expressions */
+    char *arg0 = call->arg_count > 0 ? code_gen_expression(gen, call->arguments[0]) : NULL;
+    char *arg1 = call->arg_count > 1 ? code_gen_expression(gen, call->arguments[1]) : NULL;
+
+    /* TextFile static methods */
+    if (codegen_token_equals(type_name, "TextFile"))
+    {
+        if (codegen_token_equals(method_name, "open"))
+        {
+            /* TextFile.open(path) -> rt_text_file_open(arena, path) */
+            return arena_sprintf(gen->arena, "rt_text_file_open(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "exists"))
+        {
+            /* TextFile.exists(path) -> rt_text_file_exists(path) */
+            return arena_sprintf(gen->arena, "rt_text_file_exists(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "readAll"))
+        {
+            /* TextFile.readAll(path) -> rt_text_file_read_all(arena, path) */
+            return arena_sprintf(gen->arena, "rt_text_file_read_all(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "writeAll"))
+        {
+            /* TextFile.writeAll(path, content) -> rt_text_file_write_all(path, content) */
+            return arena_sprintf(gen->arena, "rt_text_file_write_all(%s, %s)", arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "delete"))
+        {
+            /* TextFile.delete(path) -> rt_text_file_delete(path) */
+            return arena_sprintf(gen->arena, "rt_text_file_delete(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "copy"))
+        {
+            /* TextFile.copy(src, dst) -> rt_text_file_copy(src, dst) */
+            return arena_sprintf(gen->arena, "rt_text_file_copy(%s, %s)", arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "move"))
+        {
+            /* TextFile.move(src, dst) -> rt_text_file_move(src, dst) */
+            return arena_sprintf(gen->arena, "rt_text_file_move(%s, %s)", arg0, arg1);
+        }
+    }
+
+    /* BinaryFile static methods */
+    if (codegen_token_equals(type_name, "BinaryFile"))
+    {
+        if (codegen_token_equals(method_name, "open"))
+        {
+            /* BinaryFile.open(path) -> rt_binary_file_open(arena, path) */
+            return arena_sprintf(gen->arena, "rt_binary_file_open(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "exists"))
+        {
+            /* BinaryFile.exists(path) -> rt_binary_file_exists(path) */
+            return arena_sprintf(gen->arena, "rt_binary_file_exists(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "readAll"))
+        {
+            /* BinaryFile.readAll(path) -> rt_binary_file_read_all(arena, path) */
+            return arena_sprintf(gen->arena, "rt_binary_file_read_all(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "writeAll"))
+        {
+            /* BinaryFile.writeAll(path, data) -> rt_binary_file_write_all(path, data) */
+            return arena_sprintf(gen->arena, "rt_binary_file_write_all(%s, %s)", arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "delete"))
+        {
+            /* BinaryFile.delete(path) -> rt_binary_file_delete(path) */
+            return arena_sprintf(gen->arena, "rt_binary_file_delete(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "copy"))
+        {
+            /* BinaryFile.copy(src, dst) -> rt_binary_file_copy(src, dst) */
+            return arena_sprintf(gen->arena, "rt_binary_file_copy(%s, %s)", arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "move"))
+        {
+            /* BinaryFile.move(src, dst) -> rt_binary_file_move(src, dst) */
+            return arena_sprintf(gen->arena, "rt_binary_file_move(%s, %s)", arg0, arg1);
+        }
+    }
+
+    /* Stdin static methods */
+    if (codegen_token_equals(type_name, "Stdin"))
+    {
+        if (codegen_token_equals(method_name, "readLine"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdin_read_line(%s)", ARENA_VAR(gen));
+        }
+        else if (codegen_token_equals(method_name, "readChar"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdin_read_char()");
+        }
+        else if (codegen_token_equals(method_name, "readWord"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdin_read_word(%s)", ARENA_VAR(gen));
+        }
+        else if (codegen_token_equals(method_name, "hasChars"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdin_has_chars()");
+        }
+        else if (codegen_token_equals(method_name, "hasLines"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdin_has_lines()");
+        }
+        else if (codegen_token_equals(method_name, "isEof"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdin_is_eof()");
+        }
+    }
+
+    /* Stdout static methods */
+    if (codegen_token_equals(type_name, "Stdout"))
+    {
+        if (codegen_token_equals(method_name, "write"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdout_write(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "writeLine"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdout_write_line(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "flush"))
+        {
+            return arena_sprintf(gen->arena, "rt_stdout_flush()");
+        }
+    }
+
+    /* Stderr static methods */
+    if (codegen_token_equals(type_name, "Stderr"))
+    {
+        if (codegen_token_equals(method_name, "write"))
+        {
+            return arena_sprintf(gen->arena, "rt_stderr_write(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "writeLine"))
+        {
+            return arena_sprintf(gen->arena, "rt_stderr_write_line(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "flush"))
+        {
+            return arena_sprintf(gen->arena, "rt_stderr_flush()");
+        }
+    }
+
+    /* Bytes static methods */
+    if (codegen_token_equals(type_name, "Bytes"))
+    {
+        if (codegen_token_equals(method_name, "fromHex"))
+        {
+            /* Bytes.fromHex(hex) -> rt_bytes_from_hex(arena, hex) */
+            return arena_sprintf(gen->arena, "rt_bytes_from_hex(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "fromBase64"))
+        {
+            /* Bytes.fromBase64(b64) -> rt_bytes_from_base64(arena, b64) */
+            return arena_sprintf(gen->arena, "rt_bytes_from_base64(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+    }
+
+    /* Path static methods */
+    if (codegen_token_equals(type_name, "Path"))
+    {
+        if (codegen_token_equals(method_name, "directory"))
+        {
+            /* Path.directory(path) -> rt_path_directory(arena, path) */
+            return arena_sprintf(gen->arena, "rt_path_directory(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "filename"))
+        {
+            /* Path.filename(path) -> rt_path_filename(arena, path) */
+            return arena_sprintf(gen->arena, "rt_path_filename(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "extension"))
+        {
+            /* Path.extension(path) -> rt_path_extension(arena, path) */
+            return arena_sprintf(gen->arena, "rt_path_extension(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "join"))
+        {
+            /* Path.join handles 2 or 3 arguments */
+            if (call->arg_count == 2)
+            {
+                return arena_sprintf(gen->arena, "rt_path_join2(%s, %s, %s)",
+                                     ARENA_VAR(gen), arg0, arg1);
+            }
+            else if (call->arg_count == 3)
+            {
+                char *arg2 = code_gen_expression(gen, call->arguments[2]);
+                return arena_sprintf(gen->arena, "rt_path_join3(%s, %s, %s, %s)",
+                                     ARENA_VAR(gen), arg0, arg1, arg2);
+            }
+            else
+            {
+                /* For more than 3 arguments, chain the joins */
+                char *result = arena_sprintf(gen->arena, "rt_path_join2(%s, %s, %s)",
+                                            ARENA_VAR(gen), arg0, arg1);
+                for (int i = 2; i < call->arg_count; i++)
+                {
+                    char *next_arg = code_gen_expression(gen, call->arguments[i]);
+                    result = arena_sprintf(gen->arena, "rt_path_join2(%s, %s, %s)",
+                                          ARENA_VAR(gen), result, next_arg);
+                }
+                return result;
+            }
+        }
+        else if (codegen_token_equals(method_name, "absolute"))
+        {
+            /* Path.absolute(path) -> rt_path_absolute(arena, path) */
+            return arena_sprintf(gen->arena, "rt_path_absolute(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "exists"))
+        {
+            /* Path.exists(path) -> rt_path_exists(path) */
+            return arena_sprintf(gen->arena, "rt_path_exists(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "isFile"))
+        {
+            /* Path.isFile(path) -> rt_path_is_file(path) */
+            return arena_sprintf(gen->arena, "rt_path_is_file(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "isDirectory"))
+        {
+            /* Path.isDirectory(path) -> rt_path_is_directory(path) */
+            return arena_sprintf(gen->arena, "rt_path_is_directory(%s)", arg0);
+        }
+    }
+
+    /* Directory static methods */
+    if (codegen_token_equals(type_name, "Directory"))
+    {
+        if (codegen_token_equals(method_name, "list"))
+        {
+            /* Directory.list(path) -> rt_directory_list(arena, path) */
+            return arena_sprintf(gen->arena, "rt_directory_list(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "listRecursive"))
+        {
+            /* Directory.listRecursive(path) -> rt_directory_list_recursive(arena, path) */
+            return arena_sprintf(gen->arena, "rt_directory_list_recursive(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "create"))
+        {
+            /* Directory.create(path) -> rt_directory_create(path) */
+            return arena_sprintf(gen->arena, "rt_directory_create(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "delete"))
+        {
+            /* Directory.delete(path) -> rt_directory_delete(path) */
+            return arena_sprintf(gen->arena, "rt_directory_delete(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "deleteRecursive"))
+        {
+            /* Directory.deleteRecursive(path) -> rt_directory_delete_recursive(path) */
+            return arena_sprintf(gen->arena, "rt_directory_delete_recursive(%s)", arg0);
+        }
+    }
+
+    /* Fallback for unimplemented static methods */
+    return arena_sprintf(gen->arena,
+        "(fprintf(stderr, \"Static method call not yet implemented: %.*s.%.*s\\n\"), exit(1), (void *)0)",
+        type_name.length, type_name.start,
+        method_name.length, method_name.start);
+}
+
 char *code_gen_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_expression");
@@ -2365,6 +3083,8 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_spread_expression(gen, expr);
     case EXPR_LAMBDA:
         return code_gen_lambda_expression(gen, expr);
+    case EXPR_STATIC_CALL:
+        return code_gen_static_call_expression(gen, expr);
     default:
         exit(1);
     }

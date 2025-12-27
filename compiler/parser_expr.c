@@ -1,6 +1,7 @@
 #include "parser_expr.h"
 #include "parser_util.h"
 #include "parser_stmt.h"
+#include "ast_expr.h"
 #include "debug.h"
 #include <stdlib.h>
 #include <string.h>
@@ -355,6 +356,72 @@ Expr *parser_primary(Parser *parser)
     if (parser_match(parser, TOKEN_IDENTIFIER))
     {
         Token var_token = parser->previous;
+
+        /* Check for static method call: TypeName.method() */
+        if (parser_check(parser, TOKEN_DOT) &&
+            parser_is_static_type_name(var_token.start, var_token.length))
+        {
+            /* Save the type name token */
+            Token type_name = var_token;
+            type_name.start = arena_strndup(parser->arena, var_token.start, var_token.length);
+
+            /* Consume the dot */
+            parser_advance(parser);
+
+            /* Expect method name */
+            if (!parser_check(parser, TOKEN_IDENTIFIER))
+            {
+                parser_error_at_current(parser, "Expected method name after '.'");
+                return NULL;
+            }
+            Token method_name = parser->current;
+            method_name.start = arena_strndup(parser->arena, parser->current.start, parser->current.length);
+            parser_advance(parser);
+
+            /* Check for opening paren - must be a call */
+            if (!parser_check(parser, TOKEN_LEFT_PAREN))
+            {
+                parser_error_at_current(parser, "Expected '(' after static method name");
+                return NULL;
+            }
+
+            /* Parse arguments */
+            parser_advance(parser);  /* consume '(' */
+
+            Expr **arguments = NULL;
+            int arg_count = 0;
+            int arg_capacity = 0;
+
+            if (!parser_check(parser, TOKEN_RIGHT_PAREN))
+            {
+                do
+                {
+                    Expr *arg = parser_expression(parser);
+                    if (arg_count >= arg_capacity)
+                    {
+                        arg_capacity = arg_capacity == 0 ? 4 : arg_capacity * 2;
+                        Expr **new_args = arena_alloc(parser->arena, sizeof(Expr *) * arg_capacity);
+                        if (new_args == NULL)
+                        {
+                            parser_error(parser, "Out of memory");
+                            return NULL;
+                        }
+                        if (arguments != NULL && arg_count > 0)
+                        {
+                            memcpy(new_args, arguments, sizeof(Expr *) * arg_count);
+                        }
+                        arguments = new_args;
+                    }
+                    arguments[arg_count++] = arg;
+                } while (parser_match(parser, TOKEN_COMMA));
+            }
+
+            parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after arguments");
+
+            return ast_create_static_call_expr(parser->arena, type_name, method_name,
+                                               arguments, arg_count, &type_name);
+        }
+
         var_token.start = arena_strndup(parser->arena, parser->previous.start, parser->previous.length);
         return ast_create_variable_expr(parser->arena, var_token, &parser->previous);
     }

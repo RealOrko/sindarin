@@ -1,0 +1,15 @@
+Created nested directory: true
+true
+Created files: true
+Files in test dir (count): 3
+Listing contains file1.txt: true
+Listing contains file2.txt: true
+Listing contains sub1: true
+Recursive listing count: 5
+Recursive listing contains sub1/sub2: true
+Recursive listing contains sub1/subfile.txt: true
+Empty dir exists before delete: true
+Empty dir exists after delete: false
+Test dir exists before deleteRecursive: true
+Test dir exists after deleteRecursive: false
+All directory tests completed!
