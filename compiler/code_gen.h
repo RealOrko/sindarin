@@ -7,6 +7,12 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+/* Arithmetic mode for code generation */
+typedef enum {
+    ARITH_CHECKED,     /* Use runtime functions with overflow checking (default) */
+    ARITH_UNCHECKED    /* Use native C operators without overflow checking */
+} ArithmeticMode;
+
 typedef struct {
     Arena *arena;
     int label_count;
@@ -41,6 +47,13 @@ typedef struct {
     /* Buffered output for correct ordering */
     char *function_definitions; // Buffer for user function definitions
     bool buffering_functions;   // Are we buffering to function_definitions?
+
+    /* Optimization settings */
+    ArithmeticMode arithmetic_mode;  // Checked or unchecked arithmetic
+
+    /* Tail call optimization state */
+    bool in_tail_call_function;     // Are we generating a tail-call-optimized function?
+    FunctionStmt *tail_call_fn;     // The function being optimized (for param access)
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);

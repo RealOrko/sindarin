@@ -1,6 +1,7 @@
 #include "compiler.h"
 #include "debug.h"
 #include "type_checker.h"
+#include "optimizer.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -18,6 +19,8 @@ void compiler_init(CompilerOptions *options, int argc, char **argv)
     options->source = NULL;
     options->verbose = 0;
     options->log_level = DEBUG_LEVEL_ERROR;
+    options->arithmetic_mode = ARITH_CHECKED;  /* Default to checked arithmetic */
+    options->optimization_level = OPT_LEVEL_FULL;  /* Default to full optimization (-O2) */
 
     if (!compiler_parse_args(argc, argv, options))
     {
@@ -48,10 +51,16 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
     if (argc < 2)
     {
         fprintf(stderr,
-            "Usage: %s <source_file> [-o <output_file>] [-v] [-l <level>]\n"
+            "Usage: %s <source_file> [-o <output_file>] [-v] [-l <level>] [--unchecked] [-O<level>]\n"
             "  -o <output_file>   Specify output file (default is source_file.s)\n"
             "  -v                 Verbose mode\n"
-            "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)\n",
+            "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)\n"
+            "  --unchecked        Use unchecked arithmetic (no overflow checking, faster)\n"
+            "\n"
+            "Optimization levels:\n"
+            "  -O0                No optimization (for debugging)\n"
+            "  -O1                Basic optimizations (dead code elimination, string merging)\n"
+            "  -O2                Full optimizations (default: + tail call optimization)\n",
             argv[0]);
         return 0;
     }
@@ -93,6 +102,27 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
         else if (strcmp(argv[i], "-l") == 0 && i + 1 < argc)
         {
             i++; // Skip the level value, already processed
+        }
+        else if (strcmp(argv[i], "--unchecked") == 0)
+        {
+            options->arithmetic_mode = ARITH_UNCHECKED;
+        }
+        else if (strcmp(argv[i], "-O0") == 0)
+        {
+            options->optimization_level = OPT_LEVEL_NONE;
+        }
+        else if (strcmp(argv[i], "-O1") == 0)
+        {
+            options->optimization_level = OPT_LEVEL_BASIC;
+        }
+        else if (strcmp(argv[i], "-O2") == 0)
+        {
+            options->optimization_level = OPT_LEVEL_FULL;
+        }
+        else if (strcmp(argv[i], "--no-opt") == 0)
+        {
+            /* Legacy flag - equivalent to -O0 */
+            options->optimization_level = OPT_LEVEL_NONE;
         }
         else if (argv[i][0] == '-')
         {
@@ -160,6 +190,52 @@ Module* compiler_compile(CompilerOptions *options)
     {
         DEBUG_ERROR("Type checking failed");
         return NULL;
+    }
+
+    /* Run optimization passes based on optimization level */
+    if (options->optimization_level >= OPT_LEVEL_BASIC)
+    {
+        Optimizer opt;
+        optimizer_init(&opt, &options->arena);
+
+        /* -O1 and above: Dead code elimination */
+        optimizer_dead_code_elimination(&opt, module);
+
+        /* -O1 and above: String literal merging */
+        optimizer_merge_string_literals(&opt, module);
+
+        /* -O2 only: Tail call optimization */
+        if (options->optimization_level >= OPT_LEVEL_FULL)
+        {
+            optimizer_tail_call_optimization(&opt, module);
+        }
+
+        int stmts_removed, vars_removed, noops_removed;
+        optimizer_get_stats(&opt, &stmts_removed, &vars_removed, &noops_removed);
+
+        if (options->verbose)
+        {
+            DEBUG_INFO("Optimization level: -O%d", options->optimization_level);
+            if (stmts_removed > 0 || vars_removed > 0 || noops_removed > 0)
+            {
+                DEBUG_INFO("Optimizer: removed %d unreachable statements, %d unused variables, %d no-ops",
+                           stmts_removed, vars_removed, noops_removed);
+            }
+            if (options->optimization_level >= OPT_LEVEL_FULL && opt.tail_calls_optimized > 0)
+            {
+                DEBUG_INFO("Optimizer: marked %d tail calls for optimization",
+                           opt.tail_calls_optimized);
+            }
+            if (opt.string_literals_merged > 0)
+            {
+                DEBUG_INFO("Optimizer: merged %d adjacent string literals",
+                           opt.string_literals_merged);
+            }
+        }
+    }
+    else if (options->verbose)
+    {
+        DEBUG_INFO("Optimization disabled (-O0)");
     }
 
     return module;

@@ -3,6 +3,7 @@
 #include "code_gen_tests.c"
 #include "file_tests.c"
 #include "lexer_tests.c"
+#include "optimizer_tests.c"
 #include "parser_tests.c"
 #include "runtime_arena_tests.c"
 #include "symbol_table_tests.c"
@@ -55,6 +56,10 @@ int main()
     // *** Type Checker ***
 
     test_type_checker_main();
+
+    // *** Optimizer ***
+
+    run_optimizer_tests();
 
     // *** Complete ***
 

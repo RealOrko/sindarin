@@ -156,7 +156,7 @@ static Type *type_check_variable(Expr *expr, SymbolTable *table)
     Symbol *sym = symbol_table_lookup_symbol(table, expr->as.variable.name);
     if (sym == NULL)
     {
-        type_error(&expr->as.variable.name, "Undefined variable");
+        undefined_variable_error(&expr->as.variable.name, table);
         return NULL;
     }
     if (sym->type == NULL)
@@ -176,7 +176,7 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
     Symbol *sym = symbol_table_lookup_symbol(table, expr->as.assign.name);
     if (sym == NULL)
     {
-        type_error(&expr->as.assign.name, "Undefined variable for assignment");
+        undefined_variable_error_for_assign(&expr->as.assign.name, table);
         return NULL;
     }
 
@@ -324,19 +324,37 @@ static Type *type_check_call(Expr *expr, SymbolTable *table)
 
     // Standard function call handling
     Type *callee_type = type_check_expr(expr->as.call.callee, table);
+
+    /* Get function name for error messages */
+    char func_name[128] = "<anonymous>";
+    if (expr->as.call.callee->type == EXPR_VARIABLE)
+    {
+        int name_len = expr->as.call.callee->as.variable.name.length;
+        int copy_len = name_len < 127 ? name_len : 127;
+        memcpy(func_name, expr->as.call.callee->as.variable.name.start, copy_len);
+        func_name[copy_len] = '\0';
+    }
+
     if (callee_type == NULL)
     {
-        type_error(expr->token, "Invalid callee in function call");
+        char msg[256];
+        snprintf(msg, sizeof(msg), "Invalid callee '%s' in function call", func_name);
+        type_error(expr->token, msg);
         return NULL;
     }
     if (callee_type->kind != TYPE_FUNCTION)
     {
-        type_error(expr->token, "Callee is not a function");
+        char msg[256];
+        snprintf(msg, sizeof(msg), "'%s' is of type '%s', cannot call non-function",
+                 func_name, type_name(callee_type));
+        type_error(expr->token, msg);
         return NULL;
     }
     if (callee_type->as.function.param_count != expr->as.call.arg_count)
     {
-        type_error(expr->token, "Argument count mismatch in call");
+        argument_count_error(expr->token, func_name,
+                            callee_type->as.function.param_count,
+                            expr->as.call.arg_count);
         return NULL;
     }
     for (int i = 0; i < expr->as.call.arg_count; i++)
@@ -391,7 +409,7 @@ static Type *type_check_call(Expr *expr, SymbolTable *table)
         {
             if (!ast_type_equals(arg_type, param_type))
             {
-                type_error(expr->token, "Argument type mismatch in call");
+                argument_type_error(expr->token, func_name, i, param_type, arg_type);
                 return NULL;
             }
         }
@@ -790,7 +808,14 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
     }
     else
     {
-        type_error(expr->token, "Invalid member access");
+        /* Create null-terminated member name for error message */
+        char member_name[128];
+        int name_len = expr->as.member.member_name.length;
+        int copy_len = name_len < 127 ? name_len : 127;
+        memcpy(member_name, expr->as.member.member_name.start, copy_len);
+        member_name[copy_len] = '\0';
+
+        invalid_member_error(expr->token, object_type, member_name);
         return NULL;
     }
 }

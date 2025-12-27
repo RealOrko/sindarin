@@ -56,17 +56,15 @@ void test_code_gen_private_function()
     ast_module_add_statement(&arena, &module, func_decl);
     code_gen_module(&gen, &module);
 
-    // Expected: private function should have rt_arena_create and rt_arena_destroy
+    // Expected: private function without heap allocations doesn't need arena
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
                                         "long compute(void);\n\n"
                                         "long compute() {\n"
-                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                         "    long _return_value = 0;\n"
                                         "    _return_value = 42L;\n"
                                         "    goto compute_return;\n"
                                         "compute_return:\n"
-                                        "    rt_arena_destroy(__arena_1__);\n"
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"
@@ -188,17 +186,15 @@ void test_code_gen_default_function()
     ast_module_add_statement(&arena, &module, func_decl);
     code_gen_module(&gen, &module);
 
-    // Expected: default function DOES have arena lifecycle (like private)
+    // Expected: default function without heap allocations doesn't need arena
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
                                         "long regular(void);\n\n"
                                         "long regular() {\n"
-                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                         "    long _return_value = 0;\n"
                                         "    _return_value = 5L;\n"
                                         "    goto regular_return;\n"
                                         "regular_return:\n"
-                                        "    rt_arena_destroy(__arena_1__);\n"
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"

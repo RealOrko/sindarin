@@ -21,6 +21,7 @@ int main(int argc, char **argv)
 
     CodeGen gen;
     code_gen_init(&options.arena, &gen, &options.symbol_table, options.output_file);
+    gen.arithmetic_mode = options.arithmetic_mode;  /* Set arithmetic mode from compiler options */
     code_gen_module(&gen, module);
     code_gen_cleanup(&gen);
 

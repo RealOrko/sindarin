@@ -233,8 +233,11 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool is_main = strcmp(gen->current_function, "main") == 0;
     bool is_private = stmt->modifier == FUNC_PRIVATE;
     bool is_shared = stmt->modifier == FUNC_SHARED;
-    // All functions have their own arena except shared (which uses caller's arena)
-    bool needs_arena = is_main || !is_shared;
+    // Check if function actually uses heap-allocated types
+    bool uses_heap_types = function_needs_arena(stmt);
+    // Functions need arena only if: (1) not shared AND (2) actually use heap types
+    // Main always needs arena for safety, but regular functions can skip it
+    bool needs_arena = is_main || (!is_shared && uses_heap_types);
 
     // Non-shared functions and main have their own arena context
     if (needs_arena)
@@ -328,19 +331,46 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
         }
     }
 
+    // Check if function has marked tail calls for optimization
+    bool has_tail_calls = function_has_marked_tail_calls(stmt);
+
+    // Set up tail call optimization state
+    bool old_in_tail_call_function = gen->in_tail_call_function;
+    FunctionStmt *old_tail_call_fn = gen->tail_call_fn;
+
+    if (has_tail_calls)
+    {
+        gen->in_tail_call_function = true;
+        gen->tail_call_fn = stmt;
+        // Wrap function body in a loop for tail call optimization
+        indented_fprintf(gen, 1, "while (1) { /* tail call loop */\n");
+    }
+
     bool has_return = false;
     if (stmt->body_count > 0 && stmt->body[stmt->body_count - 1]->type == STMT_RETURN)
     {
         has_return = true;
     }
+
+    int body_indent = has_tail_calls ? 2 : 1;
     for (int i = 0; i < stmt->body_count; i++)
     {
-        code_gen_statement(gen, stmt->body[i], 1);
+        code_gen_statement(gen, stmt->body[i], body_indent);
     }
     if (!has_return)
     {
-        indented_fprintf(gen, 1, "goto %s_return;\n", gen->current_function);
+        indented_fprintf(gen, body_indent, "goto %s_return;\n", gen->current_function);
     }
+
+    if (has_tail_calls)
+    {
+        indented_fprintf(gen, 1, "} /* end tail call loop */\n");
+    }
+
+    // Restore tail call state
+    gen->in_tail_call_function = old_in_tail_call_function;
+    gen->tail_call_fn = old_tail_call_fn;
+
     indented_fprintf(gen, 0, "%s_return:\n", gen->current_function);
     code_gen_free_locals(gen, gen->symbol_table->current, true, 1);
 
@@ -383,6 +413,47 @@ void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt, int indent)
     /* Check if returning from a void function/lambda */
     int is_void_return = (gen->current_return_type && gen->current_return_type->kind == TYPE_VOID);
 
+    /* Check if this return contains a tail call that should be optimized */
+    if (gen->in_tail_call_function && stmt->value &&
+        stmt->value->type == EXPR_CALL && stmt->value->as.call.is_tail_call)
+    {
+        CallExpr *call = &stmt->value->as.call;
+        FunctionStmt *fn = gen->tail_call_fn;
+
+        /* Generate parameter assignments */
+        /* For multiple parameters, we need temp variables to handle cases like
+           return f(b, a) when the current params are (a, b) */
+        if (fn->param_count > 1)
+        {
+            /* First, generate temp variables for all new argument values */
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                const char *param_type_c = get_c_type(gen->arena, fn->params[i].type);
+                char *arg_str = code_gen_expression(gen, call->arguments[i]);
+                indented_fprintf(gen, indent, "%s __tail_arg_%d__ = %s;\n",
+                                 param_type_c, i, arg_str);
+            }
+            /* Then, assign temps to actual parameters */
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                char *param_name = get_var_name(gen->arena, fn->params[i].name);
+                indented_fprintf(gen, indent, "%s = __tail_arg_%d__;\n",
+                                 param_name, i);
+            }
+        }
+        else if (fn->param_count == 1)
+        {
+            /* Single parameter - direct assignment is safe */
+            char *param_name = get_var_name(gen->arena, fn->params[0].name);
+            char *arg_str = code_gen_expression(gen, call->arguments[0]);
+            indented_fprintf(gen, indent, "%s = %s;\n", param_name, arg_str);
+        }
+        /* Continue the tail call loop */
+        indented_fprintf(gen, indent, "continue;\n");
+        return;
+    }
+
+    /* Normal return */
     if (stmt->value && !is_void_return)
     {
         char *value_str = code_gen_expression(gen, stmt->value);

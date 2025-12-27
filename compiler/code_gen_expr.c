@@ -428,6 +428,15 @@ bool expression_produces_temp(Expr *expr)
     }
 }
 
+/* Check if an expression is a string literal - can be used directly without copying */
+static bool is_string_literal_expr(Expr *expr)
+{
+    if (expr == NULL) return false;
+    if (expr->type != EXPR_LITERAL) return false;
+    if (expr->expr_type == NULL) return false;
+    return expr->expr_type->kind == TYPE_STRING;
+}
+
 /* Helper to determine if a type is numeric */
 static bool is_numeric(Type *type)
 {
@@ -461,6 +470,15 @@ static Type *get_binary_promoted_type(Type *left, Type *right)
 char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_binary_expression");
+
+    /* Try constant folding first - if both operands are constants,
+       evaluate at compile time and emit a direct literal */
+    char *folded = try_constant_fold_binary(gen, expr);
+    if (folded != NULL)
+    {
+        return folded;
+    }
+
     char *left_str = code_gen_expression(gen, expr->left);
     char *right_str = code_gen_expression(gen, expr->right);
     Type *left_type = expr->left->expr_type;
@@ -533,6 +551,13 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
     }
     else
     {
+        /* Try to use native C operators in unchecked mode */
+        char *native = gen_native_arithmetic(gen, left_str, right_str, op, type);
+        if (native != NULL)
+        {
+            return native;
+        }
+        /* Fall back to runtime functions (checked mode or div/mod) */
         return arena_sprintf(gen->arena, "rt_%s_%s(%s, %s)", op_str, suffix, left_str, right_str);
     }
 }
@@ -540,8 +565,26 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
 char *code_gen_unary_expression(CodeGen *gen, UnaryExpr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_unary_expression");
+
+    /* Try constant folding first - if operand is a constant,
+       evaluate at compile time and emit a direct literal */
+    char *folded = try_constant_fold_unary(gen, expr);
+    if (folded != NULL)
+    {
+        return folded;
+    }
+
     char *operand_str = code_gen_expression(gen, expr->operand);
     Type *type = expr->operand->expr_type;
+
+    /* Try to use native C operators in unchecked mode */
+    char *native = gen_native_unary(gen, operand_str, expr->operator, type);
+    if (native != NULL)
+    {
+        return native;
+    }
+
+    /* Fall back to runtime functions (checked mode) */
     switch (expr->operator)
     {
     case TOKEN_MINUS:
@@ -679,213 +722,124 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
     int count = expr->part_count;
     if (count == 0)
     {
-        return arena_sprintf(gen->arena, "rt_to_string_string(%s, \"\")", ARENA_VAR(gen));
+        /* Empty interpolation - just return empty string literal directly */
+        return "\"\"";
     }
+
+    /* Gather information about each part */
     char **part_strs = arena_alloc(gen->arena, count * sizeof(char *));
     Type **part_types = arena_alloc(gen->arena, count * sizeof(Type *));
-    bool *free_parts = arena_alloc(gen->arena, count * sizeof(bool));
-    int non_string_count = 0;
+    bool *is_literal = arena_alloc(gen->arena, count * sizeof(bool));
+    bool *is_temp = arena_alloc(gen->arena, count * sizeof(bool));
+
+    int non_literal_count = 0;
+    int needs_conversion_count = 0;
+
     for (int i = 0; i < count; i++)
     {
         part_strs[i] = code_gen_expression(gen, expr->parts[i]);
         part_types[i] = expr->parts[i]->expr_type;
-        free_parts[i] = expression_produces_temp(expr->parts[i]);
-        if (part_types[i]->kind != TYPE_STRING)
-        {
-            non_string_count++;
-        }
+        is_literal[i] = is_string_literal_expr(expr->parts[i]);
+        is_temp[i] = expression_produces_temp(expr->parts[i]);
+
+        if (!is_literal[i]) non_literal_count++;
+        if (part_types[i]->kind != TYPE_STRING) needs_conversion_count++;
     }
-    if (non_string_count == 0)
+
+    /* Optimization: Single string literal - use directly */
+    if (count == 1 && is_literal[0])
     {
-        // All strings case
-        if (count == 1)
+        return part_strs[0];
+    }
+
+    /* Optimization: Single string variable/temp - return as is or copy */
+    if (count == 1 && part_types[0]->kind == TYPE_STRING)
+    {
+        if (is_temp[0])
         {
-            // Single part, just return it (with duplication if needed)
-            if (free_parts[0])
-            {
-                return part_strs[0];
-            }
-            else
-            {
-                return arena_sprintf(gen->arena, "rt_to_string_string(%s, %s)", ARENA_VAR(gen), part_strs[0]);
-            }
+            return part_strs[0];
         }
-
-        // Check if any parts need freeing (are temp strings from calls, etc.)
-        bool any_free_parts = false;
-        for (int i = 0; i < count; i++)
+        else if (is_literal[0])
         {
-            if (free_parts[i])
-            {
-                any_free_parts = true;
-                break;
-            }
-        }
-
-        if (count == 2 && !any_free_parts)
-        {
-            // Two parts, neither needs freeing - simple concat
-            return arena_sprintf(gen->arena, "rt_str_concat(%s, %s, %s)", ARENA_VAR(gen), part_strs[0], part_strs[1]);
-        }
-
-        // Multiple parts or some need freeing - need intermediate variables
-        char *result = arena_strdup(gen->arena, "({\n");
-
-        // Build arrays of what to use in concat (either original or captured temp)
-        char **concat_parts = arena_alloc(gen->arena, count * sizeof(char *));
-
-        // Capture parts that need freeing into temp variables
-        for (int i = 0; i < count; i++)
-        {
-            if (free_parts[i])
-            {
-                result = arena_sprintf(gen->arena, "%s        char *_str_tmp%d = %s;\n", result, i, part_strs[i]);
-                concat_parts[i] = arena_sprintf(gen->arena, "_str_tmp%d", i);
-            }
-            else
-            {
-                concat_parts[i] = part_strs[i];
-            }
-        }
-
-        // Declare intermediate concat variables
-        for (int i = 0; i < count - 2; i++)
-        {
-            result = arena_sprintf(gen->arena, "%s        char *_concat_tmp%d;\n", result, i);
-        }
-
-        if (count == 2)
-        {
-            // Two parts - simple concat
-            result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(%s, %s, %s);\n",
-                                   result, ARENA_VAR(gen), concat_parts[0], concat_parts[1]);
+            return part_strs[0];
         }
         else
         {
-            // First concat
-            result = arena_sprintf(gen->arena, "%s        _concat_tmp0 = rt_str_concat(%s, %s, %s);\n",
-                                   result, ARENA_VAR(gen), concat_parts[0], concat_parts[1]);
-
-            // Middle concats
-            for (int i = 2; i < count - 1; i++)
-            {
-                result = arena_sprintf(gen->arena, "%s        _concat_tmp%d = rt_str_concat(%s, _concat_tmp%d, %s);\n",
-                                       result, i - 1, ARENA_VAR(gen), i - 2, concat_parts[i]);
-            }
-
-            // Final concat
-            result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(%s, _concat_tmp%d, %s);\n",
-                                   result, ARENA_VAR(gen), count - 3, concat_parts[count - 1]);
+            /* Variable needs to be copied to arena */
+            return arena_sprintf(gen->arena, "rt_to_string_string(%s, %s)", ARENA_VAR(gen), part_strs[0]);
         }
+    }
 
-        // Free captured temp strings - skip in arena context
-        if (gen->current_arena_var == NULL)
+    /* Optimization: Two string literals or all literals - simple concat */
+    if (count == 2 && needs_conversion_count == 0 && !is_temp[0] && !is_temp[1])
+    {
+        return arena_sprintf(gen->arena, "rt_str_concat(%s, %s, %s)", ARENA_VAR(gen), part_strs[0], part_strs[1]);
+    }
+
+    /* General case: Need to build a block expression */
+    char *result = arena_strdup(gen->arena, "({\n");
+
+    /* Track which parts need temp variables and which can be used directly */
+    char **use_strs = arena_alloc(gen->arena, count * sizeof(char *));
+    int temp_var_count = 0;
+
+    /* First pass: convert non-strings and capture temps */
+    for (int i = 0; i < count; i++)
+    {
+        if (part_types[i]->kind != TYPE_STRING)
         {
-            for (int i = 0; i < count; i++)
-            {
-                if (free_parts[i])
-                {
-                    result = arena_sprintf(gen->arena, "%s        rt_free_string(_str_tmp%d);\n", result, i);
-                }
-            }
-
-            // Free intermediate concat results
-            for (int i = 0; i < count - 2; i++)
-            {
-                result = arena_sprintf(gen->arena, "%s        rt_free_string(_concat_tmp%d);\n", result, i);
-            }
+            /* Non-string needs conversion */
+            const char *to_str = get_rt_to_string_func(part_types[i]->kind);
+            result = arena_sprintf(gen->arena, "%s        char *_p%d = %s(%s, %s);\n",
+                                   result, temp_var_count, to_str, ARENA_VAR(gen), part_strs[i]);
+            use_strs[i] = arena_sprintf(gen->arena, "_p%d", temp_var_count);
+            temp_var_count++;
         }
+        else if (is_temp[i])
+        {
+            /* Temp string - capture it */
+            result = arena_sprintf(gen->arena, "%s        char *_p%d = %s;\n",
+                                   result, temp_var_count, part_strs[i]);
+            use_strs[i] = arena_sprintf(gen->arena, "_p%d", temp_var_count);
+            temp_var_count++;
+        }
+        else if (is_literal[i])
+        {
+            /* String literal - use directly (no copy needed) */
+            use_strs[i] = part_strs[i];
+        }
+        else
+        {
+            /* String variable - can use directly in concat (rt_str_concat handles it) */
+            use_strs[i] = part_strs[i];
+        }
+    }
 
-        // Return result
-        result = arena_sprintf(gen->arena, "%s        _interpol_result;\n    })", result);
+    /* Build concatenation chain */
+    if (count == 1)
+    {
+        result = arena_sprintf(gen->arena, "%s        %s;\n    })", result, use_strs[0]);
+        return result;
+    }
+    else if (count == 2)
+    {
+        result = arena_sprintf(gen->arena, "%s        rt_str_concat(%s, %s, %s);\n    })",
+                               result, ARENA_VAR(gen), use_strs[0], use_strs[1]);
         return result;
     }
     else
     {
-        // Mix, convert non-strings to strings - generate multi-line readable code
-        char *result = arena_strdup(gen->arena, "({\n");
+        /* Chain of concats - minimize intermediate vars */
+        result = arena_sprintf(gen->arena, "%s        char *_r = rt_str_concat(%s, %s, %s);\n",
+                               result, ARENA_VAR(gen), use_strs[0], use_strs[1]);
 
-        // Declare string part variables
-        result = arena_sprintf(gen->arena, "%s        char *", result);
-        for (int i = 0; i < count; i++)
+        for (int i = 2; i < count; i++)
         {
-            if (i > 0)
-            {
-                result = arena_sprintf(gen->arena, "%s, *", result);
-            }
-            result = arena_sprintf(gen->arena, "%s_str_part%d", result, i);
-        }
-        result = arena_sprintf(gen->arena, "%s;\n", result);
-
-        // Initialize each string part on its own line
-        for (int i = 0; i < count; i++)
-        {
-            if (part_types[i]->kind == TYPE_STRING)
-            {
-                if (free_parts[i])
-                {
-                    result = arena_sprintf(gen->arena, "%s        _str_part%d = %s;\n", result, i, part_strs[i]);
-                }
-                else
-                {
-                    result = arena_sprintf(gen->arena, "%s        _str_part%d = rt_to_string_string(%s, %s);\n", result, i, ARENA_VAR(gen), part_strs[i]);
-                }
-            }
-            else
-            {
-                const char *to_str = get_rt_to_string_func(part_types[i]->kind);
-                result = arena_sprintf(gen->arena, "%s        _str_part%d = %s(%s, %s);\n", result, i, to_str, ARENA_VAR(gen), part_strs[i]);
-            }
+            result = arena_sprintf(gen->arena, "%s        _r = rt_str_concat(%s, _r, %s);\n",
+                                   result, ARENA_VAR(gen), use_strs[i]);
         }
 
-        // Build concatenation result with intermediate variables to avoid memory leaks
-        if (count == 1)
-        {
-            // Single part - just return the converted string directly
-            result = arena_sprintf(gen->arena, "%s        _str_part0;\n    })", result);
-            return result;
-        }
-        else if (count == 2)
-        {
-            // Simple case: just two parts, no intermediate needed
-            result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(%s, _str_part0, _str_part1);\n", result, ARENA_VAR(gen));
-        }
-        else
-        {
-            // Multiple parts: need intermediate variables
-            // Declare intermediate concat variables
-            for (int i = 0; i < count - 2; i++)
-            {
-                result = arena_sprintf(gen->arena, "%s        char *_concat_tmp%d;\n", result, i);
-            }
-            // First concat
-            result = arena_sprintf(gen->arena, "%s        _concat_tmp0 = rt_str_concat(%s, _str_part0, _str_part1);\n", result, ARENA_VAR(gen));
-            // Middle concats
-            for (int i = 2; i < count - 1; i++)
-            {
-                result = arena_sprintf(gen->arena, "%s        _concat_tmp%d = rt_str_concat(%s, _concat_tmp%d, _str_part%d);\n", result, i - 1, ARENA_VAR(gen), i - 2, i);
-            }
-            // Final concat
-            result = arena_sprintf(gen->arena, "%s        char *_interpol_result = rt_str_concat(%s, _concat_tmp%d, _str_part%d);\n", result, ARENA_VAR(gen), count - 3, count - 1);
-        }
-
-        // Free temporary strings (the original parts) - skip in arena context
-        if (gen->current_arena_var == NULL)
-        {
-            for (int i = 0; i < count; i++)
-            {
-                result = arena_sprintf(gen->arena, "%s        rt_free_string(_str_part%d);\n", result, i);
-            }
-
-            // Free intermediate concat results
-            for (int i = 0; i < count - 2; i++)
-            {
-                result = arena_sprintf(gen->arena, "%s        rt_free_string(_concat_tmp%d);\n", result, i);
-            }
-        }
-
-        // Return result
-        result = arena_sprintf(gen->arena, "%s        _interpol_result;\n    })", result);
+        result = arena_sprintf(gen->arena, "%s        _r;\n    })", result);
         return result;
     }
 }

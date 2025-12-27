@@ -135,6 +135,7 @@ typedef struct
     Expr *callee;
     Expr **arguments;
     int arg_count;
+    bool is_tail_call;  /* Marked by optimizer for tail call optimization */
 } CallExpr;
 
 typedef struct

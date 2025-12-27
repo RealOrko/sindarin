@@ -100,13 +100,12 @@ void test_code_gen_function_simple_void()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
+    /* Note: myfn() doesn't need arena since it has no heap allocations */
     const char *expected = get_expected(&arena,
                                   "void myfn(void);\n\n"
                                   "void myfn() {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    goto myfn_return;\n"
                                   "myfn_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
                                   "    return;\n"
                                   "}\n\n"
                                   "int main() {\n"
@@ -180,15 +179,14 @@ void test_code_gen_function_with_params_and_return()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
+    /* Note: add() doesn't need arena since it only uses primitives */
     const char *expected = get_expected(&arena,
                                   "long add(long);\n\n"
                                   "long add(long a) {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    long _return_value = 0;\n"
                                   "    _return_value = a;\n"
                                   "    goto add_return;\n"
                                   "add_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
                                   "    return _return_value;\n"
                                   "}\n\n"
                                   "int main() {\n"

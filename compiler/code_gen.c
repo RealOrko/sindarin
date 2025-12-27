@@ -44,6 +44,13 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->function_definitions = arena_strdup(arena, "");
     gen->buffering_functions = false;
 
+    /* Initialize optimization settings */
+    gen->arithmetic_mode = ARITH_CHECKED;  /* Default to checked arithmetic */
+
+    /* Initialize tail call optimization state */
+    gen->in_tail_call_function = false;
+    gen->tail_call_fn = NULL;
+
     if (gen->output == NULL)
     {
         exit(1);

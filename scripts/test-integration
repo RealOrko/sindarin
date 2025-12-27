@@ -1,6 +1,10 @@
 #!/bin/bash
 # Integration test runner for Sn compiler
 # Tests compile .sn files, run them, and compare output
+#
+# Environment variables:
+#   SN_OPT_LEVEL  - Optimization level flag (default: -O2)
+#                   Use -O0 for no optimization, -O1 for basic, -O2 for full
 
 # Don't use set -e as arithmetic can return 1
 
@@ -9,6 +13,9 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 BIN_DIR="$ROOT_DIR/bin"
 TEST_DIR="$ROOT_DIR/compiler/tests/integration"
 TEMP_DIR="/tmp/sn_integration_tests"
+
+# Allow optimization level override via SN_OPT_LEVEL (default: -O2)
+OPT_LEVEL="${SN_OPT_LEVEL:--O2}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -42,7 +49,7 @@ run_test() {
     fi
     
     # Compile .sn to .c
-    if ! "$BIN_DIR/sn" "$test_file" -o "$c_file" -l 1 2>"$TEMP_DIR/${test_name}.compile_err"; then
+    if ! "$BIN_DIR/sn" "$test_file" -o "$c_file" -l 1 $OPT_LEVEL 2>"$TEMP_DIR/${test_name}.compile_err"; then
         printf "${RED}FAIL${NC} (compilation error)\n"
         cat "$TEMP_DIR/${test_name}.compile_err" | head -5
         ((FAILED++))
@@ -79,8 +86,8 @@ run_test() {
     fi
 }
 
-echo "Running Sn Integration Tests"
-echo "============================"
+echo "Running Sn Integration Tests (optimization: $OPT_LEVEL)"
+echo "=================================================="
 echo ""
 
 # Find all .sn files in integration test directory

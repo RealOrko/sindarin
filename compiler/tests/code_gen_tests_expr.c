@@ -154,8 +154,9 @@ void test_code_gen_binary_expression_int_add()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
+    /* Constant folding optimization: 1 + 2 is folded to 3L at compile time */
     const char *expected = get_expected(&arena,
-                                  "rt_add_long(1L, 2L);\n"
+                                  "3L;\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
@@ -282,8 +283,9 @@ void test_code_gen_unary_expression_negate()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
+    /* Constant folding optimization: -5 is folded to -5L at compile time */
     const char *expected = get_expected(&arena,
-                                  "rt_neg_long(5L);\n"
+                                  "-5L;\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
