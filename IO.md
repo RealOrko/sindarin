@@ -19,14 +19,15 @@ ALWAYS EXECUTE COMPILATION AND BINARIES WITH 'timeout' TO AVOID CRASHING THE COM
 A new primitive type representing an unsigned 8-bit value (0-255).
 
 ```sn
-var b: byte = 0xFF
-var b2: byte = 255
-var b3: byte = 'A'              # Char literal converts to byte
+var b: byte = 255               # Decimal literal
+var b2: byte = 0                # Zero value
 
-# Byte arrays
-var buffer: []byte = []byte{}
-var fixed: byte[1024]           # Fixed-size buffer
+# Byte arrays (use curly braces)
+var buffer: byte[] = {}         # Empty array
+var data: byte[] = {72, 101, 108, 108, 111}  # ASCII for "Hello"
 ```
+
+**Note:** Hex literals (0xFF) are not yet implemented. Use decimal values (0-255).
 
 **C mapping:** `unsigned char`
 
@@ -36,7 +37,7 @@ Handle for text-oriented file operations. Works with `str` and `char` types.
 
 ### `BinaryFile`
 
-Handle for binary file operations. Works with `byte` and `[]byte` types.
+Handle for binary file operations. Works with `byte` and `byte[]` types.
 
 ---
 
@@ -83,7 +84,7 @@ var line: str = f.readLine()
 var all: str = f.readAll()
 
 # Read all remaining lines as array
-var lines: []str = f.readLines()
+var lines: str[] = f.readLines()
 
 # Read into character buffer, returns number of chars read
 var n: int = f.readInto(buffer)
@@ -161,7 +162,7 @@ f.close()
 ```sn
 var f: BinaryFile = BinaryFile.open("data.bin")
 var exists: bool = BinaryFile.exists("data.bin")
-var data: []byte = BinaryFile.readAll("data.bin")
+var data: byte[] = BinaryFile.readAll("data.bin")
 BinaryFile.writeAll("out.bin", data)
 BinaryFile.delete("old.bin")
 BinaryFile.copy("src.bin", "dst.bin")
@@ -175,10 +176,10 @@ BinaryFile.move("old.bin", "new.bin")
 var b: byte = f.readByte()
 
 # Read N bytes into new array
-var bytes: []byte = f.readBytes(count)
+var bytes: byte[] = f.readBytes(count)
 
 # Read all remaining bytes
-var all: []byte = f.readAll()
+var all: byte[] = f.readAll()
 
 # Read into byte buffer, returns number of bytes read
 var n: int = f.readInto(buffer)
@@ -223,7 +224,7 @@ f.close()
 
 ## Byte Array Extensions
 
-Additional methods for `[]byte` beyond standard array operations:
+Additional methods for `byte[]` beyond standard array operations:
 
 ```sn
 # Convert to string (UTF-8 decoding)
@@ -243,17 +244,17 @@ var b64: str = bytes.toBase64()       # "SGVsbG8="
 
 ```sn
 # Encode string to UTF-8 bytes
-var bytes: []byte = str.toBytes()
+var bytes: byte[] = str.toBytes()
 ```
 
 ### Static Byte Utilities
 
 ```sn
 # Decode hexadecimal string to bytes
-var bytes: []byte = Bytes.fromHex("48656c6c6f")
+var bytes: byte[] = Bytes.fromHex("48656c6c6f")
 
 # Decode Base64 string to bytes
-var bytes: []byte = Bytes.fromBase64("SGVsbG8=")
+var bytes: byte[] = Bytes.fromBase64("SGVsbG8=")
 ```
 
 ---
@@ -326,10 +327,10 @@ var isDir: bool = Path.isDirectory("/some/path")
 
 ```sn
 # List files in directory
-var files: []str = Directory.list("/home/user")
+var files: str[] = Directory.list("/home/user")
 
 # List files recursively
-var files: []str = Directory.listRecursive("/home/user")
+var files: str[] = Directory.listRecursive("/home/user")
 
 # Create directory (creates parents if needed)
 Directory.create("/new/path")
@@ -441,14 +442,14 @@ While files auto-close with their arena, explicit `close()` is recommended for:
 
 ```sn
 # Bad: Holds all files open until function exits
-fn processAll(paths: []str): void =>
+fn processAll(paths: str[]): void =>
     for path in paths =>
         var f: TextFile = TextFile.open(path)
         process(f)
         # f stays open until loop ends (shared) or iteration ends (non-shared)
 
 # Good: Explicit early disposal
-fn processAll(paths: []str): void =>
+fn processAll(paths: str[]): void =>
     for path in paths =>
         var f: TextFile = TextFile.open(path)
         process(f)
@@ -610,7 +611,7 @@ typedef struct RtBinaryFile {
 ### Phase 1: Foundation
 
 1. **`byte` type** - Add primitive type to lexer, parser, type checker, code gen
-2. **Byte arrays** - `[]byte` support with existing array infrastructure
+2. **Byte arrays** - `byte[]` support with existing array infrastructure
 3. **Static method parsing** - `TypeName.method()` syntax in parser
 
 ### Phase 2: Core File I/O
@@ -660,17 +661,17 @@ The following string methods already exist in Sindarin:
 
 ### New String Methods Required
 
-| Method | Priority | Purpose |
-|--------|----------|---------|
-| `.splitWhitespace()` | High | Word tokenization |
-| `.splitLines()` | High | Line processing |
-| `.isBlank()` | High | Empty/whitespace check |
-| `.isNumeric()` | Medium | Validation |
-| `.toInt()` | Medium | Parsing |
-| `.toDouble()` | Medium | Parsing |
-| `.repeat(n)` | Medium | String building |
-| `.padStart(n, ch)` | Low | Formatting |
-| `.padEnd(n, ch)` | Low | Formatting |
+| Method | Priority | Status | Purpose |
+|--------|----------|--------|---------|
+| `.splitWhitespace()` | High | **Implemented** | Word tokenization |
+| `.splitLines()` | High | **Implemented** | Line processing |
+| `.isBlank()` | High | **Implemented** | Empty/whitespace check |
+| `.isNumeric()` | Medium | Not implemented | Validation |
+| `.toInt()` | Medium | Not implemented | Parsing |
+| `.toDouble()` | Medium | Not implemented | Parsing |
+| `.repeat(n)` | Medium | Not implemented | String building |
+| `.padStart(n, ch)` | Low | Not implemented | Formatting |
+| `.padEnd(n, ch)` | Low | Not implemented | Formatting |
 
 ---
 
@@ -708,7 +709,7 @@ f.close()
 ### Copy Binary File
 
 ```sn
-var data: []byte = BinaryFile.readAll("image.png")
+var data: byte[] = BinaryFile.readAll("image.png")
 BinaryFile.writeAll("copy.png", data)
 ```
 
@@ -716,7 +717,7 @@ BinaryFile.writeAll("copy.png", data)
 
 ```sn
 var f: BinaryFile = BinaryFile.open("data.bin")
-var header: []byte = f.readBytes(4)
+var header: byte[] = f.readBytes(4)
 if header.toHex() == "89504e47" {
     println("PNG file detected")
 }
@@ -741,13 +742,13 @@ Comprehensive string methods for text manipulation, essential for processing fil
 
 ```sn
 # Split string by delimiter
-var parts: []str = text.split(",")              # Split on comma
-var parts: []str = text.split(", ")             # Split on comma-space
-var words: []str = text.splitWhitespace()       # Split on any whitespace
-var lines: []str = text.splitLines()            # Split on newlines (\n, \r\n, \r)
+var parts: str[] = text.split(",")              # Split on comma
+var parts: str[] = text.split(", ")             # Split on comma-space
+var words: str[] = text.splitWhitespace()       # Split on any whitespace
+var lines: str[] = text.splitLines()            # Split on newlines (\n, \r\n, \r)
 
 # Split with limit
-var parts: []str = text.split(",", 3)           # At most 3 parts
+var parts: str[] = text.split(",", 3)           # At most 3 parts
 
 # Join array into string
 var csv: str = parts.join(",")                  # "a,b,c"
@@ -938,7 +939,7 @@ var msg: str = $"Value: {n:,.2f}"               # With format specifier (future)
 ```sn
 # Basic regex support (future consideration)
 var matches: bool = text.matches("^[a-z]+$")
-var found: []str = text.findAll("[0-9]+")
+var found: str[] = text.findAll("[0-9]+")
 var replaced: str = text.replaceRegex("[0-9]+", "X")
 ```
 
@@ -948,17 +949,17 @@ var replaced: str = text.replaceRegex("[0-9]+", "X")
 
 ```sn
 # Parse a CSV file
-fn parseCsv(path: str): [][]str =>
+fn parseCsv(path: str): str[][] =>
     var content: str = TextFile.readAll(path)
-    var lines: []str = content.splitLines()
-    var result: [][]str = [][]str{}
+    var lines: str[] = content.splitLines()
+    var result: str[][] = str[][]{}
 
     for line in lines =>
         if line.isBlank() =>
             continue
-        var fields: []str = line.split(",")
+        var fields: str[] = line.split(",")
         # Trim whitespace from each field
-        var trimmed: []str = []str{}
+        var trimmed: str[] = str[]{}
         for field in fields =>
             trimmed.push(field.trim())
         result.push(trimmed)
@@ -974,7 +975,7 @@ fn findReplace(path: str, find: str, replace: str): void =>
 # Word frequency counter
 fn wordFrequency(path: str): void =>
     var content: str = TextFile.readAll(path)
-    var words: []str = content.toLower().splitWhitespace()
+    var words: str[] = content.toLower().splitWhitespace()
 
     # Would need a Map type for proper implementation
     # For now, just count total

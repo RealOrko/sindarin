@@ -1,0 +1,228 @@
+// Test 74: TextFile edge cases and special scenarios
+fn main(): int =>
+    print("Test TextFile edge cases:\n\n")
+
+    // Test 1: Single character file (no newline)
+    print("1. Single character file:\n")
+    TextFile.writeAll("/tmp/test_tf_74_1.txt", "X")
+    var f1: TextFile = TextFile.open("/tmp/test_tf_74_1.txt")
+    var content1: str = f1.readAll()
+    f1.close()
+    print($"  Content: '{content1}'\n")
+    print($"  Length: {content1.length}\n")
+    if content1 == "X" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_1.txt")
+
+    // Test 2: Single newline file
+    print("\n2. Single newline file:\n")
+    TextFile.writeAll("/tmp/test_tf_74_2.txt", "\n")
+    var f2: TextFile = TextFile.open("/tmp/test_tf_74_2.txt")
+    var lines2: str[] = f2.readLines()
+    f2.close()
+    print($"  Lines: {lines2.length}\n")
+    if lines2.length == 1 && lines2[0] == "" =>
+        print("  PASS: One empty line\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_2.txt")
+
+    // Test 3: Multiple consecutive newlines
+    print("\n3. Multiple consecutive newlines:\n")
+    TextFile.writeAll("/tmp/test_tf_74_3.txt", "\n\n\n")
+    var f3: TextFile = TextFile.open("/tmp/test_tf_74_3.txt")
+    var lines3: str[] = f3.readLines()
+    f3.close()
+    print($"  Lines: {lines3.length}\n")
+    if lines3.length == 3 =>
+        print("  PASS: 3 empty lines\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_3.txt")
+
+    // Test 4: File with only whitespace
+    print("\n4. File with only whitespace:\n")
+    TextFile.writeAll("/tmp/test_tf_74_4.txt", "   \t   ")
+    var f4: TextFile = TextFile.open("/tmp/test_tf_74_4.txt")
+    var ws: str = f4.readAll()
+    var wsHasWords: bool = f4.hasWords()
+    f4.close()
+    print($"  Content length: {ws.length}\n")
+    if ws == "   \t   " =>
+        print("  PASS: Whitespace preserved\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_4.txt")
+
+    // Test 5: Line with trailing spaces
+    print("\n5. Line with trailing spaces:\n")
+    TextFile.writeAll("/tmp/test_tf_74_5.txt", "text   \n")
+    var f5: TextFile = TextFile.open("/tmp/test_tf_74_5.txt")
+    var line5: str = f5.readLine()
+    f5.close()
+    print($"  Line: '{line5}'\n")
+    print($"  Length: {line5.length}\n")
+    if line5 == "text   " =>
+        print("  PASS: Trailing spaces preserved\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_5.txt")
+
+    // Test 6: Line with leading spaces
+    print("\n6. Line with leading spaces:\n")
+    TextFile.writeAll("/tmp/test_tf_74_6.txt", "   text\n")
+    var f6: TextFile = TextFile.open("/tmp/test_tf_74_6.txt")
+    var line6: str = f6.readLine()
+    f6.close()
+    print($"  Line: '{line6}'\n")
+    if line6 == "   text" =>
+        print("  PASS: Leading spaces preserved\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_6.txt")
+
+    // Test 7: File without trailing newline
+    print("\n7. File without trailing newline:\n")
+    TextFile.writeAll("/tmp/test_tf_74_7.txt", "line1\nline2")
+    var f7: TextFile = TextFile.open("/tmp/test_tf_74_7.txt")
+    var lines7: str[] = f7.readLines()
+    f7.close()
+    print($"  Lines: {lines7.length}\n")
+    if lines7.length == 2 && lines7[1] == "line2" =>
+        print("  PASS: Last line without newline included\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_7.txt")
+
+    // Test 8: Large line (stress test)
+    print("\n8. Large line:\n")
+    var largeLine: str = ""
+    var i: int = 0
+    shared for i in 0..100 =>
+        largeLine = largeLine + "0123456789"
+    TextFile.writeAll("/tmp/test_tf_74_8.txt", largeLine)
+    var f8: TextFile = TextFile.open("/tmp/test_tf_74_8.txt")
+    var readLarge: str = f8.readAll()
+    f8.close()
+    print($"  Written length: {largeLine.length}\n")
+    print($"  Read length: {readLarge.length}\n")
+    if readLarge.length == largeLine.length =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_8.txt")
+
+    // Test 9: Many lines
+    print("\n9. Many lines:\n")
+    var f9w: TextFile = TextFile.open("/tmp/test_tf_74_9.txt")
+    for i in 0..500 =>
+        f9w.println($"Line {i}")
+    f9w.close()
+    var f9r: TextFile = TextFile.open("/tmp/test_tf_74_9.txt")
+    var lineCount: int = 0
+    while f9r.hasLines() =>
+        var discard: str = f9r.readLine()
+        lineCount = lineCount + 1
+    f9r.close()
+    print($"  Lines: {lineCount}\n")
+    if lineCount == 500 =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_9.txt")
+
+    // Test 10: Read-write-read pattern
+    print("\n10. Read-write-read pattern:\n")
+    TextFile.writeAll("/tmp/test_tf_74_10.txt", "original")
+    var read10a: str = TextFile.readAll("/tmp/test_tf_74_10.txt")
+    TextFile.writeAll("/tmp/test_tf_74_10.txt", "modified")
+    var read10b: str = TextFile.readAll("/tmp/test_tf_74_10.txt")
+    print($"  First read: '{read10a}'\n")
+    print($"  After modify: '{read10b}'\n")
+    if read10a == "original" && read10b == "modified" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_10.txt")
+
+    // Test 11: Special characters
+    print("\n11. Special characters:\n")
+    var special: str = "Tab:\tQuote:\"Backslash:\\"
+    TextFile.writeAll("/tmp/test_tf_74_11.txt", special)
+    var readSpecial: str = TextFile.readAll("/tmp/test_tf_74_11.txt")
+    if readSpecial == special =>
+        print("  PASS: Special chars preserved\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_11.txt")
+
+    // Test 12: Repeated open/close
+    print("\n12. Repeated open/close:\n")
+    TextFile.writeAll("/tmp/test_tf_74_12.txt", "test content")
+    for i in 0..10 =>
+        var floop: TextFile = TextFile.open("/tmp/test_tf_74_12.txt")
+        var discardLoop: str = floop.readAll()
+        floop.close()
+    print("  PASS: 10 open/close cycles completed\n")
+    TextFile.delete("/tmp/test_tf_74_12.txt")
+
+    // Test 13: Copy to same location (overwrite)
+    print("\n13. Copy to same directory:\n")
+    TextFile.writeAll("/tmp/test_tf_74_13a.txt", "source content")
+    TextFile.copy("/tmp/test_tf_74_13a.txt", "/tmp/test_tf_74_13b.txt")
+    var copyContent: str = TextFile.readAll("/tmp/test_tf_74_13b.txt")
+    if copyContent == "source content" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_13a.txt")
+    TextFile.delete("/tmp/test_tf_74_13b.txt")
+
+    // Test 14: Empty readWord at EOF
+    print("\n14. readWord at EOF:\n")
+    TextFile.writeAll("/tmp/test_tf_74_14.txt", "only")
+    var f14: TextFile = TextFile.open("/tmp/test_tf_74_14.txt")
+    var word1: str = f14.readWord()
+    var word2: str = f14.readWord()
+    f14.close()
+    print($"  First word: '{word1}'\n")
+    print($"  Second word (EOF): '{word2}'\n")
+    if word1 == "only" && word2 == "" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_14.txt")
+
+    // Test 15: readChar returns byte values
+    print("\n15. readChar byte values:\n")
+    TextFile.writeAll("/tmp/test_tf_74_15.txt", "Az")
+    var f15: TextFile = TextFile.open("/tmp/test_tf_74_15.txt")
+    var charA: int = f15.readChar()
+    var charz: int = f15.readChar()
+    f15.close()
+    print($"  'A' = {charA} (expected 65)\n")
+    print($"  'z' = {charz} (expected 122)\n")
+    if charA == 65 && charz == 122 =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_74_15.txt")
+
+    print("\nAll TextFile edge case tests passed!\n")
+    return 0

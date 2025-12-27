@@ -1,0 +1,129 @@
+// Test 70: TextFile static methods variance testing
+fn main(): int =>
+    print("Test TextFile static methods:\n\n")
+
+    // Test 1: writeAll and readAll basic
+    print("1. writeAll/readAll basic:\n")
+    var content1: str = "Hello, World!\nLine 2\nLine 3"
+    TextFile.writeAll("/tmp/test_tf_70_1.txt", content1)
+    var read1: str = TextFile.readAll("/tmp/test_tf_70_1.txt")
+    print($"  Written: {content1.length} chars\n")
+    print($"  Read: {read1.length} chars\n")
+    if content1 == read1 =>
+        print("  PASS: Content matches\n")
+    else =>
+        print("  FAIL: Content mismatch\n")
+        return 1
+
+    // Test 2: exists - file exists
+    print("\n2. exists - file exists:\n")
+    var exists1: bool = TextFile.exists("/tmp/test_tf_70_1.txt")
+    print($"  exists('/tmp/test_tf_70_1.txt'): {exists1}\n")
+    if exists1 =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL: Should exist\n")
+        return 1
+
+    // Test 3: exists - file does not exist
+    print("\n3. exists - non-existent file:\n")
+    var exists2: bool = TextFile.exists("/tmp/nonexistent_xyz_12345.txt")
+    print($"  exists('/tmp/nonexistent_xyz_12345.txt'): {exists2}\n")
+    if !exists2 =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL: Should not exist\n")
+        return 1
+
+    // Test 4: copy
+    print("\n4. copy:\n")
+    TextFile.copy("/tmp/test_tf_70_1.txt", "/tmp/test_tf_70_copy.txt")
+    var readCopy: str = TextFile.readAll("/tmp/test_tf_70_copy.txt")
+    if readCopy == content1 =>
+        print("  PASS: Copy content matches\n")
+    else =>
+        print("  FAIL: Copy content mismatch\n")
+        return 1
+
+    // Test 5: move
+    print("\n5. move:\n")
+    TextFile.move("/tmp/test_tf_70_copy.txt", "/tmp/test_tf_70_moved.txt")
+    var existsCopy: bool = TextFile.exists("/tmp/test_tf_70_copy.txt")
+    var existsMoved: bool = TextFile.exists("/tmp/test_tf_70_moved.txt")
+    print($"  Source exists after move: {existsCopy}\n")
+    print($"  Dest exists after move: {existsMoved}\n")
+    if !existsCopy && existsMoved =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    var readMoved: str = TextFile.readAll("/tmp/test_tf_70_moved.txt")
+    if readMoved == content1 =>
+        print("  Content preserved: PASS\n")
+    else =>
+        print("  Content preserved: FAIL\n")
+        return 1
+
+    // Test 6: delete
+    print("\n6. delete:\n")
+    TextFile.delete("/tmp/test_tf_70_1.txt")
+    TextFile.delete("/tmp/test_tf_70_moved.txt")
+    var deleted1: bool = TextFile.exists("/tmp/test_tf_70_1.txt")
+    var deleted2: bool = TextFile.exists("/tmp/test_tf_70_moved.txt")
+    if !deleted1 && !deleted2 =>
+        print("  PASS: Files deleted\n")
+    else =>
+        print("  FAIL: Files still exist\n")
+        return 1
+
+    // Test 7: writeAll overwrite
+    print("\n7. writeAll overwrite:\n")
+    TextFile.writeAll("/tmp/test_tf_70_overwrite.txt", "Original content")
+    TextFile.writeAll("/tmp/test_tf_70_overwrite.txt", "New content")
+    var overwritten: str = TextFile.readAll("/tmp/test_tf_70_overwrite.txt")
+    print($"  After overwrite: '{overwritten}'\n")
+    if overwritten == "New content" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL: Should have new content\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_70_overwrite.txt")
+
+    // Test 8: Empty string write
+    print("\n8. Empty string write:\n")
+    TextFile.writeAll("/tmp/test_tf_70_empty.txt", "")
+    var emptyContent: str = TextFile.readAll("/tmp/test_tf_70_empty.txt")
+    print($"  Empty file length: {emptyContent.length}\n")
+    if emptyContent == "" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL: Should be empty\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_70_empty.txt")
+
+    // Test 9: Unicode content
+    print("\n9. Unicode content:\n")
+    var unicode: str = "Hello"
+    TextFile.writeAll("/tmp/test_tf_70_unicode.txt", unicode)
+    var readUnicode: str = TextFile.readAll("/tmp/test_tf_70_unicode.txt")
+    if readUnicode == unicode =>
+        print("  PASS: Unicode preserved\n")
+    else =>
+        print("  FAIL: Unicode mismatch\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_70_unicode.txt")
+
+    // Test 10: Newline variations
+    print("\n10. Newline variations:\n")
+    var withNewlines: str = "Line1\nLine2\nLine3\n"
+    TextFile.writeAll("/tmp/test_tf_70_newlines.txt", withNewlines)
+    var readNewlines: str = TextFile.readAll("/tmp/test_tf_70_newlines.txt")
+    if readNewlines == withNewlines =>
+        print("  PASS: Newlines preserved\n")
+    else =>
+        print("  FAIL: Newline mismatch\n")
+        return 1
+    TextFile.delete("/tmp/test_tf_70_newlines.txt")
+
+    print("\nAll TextFile static method tests passed!\n")
+    return 0

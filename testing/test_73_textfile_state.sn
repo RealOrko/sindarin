@@ -1,0 +1,192 @@
+// Test 73: TextFile state methods and properties variance testing
+fn main(): int =>
+    print("Test TextFile state methods and properties:\n\n")
+
+    // Setup test file
+    var testContent: str = "0123456789\nABCDEFGHIJ\nKLMNOPQRST\n"
+    TextFile.writeAll("/tmp/test_tf_73.txt", testContent)
+
+    // Test 1: path property
+    print("1. path property:\n")
+    var f1: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    var pathVal: str = f1.path
+    print($"  path: '{pathVal}'\n")
+    if pathVal == "/tmp/test_tf_73.txt" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f1.close()
+
+    // Test 2: name property
+    print("\n2. name property:\n")
+    var f2: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    var nameVal: str = f2.name
+    print($"  name: '{nameVal}'\n")
+    if nameVal == "test_tf_73.txt" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f2.close()
+
+    // Test 3: size property
+    print("\n3. size property:\n")
+    var f3: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    var sizeVal: int = f3.size
+    print($"  size: {sizeVal} bytes\n")
+    print($"  expected: {testContent.length} bytes\n")
+    if sizeVal == testContent.length =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f3.close()
+
+    // Test 4: position() initial
+    print("\n4. position() initial:\n")
+    var f4: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    var pos1: int = f4.position()
+    print($"  Initial position: {pos1}\n")
+    if pos1 == 0 =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f4.close()
+
+    // Test 5: position() after read
+    print("\n5. position() after read:\n")
+    var f5: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    var discard1: str = f5.readLine()
+    var pos2: int = f5.position()
+    print($"  After reading '0123456789\\n': position = {pos2}\n")
+    if pos2 == 11 =>
+        print("  PASS (11 bytes including newline)\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f5.close()
+
+    // Test 6: seek()
+    print("\n6. seek():\n")
+    var f6: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    f6.seek(5)
+    var pos3: int = f6.position()
+    print($"  After seek(5): position = {pos3}\n")
+    if pos3 == 5 =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f6.close()
+
+    // Test 7: seek() and read
+    print("\n7. seek() and read:\n")
+    var f7: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    f7.seek(11)
+    var afterSeek: str = f7.readLine()
+    print($"  After seek(11), readLine: '{afterSeek}'\n")
+    if afterSeek == "ABCDEFGHIJ" =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f7.close()
+
+    // Test 8: rewind()
+    print("\n8. rewind():\n")
+    var f8: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    var discard2: str = f8.readLine()
+    var discard3: str = f8.readLine()
+    var posBefore: int = f8.position()
+    f8.rewind()
+    var posAfter: int = f8.position()
+    print($"  Position before rewind: {posBefore}\n")
+    print($"  Position after rewind: {posAfter}\n")
+    if posAfter == 0 =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f8.close()
+
+    // Test 9: rewind() and re-read
+    print("\n9. rewind() and re-read:\n")
+    var f9: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    var firstRead: str = f9.readLine()
+    f9.rewind()
+    var secondRead: str = f9.readLine()
+    print($"  First read: '{firstRead}'\n")
+    print($"  After rewind read: '{secondRead}'\n")
+    if firstRead == secondRead =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f9.close()
+
+    // Test 10: isEof() progression
+    print("\n10. isEof() progression:\n")
+    TextFile.writeAll("/tmp/test_tf_73_small.txt", "AB")
+    var f10: TextFile = TextFile.open("/tmp/test_tf_73_small.txt")
+    print($"  isEof at start: {f10.isEof()}\n")
+    var c1: int = f10.readChar()
+    print($"  isEof after 1 char: {f10.isEof()}\n")
+    var c2: int = f10.readChar()
+    print($"  isEof after 2 chars: {f10.isEof()}\n")
+    if f10.isEof() =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f10.close()
+    TextFile.delete("/tmp/test_tf_73_small.txt")
+
+    // Test 11: hasChars/hasLines/hasWords empty file
+    print("\n11. has* on empty file:\n")
+    TextFile.writeAll("/tmp/test_tf_73_empty.txt", "")
+    var f11: TextFile = TextFile.open("/tmp/test_tf_73_empty.txt")
+    print($"  hasChars on empty: {f11.hasChars()}\n")
+    print($"  hasLines on empty: {f11.hasLines()}\n")
+    print($"  hasWords on empty: {f11.hasWords()}\n")
+    if !f11.hasChars() && !f11.hasLines() && !f11.hasWords() =>
+        print("  PASS: All false on empty file\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f11.close()
+    TextFile.delete("/tmp/test_tf_73_empty.txt")
+
+    // Test 12: hasWords with only whitespace
+    print("\n12. hasWords with only whitespace:\n")
+    TextFile.writeAll("/tmp/test_tf_73_ws.txt", "   \t\n  ")
+    var f12: TextFile = TextFile.open("/tmp/test_tf_73_ws.txt")
+    var hasWordsWs: bool = f12.hasWords()
+    print($"  hasWords on whitespace-only: {hasWordsWs}\n")
+    if !hasWordsWs =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL: Should be false for whitespace-only\n")
+        return 1
+    f12.close()
+    TextFile.delete("/tmp/test_tf_73_ws.txt")
+
+    // Test 13: seek to end of file
+    print("\n13. seek to end of file:\n")
+    var f13: TextFile = TextFile.open("/tmp/test_tf_73.txt")
+    f13.seek(f13.size)
+    print($"  Position after seek to size: {f13.position()}\n")
+    print($"  isEof after seek to end: {f13.isEof()}\n")
+    if f13.isEof() =>
+        print("  PASS\n")
+    else =>
+        print("  FAIL\n")
+        return 1
+    f13.close()
+
+    // Cleanup
+    TextFile.delete("/tmp/test_tf_73.txt")
+
+    print("\nAll TextFile state method tests passed!\n")
+    return 0

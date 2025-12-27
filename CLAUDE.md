@@ -35,14 +35,18 @@ Link output with: `bin/arena.o`, `bin/debug.o`, `bin/runtime.o`
 
 - **Unit:** `compiler/tests/*_tests.c` → `bin/tests`
 - **Integration:** `compiler/tests/integration/*.sn`
+- **Exploratory:** `./scripts/test-explore` runs `testing/*.sn`
 
 ## 📚 Syntax
 
 ```
 fn add(a: int, b: int): int => a + b
 var x: int = 42
+var b: byte = 255
 if cond => ... else => ...
 $"Hello {name}"
 ```
 
-Types: `int`, `double`, `str`, `char`, `bool`
+Types: `int`, `double`, `str`, `char`, `bool`, `byte`
+
+File I/O: `TextFile`, `BinaryFile` (see `docs/FILE_IO.md`)

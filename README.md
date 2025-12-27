@@ -12,7 +12,8 @@
 - 🏹 **Arrow syntax** (`=>`) for clean, readable code blocks
 - 📝 **String interpolation** with `$"Hello {name}!"`
 - 📦 **Arrays** with built-in operations (push, pop, slice, join, etc.)
-- 🔤 **String methods** (toUpper, toLower, trim, split, replace, etc.)
+- 🔤 **String methods** (toUpper, toLower, trim, split, splitLines, isBlank, etc.)
+- 📁 **File I/O** with TextFile and BinaryFile types
 - 🔁 **Control flow** with for, for-each, while, break, continue
 - ⚡ **Boolean operators** (`&&`, `||`, `!`)
 - 📚 **Module imports** for code organization
@@ -51,7 +52,10 @@ gcc output.c bin/arena.o bin/debug.o bin/runtime.o -o myprogram
 | `str` | Strings | `"hello"` |
 | `char` | Single character | `'A'` |
 | `bool` | Boolean | `true`, `false` |
-| `type[]` | Arrays | `int[]`, `str[]` |
+| `byte` | Unsigned 8-bit (0-255) | `255`, `0` |
+| `type[]` | Arrays | `int[]`, `str[]`, `byte[]` |
+| `TextFile` | Text file handle | File I/O |
+| `BinaryFile` | Binary file handle | Binary I/O |
 
 ### 📝 Variables
 
@@ -176,6 +180,12 @@ var replaced: str = "hello".replace("l", "L")  // "heLLo"
 
 // Split
 var parts: str[] = "a,b,c".split(",")   // {"a", "b", "c"}
+var words: str[] = "hello world".splitWhitespace()  // {"hello", "world"}
+var lines: str[] = "a\nb\nc".splitLines()  // {"a", "b", "c"}
+
+// Blank check
+var blank: bool = "   ".isBlank()       // true
+var notBlank: bool = "hi".isBlank()     // false
 
 // Length
 var size: int = "hello".length          // 5
@@ -242,6 +252,58 @@ var odds: int[] = arr[1..:2]    // {1, 3, 5, 7, 9}
 // Negative indexing in slices
 var lastTwo: int[] = arr[-2..]  // {8, 9}
 ```
+
+### 📁 File I/O
+
+#### Text Files
+```sn
+// Static methods for one-shot operations
+var content: str = TextFile.readAll("data.txt")
+TextFile.writeAll("output.txt", content)
+var exists: bool = TextFile.exists("data.txt")
+
+// Instance methods for streaming
+var f: TextFile = TextFile.open("data.txt")
+while !f.isEof() =>
+  var line: str = f.readLine()
+  print($"{line}\n")
+f.close()
+
+// File operations
+TextFile.copy("src.txt", "dst.txt")
+TextFile.move("old.txt", "new.txt")
+TextFile.delete("file.txt")
+```
+
+#### Binary Files
+```sn
+// Read/write byte arrays
+var data: byte[] = BinaryFile.readAll("image.bin")
+BinaryFile.writeAll("copy.bin", data)
+
+// Instance methods
+var f: BinaryFile = BinaryFile.open("data.bin")
+var b: int = f.readByte()  // Returns -1 at EOF
+var bytes: byte[] = f.readBytes(10)
+f.close()
+```
+
+#### Byte Arrays
+```sn
+var bytes: byte[] = {72, 101, 108, 108, 111}
+var text: str = bytes.toString()     // "Hello"
+var hex: str = bytes.toHex()         // "48656c6c6f"
+var b64: str = bytes.toBase64()      // "SGVsbG8="
+
+// Convert string to bytes
+var data: byte[] = "Hello".toBytes()
+
+// Decode from hex/base64
+var fromHex: byte[] = Bytes.fromHex("48656c6c6f")
+var fromB64: byte[] = Bytes.fromBase64("SGVsbG8=")
+```
+
+See [docs/FILE_IO.md](docs/FILE_IO.md) for complete File I/O documentation.
 
 ### 📚 Imports
 

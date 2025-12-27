@@ -199,4 +199,36 @@ fn demo_strings(): void =>
   var chainTest: str = "  TEST  ".trim().toUpper()
   print($"Chained on literal: \"{chainTest}\"\n")
 
+  // 15. splitWhitespace - Split on any whitespace
+  print("\n--- splitWhitespace ---\n")
+  var wsText: str = "hello   world\tfoo\nbar"
+  print($"Original: \"{wsText}\"\n")
+  var wsWords: str[] = wsText.splitWhitespace()
+  print($"splitWhitespace() -> {wsWords.length} words:\n")
+  for wsWord in wsWords =>
+    print($"  - \"{wsWord}\"\n")
+
+  // 16. splitLines - Split on line endings
+  print("\n--- splitLines ---\n")
+  var multiLine: str = "Line 1\nLine 2\nLine 3"
+  print("Original (3 lines with \\n):\n")
+  var lineArr: str[] = multiLine.splitLines()
+  print($"splitLines() -> {lineArr.length} lines:\n")
+  for ln in lineArr =>
+    print($"  \"{ln}\"\n")
+
+  // 17. isBlank - Check if string is empty or whitespace only
+  print("\n--- isBlank ---\n")
+  var blankEmpty: str = ""
+  var blankSpaces: str = "   "
+  var blankTabs: str = "\t\t"
+  var notBlank: str = "hello"
+  var notBlank2: str = "  hi  "
+
+  print($"\"\" isBlank: {blankEmpty.isBlank()}\n")
+  print($"\"   \" isBlank: {blankSpaces.isBlank()}\n")
+  print($"\"\\t\\t\" isBlank: {blankTabs.isBlank()}\n")
+  print($"\"hello\" isBlank: {notBlank.isBlank()}\n")
+  print($"\"  hi  \" isBlank: {notBlank2.isBlank()}\n")
+
   print("\n=== Done ===\n")

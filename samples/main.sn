@@ -16,6 +16,8 @@ import "lib/arrays"
 import "lib/memory"
 import "lib/lambda"
 import "lib/closure"
+import "lib/bytes"
+import "lib/fileio"
 
 fn main(): void =>
   print("╔══════════════════════════════════════════════════════════════════╗\n")
@@ -32,6 +34,8 @@ fn main(): void =>
   demo_memory()
   demo_lambda()
   demo_closure()
+  demo_bytes()
+  demo_fileio()
 
   print("╔══════════════════════════════════════════════════════════════════╗\n")
   print("║                    All Demos Complete!                           ║\n")

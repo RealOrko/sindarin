@@ -51,20 +51,20 @@ for test_file in ./testing/test_*.sn; do
     fi
 
     # Run the executable
-    # run_output=$("$exe_file" 2>&1)
-    # run_status=$?
+    run_output=$(timeout 30s "$exe_file" 2>&1)
+    run_status=$?
 
-    # if [ $run_status -ne 0 ]; then
-    #     echo "  RUNTIME ERROR (exit code: $run_status)"
-    #     echo "Status: RUNTIME ERROR (exit: $run_status)"
-    # else
-    #     echo "  PASSED"
-    #     echo "Status: PASSED"
-    # fi
+    if [ $run_status -ne 0 ]; then
+        echo "  RUNTIME ERROR (exit code: $run_status)"
+        echo "Status: RUNTIME ERROR (exit: $run_status)"
+        echo "Output:"
+        echo "$run_output"
+    else
+        echo "  PASSED"
+        echo "Status: PASSED"
+    fi
 
-    # echo "Output:"
-    # echo "$run_output"
-    # echo ""
+    echo ""
 done
 
 echo ""
