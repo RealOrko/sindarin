@@ -119,6 +119,13 @@ void lexer_skip_whitespace(Lexer *lexer)
                 return;
             }
             break;
+        case '#':
+            // Single-line comment starting with #
+            while (lexer_peek(lexer) != '\n' && !lexer_is_at_end(lexer))
+            {
+                lexer_advance(lexer);
+            }
+            break;
         default:
             return;
         }

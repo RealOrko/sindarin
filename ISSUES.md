@@ -1,195 +1,118 @@
-# Sn Compiler - Transpilation Issues Report
+# Known Issues and Future Improvements
 
-Analysis of generated C code from exploratory testing of the Sn to C transpiler.
+## Resolved Issues
 
-## Summary
+### Hash Comment Support (Fixed)
 
-After analyzing 15+ generated C output files covering literals, loops, arrays, lambdas, closures, conditionals, and edge cases, the following issues were identified.
+**Problem**: The lexer did not support `#` as a comment character, causing compilation to hang indefinitely when processing files with `#` comments.
+
+**Root Cause**: When the lexer encountered `#`:
+1. It returned `TOKEN_ERROR` for the unrecognized character
+2. Error handling reset `indent_size` to 1, corrupting the indent stack
+3. The parser entered `panic_mode`
+4. Subsequent INDENT tokens couldn't be parsed correctly
+5. When already in `panic_mode`, `parser_error_at` returned early without advancing the token
+6. This caused an infinite loop in `parser_indented_block` repeatedly trying to parse the same INDENT token
+
+**Fix**: Added `#` comment support to:
+- `compiler/lexer_util.c` - `lexer_skip_whitespace()` now skips `#` comments
+- `compiler/lexer.c` - Comment-only line detection now recognizes `#`
 
 ---
 
-## Critical Issues
+## Open Issues
 
-### 1. Undefined Function `rt_eq_void` for Char Comparison
+### String Interpolation with Escaped Quotes
 
-**File:** `test_14_conditionals.c`
-**Line:** 383-387
-**Severity:** Critical - Compilation Error
+**Status**: Not working
 
-```c
-if (rt_eq_void(c1, 'A')) {
-    {
-        rt_print_string("Char comparison works\n");
-    }
-}
+**Description**: Escaped quotes inside interpolated string expressions cause parsing errors.
+
+**Example that fails**:
+```sn
+print($"Result: {f("hello")}\n")  # Fails - escaped quotes in interpolation
 ```
 
-**Problem:** The function `rt_eq_void` is being called for char comparison, but this function is not declared in the runtime header. The correct function should be a char comparison function like `rt_eq_char`.
-
-**Expected:** Should use `rt_eq_long` (since char is stored as `long`) or a dedicated `rt_eq_char` function.
-
----
-
-## Potential Issues
-
-### 2. Type Mismatch in Boolean Array Creation
-
-**File:** `test_12_loops_foreach.c`
-**Line:** 345
-**Severity:** Warning
-
-```c
-int * bools = rt_array_create_bool(__arena_1__, 3, (int[]){1L, 0L, 1L});
+**Current workaround**: Use variables instead of string literals inside interpolations:
+```sn
+var s: str = "hello"
+print($"Result: {f(s)}\n")  # Works
 ```
 
-**Problem:** Using `1L` (long literal) to initialize an `int` array. While this works due to implicit conversion, it's inconsistent with the declared type.
-
-**Expected:** Should use `1` or `true`/`false` rather than `1L`.
-
----
-
-### 3. Boolean Variable Initialized with Long Literal
-
-**Files:** Multiple (test_10_loops_while.c, test_14_conditionals.c, test_19_edge_cases.c)
-**Severity:** Warning
-
-```c
-bool done = 0L;
-bool flag = 0L;
-bool p = 1L;
+**Error message**:
+```
+[interpolated:1] Error: Unexpected character '\'
 ```
 
-**Problem:** Boolean variables are being initialized with long literals (`0L`, `1L`) instead of boolean values (`true`, `false`, `0`, `1`).
-
-**Expected:** Should use `false` and `true` for consistency with `stdbool.h`.
+**Location**: The issue is in the interpolated string sub-parser in `compiler/parser_expr.c` which doesn't properly handle escape sequences within `{}` expressions.
 
 ---
 
-### 4. Double Arena Destroy on Break
+## Future Improvements
 
-**File:** `test_13_loops_break_continue.c`
-**Lines:** 210, 241, 274, 389, 453
-**Severity:** Medium
+### String Interpolation Enhancements
 
-```c
-{ rt_arena_destroy(__loop_arena_0__); break; }
-// ...
-__loop_cleanup_0__:
-    rt_arena_destroy(__loop_arena_0__);
+The following features would improve the string interpolation functionality:
+
+#### 1. Escaped Quotes in Interpolation Expressions
+
+Allow string literals with escaped quotes inside `$"{...}"` expressions:
+```sn
+print($"Greeting: {greet("World")}\n")  # Should work
+print($"Name: {"Alice"}\n")              # Should work
 ```
 
-**Problem:** When a `break` is executed, the arena is destroyed immediately before the break. However, the cleanup label is also reached after the loop (though not via fallthrough). This is actually safe because the break exits the loop, but the pattern could be cleaner.
+**Implementation notes**: The lexer's `lexer_scan_string()` function tracks brace depth for interpolation but doesn't correctly handle escape sequences inside the braces. The sub-parser receives the raw escape sequences and fails to parse them.
 
-**Note:** This is actually handled correctly - the `break` destroys the arena and exits, so the cleanup isn't reached for that iteration. The pattern is correct but could be more elegant.
+#### 2. Nested Interpolated Strings
 
----
-
-### 5. Unused `__lambda_arena__` Variable
-
-**Files:** `test_16_lambdas.c`, `test_17_closures.c`
-**Severity:** Minor (Compiler Warning)
-
-```c
-static long __lambda_0__(void *__closure__, long x) {
-    RtArena *__lambda_arena__ = ((__Closure__ *)__closure__)->arena;
-    return rt_mul_long(x, 2L);
-}
+Support interpolated strings inside interpolated strings:
+```sn
+var inner: str = $"x={x}"
+print($"Result: {$"nested {y}"}\n")  # Nested interpolation
 ```
 
-**Problem:** The `__lambda_arena__` variable is declared but never used in simple lambdas that don't need memory allocation.
+#### 3. Format Specifiers
 
-**Expected:** Either use the variable or don't declare it when not needed.
-
----
-
-## Observations (No Issues Found)
-
-### Loop Structure - Correct
-All loops (while, for, foreach) generate proper bounded loops with correct termination conditions. No infinite loop patterns were detected in the generated code.
-
-Key patterns observed:
-- While loops have proper condition checks at the start
-- For loops correctly implement init/condition/increment pattern
-- Foreach loops correctly iterate over array lengths
-- Break/continue statements correctly handle arena cleanup before jumping
-
-### Memory Management - Correct
-Arena allocation and destruction patterns appear correct:
-- Main arena created at function start
-- Loop arenas created as children of parent arenas
-- Arenas properly destroyed at end of scope or before break
-
-### String Interpolation - Correct
-String interpolation generates verbose but correct code using multiple `rt_str_concat` calls.
-
-### Closure Capture - Correct
-Closures properly capture variables by reference using typed closure structs with pointers.
-
-### Array Operations - Correct
-Array creation, slicing, spreading, and range generation produce correct C code.
-
----
-
-## Code Quality Notes
-
-### 1. Verbose String Interpolation
-String interpolation generates many temporary variables and concatenation calls. While correct, this could be optimized.
-
-### 2. Redundant `rt_to_string_string` Calls
-```c
-char * empty = rt_to_string_string(__arena_1__, "");
+Add optional format specifiers for controlling output:
+```sn
+var pi: double = 3.14159
+print($"Pi: {pi:.2f}\n")      # Format to 2 decimal places
+print($"Hex: {value:x}\n")    # Hexadecimal format
+print($"Padded: {n:05d}\n")   # Zero-padded to 5 digits
 ```
-Converting a string literal to a string seems unnecessary unless there's a specific runtime requirement.
 
-### 3. Deep Nesting in If-Else Chains
-Multiple if-else chains generate deeply nested structures rather than a flat else-if chain in C.
+#### 4. Expression Type Coercion
 
----
+Improve automatic type coercion in interpolations:
+```sn
+var arr: int[] = {1, 2, 3}
+print($"Array: {arr}\n")      # Should print array contents
+```
 
-## Test Coverage
+Currently only primitive types are automatically converted to strings.
 
-Files successfully analyzed:
-- [x] test_01_int_literals.c
-- [x] test_02_double_literals.c
-- [x] test_03_string_literals.c
-- [x] test_04_char_literals.c
-- [x] test_05_bool_literals.c
-- [x] test_08_arrays_slicing.c
-- [x] test_09_arrays_range_spread.c
-- [x] test_10_loops_while.c
-- [x] test_11_loops_for.c
-- [x] test_12_loops_foreach.c
-- [x] test_13_loops_break_continue.c
-- [x] test_14_conditionals.c
-- [x] test_16_lambdas.c
-- [x] test_17_closures.c
-- [x] test_19_edge_cases.c
-- [x] test_21_array_equality.c
-- [x] test_22_string_edge_cases.c
+#### 5. Multi-line Interpolated Strings
+
+Support interpolated strings spanning multiple lines:
+```sn
+var message: str = $"
+    Hello {name},
+    Your balance is {balance}.
+    "
+```
 
 ---
 
-## Infinite Loop Analysis
+## Parser Robustness
 
-**No infinite loops detected** in the generated C code.
+### Panic Mode Token Advancement
 
-All loops have proper termination conditions:
-- While loops: `while (rt_lt_long(i, 5L))` - bounded by comparison
-- For loops: Converted to while with proper increment in continue label
-- Foreach: Bounded by `rt_array_length()` which is finite
+**Observation**: When `panic_mode` is set and a subsequent error is encountered, `parser_error_at` returns early without advancing past the problematic token. This can lead to infinite loops in parsing loops that don't explicitly check for this condition.
 
-Break and continue statements correctly handle control flow without creating infinite loop scenarios.
+**Affected areas**:
+- `parser_indented_block` while loop
+- `parser_block_statement` while loop
+- Any parsing loop that calls `parser_declaration` or `parser_statement`
 
----
-
-## Recommendations
-
-1. **Fix `rt_eq_void` issue** - This will cause compilation failures for char comparisons
-2. **Use consistent boolean literals** - Replace `0L`/`1L` with `false`/`true` for bool types
-3. **Consider optimizing string interpolation** - Current approach is correct but verbose
-4. **Add `-Wunused-variable` flag handling** for unused arena variables in lambdas
-
----
-
-*Generated: 2025-12-18*
-*Analyzer: Claude Code*
+**Potential fix**: Consider always advancing past the current token when an error occurs, even in panic mode, or add explicit checks in parsing loops to detect and break out of stuck states.
