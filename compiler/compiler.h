@@ -24,11 +24,16 @@ typedef struct
     SymbolTable symbol_table;
     char *source_file;
     char *output_file;
+    char *executable_file;           /* Output executable path (derived or explicit) */
     char *source;
+    char *compiler_dir;              /* Directory containing compiler and runtime objects */
     int verbose;
     int log_level;
     ArithmeticMode arithmetic_mode;  /* Checked or unchecked arithmetic */
     int optimization_level;          /* Optimization level (0, 1, or 2) */
+    int emit_c_only;                 /* --emit-c: Only output C code, don't invoke GCC */
+    int keep_c;                      /* --keep-c: Keep intermediate C file after compilation */
+    int debug_build;                 /* -g: Include debug symbols and sanitizers in GCC output */
 } CompilerOptions;
 
 void compiler_init(CompilerOptions *options, int argc, char **argv);

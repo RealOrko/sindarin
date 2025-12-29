@@ -35,35 +35,26 @@ run_test() {
     local test_file="$1"
     local test_name=$(basename "$test_file" .sn)
     local expected_file="${test_file%.sn}.expected"
-    local c_file="$TEMP_DIR/${test_name}.c"
     local exe_file="$TEMP_DIR/${test_name}"
     local output_file="$TEMP_DIR/${test_name}.out"
-    
+
     printf "  %-40s " "$test_name"
-    
+
     # Check if expected output file exists
     if [ ! -f "$expected_file" ]; then
         printf "${YELLOW}SKIP${NC} (no .expected file)\n"
         ((SKIPPED++))
         return
     fi
-    
-    # Compile .sn to .c
-    if ! "$BIN_DIR/sn" "$test_file" -o "$c_file" -l 1 $OPT_LEVEL 2>"$TEMP_DIR/${test_name}.compile_err"; then
+
+    # Compile .sn directly to executable
+    if ! "$BIN_DIR/sn" "$test_file" -o "$exe_file" -l 1 -g $OPT_LEVEL 2>"$TEMP_DIR/${test_name}.compile_err"; then
         printf "${RED}FAIL${NC} (compilation error)\n"
         cat "$TEMP_DIR/${test_name}.compile_err" | head -5
         ((FAILED++))
         return
     fi
-    
-    # Compile .c to executable (with fsanitize to match runtime objects)
-    if ! gcc -no-pie -fsanitize=address "$c_file" "$BIN_DIR/arena.o" "$BIN_DIR/debug.o" "$BIN_DIR/runtime.o" -o "$exe_file" 2>"$TEMP_DIR/${test_name}.gcc_err"; then
-        printf "${RED}FAIL${NC} (gcc error)\n"
-        cat "$TEMP_DIR/${test_name}.gcc_err" | head -5
-        ((FAILED++))
-        return
-    fi
-    
+
     # Run the executable and capture output (disable leak sanitizer for integration tests)
     if ! ASAN_OPTIONS=detect_leaks=0 timeout 5s "$exe_file" > "$output_file" 2>&1; then
         printf "${RED}FAIL${NC} (runtime error or timeout)\n"
@@ -71,7 +62,7 @@ run_test() {
         ((FAILED++))
         return
     fi
-    
+
     # Compare output
     if diff -q "$output_file" "$expected_file" > /dev/null 2>&1; then
         printf "${GREEN}PASS${NC}\n"

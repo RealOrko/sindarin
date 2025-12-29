@@ -11,41 +11,25 @@ echo ""
 
 for test_file in ./testing/test_*.sn; do
     test_name=$(basename "$test_file" .sn)
-    c_file="$OUTPUT_DIR/${test_name}.c"
     exe_file="$OUTPUT_DIR/${test_name}"
-    log_file="$OUTPUT_DIR/${test_name}.c.log"
-    s_trace="$OUTPUT_DIR/${test_name}.c.strace"
+    log_file="$OUTPUT_DIR/${test_name}.log"
 
     echo "Testing: $test_name"
     echo "========================================"
     echo "Test: $test_name"
     echo "========================================"
 
-    # Compile .sn to .c
-    #timeout 5s strace -o "$s_trace" $COMPILER "$test_file" -o "$c_file"
-    compile_output=$(timeout 5s $COMPILER "$test_file" -o "$c_file" 2>&1)
+    # Compile .sn directly to executable
+    compile_output=$(timeout 5s $COMPILER "$test_file" -o "$exe_file" -g 2>&1)
     compile_status=$?
     echo "Source: $test_file" 2>&1 > "$log_file"
     echo "$compile_output" 2>&1 >> "$log_file"
 
     if [ $compile_status -ne 0 ]; then
-        echo "  COMPILE FAILED (sn -> c)"
-        echo "Status: COMPILE FAILED (sn -> c)"
+        echo "  COMPILE FAILED"
+        echo "Status: COMPILE FAILED"
         echo "Output:"
         echo "$compile_output"
-        echo ""
-        continue
-    fi
-
-    # Compile .c to executable
-    gcc_output=$(gcc -fsanitize=address -o "$exe_file" "$c_file" ./bin/arena.o ./bin/debug.o ./bin/runtime.o 2>&1)
-    gcc_status=$?
-
-    if [ $gcc_status -ne 0 ]; then
-        echo "  COMPILE FAILED (c -> exe)"
-        echo "Status: COMPILE FAILED (c -> exe)"
-        echo "GCC Output:"
-        echo "$gcc_output"
         echo ""
         continue
     fi
@@ -68,4 +52,4 @@ for test_file in ./testing/test_*.sn; do
 done
 
 echo ""
-echo "Results written to $RESULTS_FILE"
+echo "Results written to $OUTPUT_DIR"

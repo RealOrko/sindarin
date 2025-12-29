@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "type_checker.h"
 #include "optimizer.h"
+#include "gcc_backend.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -16,11 +17,19 @@ void compiler_init(CompilerOptions *options, int argc, char **argv)
     arena_init(&options->arena, 4096);
     options->source_file = NULL;
     options->output_file = NULL;
+    options->executable_file = NULL;
     options->source = NULL;
+    options->compiler_dir = NULL;
     options->verbose = 0;
     options->log_level = DEBUG_LEVEL_ERROR;
     options->arithmetic_mode = ARITH_CHECKED;  /* Default to checked arithmetic */
     options->optimization_level = OPT_LEVEL_FULL;  /* Default to full optimization (-O2) */
+    options->emit_c_only = 0;  /* Default: compile to executable */
+    options->keep_c = 0;       /* Default: delete intermediate C file */
+    options->debug_build = 0;  /* Default: optimized build */
+
+    /* Get the compiler directory for locating runtime objects */
+    options->compiler_dir = (char *)gcc_get_compiler_dir(argv[0]);
 
     if (!compiler_parse_args(argc, argv, options))
     {
@@ -43,7 +52,9 @@ void compiler_cleanup(CompilerOptions *options)
 
     options->source_file = NULL;
     options->output_file = NULL;
+    options->executable_file = NULL;
     options->source = NULL;
+    options->compiler_dir = NULL;
 }
 
 int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
@@ -51,16 +62,26 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
     if (argc < 2)
     {
         fprintf(stderr,
-            "Usage: %s <source_file> [-o <output_file>] [-v] [-l <level>] [--unchecked] [-O<level>]\n"
-            "  -o <output_file>   Specify output file (default is source_file.s)\n"
-            "  -v                 Verbose mode\n"
-            "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)\n"
-            "  --unchecked        Use unchecked arithmetic (no overflow checking, faster)\n"
+            "Usage: %s <source_file> [-o <executable>] [options]\n"
             "\n"
-            "Optimization levels:\n"
-            "  -O0                No optimization (for debugging)\n"
-            "  -O1                Basic optimizations (dead code elimination, string merging)\n"
-            "  -O2                Full optimizations (default: + tail call optimization)\n",
+            "Output options:\n"
+            "  -o <file>          Specify output executable (default: source_file without extension)\n"
+            "  --emit-c           Only output C code, don't compile to executable\n"
+            "  --keep-c           Keep intermediate C file after compilation\n"
+            "\n"
+            "Debug options:\n"
+            "  -v                 Verbose mode (show compilation steps)\n"
+            "  -g                 Debug build (includes symbols and address sanitizer)\n"
+            "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)\n"
+            "\n"
+            "Code generation options:\n"
+            "  --unchecked        Use unchecked arithmetic (no overflow checking, faster)\n"
+            "  -O0                No Sn optimization (for debugging)\n"
+            "  -O1                Basic Sn optimizations (dead code elimination, string merging)\n"
+            "  -O2                Full Sn optimizations (default: + tail call optimization)\n"
+            "\n"
+            "By default, compiles to an executable and removes the intermediate C file.\n"
+            "Requires GCC to be installed for compilation.\n",
             argv[0]);
         return 0;
     }
@@ -124,6 +145,18 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
             /* Legacy flag - equivalent to -O0 */
             options->optimization_level = OPT_LEVEL_NONE;
         }
+        else if (strcmp(argv[i], "--emit-c") == 0)
+        {
+            options->emit_c_only = 1;
+        }
+        else if (strcmp(argv[i], "--keep-c") == 0)
+        {
+            options->keep_c = 1;
+        }
+        else if (strcmp(argv[i], "-g") == 0)
+        {
+            options->debug_build = 1;
+        }
         else if (argv[i][0] == '-')
         {
             DEBUG_ERROR("Unknown option: %s", argv[i]);
@@ -153,21 +186,62 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
         return 0;
     }
 
-    // Generate default output file name if not specified
-    if (options->output_file == NULL)
+    // Determine output paths based on mode
+    const char *dot = strrchr(options->source_file, '.');
+    size_t base_len = dot ? (size_t)(dot - options->source_file) : strlen(options->source_file);
+
+    if (options->emit_c_only)
     {
-        const char *dot = strrchr(options->source_file, '.');
-        size_t base_len = dot ? (size_t)(dot - options->source_file) : strlen(options->source_file);
-        size_t out_len = base_len + 3; // ".s" + null terminator
-        char *out = arena_alloc(&options->arena, out_len);
-        if (!out)
+        // --emit-c mode: -o specifies C file output
+        if (options->output_file == NULL)
         {
-            DEBUG_ERROR("Failed to allocate memory for output file path");
+            // Default: source_file.c
+            size_t out_len = base_len + 3; // ".c" + null terminator
+            char *out = arena_alloc(&options->arena, out_len);
+            if (!out)
+            {
+                DEBUG_ERROR("Failed to allocate memory for output file path");
+                return 0;
+            }
+            strncpy(out, options->source_file, base_len);
+            strcpy(out + base_len, ".c");
+            options->output_file = out;
+        }
+        options->executable_file = NULL;
+    }
+    else
+    {
+        // Normal mode: -o specifies executable, C file is intermediate
+        if (options->output_file != NULL)
+        {
+            // -o was specified, use it for executable
+            options->executable_file = options->output_file;
+        }
+        else
+        {
+            // Default executable: source_file without extension
+            char *exe = arena_alloc(&options->arena, base_len + 1);
+            if (!exe)
+            {
+                DEBUG_ERROR("Failed to allocate memory for executable path");
+                return 0;
+            }
+            strncpy(exe, options->source_file, base_len);
+            exe[base_len] = '\0';
+            options->executable_file = exe;
+        }
+
+        // Intermediate C file: source_file.c (will be deleted unless --keep-c)
+        size_t c_len = base_len + 3; // ".c" + null terminator
+        char *c_file = arena_alloc(&options->arena, c_len);
+        if (!c_file)
+        {
+            DEBUG_ERROR("Failed to allocate memory for C file path");
             return 0;
         }
-        strncpy(out, options->source_file, base_len);
-        strcpy(out + base_len, ".s");
-        options->output_file = out;
+        strncpy(c_file, options->source_file, base_len);
+        strcpy(c_file + base_len, ".c");
+        options->output_file = c_file;
     }
 
     return 1;
