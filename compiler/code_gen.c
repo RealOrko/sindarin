@@ -440,6 +440,13 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
     }
 
     bool is_shared = fn->modifier == FUNC_SHARED;
+    /* Functions returning closures must be implicitly shared to avoid
+     * arena lifetime issues - the returned closure must live in caller's arena */
+    bool returns_closure = fn->return_type && fn->return_type->kind == TYPE_FUNCTION;
+    if (returns_closure && fn->modifier != FUNC_PRIVATE)
+    {
+        is_shared = true;
+    }
     const char *ret_c = get_c_type(gen->arena, fn->return_type);
     indented_fprintf(gen, 0, "%s %s(", ret_c, fn_name);
 

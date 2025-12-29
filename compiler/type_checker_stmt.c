@@ -155,8 +155,19 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         }
     }
 
+    /* Functions returning closures must be implicitly shared to avoid arena
+     * lifetime issues - the returned closure must live in caller's arena.
+     * This follows MEMORY.md's promotion semantics for escaping values. */
+    FunctionModifier effective_modifier = modifier;
+    if (stmt->as.function.return_type &&
+        stmt->as.function.return_type->kind == TYPE_FUNCTION &&
+        modifier != FUNC_PRIVATE)
+    {
+        effective_modifier = FUNC_SHARED;
+    }
+
     /* Add function symbol to current scope (e.g., global) with its modifier */
-    symbol_table_add_function(table, stmt->as.function.name, func_type, modifier);
+    symbol_table_add_function(table, stmt->as.function.name, func_type, effective_modifier);
 
     symbol_table_push_scope(table);
 

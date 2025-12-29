@@ -233,6 +233,12 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool is_main = strcmp(gen->current_function, "main") == 0;
     bool is_private = stmt->modifier == FUNC_PRIVATE;
     bool is_shared = stmt->modifier == FUNC_SHARED;
+    // Functions returning closures must be implicitly shared to avoid
+    // arena lifetime issues - the returned closure must live in caller's arena
+    bool returns_closure = stmt->return_type && stmt->return_type->kind == TYPE_FUNCTION;
+    if (returns_closure && !is_main) {
+        is_shared = true;
+    }
     // Check if function actually uses heap-allocated types
     bool uses_heap_types = function_needs_arena(stmt);
     // Functions need arena only if: (1) not shared AND (2) actually use heap types

@@ -2069,6 +2069,11 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
     }
 
     if (suffix == NULL) {
+        // For empty arrays with unknown element type (TYPE_NIL), return NULL.
+        // The runtime handles NULL as an empty array.
+        if (arr->element_count == 0 && elem_type->kind == TYPE_NIL) {
+            return arena_strdup(gen->arena, "NULL");
+        }
         // For unsupported element types (like nested arrays), fall back to
         // compound literal without runtime wrapper
         return arena_sprintf(gen->arena, "(%s[]){%s}", elem_c, inits);
@@ -2392,7 +2397,10 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         for (int i = 0; i < cv.count; i++)
         {
             const char *c_type = get_c_type(gen->arena, cv.types[i]);
-            struct_def = arena_sprintf(gen->arena, "%s    %s *%s;\n",
+            /* Store values directly in closure, not pointers to values.
+             * This follows MEMORY.md: primitives have value semantics.
+             * Reference types (arrays, strings) are already pointers. */
+            struct_def = arena_sprintf(gen->arena, "%s    %s %s;\n",
                                        struct_def, c_type, cv.names[i]);
         }
         struct_def = arena_sprintf(gen->arena, "%s} __closure_%d__;\n",
@@ -2407,8 +2415,10 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         for (int i = 0; i < cv.count; i++)
         {
             const char *c_type = get_c_type(gen->arena, cv.types[i]);
+            /* Access value directly from closure - no dereference needed since
+             * we store values (not pointers to values) in the closure struct. */
             capture_decls = arena_sprintf(gen->arena,
-                "%s    %s %s = *((__closure_%d__ *)__closure__)->%s;\n",
+                "%s    %s %s = ((__closure_%d__ *)__closure__)->%s;\n",
                 capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
         }
 
@@ -2559,7 +2569,10 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         for (int i = 0; i < cv.count; i++)
         {
-            closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = &%s;\n",
+            /* Copy value directly, not address. For primitives this copies
+             * the value; for reference types (arrays, strings) this copies
+             * the pointer. Both are safe when the lambda escapes. */
+            closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
                                          closure_init, cv.names[i], cv.names[i]);
         }
         closure_init = arena_sprintf(gen->arena,
