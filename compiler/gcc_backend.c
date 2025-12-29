@@ -72,7 +72,7 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     char arena_obj[PATH_MAX];
     char debug_obj[PATH_MAX];
     char runtime_obj[PATH_MAX];
-    char command[PATH_MAX * 4];
+    char command[PATH_MAX * 5 + 256];
 
     /* Determine output executable path if not specified */
     if (output_exe == NULL || output_exe[0] == '\0')

@@ -4,7 +4,7 @@
 void test_lexer_operators_single()
 {
     DEBUG_INFO("Starting test_lexer_operators_single");
-    printf("Testing lexer with single operators '+ - * / %'\n");
+    printf("Testing lexer with single operators '+ - * / %%'\n");
 
     const char *source = "+ - * / %";
     Arena arena;

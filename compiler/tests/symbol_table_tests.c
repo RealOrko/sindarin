@@ -24,12 +24,6 @@ static Type *create_string_type(Arena *arena) {
     return ast_create_primitive_type(arena, TYPE_STRING);
 }
 
-// Helper to print symbol table for debugging in tests (reuses existing print)
-static void print_table_for_test(SymbolTable *table, const char *test_name) {
-    printf("Dumping symbol table for %s:\n", test_name);
-    symbol_table_print(table, test_name);
-}
-
 // Test initialization with NULL
 void test_symbol_table_init_null_arena() {
     DEBUG_INFO("Starting test_symbol_table_init_null_arena");
@@ -207,7 +201,7 @@ void test_symbol_table_pop_scope_offset_propagation() {
     symbol_table_push_scope(&table);  // Child1, add local to increase
     Type *int_type = create_int_type(&arena);
     symbol_table_add_symbol(&table, TOKEN_LITERAL("var1"), int_type);
-    int child1_local = table.current->next_local_offset;  // Increased by 8 (int size aligned)
+    (void)table.current->next_local_offset;  // Increased by 8 (int size aligned)
 
     symbol_table_push_scope(&table);  // Child2, smaller increase
     symbol_table_add_symbol(&table, TOKEN_LITERAL("var2"), int_type);

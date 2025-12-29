@@ -155,10 +155,9 @@ void test_type_check_array_literal_empty()
     Module module;
     ast_init_module(&arena, &module, "test.sn");
 
-    Expr *elements[0] = {NULL};
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACE, "{", 1, "test.sn", &arena);
-    Expr *arr_lit = ast_create_array_expr(&arena, elements, 0, &arr_tok);
+    Expr *arr_lit = ast_create_array_expr(&arena, NULL, 0, &arr_tok);
 
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, arr_lit, &arr_tok);
     ast_module_add_statement(&arena, &module, expr_stmt);

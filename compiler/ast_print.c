@@ -300,6 +300,16 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
         ast_print_expr(arena, expr->as.assign.value, indent_level + 1);
         break;
 
+    case EXPR_INDEX_ASSIGN:
+        DEBUG_VERBOSE_INDENT(indent_level, "IndexAssign:");
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Array:");
+        ast_print_expr(arena, expr->as.index_assign.array, indent_level + 2);
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Index:");
+        ast_print_expr(arena, expr->as.index_assign.index, indent_level + 2);
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Value:");
+        ast_print_expr(arena, expr->as.index_assign.value, indent_level + 2);
+        break;
+
     case EXPR_CALL:
         DEBUG_VERBOSE_INDENT(indent_level, "Call:");
         ast_print_expr(arena, expr->as.call.callee, indent_level + 1);

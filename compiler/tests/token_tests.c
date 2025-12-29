@@ -67,10 +67,11 @@ void test_token_init_non_literal()
     printf("Testing token_init for a non-literal token (e.g., PLUS)...\n");
 
     Token token;
-    token_init(&token, TOKEN_PLUS, "+", 1, 10, filename);
+    const char *plus_str = "+";
+    token_init(&token, TOKEN_PLUS, plus_str, 1, 10, filename);
 
     assert(token.type == TOKEN_PLUS);
-    assert(token.start == "+");
+    assert(token.start == plus_str);
     assert(token.length == 1);
     assert(token.line == 10);
     assert(token.filename == filename);

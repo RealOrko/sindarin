@@ -20,7 +20,7 @@ typedef struct {
     int capacity;
 } CapturedVars;
 
-static void captured_vars_init(CapturedVars *cv, Arena *arena)
+static void captured_vars_init(CapturedVars *cv)
 {
     cv->names = NULL;
     cv->types = NULL;
@@ -69,29 +69,6 @@ typedef struct EnclosingLambdaContext {
     int count;
     int capacity;
 } EnclosingLambdaContext;
-
-static void enclosing_lambda_init(EnclosingLambdaContext *ctx)
-{
-    ctx->lambdas = NULL;
-    ctx->count = 0;
-    ctx->capacity = 0;
-}
-
-static void enclosing_lambda_push(EnclosingLambdaContext *ctx, Arena *arena, LambdaExpr *lambda)
-{
-    if (ctx->count >= ctx->capacity)
-    {
-        int new_cap = ctx->capacity == 0 ? 4 : ctx->capacity * 2;
-        LambdaExpr **new_lambdas = arena_alloc(arena, new_cap * sizeof(LambdaExpr *));
-        for (int i = 0; i < ctx->count; i++)
-        {
-            new_lambdas[i] = ctx->lambdas[i];
-        }
-        ctx->lambdas = new_lambdas;
-        ctx->capacity = new_cap;
-    }
-    ctx->lambdas[ctx->count++] = lambda;
-}
 
 /* Check if a name is a parameter of any enclosing lambda, and get its type */
 static Type *find_enclosing_lambda_param(EnclosingLambdaContext *ctx, const char *name)
@@ -2337,7 +2314,7 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
     /* Collect captured variables - from expression body or statement body */
     CapturedVars cv;
-    captured_vars_init(&cv, gen->arena);
+    captured_vars_init(&cv);
 
     /* First collect local variables declared in the lambda body */
     LocalVars lv;
@@ -2387,7 +2364,6 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
     /* Generate arena handling code based on modifier */
     char *arena_setup = arena_strdup(gen->arena, "");
     char *arena_cleanup = arena_strdup(gen->arena, "");
-    const char *lambda_arena_var = "((__Closure__ *)__closure__)->arena";
 
     if (modifier == FUNC_PRIVATE)
     {
@@ -2397,14 +2373,12 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
             "    (void)__closure__;\n");
         arena_cleanup = arena_sprintf(gen->arena,
             "    rt_arena_destroy(__lambda_arena__);\n");
-        lambda_arena_var = "__lambda_arena__";
     }
     else
     {
         /* Default/Shared lambda: use arena from closure */
         arena_setup = arena_sprintf(gen->arena,
             "    RtArena *__lambda_arena__ = ((__Closure__ *)__closure__)->arena;\n");
-        lambda_arena_var = "__lambda_arena__";
     }
 
     if (cv.count > 0)
