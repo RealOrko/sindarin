@@ -1,4 +1,5 @@
 #include "compiler.h"
+#include "diagnostic.h"
 #include "debug.h"
 #include "type_checker.h"
 #include "optimizer.h"
@@ -253,18 +254,42 @@ Module* compiler_compile(CompilerOptions *options)
     int imported_count = 0;
     int imported_capacity = 0;
 
+    /* Read source file for diagnostic context */
+    char *source = file_read(&options->arena, options->source_file);
+    if (!source)
+    {
+        fprintf(stderr, "error: cannot read file '%s'\n", options->source_file);
+        return NULL;
+    }
+    options->source = source;
+
+    /* Initialize diagnostic system with source for context display */
+    diagnostic_init(options->source_file, source);
+    diagnostic_set_verbose(options->verbose);
+
+    /* Start compilation with progress reporting */
+    diagnostic_compile_start(options->source_file);
+
+    /* Phase 1: Parsing */
+    diagnostic_phase_start(PHASE_PARSING);
     Module *module = parse_module_with_imports(&options->arena, &options->symbol_table, options->source_file, &imported, &imported_count, &imported_capacity);
     if (!module)
     {
-        DEBUG_ERROR("Failed to parse module with imports");
+        diagnostic_phase_failed(PHASE_PARSING);
+        diagnostic_compile_failed();
         return NULL;
     }
+    diagnostic_phase_done(PHASE_PARSING, 0);
 
+    /* Phase 2: Type checking */
+    diagnostic_phase_start(PHASE_TYPE_CHECK);
     if (!type_check_module(module, &options->symbol_table))
     {
-        DEBUG_ERROR("Type checking failed");
+        diagnostic_phase_failed(PHASE_TYPE_CHECK);
+        diagnostic_compile_failed();
         return NULL;
     }
+    diagnostic_phase_done(PHASE_TYPE_CHECK, 0);
 
     /* Run optimization passes based on optimization level */
     if (options->optimization_level >= OPT_LEVEL_BASIC)

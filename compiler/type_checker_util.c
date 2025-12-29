@@ -1,4 +1,5 @@
 #include "type_checker_util.h"
+#include "diagnostic.h"
 #include "debug.h"
 #include <stdio.h>
 #include <string.h>
@@ -45,70 +46,20 @@ const char *type_name(Type *type)
 
 void type_error(Token *token, const char *msg)
 {
-    char error_buffer[256];
-    if (token && token->line > 0 && token->filename)
-    {
-        snprintf(error_buffer, sizeof(error_buffer), "%s:%d: Type error: %s",
-                 token->filename, token->line, msg);
-    }
-    else
-    {
-        snprintf(error_buffer, sizeof(error_buffer), "Type error: %s", msg);
-    }
-    DEBUG_ERROR("%s", error_buffer);
-    DEBUG_VERBOSE("Type error occurred: %s", error_buffer);
+    diagnostic_error_at(token, "%s", msg);
     had_type_error = 1;
 }
 
 void type_error_with_suggestion(Token *token, const char *msg, const char *suggestion)
 {
-    char error_buffer[512];
-    if (token && token->line > 0 && token->filename)
-    {
-        if (suggestion && suggestion[0] != '\0')
-        {
-            snprintf(error_buffer, sizeof(error_buffer), "%s:%d: Type error: %s. Did you mean '%s'?",
-                     token->filename, token->line, msg, suggestion);
-        }
-        else
-        {
-            snprintf(error_buffer, sizeof(error_buffer), "%s:%d: Type error: %s",
-                     token->filename, token->line, msg);
-        }
-    }
-    else
-    {
-        if (suggestion && suggestion[0] != '\0')
-        {
-            snprintf(error_buffer, sizeof(error_buffer), "Type error: %s. Did you mean '%s'?", msg, suggestion);
-        }
-        else
-        {
-            snprintf(error_buffer, sizeof(error_buffer), "Type error: %s", msg);
-        }
-    }
-    DEBUG_ERROR("%s", error_buffer);
-    DEBUG_VERBOSE("Type error occurred: %s", error_buffer);
+    diagnostic_error_with_suggestion(token, suggestion, "%s", msg);
     had_type_error = 1;
 }
 
 void type_mismatch_error(Token *token, Type *expected, Type *actual, const char *context)
 {
-    char error_buffer[512];
-    if (token && token->line > 0 && token->filename)
-    {
-        snprintf(error_buffer, sizeof(error_buffer),
-                 "%s:%d: Type error in %s: expected '%s', got '%s'",
-                 token->filename, token->line, context,
-                 type_name(expected), type_name(actual));
-    }
-    else
-    {
-        snprintf(error_buffer, sizeof(error_buffer),
-                 "Type error in %s: expected '%s', got '%s'",
-                 context, type_name(expected), type_name(actual));
-    }
-    DEBUG_ERROR("%s", error_buffer);
+    diagnostic_error_at(token, "type mismatch in %s: expected '%s', got '%s'",
+                        context, type_name(expected), type_name(actual));
     had_type_error = 1;
 }
 
@@ -469,39 +420,14 @@ void invalid_member_error(Token *token, Type *object_type, const char *member_na
 
 void argument_count_error(Token *token, const char *func_name, int expected, int actual)
 {
-    char error_buffer[256];
-    if (token && token->line > 0 && token->filename)
-    {
-        snprintf(error_buffer, sizeof(error_buffer),
-                 "%s:%d: Type error: Function '%s' expects %d argument(s), got %d",
-                 token->filename, token->line, func_name, expected, actual);
-    }
-    else
-    {
-        snprintf(error_buffer, sizeof(error_buffer),
-                 "Type error: Function '%s' expects %d argument(s), got %d",
-                 func_name, expected, actual);
-    }
-    DEBUG_ERROR("%s", error_buffer);
+    diagnostic_error_at(token, "function '%s' expects %d argument(s), got %d",
+                        func_name, expected, actual);
     had_type_error = 1;
 }
 
 void argument_type_error(Token *token, const char *func_name, int arg_index, Type *expected, Type *actual)
 {
-    char error_buffer[256];
-    if (token && token->line > 0 && token->filename)
-    {
-        snprintf(error_buffer, sizeof(error_buffer),
-                 "%s:%d: Type error: Argument %d of '%s': expected '%s', got '%s'",
-                 token->filename, token->line, arg_index + 1, func_name,
-                 type_name(expected), type_name(actual));
-    }
-    else
-    {
-        snprintf(error_buffer, sizeof(error_buffer),
-                 "Type error: Argument %d of '%s': expected '%s', got '%s'",
-                 arg_index + 1, func_name, type_name(expected), type_name(actual));
-    }
-    DEBUG_ERROR("%s", error_buffer);
+    diagnostic_error_at(token, "argument %d of '%s': expected '%s', got '%s'",
+                        arg_index + 1, func_name, type_name(expected), type_name(actual));
     had_type_error = 1;
 }

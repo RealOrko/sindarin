@@ -1,4 +1,5 @@
 #include "parser_util.h"
+#include "diagnostic.h"
 #include "debug.h"
 #include <stdio.h>
 #include <string.h>
@@ -45,19 +46,22 @@ void parser_error_at(Parser *parser, Token *token, const char *message)
     parser->panic_mode = 1;
     parser->had_error = 1;
 
-    fprintf(stderr, "[%s:%d] Error", parser->lexer->filename, token->line);
+    /* Use the diagnostic system for Rust-style error output */
     if (token->type == TOKEN_EOF)
     {
-        fprintf(stderr, " at end");
+        diagnostic_error(token->filename, token->line, 1, 1,
+                        "%s at end of file", message);
     }
     else if (token->type == TOKEN_ERROR)
     {
+        /* Error token - message is in the token itself */
+        diagnostic_error_at(token, "%s", message);
     }
     else
     {
-        fprintf(stderr, " at '%.*s'", token->length, token->start);
+        /* Regular token - show what we got vs what we expected */
+        diagnostic_error_at(token, "%s (got '%.*s')", message, token->length, token->start);
     }
-    fprintf(stderr, ": %s\n", message);
 
     parser->lexer->indent_size = 1;
 

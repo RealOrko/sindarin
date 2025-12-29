@@ -121,22 +121,38 @@ bool gcc_compile(const char *c_file, const char *output_exe,
      * Note: Runtime objects are compiled with address sanitizer, so we always
      * need to link with -fsanitize=address. The debug_mode flag controls whether
      * we include extra debug info (-g) and frame pointers.
+     *
+     * We use -w to suppress all warnings on generated code - any issues should
+     * be caught by the Sn type checker, not GCC. We redirect stderr to capture
+     * any errors for display only if compilation actually fails.
      */
+    char error_file[] = "/tmp/sn_gcc_errors_XXXXXX";
+    int error_fd = mkstemp(error_file);
+    if (error_fd == -1)
+    {
+        /* Fallback: use a fixed name */
+        strcpy(error_file, "/tmp/sn_gcc_errors.txt");
+    }
+    else
+    {
+        close(error_fd);
+    }
+
     if (debug_mode)
     {
         snprintf(command, sizeof(command),
             "gcc -no-pie -fsanitize=address -fno-omit-frame-pointer -g "
-            "-Wall -Wextra -std=c99 -D_GNU_SOURCE "
-            "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\"",
-            c_file, arena_obj, debug_obj, runtime_obj, exe_path);
+            "-w -std=c99 -D_GNU_SOURCE "
+            "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
+            c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
     }
     else
     {
         /* Still need -fsanitize=address because runtime objects require it */
         snprintf(command, sizeof(command),
-            "gcc -O2 -fsanitize=address -std=c99 -D_GNU_SOURCE "
-            "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\"",
-            c_file, arena_obj, debug_obj, runtime_obj, exe_path);
+            "gcc -O2 -fsanitize=address -w -std=c99 -D_GNU_SOURCE "
+            "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
+            c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
     }
 
     if (verbose)
@@ -149,9 +165,24 @@ bool gcc_compile(const char *c_file, const char *output_exe,
 
     if (result != 0)
     {
-        fprintf(stderr, "Error: GCC compilation failed (exit code %d)\n", WEXITSTATUS(result));
+        /* Show GCC error output */
+        FILE *errfile = fopen(error_file, "r");
+        if (errfile)
+        {
+            char line[1024];
+            fprintf(stderr, "\n");
+            while (fgets(line, sizeof(line), errfile))
+            {
+                fprintf(stderr, "%s", line);
+            }
+            fclose(errfile);
+        }
+        unlink(error_file);
         return false;
     }
+
+    /* Clean up error file on success */
+    unlink(error_file);
 
     if (verbose)
     {
