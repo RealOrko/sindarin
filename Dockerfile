@@ -24,28 +24,29 @@ RUN apt-get update && apt-get install -y \
     software-properties-common \
     locales \
     sudo \
+    direnv \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python latest (via deadsnakes PPA for latest version)
 RUN add-apt-repository ppa:deadsnakes/ppa -y \
     && apt-get update \
     && apt-get install -y \
-    python3.12 \
-    python3.12-venv \
-    python3.12-dev \
+    python3.14 \
+    python3.14-venv \
+    python3.14-dev \
     python3-pip \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1 \
-    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1 \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.14 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.14 1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Go latest (1.22.x)
-ENV GO_VERSION=1.22.4
+# Install Go latest (1.25.x)
+ENV GO_VERSION=1.25.5
 RUN wget -q https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go${GO_VERSION}.linux-amd64.tar.gz \
     && rm go${GO_VERSION}.linux-amd64.tar.gz
 
-# Install Node.js 20.x LTS
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+# Install Node.js 24.x LTS (Krypton)
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
@@ -119,12 +120,19 @@ RUN echo '# Environment variables' >> /home/claude/.bashrc \
     && echo '' >> /home/claude/.bashrc \
     && echo '# Aliases' >> /home/claude/.bashrc \
     && echo 'alias ll="ls -la"' >> /home/claude/.bashrc \
-    && echo 'alias py="python"' >> /home/claude/.bashrc
+    && echo 'alias py="python"' >> /home/claude/.bashrc \
+    && echo '' >> /home/claude/.bashrc \
+    && echo '# direnv' >> /home/claude/.bashrc \
+    && echo 'eval "$(direnv hook bash)"' >> /home/claude/.bashrc
 
 # Also create .profile for login shells
 RUN cp /home/claude/.bashrc /home/claude/.profile
 
 WORKDIR /home/claude/workspace
+
+RUN git config --global user.email "realorko@nowhere.com"
+RUN git config --global user.name "realorko"
+
 
 # Default command with dangerously-skip-permissions flag
 CMD ["claude", "--dangerously-skip-permissions"]
