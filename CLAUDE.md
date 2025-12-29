@@ -5,10 +5,11 @@ A statically-typed procedural language that compiles `.sn` → C → executable.
 ## 🔨 Build & Run
 
 ```bash
-./scripts/build.sh          # Full build + tests
-./scripts/run.sh            # Run samples/main.sn
-./scripts/test.sh           # Unit tests
-./scripts/integration_test.sh  # Integration tests
+make                  # Full build + tests
+make run              # Run samples/main.sn
+make test             # Unit tests
+make test-integration # Integration tests
+make help             # Show all targets
 ```
 
 Binaries: `bin/sn` (compiler), `bin/tests`
@@ -35,7 +36,7 @@ Link output with: `bin/arena.o`, `bin/debug.o`, `bin/runtime.o`
 
 - **Unit:** `compiler/tests/*_tests.c` → `bin/tests`
 - **Integration:** `compiler/tests/integration/*.sn`
-- **Exploratory:** `./scripts/test-explore` runs `testing/*.sn`
+- **Exploratory:** `make test-explore` runs `testing/*.sn`
 
 ## 📚 Syntax
 
