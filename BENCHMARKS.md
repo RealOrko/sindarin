@@ -4,7 +4,7 @@ This document contains performance comparison results between Sindarin and other
 
 ## Test Environment
 
-- **Date**: 2025-12-30 20:54:53
+- **Date**: 2025-12-30 21:16:49
 - **Runs per benchmark**: 3 (median reported)
 
 ## Summary
@@ -19,14 +19,14 @@ Tests function call overhead with recursive algorithm.
 
 | Language | Time (ms) |
 |----------|-----------|
-| sindarin | 173 |
-| c | 27 |
-| go | 51 |
-| rust | 33 |
+| sindarin | 179 |
+| c | 28 |
+| go | 52 |
+| rust | 31 |
 | java | 43 |
-| csharp | 57 |
-| python | 1481 |
-| nodejs | 557 |
+| csharp | 59 |
+| python | 1498 |
+| nodejs | 548 |
 
 ### 2. Prime Sieve (Memory + CPU, sieve up to 1,000,000)
 
@@ -34,14 +34,14 @@ Tests memory allocation and iteration performance.
 
 | Language | Time (ms) |
 |----------|-----------|
-| sindarin | 7157 |
-| c | 3 |
-| go | 2 |
+| sindarin | 7186 |
+| c | 2 |
+| go | 3 |
 | rust | 2 |
-| java | 12 |
+| java | 13 |
 | csharp | 4 |
-| python | 139 |
-| nodejs | 23 |
+| python | 140 |
+| nodejs | 25 |
 
 ### 3. String Operations (100,000 concatenations)
 
@@ -49,14 +49,14 @@ Tests string manipulation and substring search.
 
 | Language | Time (ms) |
 |----------|-----------|
-| sindarin | 1103 |
+| sindarin | 1100 |
 | c | 2 |
-| go | 2 |
-| rust | 6 |
-| java | 15 |
-| csharp | 33 |
-| python | 21 |
-| nodejs | 7 |
+| go | 3 |
+| rust | 4 |
+| java | 14 |
+| csharp | 35 |
+| python | 22 |
+| nodejs | 8 |
 
 ### 4. Array Operations (1,000,000 integers)
 
@@ -64,14 +64,14 @@ Tests array creation, iteration, and in-place reversal.
 
 | Language | Time (ms) |
 |----------|-----------|
-| sindarin | 5185 |
-| c | 4 |
-| go | 7 |
-| rust | 3 |
-| java | 17 |
-| csharp | 15 |
+| sindarin | 5212 |
+| c | 5 |
+| go | 10 |
+| rust | 2 |
+| java | 20 |
+| csharp | 14 |
 | python | 38 |
-| nodejs | 76 |
+| nodejs | 73 |
 
 ## Notes
 
