@@ -3,6 +3,9 @@
 
 set -e
 
+# Source cargo environment if available
+[ -f "$HOME/.cargo/env" ] && source "$HOME/.cargo/env"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
