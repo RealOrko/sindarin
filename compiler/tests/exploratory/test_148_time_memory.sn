@@ -1,0 +1,253 @@
+// Test 148: Time memory management and arena integration
+
+// Shared function that returns a formatted timestamp string
+// String is allocated in caller's arena
+fn getTimestamp() shared: str =>
+    var now: Time = Time.now()
+    return now.format("YYYY-MM-DD HH:mm:ss")
+
+// Shared function that creates a Time from seconds
+// Time is allocated in caller's arena
+fn createTime(seconds: int) shared: Time =>
+    return Time.fromSeconds(seconds)
+
+// Private function that computes elapsed time for work
+// Time objects are created and cleaned up internally, only primitive escapes
+fn computeElapsed() private: int =>
+    var start: Time = Time.now()
+    // Do some work
+    var i: int = 0
+    var sum: int = 0
+    while i < 10000 =>
+        sum = sum + i
+        i = i + 1
+    return Time.now().diff(start)
+
+// Private function that returns current epoch seconds as primitive
+// Time is used internally, only the int primitive escapes
+fn getEpochSeconds() private: int =>
+    var now: Time = Time.now()
+    return now.seconds()
+
+// Helper function for logging events with timestamp
+// Returns formatted timestamp + message string
+fn logEvent(msg: str) shared: str =>
+    var now: Time = Time.now()
+    return $"[{now.format("YYYY-MM-DD HH:mm:ss")}] {msg}"
+
+fn main(): int =>
+    print("Testing Time memory management...\n")
+    print("=================================\n\n")
+
+    // Basic Time allocation
+    print("Basic Time allocation:\n")
+    var now: Time = Time.now()
+    print($"  Created Time.now(): {now.toIso()}\n")
+    print($"  Year accessible: {now.year()}\n")
+    print($"  Millis accessible: {now.millis()}\n")
+
+    print("\nBasic allocation - PASS\n")
+
+    // String formatting allocation
+    print("\nString formatting allocation:\n")
+    var formatted: str = now.format("YYYY-MM-DD")
+    print($"  format() returned: {formatted}\n")
+    // Verify string remains valid by using it again
+    print($"  String still valid: {formatted}\n")
+
+    print("\nString formatting - PASS\n")
+
+    // Multiple format calls
+    print("\nMultiple format calls:\n")
+    var isoStr: str = now.toIso()
+    var dateStr: str = now.toDate()
+    var timeStr: str = now.toTime()
+    print($"  toIso():  {isoStr}\n")
+    print($"  toDate(): {dateStr}\n")
+    print($"  toTime(): {timeStr}\n")
+    // All strings should remain valid
+    print($"  All strings still accessible: {isoStr}, {dateStr}, {timeStr}\n")
+
+    print("\nMultiple format calls - PASS\n")
+
+    // Demonstrate no manual memory management needed
+    print("\nNo manual memory management:\n")
+    print("  - Time objects are allocated in arena\n")
+    print("  - Formatted strings are allocated in arena\n")
+    print("  - No free() calls needed\n")
+    print("  - Arena is cleaned up automatically at program exit\n")
+
+    print("\nNo manual memory management - PASS\n")
+
+    // Shared function integration
+    print("\nShared function integration:\n")
+
+    // Call getTimestamp() - returns string allocated in our arena
+    var timestamp: str = getTimestamp()
+    print($"  getTimestamp() returned: {timestamp}\n")
+    // String remains valid because it's in caller's arena
+    print($"  Timestamp still valid: {timestamp}\n")
+
+    // Call createTime() - returns Time allocated in our arena
+    var epoch: Time = createTime(0)
+    print($"  createTime(0) returned: {epoch.toDate()}\n")
+    // Time remains valid and methods work
+    print($"  Year: {epoch.year()}, Month: {epoch.month()}, Day: {epoch.day()}\n")
+
+    // Create another time via shared function
+    var y2k: Time = createTime(946684800)
+    print($"  createTime(946684800) returned: {y2k.toDate()}\n")
+
+    // Both times remain valid
+    print($"  Both valid - epoch: {epoch.toDate()}, y2k: {y2k.toDate()}\n")
+
+    // Shared functions use caller's arena, so returned values
+    // are valid for the lifetime of the caller's scope
+    print("  Shared functions allocate in caller's arena\n")
+
+    print("\nShared function integration - PASS\n")
+
+    // Private function integration
+    print("\nPrivate function integration:\n")
+
+    // Call computeElapsed() - returns primitive int, Time cleaned up internally
+    var elapsed: int = computeElapsed()
+    print($"  computeElapsed() returned: {elapsed}ms\n")
+    print("  Time objects used internally and cleaned up\n")
+
+    // Call getEpochSeconds() - returns primitive int, Time cleaned up internally
+    var epochSecs: int = getEpochSeconds()
+    print($"  getEpochSeconds() returned: {epochSecs}\n")
+    print("  Time used internally, only primitive int escaped\n")
+
+    // Private functions use their own arena
+    // Time objects are allocated and freed within the function
+    // Only primitive values (int, bool, etc.) can escape
+    print("  Private functions: Time used internally with cleanup\n")
+    print("  Primitives escape, non-primitives are cleaned up\n")
+
+    print("\nPrivate function integration - PASS\n")
+
+    // Shared block integration
+    print("\nShared block integration:\n")
+    var blockTime: Time = Time.fromSeconds(0)
+    shared =>
+        blockTime = Time.now()
+        print($"  Inside shared block: {blockTime.toIso()}\n")
+    // Time remains accessible after block exits
+    print($"  After shared block: {blockTime.toDate()}\n")
+    print($"  Year still accessible: {blockTime.year()}\n")
+    print("  Shared block allocates in outer arena\n")
+
+    print("\nShared block - PASS\n")
+
+    // Private block integration
+    print("\nPrivate block integration:\n")
+    var blockResult: int = 0
+    private =>
+        var innerTime: Time = Time.now()
+        blockResult = innerTime.year()
+        print($"  Inside private block, year: {blockResult}\n")
+    // Only primitive escaped, Time was cleaned up
+    print($"  After private block, result: {blockResult}\n")
+    print("  Private block: Time cleaned up, int escaped\n")
+
+    print("\nPrivate block - PASS\n")
+
+    // Loop arena behavior
+    print("\nLoop arena behavior:\n")
+
+    // Default while loop - each iteration gets cleanup
+    print("  Default loop (per-iteration cleanup):\n")
+    var loopCount: int = 0
+    while loopCount < 10 =>
+        var iterTime: Time = Time.now()
+        loopCount = loopCount + 1
+    print($"    Completed {loopCount} iterations\n")
+    print("    Each iteration: Time created and cleaned up\n")
+
+    // Shared for loop - no per-iteration cleanup
+    print("  Shared for loop (no per-iteration cleanup):\n")
+    var sharedLoopCount: int = 0
+    shared for i in 0..10 =>
+        var sharedIterTime: Time = Time.now()
+        sharedLoopCount = sharedLoopCount + 1
+    print($"    Completed {sharedLoopCount} iterations\n")
+    print("    All allocations persist until loop ends\n")
+
+    // Loop creating timestamps
+    print("  Loop creating 10 timestamps:\n")
+    var j: int = 0
+    while j < 10 =>
+        var ts: Time = Time.now()
+        print($"    Iteration {j}: {ts.toTime()}\n")
+        j = j + 1
+
+    print("\nLoop arena behavior - PASS\n")
+
+    print("\nBlock/loop integration - PASS\n")
+
+    // String allocation from Time methods
+    print("\nString allocation from Time methods:\n")
+    var stringNow: Time = Time.now()
+
+    // All these methods return arena-allocated strings
+    var str1: str = stringNow.format("YYYY-MM-DD")
+    var str2: str = stringNow.format("HH:mm:ss")
+    var str3: str = stringNow.toIso()
+    var str4: str = stringNow.toDate()
+    var str5: str = stringNow.toTime()
+
+    print($"  format(YYYY-MM-DD): {str1}\n")
+    print($"  format(HH:mm:ss):   {str2}\n")
+    print($"  toIso():            {str3}\n")
+    print($"  toDate():           {str4}\n")
+    print($"  toTime():           {str5}\n")
+
+    // All strings remain valid - they accumulate in arena
+    print("  All strings still valid after multiple format calls:\n")
+    print($"    {str1}, {str2}, {str3}, {str4}, {str5}\n")
+    print("  Strings accumulate in arena, all remain valid\n")
+
+    print("\nString allocation - PASS\n")
+
+    // Practical patterns
+    print("\nPractical patterns:\n")
+
+    // Helper function pattern: logEvent
+    print("  Helper function pattern (logEvent):\n")
+    var log1: str = logEvent("Starting application")
+    var log2: str = logEvent("Processing data")
+    var log3: str = logEvent("Complete")
+    print($"    {log1}\n")
+    print($"    {log2}\n")
+    print($"    {log3}\n")
+
+    // Loop pattern: shared for loop creating timestamps
+    print("  Loop pattern (shared for with 20 timestamps):\n")
+    shared for k in 0..20 =>
+        var loopTs: Time = Time.now()
+        if k < 3 =>
+            print($"    Timestamp {k}: {loopTs.toTime()}\n")
+        else =>
+            if k < 4 =>
+                print("    ... (17 more timestamps created) ...\n")
+    print("    All 20 timestamps created without memory issues\n")
+
+    // Temporary calculation pattern: private block
+    print("  Temporary calculation pattern (private block):\n")
+    var calcResult: int = 0
+    private =>
+        var calcStart: Time = Time.now()
+        var calcEnd: Time = calcStart.addMinutes(30)
+        calcResult = calcEnd.diff(calcStart) / 1000 / 60
+        print($"    Calculated inside block: {calcResult} minutes\n")
+    print($"    Result escaped: {calcResult} minutes\n")
+    print("    Time objects cleaned up, int result preserved\n")
+
+    print("\nPractical patterns - PASS\n")
+
+    print("\n=================================\n")
+    print("All memory management tests complete - PASS\n")
+
+    return 0

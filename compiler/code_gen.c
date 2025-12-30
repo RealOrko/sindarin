@@ -447,6 +447,36 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_str_split_whitespace(RtArena *, const char *);\n");
     indented_fprintf(gen, 0, "extern char **rt_str_split_lines(RtArena *, const char *);\n");
     indented_fprintf(gen, 0, "extern int rt_str_is_blank(const char *);\n\n");
+
+    indented_fprintf(gen, 0, "/* Time type and operations */\n");
+    indented_fprintf(gen, 0, "typedef struct RtTime RtTime;\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_now(RtArena *);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_utc(RtArena *);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_from_millis(RtArena *, long long);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_from_seconds(RtArena *, long long);\n");
+    indented_fprintf(gen, 0, "extern void rt_time_sleep(long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_time_get_millis(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long long rt_time_get_seconds(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long rt_time_get_year(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long rt_time_get_month(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long rt_time_get_day(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long rt_time_get_hour(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long rt_time_get_minute(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long rt_time_get_second(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern long rt_time_get_weekday(RtTime *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_time_format(RtArena *, RtTime *, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_time_to_iso(RtArena *, RtTime *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_time_to_date(RtArena *, RtTime *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_time_to_time(RtArena *, RtTime *);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_add(RtArena *, RtTime *, long long);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_add_seconds(RtArena *, RtTime *, long);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_add_minutes(RtArena *, RtTime *, long);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_add_hours(RtArena *, RtTime *, long);\n");
+    indented_fprintf(gen, 0, "extern RtTime *rt_time_add_days(RtArena *, RtTime *, long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_time_diff(RtTime *, RtTime *);\n");
+    indented_fprintf(gen, 0, "extern int rt_time_is_before(RtTime *, RtTime *);\n");
+    indented_fprintf(gen, 0, "extern int rt_time_is_after(RtTime *, RtTime *);\n");
+    indented_fprintf(gen, 0, "extern int rt_time_equals(RtTime *, RtTime *);\n\n");
 }
 
 static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)

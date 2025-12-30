@@ -1748,6 +1748,108 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 return arena_sprintf(gen->arena, "rt_binary_file_flush(%s)", object_str);
             }
         }
+
+        /* Time instance methods */
+        if (object_type->kind == TYPE_TIME) {
+            char *object_str = code_gen_expression(gen, member->object);
+
+            /* Getter methods - return int/long */
+            if (strcmp(member_name_str, "millis") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_millis(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "seconds") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_seconds(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "year") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_year(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "month") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_month(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "day") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_day(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "hour") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_hour(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "minute") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_minute(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "second") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_second(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "weekday") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_get_weekday(%s)", object_str);
+            }
+
+            /* Formatting methods - return string */
+            if (strcmp(member_name_str, "format") == 0 && call->arg_count == 1) {
+                char *pattern_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_format(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, pattern_str);
+            }
+            if (strcmp(member_name_str, "toIso") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_to_iso(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+            if (strcmp(member_name_str, "toDate") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_to_date(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+            if (strcmp(member_name_str, "toTime") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_time_to_time(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* Arithmetic methods - return Time */
+            if (strcmp(member_name_str, "add") == 0 && call->arg_count == 1) {
+                char *ms_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_add(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, ms_str);
+            }
+            if (strcmp(member_name_str, "addSeconds") == 0 && call->arg_count == 1) {
+                char *s_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_add_seconds(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, s_str);
+            }
+            if (strcmp(member_name_str, "addMinutes") == 0 && call->arg_count == 1) {
+                char *m_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_add_minutes(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, m_str);
+            }
+            if (strcmp(member_name_str, "addHours") == 0 && call->arg_count == 1) {
+                char *h_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_add_hours(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, h_str);
+            }
+            if (strcmp(member_name_str, "addDays") == 0 && call->arg_count == 1) {
+                char *d_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_add_days(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, d_str);
+            }
+            if (strcmp(member_name_str, "diff") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_diff(%s, %s)",
+                    object_str, other_str);
+            }
+
+            /* Comparison methods - return bool */
+            if (strcmp(member_name_str, "isBefore") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_is_before(%s, %s)",
+                    object_str, other_str);
+            }
+            if (strcmp(member_name_str, "isAfter") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_is_after(%s, %s)",
+                    object_str, other_str);
+            }
+            if (strcmp(member_name_str, "equals") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_time_equals(%s, %s)",
+                    object_str, other_str);
+            }
+        }
     }
 
     /* Check if the callee is a closure (function type variable) */
@@ -3128,6 +3230,38 @@ static char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         {
             /* Directory.deleteRecursive(path) -> rt_directory_delete_recursive(path) */
             return arena_sprintf(gen->arena, "rt_directory_delete_recursive(%s)", arg0);
+        }
+    }
+
+    /* Time static methods */
+    if (codegen_token_equals(type_name, "Time"))
+    {
+        if (codegen_token_equals(method_name, "now"))
+        {
+            /* Time.now() -> rt_time_now(arena) */
+            return arena_sprintf(gen->arena, "rt_time_now(%s)", ARENA_VAR(gen));
+        }
+        else if (codegen_token_equals(method_name, "utc"))
+        {
+            /* Time.utc() -> rt_time_utc(arena) */
+            return arena_sprintf(gen->arena, "rt_time_utc(%s)", ARENA_VAR(gen));
+        }
+        else if (codegen_token_equals(method_name, "fromMillis"))
+        {
+            /* Time.fromMillis(ms) -> rt_time_from_millis(arena, ms) */
+            return arena_sprintf(gen->arena, "rt_time_from_millis(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "fromSeconds"))
+        {
+            /* Time.fromSeconds(s) -> rt_time_from_seconds(arena, s) */
+            return arena_sprintf(gen->arena, "rt_time_from_seconds(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "sleep"))
+        {
+            /* Time.sleep(ms) -> rt_time_sleep(ms) */
+            return arena_sprintf(gen->arena, "rt_time_sleep(%s)", arg0);
         }
     }
 

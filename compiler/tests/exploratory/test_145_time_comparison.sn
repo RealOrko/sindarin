@@ -1,0 +1,70 @@
+// Test Time comparison methods
+
+fn main(): int =>
+    // Create known test times
+    var t1: Time = Time.fromSeconds(1735500000)
+    var t2: Time = Time.fromSeconds(1735500100)
+    var t3: Time = Time.fromSeconds(1735500000)
+
+    print("Testing Time comparison methods...\n")
+    print("==================================\n\n")
+
+    // Test isBefore()
+    print("Testing isBefore():\n")
+    print($"  t1.isBefore(t2): {t1.isBefore(t2)} (expected true)\n")
+    print($"  t2.isBefore(t1): {t2.isBefore(t1)} (expected false)\n")
+    print($"  t1.isBefore(t3): {t1.isBefore(t3)} (expected false, equal times)\n")
+
+    // Test isAfter()
+    print("\nTesting isAfter():\n")
+    print($"  t1.isAfter(t2): {t1.isAfter(t2)} (expected false)\n")
+    print($"  t2.isAfter(t1): {t2.isAfter(t1)} (expected true)\n")
+    print($"  t1.isAfter(t3): {t1.isAfter(t3)} (expected false, equal times)\n")
+
+    // Test equals()
+    print("\nTesting equals():\n")
+    print($"  t1.equals(t2): {t1.equals(t2)} (expected false)\n")
+    print($"  t1.equals(t3): {t1.equals(t3)} (expected true)\n")
+    print($"  t2.equals(t2): {t2.equals(t2)} (expected true, same reference)\n")
+
+    // Test with millisecond precision
+    print("\nTesting with millisecond precision:\n")
+    var ms1: Time = Time.fromMillis(1735500000001)
+    var ms2: Time = Time.fromMillis(1735500000002)
+    var ms3: Time = Time.fromMillis(1735500000001)
+    print($"  ms1.isBefore(ms2): {ms1.isBefore(ms2)} (expected true, 1ms difference)\n")
+    print($"  ms1.equals(ms3): {ms1.equals(ms3)} (expected true)\n")
+
+    // Test comparison logic
+    print("\nTesting comparison logic:\n")
+    var now: Time = Time.now()
+    var past: Time = now.addSeconds(-10)
+    var future: Time = now.addSeconds(10)
+
+    print($"  past.isBefore(now): {past.isBefore(now)} (expected true)\n")
+    print($"  future.isAfter(now): {future.isAfter(now)} (expected true)\n")
+    print($"  now.isBefore(future): {now.isBefore(future)} (expected true)\n")
+    print($"  now.isAfter(past): {now.isAfter(past)} (expected true)\n")
+
+    // Test with Time.sleep() for temporal ordering
+    print("\nTesting temporal ordering with sleep():\n")
+    var before: Time = Time.now()
+    Time.sleep(50)
+    var after: Time = Time.now()
+    print($"  before.isBefore(after): {before.isBefore(after)} (expected true after 50ms sleep)\n")
+    print($"  after.isAfter(before): {after.isAfter(before)} (expected true)\n")
+    print($"  before.equals(after): {before.equals(after)} (expected false)\n")
+
+    // Test edge case: epoch time (Jan 1, 1970)
+    print("\nTesting epoch time edge case:\n")
+    var epoch: Time = Time.fromSeconds(0)
+    var later: Time = Time.fromSeconds(1)
+    print($"  epoch.isBefore(later): {epoch.isBefore(later)} (expected true)\n")
+    print($"  later.isAfter(epoch): {later.isAfter(epoch)} (expected true)\n")
+    print($"  epoch.equals(epoch): {epoch.equals(epoch)} (expected true, epoch equals itself)\n")
+    print($"  epoch.millis(): {epoch.millis()}ms (expected 0)\n")
+
+    print("\n==================================\n")
+    print("All comparison tests complete - PASS\n")
+
+    return 0

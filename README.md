@@ -24,21 +24,24 @@
 ### Building the Compiler
 
 ```bash
-./scripts/build.sh          # Build compiler + run tests
+make build                  # Build compiler + test binary
+make test                   # Run all tests
 ```
 
 ### Compiling a Program
 
 ```bash
-bin/sn samples/main.sn -o output.c
-gcc output.c bin/arena.o bin/debug.o bin/runtime.o -o myprogram
-./myprogram
+bin/sn samples/main.sn -o myprogram    # Compile to executable
+./myprogram                             # Run it
+
+# Or with --emit-c to just output C code:
+bin/sn samples/main.sn --emit-c -o output.c
 ```
 
 ### Running Samples
 
 ```bash
-./scripts/run.sh            # Run samples/main.sn
+make run                    # Compile and run samples/main.sn
 ```
 
 ## 📖 Language Guide
@@ -47,15 +50,18 @@ gcc output.c bin/arena.o bin/debug.o bin/runtime.o -o myprogram
 
 | Type | Description | Example |
 |------|-------------|---------|
-| `int` | Integer numbers | `42`, `-7` |
-| `double` | Floating-point | `3.14159` |
+| `int` | 64-bit signed integer | `42`, `-7` |
+| `long` | 64-bit signed integer | `42L` |
+| `double` | 64-bit floating-point | `3.14159` |
 | `str` | Strings | `"hello"` |
 | `char` | Single character | `'A'` |
 | `bool` | Boolean | `true`, `false` |
 | `byte` | Unsigned 8-bit (0-255) | `255`, `0` |
+| `void` | No return value | Function returns |
 | `type[]` | Arrays | `int[]`, `str[]`, `byte[]` |
 | `TextFile` | Text file handle | File I/O |
 | `BinaryFile` | Binary file handle | Binary I/O |
+| `Time` | Date/time values | Time operations |
 
 ### 📝 Variables
 
@@ -360,18 +366,36 @@ See [docs/MEMORY.md](docs/MEMORY.md) for complete documentation.
 ## 🏗️ Architecture
 
 ```
-┌─────────┐    ┌─────────┐    ┌──────────────┐    ┌──────────┐
-│ lexer.c │ →  │ parser.c│ →  │type_checker.c│ →  │code_gen.c│
-└─────────┘    └─────────┘    └──────────────┘    └──────────┘
-     ↓              ↓               ↓                   ↓
-   tokens          AST          typed AST            C code
+Source (.sn)
+    ↓
+┌─────────────────────────────────────────────────────┐
+│  Lexer (lexer.c, lexer_scan.c, lexer_util.c)        │
+│    → tokens                                          │
+├─────────────────────────────────────────────────────┤
+│  Parser (parser_stmt.c, parser_expr.c, parser_util.c)│
+│    → AST                                             │
+├─────────────────────────────────────────────────────┤
+│  Type Checker (type_checker_stmt.c, _expr.c, _util.c)│
+│    → typed AST                                       │
+├─────────────────────────────────────────────────────┤
+│  Optimizer (optimizer.c)                             │
+│    → optimized AST                                   │
+├─────────────────────────────────────────────────────┤
+│  Code Gen (code_gen.c, _stmt.c, _expr.c, _util.c)   │
+│    → C code                                          │
+├─────────────────────────────────────────────────────┤
+│  GCC Backend (gcc_backend.c)                         │
+│    → executable                                      │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## 🧪 Testing
 
 ```bash
-./scripts/test.sh             # Unit tests
-./scripts/integration_test.sh # Integration tests
+make test             # All tests (unit + integration + exploratory)
+make test-unit        # Unit tests only
+make test-integration # Integration tests only
+make test-explore     # Exploratory tests only
 ```
 
 ## 📁 Project Structure
@@ -379,25 +403,30 @@ See [docs/MEMORY.md](docs/MEMORY.md) for complete documentation.
 ```
 ├── compiler/              # 🔧 Compiler source code
 │   ├── main.c             # Entry point
-│   ├── lexer.c/h          # Tokenizer
-│   ├── parser.c/h         # AST builder
-│   ├── type_checker.c/h   # Static type checking
-│   ├── code_gen.c/h       # C code generator
-│   ├── runtime.c/h        # Runtime library
+│   ├── compiler.c/h       # Compilation orchestration
+│   ├── lexer*.c/h         # Tokenizer (lexer, lexer_scan, lexer_util)
+│   ├── parser*.c/h        # AST builder (parser_stmt, parser_expr, parser_util)
+│   ├── type_checker*.c/h  # Static type checking (_stmt, _expr, _util)
+│   ├── code_gen*.c/h      # C code generator (_stmt, _expr, _util)
+│   ├── optimizer.c/h      # AST optimization passes
+│   ├── gcc_backend.c/h    # GCC compilation backend
+│   ├── runtime.c/h        # Runtime library (built-in functions)
+│   ├── symbol_table.c/h   # Scope and symbol management
+│   ├── diagnostic.c/h     # Error reporting
 │   ├── arena.c/h          # Memory management
-│   └── tests/             # Unit tests
-│       └── integration/   # Integration tests (.sn files)
+│   └── tests/             # Test files
+│       ├── *_tests.c      # Unit tests
+│       ├── integration/   # Integration tests (.sn files)
+│       └── exploratory/   # Exploratory tests (.sn files)
 ├── samples/               # 📝 Example .sn programs
-├── scripts/               # 🛠️ Build & run scripts
-│   ├── build.sh           # Full build + tests
-│   ├── run.sh             # Run main.sn
-│   ├── test.sh            # Unit tests
-│   └── integration_test.sh
+├── docs/                  # 📚 Documentation
+│   ├── ARRAYS.md          # Array operations
+│   ├── FILE_IO.md         # File I/O guide
+│   └── MEMORY.md          # Memory management
 ├── bin/                   # 📦 Compiled outputs
 │   ├── sn                 # Compiler binary
-│   ├── tests              # Test runner
-│   ├── *.o                # Object files for linking
-│   └── *.d                # Dependency files
+│   └── tests              # Test runner
+├── Makefile               # Build system
 └── CLAUDE.md              # Project instructions
 ```
 

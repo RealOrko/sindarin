@@ -239,6 +239,11 @@ Type *parser_type(Parser *parser)
             parser_advance(parser);
             type = ast_create_primitive_type(parser->arena, TYPE_BINARY_FILE);
         }
+        else if (id.length == 4 && strncmp(id.start, "Time", 4) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_TIME);
+        }
         else
         {
             parser_error_at_current(parser, "Expected type");
@@ -274,6 +279,7 @@ static const char *static_type_names[] = {
     "Stdin",
     "Stdout",
     "Stderr",
+    "Time",
     NULL
 };
 

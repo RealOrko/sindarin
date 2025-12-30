@@ -141,6 +141,8 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtTextFile *");
     case TYPE_BINARY_FILE:
         return arena_strdup(arena, "RtBinaryFile *");
+    case TYPE_TIME:
+        return arena_strdup(arena, "RtTime *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally

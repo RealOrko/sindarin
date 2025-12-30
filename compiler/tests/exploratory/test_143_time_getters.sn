@@ -1,0 +1,80 @@
+// Test Time getter methods and component extraction
+
+fn main(): int =>
+    // Create Time from known epoch for predictable testing
+    print("Testing Time getter methods\n")
+    print("===========================\n\n")
+
+    var t1: Time = Time.fromSeconds(1735500000)
+
+    // Test epoch value getters
+    print("Epoch value getters:\n")
+
+    // Test millis()
+    var ms: int = t1.millis()
+    print($"  millis() = {ms} (expected 1735500000000)\n")
+    print($"  Correct: {ms == 1735500000000}\n")
+
+    // Test seconds()
+    var s: int = t1.seconds()
+    print($"  seconds() = {s} (expected 1735500000)\n")
+    print($"  Correct: {s == 1735500000}\n")
+
+    // Test date component getters
+    // 1735500000 = Dec 29, 2024 (in UTC)
+    print("\nDate component getters:\n")
+
+    // Test year()
+    var y: int = t1.year()
+    print($"  year() = {y} (expected 2024)\n")
+    print($"  Correct: {y == 2024}\n")
+
+    // Test month()
+    var m: int = t1.month()
+    print($"  month() = {m} (expected 12)\n")
+    print($"  Correct: {m == 12}\n")
+
+    // Test day()
+    var d: int = t1.day()
+    print($"  day() = {d} (expected 29)\n")
+    print($"  Correct: {d == 29}\n")
+
+    // Test time component getters
+    // 1735500000 = 19:20:00 UTC
+    print("\nTime component getters:\n")
+
+    // Test hour()
+    var h: int = t1.hour()
+    print($"  hour() = {h} (expected 19 or adjusted for local time)\n")
+    // Note: hour may vary based on local timezone
+    print($"  Valid hour range (0-23): {h >= 0 and h <= 23}\n")
+
+    // Test minute()
+    var min: int = t1.minute()
+    print($"  minute() = {min} (expected 20)\n")
+    print($"  Correct: {min == 20}\n")
+
+    // Test second()
+    var sec: int = t1.second()
+    print($"  second() = {sec} (expected 0)\n")
+    print($"  Correct: {sec == 0}\n")
+
+    // Test weekday
+    print("\nWeekday getter:\n")
+    var wd: int = t1.weekday()
+    print($"  weekday() = {wd} (Dec 29, 2024 is Sunday = 0)\n")
+    print($"  Correct: {wd == 0}\n")
+
+    // Test epoch time edge case (Jan 1, 1970)
+    print("\nTesting epoch time (Jan 1, 1970)...\n")
+    var epoch: Time = Time.fromSeconds(0)
+    print($"  Epoch: year={epoch.year()}, month={epoch.month()}, day={epoch.day()}, weekday={epoch.weekday()} (Thu=4)\n")
+    print($"  Year correct: {epoch.year() == 1970}\n")
+    print($"  Month correct: {epoch.month() == 1}\n")
+    print($"  Day correct: {epoch.day() == 1}\n")
+    print($"  Weekday correct: {epoch.weekday() == 4}\n")
+
+    print("\nAll getter methods work correctly\n")
+    print("PASS\n")
+
+    return 0

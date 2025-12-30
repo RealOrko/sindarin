@@ -68,6 +68,11 @@ typedef struct RtBinaryFile {
     RtFileHandle *handle;       /* Arena tracking handle */
 } RtBinaryFile;
 
+/* Time handle - wrapper around epoch milliseconds */
+typedef struct RtTime {
+    long long milliseconds;     /* Milliseconds since Unix epoch (1970-01-01 00:00:00 UTC) */
+} RtTime;
+
 /* Create a new arena, optionally with a parent */
 RtArena *rt_arena_create(RtArena *parent);
 
@@ -676,5 +681,134 @@ char **rt_str_split_lines(RtArena *arena, const char *str);
 
 /* Check if string is empty or contains only whitespace */
 int rt_str_is_blank(const char *str);
+
+/* ============================================================================
+ * Time Type
+ * ============================================================================
+ * Time represents an instant in time, stored internally as milliseconds since
+ * the Unix epoch (January 1, 1970, 00:00:00 UTC). Time values are lightweight
+ * and integrate with arena-based memory management.
+ * ============================================================================ */
+
+/* ============================================================================
+ * Time Static Methods
+ * ============================================================================
+ * Static methods for creating Time values and utility operations.
+ * ============================================================================ */
+
+/* Get current local time */
+RtTime *rt_time_now(RtArena *arena);
+
+/* Get current UTC time */
+RtTime *rt_time_utc(RtArena *arena);
+
+/* Create Time from milliseconds since Unix epoch */
+RtTime *rt_time_from_millis(RtArena *arena, long long ms);
+
+/* Create Time from seconds since Unix epoch */
+RtTime *rt_time_from_seconds(RtArena *arena, long long s);
+
+/* Pause execution for specified number of milliseconds */
+void rt_time_sleep(long ms);
+
+/* ============================================================================
+ * Time Instance Getter Methods
+ * ============================================================================
+ * Methods for extracting components from a Time value.
+ * ============================================================================ */
+
+/* Get time as milliseconds since Unix epoch */
+long long rt_time_get_millis(RtTime *time);
+
+/* Get time as seconds since Unix epoch */
+long long rt_time_get_seconds(RtTime *time);
+
+/* Get 4-digit year */
+long rt_time_get_year(RtTime *time);
+
+/* Get month (1-12) */
+long rt_time_get_month(RtTime *time);
+
+/* Get day of month (1-31) */
+long rt_time_get_day(RtTime *time);
+
+/* Get hour (0-23) */
+long rt_time_get_hour(RtTime *time);
+
+/* Get minute (0-59) */
+long rt_time_get_minute(RtTime *time);
+
+/* Get second (0-59) */
+long rt_time_get_second(RtTime *time);
+
+/* Get day of week (0=Sunday, 6=Saturday) */
+long rt_time_get_weekday(RtTime *time);
+
+/* ============================================================================
+ * Time Instance Formatting Methods
+ * ============================================================================
+ * Methods for converting Time to string representations.
+ * Pattern tokens for rt_time_format:
+ *   YYYY - 4-digit year      YY - 2-digit year
+ *   MM   - 2-digit month     M  - month without padding (1-12)
+ *   DD   - 2-digit day       D  - day without padding (1-31)
+ *   HH   - 2-digit hour 24h  H  - hour without padding (0-23)
+ *   hh   - 2-digit hour 12h  h  - hour 12h without padding (1-12)
+ *   mm   - 2-digit minute    m  - minute without padding (0-59)
+ *   ss   - 2-digit second    s  - second without padding (0-59)
+ *   SSS  - 3-digit milliseconds
+ *   A    - AM/PM             a  - am/pm
+ * ============================================================================ */
+
+/* Format time using pattern string - see pattern tokens above */
+char *rt_time_format(RtArena *arena, RtTime *time, const char *pattern);
+
+/* Return time in ISO 8601 format (YYYY-MM-DDTHH:mm:ss.SSSZ) */
+char *rt_time_to_iso(RtArena *arena, RtTime *time);
+
+/* Return just the date portion (YYYY-MM-DD) */
+char *rt_time_to_date(RtArena *arena, RtTime *time);
+
+/* Return just the time portion (HH:mm:ss) */
+char *rt_time_to_time(RtArena *arena, RtTime *time);
+
+/* ============================================================================
+ * Time Instance Arithmetic Methods
+ * ============================================================================
+ * Methods for time calculations. All add* methods return new Time values.
+ * ============================================================================ */
+
+/* Add milliseconds and return new Time */
+RtTime *rt_time_add(RtArena *arena, RtTime *time, long long ms);
+
+/* Add seconds and return new Time */
+RtTime *rt_time_add_seconds(RtArena *arena, RtTime *time, long seconds);
+
+/* Add minutes and return new Time */
+RtTime *rt_time_add_minutes(RtArena *arena, RtTime *time, long minutes);
+
+/* Add hours and return new Time */
+RtTime *rt_time_add_hours(RtArena *arena, RtTime *time, long hours);
+
+/* Add days and return new Time */
+RtTime *rt_time_add_days(RtArena *arena, RtTime *time, long days);
+
+/* Return difference between two times in milliseconds (this - other) */
+long long rt_time_diff(RtTime *time, RtTime *other);
+
+/* ============================================================================
+ * Time Instance Comparison Methods
+ * ============================================================================
+ * Methods for comparing Time values. Return 1 for true, 0 for false.
+ * ============================================================================ */
+
+/* Return 1 if this time is before other time */
+int rt_time_is_before(RtTime *time, RtTime *other);
+
+/* Return 1 if this time is after other time */
+int rt_time_is_after(RtTime *time, RtTime *other);
+
+/* Return 1 if both times represent the same instant */
+int rt_time_equals(RtTime *time, RtTime *other);
 
 #endif /* RUNTIME_H */

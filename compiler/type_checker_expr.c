@@ -1176,6 +1176,176 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         DEBUG_VERBOSE("Returning int type for BinaryFile size property");
         return int_type;
     }
+    /* Time epoch getter methods */
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "millis"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time millis method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "seconds"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time seconds method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    /* Time date component getter methods */
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "year"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time year method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "month"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time month method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "day"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time day method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    /* Time time component getter methods */
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "hour"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time hour method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "minute"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time minute method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "second"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time second method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "weekday"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time weekday method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+    /* Time formatting methods */
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "format"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning function type for Time format method");
+        return ast_create_function_type(table->arena, str_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "toIso"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time toIso method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "toDate"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time toDate method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "toTime"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Time toTime method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+    /* Time arithmetic methods */
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "add"))
+    {
+        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning function type for Time add method");
+        return ast_create_function_type(table->arena, time_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "addSeconds"))
+    {
+        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning function type for Time addSeconds method");
+        return ast_create_function_type(table->arena, time_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "addMinutes"))
+    {
+        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning function type for Time addMinutes method");
+        return ast_create_function_type(table->arena, time_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "addHours"))
+    {
+        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning function type for Time addHours method");
+        return ast_create_function_type(table->arena, time_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "addDays"))
+    {
+        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning function type for Time addDays method");
+        return ast_create_function_type(table->arena, time_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "diff"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_TIME);
+        DEBUG_VERBOSE("Returning function type for Time diff method");
+        return ast_create_function_type(table->arena, int_type, param_types, 1);
+    }
+    /* Time comparison methods */
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "isBefore"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_TIME);
+        DEBUG_VERBOSE("Returning function type for Time isBefore method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "isAfter"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_TIME);
+        DEBUG_VERBOSE("Returning function type for Time isAfter method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+    else if (object_type->kind == TYPE_TIME && token_equals(expr->as.member.member_name, "equals"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type **param_types = arena_alloc(table->arena, sizeof(Type *) * 1);
+        param_types[0] = ast_create_primitive_type(table->arena, TYPE_TIME);
+        DEBUG_VERBOSE("Returning function type for Time equals method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
     else
     {
         /* Create null-terminated member name for error message */
@@ -1610,6 +1780,87 @@ static Type *type_check_static_call(Expr *expr, SymbolTable *table)
         {
             char msg[128];
             snprintf(msg, sizeof(msg), "Unknown BinaryFile static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Time static methods */
+    if (token_equals(type_name, "Time"))
+    {
+        if (token_equals(method_name, "now"))
+        {
+            /* Time.now(): Time */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Time.now takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_TIME);
+        }
+        else if (token_equals(method_name, "utc"))
+        {
+            /* Time.utc(): Time */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Time.utc takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_TIME);
+        }
+        else if (token_equals(method_name, "fromMillis"))
+        {
+            /* Time.fromMillis(ms: int): Time */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Time.fromMillis requires exactly 1 argument (ms)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Time.fromMillis requires an int argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_TIME);
+        }
+        else if (token_equals(method_name, "fromSeconds"))
+        {
+            /* Time.fromSeconds(s: int): Time */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Time.fromSeconds requires exactly 1 argument (s)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Time.fromSeconds requires an int argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_TIME);
+        }
+        else if (token_equals(method_name, "sleep"))
+        {
+            /* Time.sleep(ms: int): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Time.sleep requires exactly 1 argument (ms)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Time.sleep requires an int argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Time static method '%.*s'",
                      method_name.length, method_name.start);
             type_error(&method_name, msg);
             return NULL;

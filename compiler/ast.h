@@ -27,7 +27,8 @@ typedef enum
     TYPE_NIL,
     TYPE_ANY,
     TYPE_TEXT_FILE,
-    TYPE_BINARY_FILE
+    TYPE_BINARY_FILE,
+    TYPE_TIME
 } TypeKind;
 
 /* Memory qualifier for variables and parameters */

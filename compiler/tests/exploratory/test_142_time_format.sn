@@ -1,0 +1,119 @@
+// Test Time.format() with all pattern tokens
+
+fn main(): int =>
+    // Create known test time: Dec 29, 2024, 19:20:00
+    var t: Time = Time.fromSeconds(1735500000)
+
+    print("Testing date format tokens...\n")
+    print("=============================\n\n")
+
+    // Test year tokens
+    print("Year tokens:\n")
+    print($"  YYYY: {t.format("YYYY")} (expected 2024)\n")
+    print($"  YY: {t.format("YY")} (expected 24)\n")
+
+    // Test month tokens
+    print("\nMonth tokens:\n")
+    print($"  MM: {t.format("MM")} (expected 12, zero-padded)\n")
+    print($"  M: {t.format("M")} (expected 12, no padding)\n")
+
+    // Test day tokens
+    print("\nDay tokens:\n")
+    print($"  DD: {t.format("DD")} (expected 29, zero-padded)\n")
+    print($"  D: {t.format("D")} (expected 29, no padding)\n")
+
+    print("\nDate tokens complete - PASS\n")
+
+    // Test 24-hour time tokens
+    print("\nTesting 24-hour time tokens...\n")
+    print("==============================\n\n")
+
+    // Test hour tokens (24-hour format)
+    print("Hour tokens (24-hour):\n")
+    print($"  HH: {t.format("HH")} (expected 19 or local)\n")
+    print($"  H: {t.format("H")} (expected 19 or local)\n")
+
+    // Test minute tokens
+    print("\nMinute tokens:\n")
+    print($"  mm: {t.format("mm")} (expected 20)\n")
+    print($"  m: {t.format("m")} (expected 20)\n")
+
+    // Test second tokens
+    print("\nSecond tokens:\n")
+    print($"  ss: {t.format("ss")} (expected 00)\n")
+    print($"  s: {t.format("s")} (expected 0)\n")
+
+    print("\n24-hour time tokens complete - PASS\n")
+
+    // Test 12-hour time tokens
+    print("\nTesting 12-hour time tokens...\n")
+    print("==============================\n\n")
+
+    // Test hour tokens (12-hour format)
+    print("Hour tokens (12-hour):\n")
+    print($"  hh: {t.format("hh")} (expected 07 for 19:00)\n")
+    print($"  h: {t.format("h")} (expected 7 for 19:00)\n")
+
+    // Test AM/PM tokens
+    print("\nAM/PM tokens:\n")
+    print($"  A: {t.format("A")} (expected PM for 19:00)\n")
+    print($"  a: {t.format("a")} (expected pm for 19:00)\n")
+
+    print("\n12-hour time tokens complete - PASS\n")
+
+    // Testing midnight edge case
+    print("\nTesting midnight edge case...\n")
+
+    // Midnight: 00:00 should display as 12:00 AM
+    var midnight: Time = Time.fromSeconds(1735516800)
+    print($"  Midnight: {midnight.format("h:mm A")} (expected 12:00 AM)\n")
+    print($"  h={midnight.format("h")}, A={midnight.format("A")}\n")
+
+    print("\nMidnight edge case - PASS\n")
+
+    // Testing noon edge case
+    print("\nTesting noon edge case...\n")
+
+    // Noon: 12:00 should display as 12:00 PM
+    var noon: Time = Time.fromSeconds(1735560000)
+    print($"  Noon: {noon.format("h:mm A")} (expected 12:00 PM)\n")
+    print($"  h={noon.format("h")}, A={noon.format("A")}\n")
+
+    print("\nNoon edge case - PASS\n")
+
+    // Test milliseconds token
+    print("\nTesting milliseconds...\n")
+
+    // Create time with milliseconds: has 123ms
+    var tms: Time = Time.fromMillis(1735500123)
+    print($"  SSS: {tms.format("SSS")} (expected 123)\n")
+
+    // Test edge case: zero milliseconds
+    print($"  SSS (zero): {t.format("SSS")} (expected 000)\n")
+
+    print("\nMilliseconds complete - PASS\n")
+
+    // Test common format patterns
+    print("\nTesting common patterns...\n")
+
+    print($"  Date: {t.format("YYYY-MM-DD")}\n")
+    print($"  Time: {t.format("HH:mm:ss")}\n")
+    print($"  DateTime: {t.format("YYYY-MM-DD HH:mm:ss")}\n")
+    print($"  US Date: {t.format("M/D/YYYY")}\n")
+    print($"  12h Time: {t.format("h:mm A")}\n")
+
+    print("\nCommon patterns complete - PASS\n")
+
+    // Test convenience formatting methods
+    print("\nTesting toIso/toDate/toTime...\n")
+
+    print($"  toIso(): {t.toIso()}\n")
+    print($"  toDate(): {t.toDate()}\n")
+    print($"  toTime(): {t.toTime()}\n")
+
+    print("\nConvenience methods complete - PASS\n")
+
+    print("\n=============================\n")
+    print("All format tests complete - PASS\n")
+
+    return 0

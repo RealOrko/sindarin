@@ -33,6 +33,7 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_ANY:
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
+    case TYPE_TIME:
         break;
 
     case TYPE_ARRAY:
@@ -202,6 +203,8 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "TextFile");
     case TYPE_BINARY_FILE:
         return arena_strdup(arena, "BinaryFile");
+    case TYPE_TIME:
+        return arena_strdup(arena, "Time");
 
     case TYPE_ARRAY:
     {

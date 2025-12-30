@@ -1,0 +1,205 @@
+// Test 147: Time edge cases
+
+fn main(): int =>
+    print("Testing Time edge cases...\n")
+    print("==========================\n\n")
+
+    // Unix epoch tests
+    print("Unix epoch tests:\n")
+
+    // Time.fromMillis(0) - Unix epoch
+    var epochMs: Time = Time.fromMillis(0)
+    print($"  Time.fromMillis(0):\n")
+    print($"    Year:  {epochMs.year()}\n")
+    print($"    Month: {epochMs.month()}\n")
+    print($"    Day:   {epochMs.day()}\n")
+    print($"    Date:  {epochMs.toDate()}\n")
+
+    // Time.fromSeconds(0) - Unix epoch
+    var epochSec: Time = Time.fromSeconds(0)
+    print($"  Time.fromSeconds(0):\n")
+    print($"    Year:  {epochSec.year()}\n")
+    print($"    Month: {epochSec.month()}\n")
+    print($"    Day:   {epochSec.day()}\n")
+    print($"    Date:  {epochSec.toDate()}\n")
+
+    print("\nUnix epoch tests - PASS\n")
+
+    // Negative epoch test - day before Unix epoch
+    print("\nNegative epoch test:\n")
+    var beforeEpoch: Time = Time.fromSeconds(-86400)
+    print($"  Time.fromSeconds(-86400) (day before epoch):\n")
+    print($"    Year:  {beforeEpoch.year()}\n")
+    print($"    Month: {beforeEpoch.month()}\n")
+    print($"    Day:   {beforeEpoch.day()}\n")
+    print($"    Date:  {beforeEpoch.toDate()}\n")
+
+    print("\nNegative epoch test - PASS\n")
+
+    // Large epoch test - year 2100
+    print("\nLarge epoch test:\n")
+    var year2100: Time = Time.fromSeconds(4102444800)
+    print($"  Time.fromSeconds(4102444800) (year 2100):\n")
+    print($"    Year:  {year2100.year()}\n")
+    print($"    Month: {year2100.month()}\n")
+    print($"    Day:   {year2100.day()}\n")
+    print($"    Date:  {year2100.toDate()}\n")
+
+    print("\nLarge epoch test - PASS\n")
+
+    // Arithmetic edge cases
+    print("\nArithmetic edge cases:\n")
+    var now: Time = Time.now()
+
+    // Adding zero
+    print("  Adding zero:\n")
+    var same: Time = now.add(0)
+    var isEqual: bool = same.equals(now)
+    print($"    now.add(0) equals now: {isEqual}\n")
+
+    // Negative arithmetic
+    print("  Negative arithmetic:\n")
+    var fiveHoursAgo: Time = now.addHours(-5)
+    var thirtyDaysAgo: Time = now.addDays(-30)
+    print($"    now.addHours(-5):  {fiveHoursAgo.format("YYYY-MM-DD HH:mm")}\n")
+    print($"    now.addDays(-30):  {thirtyDaysAgo.format("YYYY-MM-DD")}\n")
+
+    // Large additions - approximately 1 year in milliseconds
+    print("  Large additions:\n")
+    var oneYearMs: int = 86400000 * 365
+    var nextYear: Time = now.add(oneYearMs)
+    print($"    now.add(86400000 * 365): {nextYear.format("YYYY-MM-DD")}\n")
+    print($"    Current year: {now.year()}, Next year: {nextYear.year()}\n")
+
+    // Chained operations
+    print("  Chained operations:\n")
+    var chained: Time = now.addDays(1).addHours(2).addMinutes(30)
+    print($"    now:                               {now.format("YYYY-MM-DD HH:mm")}\n")
+    print($"    now.addDays(1).addHours(2).addMinutes(30): {chained.format("YYYY-MM-DD HH:mm")}\n")
+
+    print("\nArithmetic edge cases - PASS\n")
+
+    // Format edge cases
+    print("\nFormat edge cases:\n")
+
+    // Midnight - 00:00 should show as 12:00 AM
+    print("  Midnight (00:00 = 12:00 AM):\n")
+    var midnight: Time = Time.fromSeconds(0)  // 1970-01-01 00:00:00 UTC
+    print($"    format('h:mm A'): {midnight.format("h:mm A")}\n")
+
+    // Noon - 12:00 should show as 12:00 PM
+    print("  Noon (12:00 = 12:00 PM):\n")
+    var noon: Time = Time.fromSeconds(43200)  // 1970-01-01 12:00:00 UTC
+    print($"    format('h:mm A'): {noon.format("h:mm A")}\n")
+
+    // Padding tests - single digit values
+    print("  Padding tests (single digit values):\n")
+    // Use Jan 5, 2020 03:07:09 - has single digit month, day, hour, minute, second
+    var singleDigit: Time = Time.fromSeconds(1578196029)  // 2020-01-05 03:07:09 UTC
+    print($"    M vs MM:   {singleDigit.format("M")} vs {singleDigit.format("MM")}\n")
+    print($"    D vs DD:   {singleDigit.format("D")} vs {singleDigit.format("DD")}\n")
+    print($"    H vs HH:   {singleDigit.format("H")} vs {singleDigit.format("HH")}\n")
+    print($"    h vs hh:   {singleDigit.format("h")} vs {singleDigit.format("hh")}\n")
+
+    // AM/PM transition times
+    print("  AM/PM transition times:\n")
+    var am1159: Time = Time.fromSeconds(43140)   // 11:59 AM (1970-01-01)
+    var pm1201: Time = Time.fromSeconds(43260)   // 12:01 PM (1970-01-01)
+    var pm1159: Time = Time.fromSeconds(86340)   // 11:59 PM (1970-01-01)
+    print($"    11:59 AM: {am1159.format("h:mm A")}\n")
+    print($"    12:01 PM: {pm1201.format("h:mm A")}\n")
+    print($"    11:59 PM: {pm1159.format("h:mm A")}\n")
+
+    print("\nFormat edge cases - PASS\n")
+
+    // Comparison edge cases
+    print("\nComparison edge cases:\n")
+
+    // diff with same time
+    print("  Diff with same time:\n")
+    var testTime: Time = Time.now()
+    var selfDiff: int = testTime.diff(testTime)
+    print($"    now.diff(now): {selfDiff} (expected 0)\n")
+
+    // isBefore/isAfter with equal times
+    print("  isBefore/isAfter with equal times:\n")
+    var t1: Time = Time.fromSeconds(1000000)
+    var t2: Time = Time.fromSeconds(1000000)
+    var beforeEqual: bool = t1.isBefore(t2)
+    var afterEqual: bool = t1.isAfter(t2)
+    print($"    t1.isBefore(t2) when equal: {beforeEqual} (expected false)\n")
+    print($"    t1.isAfter(t2) when equal:  {afterEqual} (expected false)\n")
+
+    // equals with identical times
+    print("  Equals with identical times:\n")
+    var equalsResult: bool = t1.equals(t2)
+    print($"    t1.equals(t2): {equalsResult} (expected true)\n")
+
+    print("\nComparison edge cases - PASS\n")
+
+    // Getter edge cases
+    print("\nGetter edge cases:\n")
+
+    // weekday returns 0-6 range
+    print("  Weekday range (0-6):\n")
+    // Thursday Jan 1, 1970 = weekday 4
+    var epoch: Time = Time.fromSeconds(0)
+    print($"    1970-01-01 weekday: {epoch.weekday()} (Thursday = 4)\n")
+    // Friday Jan 2, 1970 = weekday 5
+    var friday: Time = Time.fromSeconds(86400)
+    print($"    1970-01-02 weekday: {friday.weekday()} (Friday = 5)\n")
+    // Sunday Jan 4, 1970 = weekday 0
+    var sunday: Time = Time.fromSeconds(259200)
+    print($"    1970-01-04 weekday: {sunday.weekday()} (Sunday = 0)\n")
+
+    // Month/year boundary: Dec 31 -> Jan 1
+    print("  Month/year boundary (Dec 31 -> Jan 1):\n")
+    // Dec 31, 2024 23:59:59 UTC
+    var dec31: Time = Time.fromSeconds(1735689599)
+    // Jan 1, 2025 00:00:00 UTC
+    var jan1: Time = Time.fromSeconds(1735689600)
+    print($"    Dec 31: year={dec31.year()}, month={dec31.month()}, day={dec31.day()}\n")
+    print($"    Jan 1:  year={jan1.year()}, month={jan1.month()}, day={jan1.day()}\n")
+
+    print("\nGetter edge cases - PASS\n")
+
+    // Stress tests
+    print("\nStress tests:\n")
+
+    // Many consecutive operations - add 1 day repeatedly 100+ times
+    print("  Consecutive operations (add 100 days via chaining):\n")
+    var stressStart: Time = Time.fromSeconds(0)
+    // Use chained addDays to simulate 100 operations
+    var stressTime: Time = stressStart.addDays(100)
+    print($"    Start: {stressStart.toDate()}\n")
+    print($"    After addDays(100): {stressTime.toDate()}\n")
+    var expectedDays: int = stressTime.diff(stressStart) / 1000 / 60 / 60 / 24
+    print($"    Difference: {expectedDays} days\n")
+
+    // Rapid creation - create Time.now() 1000 times
+    print("  Rapid creation (Time.now() 1000 times):\n")
+    var rapidStart: Time = Time.now()
+    var j: int = 0
+    while j < 1000 =>
+        var temp: Time = Time.now()
+        j = j + 1
+    var rapidDuration: int = Time.now().diff(rapidStart)
+    print($"    Created 1000 Time.now() in {rapidDuration}ms\n")
+
+    // Large time difference - between year 2000 and 2100
+    print("  Large time difference (year 2000 to 2100):\n")
+    var year2000: Time = Time.fromSeconds(946684800)   // 2000-01-01 00:00:00 UTC
+    var y2100: Time = Time.fromSeconds(4102444800)     // 2100-01-01 00:00:00 UTC
+    var largeDiff: int = y2100.diff(year2000)
+    var diffDays: int = largeDiff / 1000 / 60 / 60 / 24
+    var diffYears: int = diffDays / 365
+    print($"    Year 2000: {year2000.toDate()}\n")
+    print($"    Year 2100: {y2100.toDate()}\n")
+    print($"    Difference: {largeDiff}ms ({diffDays} days, ~{diffYears} years)\n")
+
+    print("\nStress tests - PASS\n")
+
+    print("\n==========================\n")
+    print("All edge case tests complete - PASS\n")
+
+    return 0

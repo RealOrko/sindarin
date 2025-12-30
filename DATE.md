@@ -1,6 +1,8 @@
 # Date in Sindarin
 
-Sindarin provides a built-in `Date` type for working with calendar dates without time components. The `Date` type is ideal for birthdays, holidays, scheduling, and date arithmetic. It integrates with Sindarin's arena-based memory management.
+> **Status: Specification** - This document describes the planned `Date` type. It is not yet implemented. See [TIME.md](TIME.md) for the currently available `Time` type.
+
+Sindarin will provide a built-in `Date` type for working with calendar dates without time components. The `Date` type is ideal for birthdays, holidays, scheduling, and date arithmetic. It will integrate with Sindarin's arena-based memory management.
 
 ## Overview
 
