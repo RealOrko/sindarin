@@ -24,11 +24,15 @@ fn fib_iterative(n: int): int =>
 
 fn main(): void =>
     // Recursive fib(35)
+    var start_recursive: Time = Time.now()
     var result_recursive: int = fib_recursive(35)
+    var elapsed_recursive: int = Time.now().diff(start_recursive)
     print($"Recursive fib(35) = {result_recursive}\n")
-    print("Recursive time: 0ms\n")
+    print($"Recursive time: {elapsed_recursive}ms\n")
 
     // Iterative fib(50)
+    var start_iterative: Time = Time.now()
     var result_iterative: int = fib_iterative(50)
+    var elapsed_iterative: int = Time.now().diff(start_iterative)
     print($"Iterative fib(50) = {result_iterative}\n")
-    print("Iterative time: 0ms\n")
+    print($"Iterative time: {elapsed_iterative}ms\n")

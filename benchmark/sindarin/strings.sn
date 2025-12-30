@@ -5,6 +5,8 @@
 // ============================================================================
 
 fn main(): void =>
+    var start: Time = Time.now()
+
     // Build a string by concatenating "Hello" 100,000 times
     // Use array of strings + join for O(n) instead of O(n²) concatenation
     var parts: str[] = {}
@@ -28,5 +30,6 @@ fn main(): void =>
             occurrences = occurrences + 1
         pos = pos + 5
 
+    var elapsed: int = Time.now().diff(start)
     print($"Occurrences of 'llo': {occurrences}\n")
-    print("String time: 0ms\n")
+    print($"String time: {elapsed}ms\n")

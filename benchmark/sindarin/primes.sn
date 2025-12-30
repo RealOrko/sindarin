@@ -36,6 +36,8 @@ fn sieve(n: int): int =>
 
 fn main(): void =>
     var n: int = 1000000
+    var start: Time = Time.now()
     var count: int = sieve(n)
+    var elapsed: int = Time.now().diff(start)
     print($"Primes up to {n}: {count}\n")
-    print("Sieve time: 0ms\n")
+    print($"Sieve time: {elapsed}ms\n")

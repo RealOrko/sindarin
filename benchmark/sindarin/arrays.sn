@@ -5,6 +5,8 @@
 // ============================================================================
 
 fn main(): void =>
+    var start: Time = Time.now()
+
     // Create array with 1,000,000 integers (0 to 999,999)
     var arr: int[] = {}
     for var i: int = 0; i < 1000000; i++ =>
@@ -24,4 +26,6 @@ fn main(): void =>
     for n in arr =>
         reversed_sum = reversed_sum + n
     print($"Reversed sum: {reversed_sum}\n")
-    print("Array time: 0ms\n")
+
+    var elapsed: int = Time.now().diff(start)
+    print($"Array time: {elapsed}ms\n")
