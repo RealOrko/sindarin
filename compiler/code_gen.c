@@ -32,6 +32,17 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->loop_arena_var = NULL;
     gen->loop_cleanup_label = NULL;
 
+    /* Initialize loop arena stack for nested loops */
+    gen->loop_arena_stack = NULL;
+    gen->loop_cleanup_stack = NULL;
+    gen->loop_arena_depth = 0;
+    gen->loop_arena_capacity = 0;
+
+    /* Initialize private block arena stack */
+    gen->arena_stack = NULL;
+    gen->arena_stack_depth = 0;
+    gen->arena_stack_capacity = 0;
+
     /* Initialize lambda fields */
     gen->lambda_count = 0;
     gen->lambda_forward_decls = arena_strdup(arena, "");
@@ -50,6 +61,12 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     /* Initialize tail call optimization state */
     gen->in_tail_call_function = false;
     gen->tail_call_fn = NULL;
+
+    /* Initialize captured primitive tracking */
+    gen->captured_primitives = NULL;
+    gen->captured_prim_ptrs = NULL;
+    gen->captured_prim_count = 0;
+    gen->captured_prim_capacity = 0;
 
     if (gen->output == NULL)
     {
@@ -181,6 +198,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_push_string(RtArena *, char **, const char *);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_push_bool(RtArena *, int *, int);\n");
     indented_fprintf(gen, 0, "extern unsigned char *rt_array_push_byte(RtArena *, unsigned char *, unsigned char);\n");
+    indented_fprintf(gen, 0, "extern void **rt_array_push_ptr(RtArena *, void **, void *);\n");
     indented_fprintf(gen, 0, "extern long rt_array_length(void *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array print functions */\n");
@@ -200,7 +218,8 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char rt_array_pop_char(char *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_pop_bool(int *);\n");
     indented_fprintf(gen, 0, "extern unsigned char rt_array_pop_byte(unsigned char *);\n");
-    indented_fprintf(gen, 0, "extern char *rt_array_pop_string(char **);\n\n");
+    indented_fprintf(gen, 0, "extern char *rt_array_pop_string(char **);\n");
+    indented_fprintf(gen, 0, "extern void *rt_array_pop_ptr(void **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array concat functions */\n");
     indented_fprintf(gen, 0, "extern long *rt_array_concat_long(RtArena *, long *, long *);\n");
@@ -208,7 +227,8 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char *rt_array_concat_char(RtArena *, char *, char *);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_concat_bool(RtArena *, int *, int *);\n");
     indented_fprintf(gen, 0, "extern unsigned char *rt_array_concat_byte(RtArena *, unsigned char *, unsigned char *);\n");
-    indented_fprintf(gen, 0, "extern char **rt_array_concat_string(RtArena *, char **, char **);\n\n");
+    indented_fprintf(gen, 0, "extern char **rt_array_concat_string(RtArena *, char **, char **);\n");
+    indented_fprintf(gen, 0, "extern void **rt_array_concat_ptr(RtArena *, void **, void **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array slice functions (start, end, step) */\n");
     indented_fprintf(gen, 0, "extern long *rt_array_slice_long(RtArena *, long *, long, long, long);\n");
@@ -439,11 +459,17 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         return;
     }
 
+    char *fn_name_str = fn_name;  // Already computed above
+    bool is_main = strcmp(fn_name_str, "main") == 0;
     bool is_shared = fn->modifier == FUNC_SHARED;
-    /* Functions returning closures must be implicitly shared to avoid
-     * arena lifetime issues - the returned closure must live in caller's arena */
-    bool returns_closure = fn->return_type && fn->return_type->kind == TYPE_FUNCTION;
-    if (returns_closure && fn->modifier != FUNC_PRIVATE)
+    /* Functions returning heap-allocated types (closures, strings, arrays) must be
+     * implicitly shared to avoid arena lifetime issues - the returned value must
+     * live in caller's arena, not the function's arena which is destroyed on return */
+    bool returns_heap_type = fn->return_type && (
+        fn->return_type->kind == TYPE_FUNCTION ||
+        fn->return_type->kind == TYPE_STRING ||
+        fn->return_type->kind == TYPE_ARRAY);
+    if (returns_heap_type && !is_main)
     {
         is_shared = true;
     }

@@ -155,12 +155,15 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         }
     }
 
-    /* Functions returning closures must be implicitly shared to avoid arena
-     * lifetime issues - the returned closure must live in caller's arena.
-     * This follows MEMORY.md's promotion semantics for escaping values. */
+    /* Functions returning heap-allocated types (closures, strings, arrays) must be
+     * implicitly shared to avoid arena lifetime issues - the returned value must
+     * live in caller's arena, not the function's arena which is destroyed on return.
+     * This matches the implicit sharing logic in code_gen_stmt.c:301-307. */
     FunctionModifier effective_modifier = modifier;
     if (stmt->as.function.return_type &&
-        stmt->as.function.return_type->kind == TYPE_FUNCTION &&
+        (stmt->as.function.return_type->kind == TYPE_FUNCTION ||
+         stmt->as.function.return_type->kind == TYPE_STRING ||
+         stmt->as.function.return_type->kind == TYPE_ARRAY) &&
         modifier != FUNC_PRIVATE)
     {
         effective_modifier = FUNC_SHARED;

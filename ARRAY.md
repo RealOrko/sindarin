@@ -255,9 +255,12 @@ var neg_step: int[] = nums[-6..:2]   // [4, 6, 8]
 
 | Feature | Priority | Complexity |
 |---------|----------|------------|
+| Arrays of lambdas `(fn(T): R)[]` | Medium | Medium |
 | Higher-order functions (map, filter) | Low | High |
 | Array comprehensions | Low | High |
 | Spread operator | Low | Medium |
+
+**Note on Arrays of Lambdas:** Syntax is defined (requires parentheses for disambiguation), but parser/type checker/code gen support not yet implemented. See Design Decision #6.
 
 ---
 
@@ -694,6 +697,14 @@ Strings are represented as `char*` with the same metadata header as arrays. This
    - Methods (`.push()`, `.reverse()`, `.remove()`, `.insert()`) mutate in place
    - Only `len()` remains as standalone (read-only, works on arrays and strings)
    - For non-mutating copies, use `.clone()` first
+
+6. **Array of Lambda Syntax Disambiguation**
+   - **Problem:** `fn(str, str): str[]` is ambiguous—does `[]` bind to the return type or the whole function type?
+   - **Decision:** Parentheses required for arrays of lambdas
+   - `fn(str): str[]` = function returning `str[]` (default: `[]` binds to return type)
+   - `(fn(str): str)[]` = array of functions returning `str` (parentheses required)
+   - **Compiler behavior:** Parser interprets unparenthesized `fn(...): T[]` as "function returning array of T". The compiler should emit an error for ambiguous declarations, prompting the user to clarify with parentheses.
+   - **Implementation:** Requires parser support for grouped types `(type)` and type checker validation for array-of-function types.
 
 ---
 

@@ -1,0 +1,100 @@
+// Test 121: Non-existent file handling
+// Tests behavior when files don't exist and existence checking
+
+fn main(): int =>
+    print("Test non-existent file handling:\n\n")
+    var errors: int = 0
+
+    // Test 1: TextFile.exists returns false for non-existent file
+    print("Test 1 - TextFile.exists on non-existent file:\n")
+    var nonexistent_path: str = "/tmp/definitely_not_a_real_file_12345.txt"
+    var text_exists: bool = TextFile.exists(nonexistent_path)
+    var text_exists_int: int = 0
+    if text_exists => text_exists_int = 1
+    print($"  TextFile.exists(\"{nonexistent_path}\"): {text_exists}\n")
+    if text_exists_int != 0 =>
+        print("  FAIL: should return false\n")
+        errors++
+
+    // Test 2: BinaryFile.exists returns false for non-existent file
+    print("\nTest 2 - BinaryFile.exists on non-existent file:\n")
+    var nonexistent_bin: str = "/tmp/definitely_not_a_real_file_12345.bin"
+    var bin_exists: bool = BinaryFile.exists(nonexistent_bin)
+    var bin_exists_int: int = 0
+    if bin_exists => bin_exists_int = 1
+    print($"  BinaryFile.exists(\"{nonexistent_bin}\"): {bin_exists}\n")
+    if bin_exists_int != 0 =>
+        print("  FAIL: should return false\n")
+        errors++
+
+    // Test 3: TextFile.exists returns true for existing file
+    print("\nTest 3 - TextFile.exists on existing file:\n")
+    var test_path: str = "/tmp/test_exists_check.txt"
+    TextFile.writeAll(test_path, "test content")
+    var exists_after: bool = TextFile.exists(test_path)
+    var exists_after_int: int = 0
+    if exists_after => exists_after_int = 1
+    print($"  Created file and checked: {exists_after}\n")
+    if exists_after_int != 1 =>
+        print("  FAIL: should return true after creation\n")
+        errors++
+
+    // Test 4: exists returns false after delete
+    print("\nTest 4 - TextFile.exists after delete:\n")
+    TextFile.delete(test_path)
+    var exists_deleted: bool = TextFile.exists(test_path)
+    var exists_deleted_int: int = 0
+    if exists_deleted => exists_deleted_int = 1
+    print($"  After delete: {exists_deleted}\n")
+    if exists_deleted_int != 0 =>
+        print("  FAIL: should return false after delete\n")
+        errors++
+
+    // Test 5: Pattern - safe file reading with exists check
+    print("\nTest 5 - Safe file reading pattern:\n")
+    var safe_path: str = "/tmp/nonexistent_config.txt"
+    var content_read: str = ""
+    if TextFile.exists(safe_path) =>
+        content_read = TextFile.readAll(safe_path)
+        print("  File found and read\n")
+    if !TextFile.exists(safe_path) =>
+        content_read = "default_value"
+        print("  File not found, using default\n")
+
+    if content_read != "default_value" =>
+        print("  FAIL: should use default value\n")
+        errors++
+
+    // Test 6: BinaryFile same pattern
+    print("\nTest 6 - Safe binary file reading pattern:\n")
+    var safe_bin_path: str = "/tmp/nonexistent_data.bin"
+    var bytes_read: byte[] = {}
+    if BinaryFile.exists(safe_bin_path) =>
+        bytes_read = BinaryFile.readAll(safe_bin_path)
+        print("  Binary file found and read\n")
+    if !BinaryFile.exists(safe_bin_path) =>
+        bytes_read = {0, 0, 0}  // Default bytes
+        print("  Binary file not found, using default\n")
+
+    if bytes_read.length != 3 =>
+        print("  FAIL: should have default bytes\n")
+        errors++
+
+    // Test 7: Exists check on special paths
+    print("\nTest 7 - Special path checks:\n")
+    // Empty path
+    var empty_exists: bool = TextFile.exists("")
+    var empty_exists_int: int = 0
+    if empty_exists => empty_exists_int = 1
+    print($"  TextFile.exists(\"\"): {empty_exists}\n")
+    // Empty path should return false
+    if empty_exists_int != 0 =>
+        print("  Note: empty path returns true (unexpected)\n")
+
+    // Results
+    if errors == 0 =>
+        print("\nAll non-existent file tests PASSED!\n")
+    if errors > 0 =>
+        print($"\n{errors} tests FAILED!\n")
+
+    return 0

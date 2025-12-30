@@ -530,27 +530,37 @@ Stmt *parser_if_statement(Parser *parser)
     skip_newlines(parser);
     if (parser_match(parser, TOKEN_ELSE))
     {
-        parser_consume(parser, TOKEN_ARROW, "Expected '=>' after else");
-        skip_newlines(parser);
-        if (parser_check(parser, TOKEN_INDENT))
+        /* Support 'else if' syntax sugar - if followed by 'if', parse if statement directly */
+        if (parser_match(parser, TOKEN_IF))
         {
-            else_branch = parser_indented_block(parser);
+            /* Parse the 'if' statement as the else branch (no arrow needed between else and if) */
+            else_branch = parser_if_statement(parser);
         }
         else
         {
-            else_branch = parser_statement(parser);
+            /* Original 'else =>' syntax */
+            parser_consume(parser, TOKEN_ARROW, "Expected '=>' after else");
             skip_newlines(parser);
             if (parser_check(parser, TOKEN_INDENT))
             {
-                Stmt **block_stmts = arena_alloc(parser->arena, sizeof(Stmt *) * 2);
-                if (block_stmts == NULL)
+                else_branch = parser_indented_block(parser);
+            }
+            else
+            {
+                else_branch = parser_statement(parser);
+                skip_newlines(parser);
+                if (parser_check(parser, TOKEN_INDENT))
                 {
-                    exit(1);
+                    Stmt **block_stmts = arena_alloc(parser->arena, sizeof(Stmt *) * 2);
+                    if (block_stmts == NULL)
+                    {
+                        exit(1);
+                    }
+                    block_stmts[0] = else_branch;
+                    Stmt *indented = parser_indented_block(parser);
+                    block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
+                    else_branch = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
                 }
-                block_stmts[0] = else_branch;
-                Stmt *indented = parser_indented_block(parser);
-                block_stmts[1] = indented ? indented : ast_create_block_stmt(parser->arena, NULL, 0, NULL);
-                else_branch = ast_create_block_stmt(parser->arena, block_stmts, 2, NULL);
             }
         }
     }

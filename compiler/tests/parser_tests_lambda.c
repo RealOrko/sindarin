@@ -99,9 +99,96 @@ void test_multi_line_lambda_with_loop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_parenthesized_function_type_array()
+{
+    printf("Testing parser_execute parenthesized function type array...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Test: (fn(int): int)[] should parse as array of functions */
+    const char *source =
+        "var callbacks: (fn(int): int)[] = {}\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+
+    /* The type should be: array of (function from int to int) */
+    Type *type = stmt->as.var_decl.type;
+    assert(type != NULL);
+    assert(type->kind == TYPE_ARRAY);  /* Outer type is array */
+    assert(type->as.array.element_type != NULL);
+    assert(type->as.array.element_type->kind == TYPE_FUNCTION);  /* Element is function type */
+
+    /* Verify the function type: fn(int): int */
+    Type *fn_type = type->as.array.element_type;
+    assert(fn_type->as.function.param_count == 1);
+    assert(fn_type->as.function.param_types[0]->kind == TYPE_INT);
+    assert(fn_type->as.function.return_type->kind == TYPE_INT);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_function_returning_array_vs_array_of_functions()
+{
+    printf("Testing parser_execute function returning array vs array of functions...\n");
+
+    /* Test 1: fn(int): int[] should parse as function returning array */
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var f: fn(int): int[] = fn(x: int): int[] => {}\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        Stmt *stmt = module->statements[0];
+        Type *type = stmt->as.var_decl.type;
+
+        /* fn(int): int[] -> function returning int[] */
+        assert(type->kind == TYPE_FUNCTION);
+        assert(type->as.function.return_type->kind == TYPE_ARRAY);
+        assert(type->as.function.return_type->as.array.element_type->kind == TYPE_INT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    /* Test 2: (fn(int): int)[] should parse as array of functions */
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var g: (fn(int): int)[] = {}\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        Stmt *stmt = module->statements[0];
+        Type *type = stmt->as.var_decl.type;
+
+        /* (fn(int): int)[] -> array of functions returning int */
+        assert(type->kind == TYPE_ARRAY);
+        assert(type->as.array.element_type->kind == TYPE_FUNCTION);
+        assert(type->as.array.element_type->as.function.return_type->kind == TYPE_INT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+}
+
 void test_parser_lambda_main()
 {
     test_single_line_lambda_parsing();
     test_multi_line_lambda_parsing();
     test_multi_line_lambda_with_loop_parsing();
+    test_parenthesized_function_type_array();
+    test_function_returning_array_vs_array_of_functions();
 }

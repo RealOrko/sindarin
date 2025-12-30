@@ -235,6 +235,65 @@ var arr: int[] = {1, 2, 3}
 var mixed: int[] = {...arr, 10..13}  // {1, 2, 3, 10, 11, 12}
 ```
 
+## Arrays of Lambdas (Function Types)
+
+Arrays can hold lambda/function types, but **parentheses are required** to disambiguate the syntax.
+
+### The Ambiguity Problem
+
+Without parentheses, the syntax is ambiguous:
+
+```sindarin
+// AMBIGUOUS - don't do this!
+var arr: fn(str, str): str[]   // Does this mean:
+                                //   1. Lambda returning str[] ?
+                                //   2. Array of lambdas returning str ?
+```
+
+### Solution: Use Parentheses
+
+```sindarin
+// Array of lambdas (parentheses required)
+var handlers: (fn(str): int)[] = {}
+var transforms: (fn(int, int): int)[] = {}
+
+// Lambda returning an array (no parentheses needed - this is the default interpretation)
+var getNames: fn(): str[] = () => { return {"Alice", "Bob"} }
+```
+
+### Parser Behavior
+
+The parser binds `[]` to the innermost type first. So:
+- `fn(str): str[]` = function returning `str[]` (array binds to return type)
+- `(fn(str): str)[]` = array of functions returning `str` (array binds to whole function type)
+
+### Example Usage
+
+```sindarin
+// Declare array of lambdas
+var operations: (fn(int, int): int)[] = {}
+
+// Add lambdas to the array
+var add: fn(int, int): int = (a: int, b: int) => a + b
+var mul: fn(int, int): int = (a: int, b: int) => a * b
+operations.push(add)
+operations.push(mul)
+
+// Call lambdas from the array
+var result1: int = operations[0](10, 5)  // 15
+var result2: int = operations[1](10, 5)  // 50
+```
+
+### Compiler Error
+
+If the compiler detects a potentially ambiguous declaration, it may emit an error:
+
+```
+error: Ambiguous array declaration. Use parentheses to clarify:
+  - For array of functions: (fn(str): str)[]
+  - For function returning array: fn(str): str[]
+```
+
 ## Array Equality
 
 Arrays can be compared for equality.

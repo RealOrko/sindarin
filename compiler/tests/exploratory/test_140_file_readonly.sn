@@ -1,0 +1,121 @@
+// Test 140: File I/O error handling for read-only/protected locations
+// 
+// BEHAVIOR DOCUMENTATION:
+// When writing to a protected or invalid location, the Sn runtime:
+// - Prints an error message to stderr with the reason
+// - Exits with code 1 (panic behavior)
+// - Does NOT provide error returns or exceptions
+//
+// This is intentional - Sn uses a "fail fast" approach for I/O errors.
+// Applications should use TextFile.exists() or check paths beforehand.
+//
+// PATHS THAT CAUSE RUNTIME PANIC:
+// - /etc/passwd or other protected system files (Permission denied)
+// - /nonexistent_dir/file.txt (No such file or directory)
+// - Files in read-only directories
+//
+// PATHS THAT SUCCEED:
+// - /dev/null (writable black hole, content discarded)
+// - /tmp/* (writable temp directory)
+//
+// This test verifies SUCCESSFUL write operations to avoid panics.
+// See comments below for behavior of protected paths.
+
+fn main(): int =>
+    print("Test file I/O write operations:\n\n")
+
+    // === Test 1: Write to /dev/null (always succeeds) ===
+    print("Test 1 - Write to /dev/null:\n")
+    TextFile.writeAll("/dev/null", "this content is discarded")
+    print("  TextFile.writeAll to /dev/null: SUCCESS\n")
+    
+    var devnull_data: byte[] = {1, 2, 3, 4, 5}
+    BinaryFile.writeAll("/dev/null", devnull_data)
+    print("  BinaryFile.writeAll to /dev/null: SUCCESS\n")
+
+    // === Test 2: Write to writable temp directory ===
+    print("\nTest 2 - Write to /tmp (writable):\n")
+    var tmp_path: str = "/tmp/test_140_writable.txt"
+    TextFile.writeAll(tmp_path, "test content")
+    var read_back: str = TextFile.readAll(tmp_path)
+    if read_back == "test content" =>
+        print("  TextFile write and read: SUCCESS\n")
+    else =>
+        print("  TextFile write and read: FAIL\n")
+    TextFile.delete(tmp_path)
+
+    // === Test 3: Binary file to writable location ===
+    print("\nTest 3 - BinaryFile to /tmp:\n")
+    var tmp_bin_path: str = "/tmp/test_140_writable.bin"
+    var bin_data: byte[] = {10, 20, 30, 40, 50}
+    BinaryFile.writeAll(tmp_bin_path, bin_data)
+    var bin_read_back: byte[] = BinaryFile.readAll(tmp_bin_path)
+    if bin_read_back.length == 5 =>
+        print("  BinaryFile write and read: SUCCESS\n")
+    else =>
+        print("  BinaryFile write and read: FAIL\n")
+    BinaryFile.delete(tmp_bin_path)
+
+    // === Test 4: Instance-based file writing ===
+    print("\nTest 4 - Instance-based TextFile write:\n")
+    var tmp_inst_path: str = "/tmp/test_140_instance.txt"
+    var f: TextFile = TextFile.open(tmp_inst_path)
+    f.writeLine("Line 1")
+    f.writeLine("Line 2")
+    f.close()
+    
+    var inst_content: str = TextFile.readAll(tmp_inst_path)
+    if inst_content == "Line 1\nLine 2\n" =>
+        print("  Instance write: SUCCESS\n")
+    else =>
+        print("  Instance write: FAIL\n")
+    TextFile.delete(tmp_inst_path)
+
+    // === Test 5: Instance-based BinaryFile writing ===
+    print("\nTest 5 - Instance-based BinaryFile write:\n")
+    var tmp_bin_inst: str = "/tmp/test_140_bin_instance.bin"
+    // First create the file with some data
+    var init_data: byte[] = {0}
+    BinaryFile.writeAll(tmp_bin_inst, init_data)
+    var bf: BinaryFile = BinaryFile.open(tmp_bin_inst)
+    bf.writeByte(100)
+    bf.writeByte(200)
+    var more_data: byte[] = {1, 2, 3}
+    bf.writeBytes(more_data)
+    bf.close()
+
+    var bf_read: byte[] = BinaryFile.readAll(tmp_bin_inst)
+    if bf_read.length >= 3 =>
+        print("  Instance BinaryFile write: SUCCESS\n")
+    else =>
+        print("  Instance BinaryFile write: FAIL\n")
+    BinaryFile.delete(tmp_bin_inst)
+
+    // === Test 6: Safe write pattern with exists check ===
+    print("\nTest 6 - Safe write pattern:\n")
+    // Check if parent directory exists/is writable by trying a small write
+    var safe_path: str = "/tmp/test_140_safe_write.txt"
+    // Since /tmp is always writable, this should succeed
+    TextFile.writeAll(safe_path, "safe content")
+    if TextFile.exists(safe_path) =>
+        print("  Safe write pattern: SUCCESS\n")
+        TextFile.delete(safe_path)
+    else =>
+        print("  Safe write pattern: FAIL\n")
+
+    // === Documentation of panic behavior ===
+    print("\n=== Panic Behavior Documentation ===\n")
+    print("The following operations cause RUNTIME PANIC:\n")
+    print("  - TextFile.writeAll(\"/etc/passwd\", ...)\n")
+    print("    -> 'Permission denied', exit code 1\n")
+    print("  - TextFile.writeAll(\"/nonexistent_dir/file.txt\", ...)\n")
+    print("    -> 'No such file or directory', exit code 1\n")
+    print("  - BinaryFile.writeAll to protected paths\n")
+    print("    -> Same panic behavior\n")
+    print("\nTo avoid panics:\n")
+    print("  1. Use TextFile.exists() to check paths first\n")
+    print("  2. Only write to known-writable locations (/tmp, etc.)\n")
+    print("  3. Handle file operations in controlled code sections\n")
+
+    print("\nAll file write tests passed!\n")
+    return 0

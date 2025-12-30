@@ -181,9 +181,17 @@ Type *parser_type(Parser *parser)
 {
     Type *type = NULL;
 
-    if (parser_match(parser, TOKEN_FN))
+    /* Handle parenthesized types for grouping, e.g., (fn(int): int)[] */
+    if (parser_match(parser, TOKEN_LEFT_PAREN))
     {
-        return parser_function_type(parser);
+        type = parser_type(parser);
+        parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after type");
+        /* Fall through to array suffix handling below */
+    }
+    else if (parser_match(parser, TOKEN_FN))
+    {
+        type = parser_function_type(parser);
+        /* Fall through to array suffix handling below */
     }
     else if (parser_match(parser, TOKEN_INT))
     {

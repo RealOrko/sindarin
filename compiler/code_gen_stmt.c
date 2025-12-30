@@ -7,6 +7,53 @@
 #include <string.h>
 #include <stdio.h>
 
+/* Push a loop arena onto the stack when entering a loop with per-iteration arena */
+static void push_loop_arena(CodeGen *gen, char *arena_var, char *cleanup_label)
+{
+    if (gen->loop_arena_depth >= gen->loop_arena_capacity)
+    {
+        int new_capacity = gen->loop_arena_capacity == 0 ? 8 : gen->loop_arena_capacity * 2;
+        char **new_arena_stack = arena_alloc(gen->arena, new_capacity * sizeof(char *));
+        char **new_cleanup_stack = arena_alloc(gen->arena, new_capacity * sizeof(char *));
+        for (int i = 0; i < gen->loop_arena_depth; i++)
+        {
+            new_arena_stack[i] = gen->loop_arena_stack[i];
+            new_cleanup_stack[i] = gen->loop_cleanup_stack[i];
+        }
+        gen->loop_arena_stack = new_arena_stack;
+        gen->loop_cleanup_stack = new_cleanup_stack;
+        gen->loop_arena_capacity = new_capacity;
+    }
+    gen->loop_arena_stack[gen->loop_arena_depth] = arena_var;
+    gen->loop_cleanup_stack[gen->loop_arena_depth] = cleanup_label;
+    gen->loop_arena_depth++;
+
+    /* Update current loop arena vars */
+    gen->loop_arena_var = arena_var;
+    gen->loop_cleanup_label = cleanup_label;
+}
+
+/* Pop a loop arena from the stack when exiting a loop */
+static void pop_loop_arena(CodeGen *gen)
+{
+    if (gen->loop_arena_depth > 0)
+    {
+        gen->loop_arena_depth--;
+        if (gen->loop_arena_depth > 0)
+        {
+            /* Restore to the enclosing loop's arena */
+            gen->loop_arena_var = gen->loop_arena_stack[gen->loop_arena_depth - 1];
+            gen->loop_cleanup_label = gen->loop_cleanup_stack[gen->loop_arena_depth - 1];
+        }
+        else
+        {
+            /* No more enclosing loops */
+            gen->loop_arena_var = NULL;
+            gen->loop_cleanup_label = NULL;
+        }
+    }
+}
+
 void code_gen_expression_statement(CodeGen *gen, ExprStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_expression_statement");
@@ -41,9 +88,20 @@ void code_gen_expression_statement(CodeGen *gen, ExprStmt *stmt, int indent)
 void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_var_declaration");
-    symbol_table_add_symbol_full(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL, stmt->mem_qualifier);
     const char *type_c = get_c_type(gen->arena, stmt->type);
     char *var_name = get_var_name(gen->arena, stmt->name);
+
+    // Check if this primitive is captured by a closure - if so, treat it like 'as ref'
+    // This ensures mutations inside closures are visible to the outer scope
+    MemoryQualifier effective_qual = stmt->mem_qualifier;
+    if (effective_qual == MEM_DEFAULT && code_gen_is_captured_primitive(gen, var_name))
+    {
+        effective_qual = MEM_AS_REF;
+    }
+
+    // Add to symbol table with effective qualifier so accesses are dereferenced correctly
+    symbol_table_add_symbol_full(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL, effective_qual);
+
     char *init_str;
     if (stmt->initializer)
     {
@@ -76,8 +134,8 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
         init_str = arena_strdup(gen->arena, get_default_value(stmt->type));
     }
 
-    // Handle 'as ref' - heap-allocate primitives via arena
-    if (stmt->mem_qualifier == MEM_AS_REF)
+    // Handle 'as ref' or captured primitives - heap-allocate via arena
+    if (effective_qual == MEM_AS_REF)
     {
         // Allocate on arena and store pointer
         // e.g., long *x = (long *)rt_arena_alloc(__arena_1__, sizeof(long)); *x = 42L;
@@ -176,6 +234,8 @@ void code_gen_block(CodeGen *gen, BlockStmt *stmt, int indent)
         gen->in_shared_context = false;
         gen->arena_depth++;
         gen->current_arena_var = arena_sprintf(gen->arena, "__arena_%d__", gen->arena_depth);
+        /* Push arena name to stack for tracking nested private blocks */
+        push_arena_to_stack(gen, gen->current_arena_var);
         symbol_table_enter_arena(gen->symbol_table);
     }
     // Handle shared block - uses parent's arena
@@ -203,6 +263,8 @@ void code_gen_block(CodeGen *gen, BlockStmt *stmt, int indent)
     {
         indented_fprintf(gen, indent + 1, "rt_arena_destroy(%s);\n", gen->current_arena_var);
         symbol_table_exit_arena(gen->symbol_table);
+        /* Pop arena name from stack */
+        pop_arena_from_stack(gen);
     }
 
     indented_fprintf(gen, indent, "}\n");
@@ -233,10 +295,14 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool is_main = strcmp(gen->current_function, "main") == 0;
     bool is_private = stmt->modifier == FUNC_PRIVATE;
     bool is_shared = stmt->modifier == FUNC_SHARED;
-    // Functions returning closures must be implicitly shared to avoid
-    // arena lifetime issues - the returned closure must live in caller's arena
-    bool returns_closure = stmt->return_type && stmt->return_type->kind == TYPE_FUNCTION;
-    if (returns_closure && !is_main) {
+    // Functions returning heap-allocated types (closures, strings, arrays) must be
+    // implicitly shared to avoid arena lifetime issues - the returned value must
+    // live in caller's arena, not the function's arena which is destroyed on return
+    bool returns_heap_type = stmt->return_type && (
+        stmt->return_type->kind == TYPE_FUNCTION ||
+        stmt->return_type->kind == TYPE_STRING ||
+        stmt->return_type->kind == TYPE_ARRAY);
+    if (returns_heap_type && !is_main) {
         is_shared = true;
     }
     // Check if function actually uses heap-allocated types
@@ -277,6 +343,11 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     {
         symbol_table_add_symbol_with_kind(gen->symbol_table, stmt->params[i].name, stmt->params[i].type, SYMBOL_PARAM);
     }
+
+    // Pre-pass: scan function body for primitives captured by closures
+    // These need to be declared as pointers for mutation persistence
+    code_gen_scan_captured_primitives(gen, stmt->body, stmt->body_count);
+
     indented_fprintf(gen, 0, "%s %s(", ret_c, gen->current_function);
 
     // Shared functions receive caller's arena as first parameter
@@ -404,6 +475,10 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     }
 
     symbol_table_pop_scope(gen->symbol_table);
+
+    // Clear captured primitives list
+    code_gen_clear_captured_primitives(gen);
+
     gen->current_function = old_function;
     gen->current_return_type = old_return_type;
     gen->current_func_modifier = old_func_modifier;
@@ -465,6 +540,27 @@ void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt, int indent)
         char *value_str = code_gen_expression(gen, stmt->value);
         indented_fprintf(gen, indent, "_return_value = %s;\n", value_str);
     }
+
+    /* Clean up all active loop arenas before returning (innermost first) */
+    for (int i = gen->loop_arena_depth - 1; i >= 0; i--)
+    {
+        if (gen->loop_arena_stack[i] != NULL)
+        {
+            indented_fprintf(gen, indent, "rt_arena_destroy(%s);\n", gen->loop_arena_stack[i]);
+        }
+    }
+
+    /* Clean up all active private block arenas before returning (innermost first).
+     * The function-level arena is NOT on this stack - it's destroyed at the return label.
+     * This stack only contains private block arenas that need explicit cleanup. */
+    for (int i = gen->arena_stack_depth - 1; i >= 0; i--)
+    {
+        if (gen->arena_stack[i] != NULL)
+        {
+            indented_fprintf(gen, indent, "rt_arena_destroy(%s);\n", gen->arena_stack[i]);
+        }
+    }
+
     indented_fprintf(gen, indent, "goto %s_return;\n", gen->current_function);
 }
 
@@ -488,8 +584,6 @@ void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent)
     DEBUG_VERBOSE("Entering code_gen_while_statement");
 
     bool old_in_shared_context = gen->in_shared_context;
-    char *old_loop_arena_var = gen->loop_arena_var;
-    char *old_loop_cleanup_label = gen->loop_cleanup_label;
     char *old_current_arena_var = gen->current_arena_var;
 
     bool is_shared = stmt->is_shared;
@@ -503,16 +597,14 @@ void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent)
     }
 
     // For non-shared loops with arena context (and not inside shared block), create per-iteration arena
+    char *loop_arena = NULL;
+    char *loop_cleanup = NULL;
     if (needs_loop_arena)
     {
         int label_num = code_gen_new_label(gen);
-        gen->loop_arena_var = arena_sprintf(gen->arena, "__loop_arena_%d__", label_num);
-        gen->loop_cleanup_label = arena_sprintf(gen->arena, "__loop_cleanup_%d__", label_num);
-    }
-    else
-    {
-        gen->loop_arena_var = NULL;
-        gen->loop_cleanup_label = NULL;
+        loop_arena = arena_sprintf(gen->arena, "__loop_arena_%d__", label_num);
+        loop_cleanup = arena_sprintf(gen->arena, "__loop_cleanup_%d__", label_num);
+        push_loop_arena(gen, loop_arena, loop_cleanup);
     }
 
     char *cond_str = code_gen_expression(gen, stmt->condition);
@@ -522,9 +614,9 @@ void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent)
     if (needs_loop_arena)
     {
         indented_fprintf(gen, indent + 1, "RtArena *%s = rt_arena_create(%s);\n",
-                         gen->loop_arena_var, ARENA_VAR(gen));
+                         loop_arena, ARENA_VAR(gen));
         // Switch to using the loop arena for allocations inside the loop body
-        gen->current_arena_var = gen->loop_arena_var;
+        gen->current_arena_var = loop_arena;
     }
 
     code_gen_statement(gen, stmt->body, indent + 1);
@@ -538,15 +630,14 @@ void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent)
     // Cleanup label and arena destruction
     if (needs_loop_arena)
     {
-        indented_fprintf(gen, indent, "%s:\n", gen->loop_cleanup_label);
-        indented_fprintf(gen, indent + 1, "rt_arena_destroy(%s);\n", gen->loop_arena_var);
+        indented_fprintf(gen, indent, "%s:\n", loop_cleanup);
+        indented_fprintf(gen, indent + 1, "rt_arena_destroy(%s);\n", loop_arena);
+        pop_loop_arena(gen);
     }
 
     indented_fprintf(gen, indent, "}\n");
 
     gen->in_shared_context = old_in_shared_context;
-    gen->loop_arena_var = old_loop_arena_var;
-    gen->loop_cleanup_label = old_loop_cleanup_label;
 }
 
 void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
@@ -554,8 +645,6 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     DEBUG_VERBOSE("Entering code_gen_for_statement");
 
     bool old_in_shared_context = gen->in_shared_context;
-    char *old_loop_arena_var = gen->loop_arena_var;
-    char *old_loop_cleanup_label = gen->loop_cleanup_label;
     char *old_current_arena_var = gen->current_arena_var;
 
     bool is_shared = stmt->is_shared;
@@ -569,16 +658,14 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     }
 
     // For non-shared loops with arena context (and not inside shared block), create per-iteration arena
+    char *loop_arena = NULL;
+    char *loop_cleanup = NULL;
     if (needs_loop_arena)
     {
         int arena_label_num = code_gen_new_label(gen);
-        gen->loop_arena_var = arena_sprintf(gen->arena, "__loop_arena_%d__", arena_label_num);
-        gen->loop_cleanup_label = arena_sprintf(gen->arena, "__loop_cleanup_%d__", arena_label_num);
-    }
-    else
-    {
-        gen->loop_arena_var = NULL;
-        gen->loop_cleanup_label = NULL;
+        loop_arena = arena_sprintf(gen->arena, "__loop_arena_%d__", arena_label_num);
+        loop_cleanup = arena_sprintf(gen->arena, "__loop_cleanup_%d__", arena_label_num);
+        push_loop_arena(gen, loop_arena, loop_cleanup);
     }
 
     symbol_table_push_scope(gen->symbol_table);
@@ -605,9 +692,9 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     if (needs_loop_arena)
     {
         indented_fprintf(gen, indent + 2, "RtArena *%s = rt_arena_create(%s);\n",
-                         gen->loop_arena_var, ARENA_VAR(gen));
+                         loop_arena, ARENA_VAR(gen));
         // Switch to using the loop arena for allocations inside the loop body
-        gen->current_arena_var = gen->loop_arena_var;
+        gen->current_arena_var = loop_arena;
     }
 
     code_gen_statement(gen, stmt->body, indent + 2);
@@ -621,8 +708,9 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     // Cleanup label and arena destruction (before increment)
     if (needs_loop_arena)
     {
-        indented_fprintf(gen, indent + 1, "%s:\n", gen->loop_cleanup_label);
-        indented_fprintf(gen, indent + 2, "rt_arena_destroy(%s);\n", gen->loop_arena_var);
+        indented_fprintf(gen, indent + 1, "%s:\n", loop_cleanup);
+        indented_fprintf(gen, indent + 2, "rt_arena_destroy(%s);\n", loop_arena);
+        pop_loop_arena(gen);
     }
 
     // Generate continue label before increment
@@ -643,8 +731,6 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
     symbol_table_pop_scope(gen->symbol_table);
 
     gen->in_shared_context = old_in_shared_context;
-    gen->loop_arena_var = old_loop_arena_var;
-    gen->loop_cleanup_label = old_loop_cleanup_label;
 }
 
 void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
@@ -652,8 +738,6 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     DEBUG_VERBOSE("Entering code_gen_for_each_statement");
 
     bool old_in_shared_context = gen->in_shared_context;
-    char *old_loop_arena_var = gen->loop_arena_var;
-    char *old_loop_cleanup_label = gen->loop_cleanup_label;
 
     bool is_shared = stmt->is_shared;
     // Don't create loop arena if: loop is shared, OR we're inside a shared context
@@ -666,16 +750,14 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     }
 
     // For non-shared loops with arena context (and not inside shared block), create per-iteration arena
+    char *loop_arena = NULL;
+    char *loop_cleanup = NULL;
     if (needs_loop_arena)
     {
         int arena_label_num = code_gen_new_label(gen);
-        gen->loop_arena_var = arena_sprintf(gen->arena, "__loop_arena_%d__", arena_label_num);
-        gen->loop_cleanup_label = arena_sprintf(gen->arena, "__loop_cleanup_%d__", arena_label_num);
-    }
-    else
-    {
-        gen->loop_arena_var = NULL;
-        gen->loop_cleanup_label = NULL;
+        loop_arena = arena_sprintf(gen->arena, "__loop_arena_%d__", arena_label_num);
+        loop_cleanup = arena_sprintf(gen->arena, "__loop_cleanup_%d__", arena_label_num);
+        push_loop_arena(gen, loop_arena, loop_cleanup);
     }
 
     // Generate a unique index variable name
@@ -724,9 +806,9 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     if (needs_loop_arena)
     {
         indented_fprintf(gen, indent + 2, "RtArena *%s = rt_arena_create(%s);\n",
-                         gen->loop_arena_var, ARENA_VAR(gen));
+                         loop_arena, ARENA_VAR(gen));
         // Switch to using the loop arena for allocations inside the loop body
-        gen->current_arena_var = gen->loop_arena_var;
+        gen->current_arena_var = loop_arena;
     }
 
     indented_fprintf(gen, indent + 2, "%s %s = %s[%s];\n", elem_c_type, var_name, arr_var, idx_var);
@@ -743,8 +825,9 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     // Cleanup label and arena destruction
     if (needs_loop_arena)
     {
-        indented_fprintf(gen, indent + 1, "%s:\n", gen->loop_cleanup_label);
-        indented_fprintf(gen, indent + 2, "rt_arena_destroy(%s);\n", gen->loop_arena_var);
+        indented_fprintf(gen, indent + 1, "%s:\n", loop_cleanup);
+        indented_fprintf(gen, indent + 2, "rt_arena_destroy(%s);\n", loop_arena);
+        pop_loop_arena(gen);
     }
 
     indented_fprintf(gen, indent + 1, "}\n");
@@ -752,8 +835,6 @@ void code_gen_for_each_statement(CodeGen *gen, ForEachStmt *stmt, int indent)
     indented_fprintf(gen, indent, "}\n");
 
     gen->in_shared_context = old_in_shared_context;
-    gen->loop_arena_var = old_loop_arena_var;
-    gen->loop_cleanup_label = old_loop_cleanup_label;
 
     symbol_table_pop_scope(gen->symbol_table);
 }
@@ -822,4 +903,309 @@ void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
     case STMT_IMPORT:
         break;
     }
+}
+
+/* Helper to check if type is a primitive (for capture analysis) */
+static bool is_primitive_for_capture(Type *type)
+{
+    if (type == NULL) return false;
+    switch (type->kind) {
+        case TYPE_INT:
+        case TYPE_LONG:
+        case TYPE_DOUBLE:
+        case TYPE_BOOL:
+        case TYPE_BYTE:
+        case TYPE_CHAR:
+            return true;
+        default:
+            return false;
+    }
+}
+
+/* Forward declaration for expression and statement scanning.
+ * lambda_depth tracks how many lambda scopes we're nested in - we only
+ * capture variables when lambda_depth > 0 (i.e., inside a lambda). */
+static void scan_expr_for_captures(CodeGen *gen, Expr *expr, SymbolTable *table, int lambda_depth);
+static void scan_stmt_for_captures(CodeGen *gen, Stmt *stmt, SymbolTable *table, int lambda_depth);
+
+/* Add a variable name to the captured primitives list */
+static void add_captured_primitive(CodeGen *gen, const char *name)
+{
+    /* Check if already in list */
+    for (int i = 0; i < gen->captured_prim_count; i++)
+    {
+        if (strcmp(gen->captured_primitives[i], name) == 0)
+            return;
+    }
+    /* Grow array if needed */
+    if (gen->captured_prim_count >= gen->captured_prim_capacity)
+    {
+        int new_cap = gen->captured_prim_capacity == 0 ? 8 : gen->captured_prim_capacity * 2;
+        char **new_names = arena_alloc(gen->arena, new_cap * sizeof(char *));
+        for (int i = 0; i < gen->captured_prim_count; i++)
+        {
+            new_names[i] = gen->captured_primitives[i];
+        }
+        gen->captured_primitives = new_names;
+        gen->captured_prim_capacity = new_cap;
+    }
+    gen->captured_primitives[gen->captured_prim_count] = arena_strdup(gen->arena, name);
+    gen->captured_prim_count++;
+}
+
+/* Note: scan_lambda_for_captures removed - lambda handling is now done
+ * directly in scan_expr_for_captures with lambda_depth tracking */
+
+/* Scan an expression to find primitive identifiers that are captured by lambdas.
+ * lambda_depth tracks how many lambda scopes we're nested in. We only mark
+ * variables as captured when lambda_depth > 0 (i.e., we're inside a lambda). */
+static void scan_expr_for_captures(CodeGen *gen, Expr *expr, SymbolTable *table, int lambda_depth)
+{
+    if (expr == NULL) return;
+
+    switch (expr->type)
+    {
+    case EXPR_LAMBDA:
+    {
+        /* Found a lambda - look for outer scope primitives it references */
+        LambdaExpr *lambda = &expr->as.lambda;
+
+        /* Create temp scope for lambda params */
+        symbol_table_push_scope(table);
+        for (int i = 0; i < lambda->param_count; i++)
+        {
+            symbol_table_add_symbol(table, lambda->params[i].name, lambda->params[i].type);
+        }
+
+        /* Now scan the lambda body for identifiers that reference outer scope primitives.
+         * Increment lambda_depth so we know we're inside a lambda. */
+        /* Scan single expression body */
+        if (lambda->body)
+        {
+            scan_expr_for_captures(gen, lambda->body, table, lambda_depth + 1);
+        }
+        /* Scan statement body - use full statement scanner to handle all statement types */
+        if (lambda->has_stmt_body)
+        {
+            for (int i = 0; i < lambda->body_stmt_count; i++)
+            {
+                scan_stmt_for_captures(gen, lambda->body_stmts[i], table, lambda_depth + 1);
+            }
+        }
+        symbol_table_pop_scope(table);
+        break;
+    }
+    case EXPR_VARIABLE:
+    {
+        /* Only capture variables when we're inside a lambda (lambda_depth > 0) */
+        if (lambda_depth > 0)
+        {
+            /* Check if this identifier is a primitive in outer scope that would be captured */
+            char name[256];
+            int len = expr->as.variable.name.length < 255 ? expr->as.variable.name.length : 255;
+            strncpy(name, expr->as.variable.name.start, len);
+            name[len] = '\0';
+
+            Token tok = expr->as.variable.name;
+            Symbol *sym = symbol_table_lookup_symbol(table, tok);
+            if (sym && sym->kind == SYMBOL_LOCAL && is_primitive_for_capture(sym->type))
+            {
+                /* This is a local primitive referenced from inside a lambda - it's captured */
+                add_captured_primitive(gen, name);
+            }
+        }
+        break;
+    }
+    case EXPR_BINARY:
+        scan_expr_for_captures(gen, expr->as.binary.left, table, lambda_depth);
+        scan_expr_for_captures(gen, expr->as.binary.right, table, lambda_depth);
+        break;
+    case EXPR_UNARY:
+        scan_expr_for_captures(gen, expr->as.unary.operand, table, lambda_depth);
+        break;
+    case EXPR_ASSIGN:
+        scan_expr_for_captures(gen, expr->as.assign.value, table, lambda_depth);
+        break;
+    case EXPR_CALL:
+        scan_expr_for_captures(gen, expr->as.call.callee, table, lambda_depth);
+        for (int i = 0; i < expr->as.call.arg_count; i++)
+            scan_expr_for_captures(gen, expr->as.call.arguments[i], table, lambda_depth);
+        break;
+    case EXPR_ARRAY:
+        for (int i = 0; i < expr->as.array.element_count; i++)
+            scan_expr_for_captures(gen, expr->as.array.elements[i], table, lambda_depth);
+        break;
+    case EXPR_ARRAY_ACCESS:
+        scan_expr_for_captures(gen, expr->as.array_access.array, table, lambda_depth);
+        scan_expr_for_captures(gen, expr->as.array_access.index, table, lambda_depth);
+        break;
+    case EXPR_INDEX_ASSIGN:
+        scan_expr_for_captures(gen, expr->as.index_assign.array, table, lambda_depth);
+        scan_expr_for_captures(gen, expr->as.index_assign.index, table, lambda_depth);
+        scan_expr_for_captures(gen, expr->as.index_assign.value, table, lambda_depth);
+        break;
+    case EXPR_INCREMENT:
+    case EXPR_DECREMENT:
+        scan_expr_for_captures(gen, expr->as.operand, table, lambda_depth);
+        break;
+    case EXPR_INTERPOLATED:
+        for (int i = 0; i < expr->as.interpol.part_count; i++)
+            scan_expr_for_captures(gen, expr->as.interpol.parts[i], table, lambda_depth);
+        break;
+    case EXPR_MEMBER:
+        scan_expr_for_captures(gen, expr->as.member.object, table, lambda_depth);
+        break;
+    case EXPR_ARRAY_SLICE:
+        scan_expr_for_captures(gen, expr->as.array_slice.array, table, lambda_depth);
+        if (expr->as.array_slice.start) scan_expr_for_captures(gen, expr->as.array_slice.start, table, lambda_depth);
+        if (expr->as.array_slice.end) scan_expr_for_captures(gen, expr->as.array_slice.end, table, lambda_depth);
+        if (expr->as.array_slice.step) scan_expr_for_captures(gen, expr->as.array_slice.step, table, lambda_depth);
+        break;
+    case EXPR_RANGE:
+        scan_expr_for_captures(gen, expr->as.range.start, table, lambda_depth);
+        scan_expr_for_captures(gen, expr->as.range.end, table, lambda_depth);
+        break;
+    case EXPR_SPREAD:
+        scan_expr_for_captures(gen, expr->as.spread.array, table, lambda_depth);
+        break;
+    case EXPR_STATIC_CALL:
+        for (int i = 0; i < expr->as.static_call.arg_count; i++)
+            scan_expr_for_captures(gen, expr->as.static_call.arguments[i], table, lambda_depth);
+        break;
+    default:
+        break;
+    }
+}
+
+/* Scan a statement for lambda expressions and their captures.
+ * lambda_depth tracks how many lambda scopes we're nested in. */
+static void scan_stmt_for_captures(CodeGen *gen, Stmt *stmt, SymbolTable *table, int lambda_depth)
+{
+    if (stmt == NULL) return;
+
+    switch (stmt->type)
+    {
+    case STMT_VAR_DECL:
+        /* First add this variable to scope so nested lambdas can see it */
+        symbol_table_add_symbol_full(table, stmt->as.var_decl.name, stmt->as.var_decl.type,
+                                     SYMBOL_LOCAL, stmt->as.var_decl.mem_qualifier);
+        /* Then scan the initializer for lambda captures */
+        if (stmt->as.var_decl.initializer)
+            scan_expr_for_captures(gen, stmt->as.var_decl.initializer, table, lambda_depth);
+        break;
+    case STMT_EXPR:
+        scan_expr_for_captures(gen, stmt->as.expression.expression, table, lambda_depth);
+        break;
+    case STMT_RETURN:
+        if (stmt->as.return_stmt.value)
+            scan_expr_for_captures(gen, stmt->as.return_stmt.value, table, lambda_depth);
+        break;
+    case STMT_BLOCK:
+        symbol_table_push_scope(table);
+        for (int i = 0; i < stmt->as.block.count; i++)
+            scan_stmt_for_captures(gen, stmt->as.block.statements[i], table, lambda_depth);
+        symbol_table_pop_scope(table);
+        break;
+    case STMT_IF:
+        scan_expr_for_captures(gen, stmt->as.if_stmt.condition, table, lambda_depth);
+        scan_stmt_for_captures(gen, stmt->as.if_stmt.then_branch, table, lambda_depth);
+        if (stmt->as.if_stmt.else_branch)
+            scan_stmt_for_captures(gen, stmt->as.if_stmt.else_branch, table, lambda_depth);
+        break;
+    case STMT_WHILE:
+        scan_expr_for_captures(gen, stmt->as.while_stmt.condition, table, lambda_depth);
+        scan_stmt_for_captures(gen, stmt->as.while_stmt.body, table, lambda_depth);
+        break;
+    case STMT_FOR:
+        symbol_table_push_scope(table);
+        if (stmt->as.for_stmt.initializer)
+            scan_stmt_for_captures(gen, stmt->as.for_stmt.initializer, table, lambda_depth);
+        if (stmt->as.for_stmt.condition)
+            scan_expr_for_captures(gen, stmt->as.for_stmt.condition, table, lambda_depth);
+        if (stmt->as.for_stmt.increment)
+            scan_expr_for_captures(gen, stmt->as.for_stmt.increment, table, lambda_depth);
+        scan_stmt_for_captures(gen, stmt->as.for_stmt.body, table, lambda_depth);
+        symbol_table_pop_scope(table);
+        break;
+    case STMT_FOR_EACH:
+        symbol_table_push_scope(table);
+        /* Add loop variable - get element type from iterable's expr_type */
+        scan_expr_for_captures(gen, stmt->as.for_each_stmt.iterable, table, lambda_depth);
+        if (stmt->as.for_each_stmt.iterable->expr_type &&
+            stmt->as.for_each_stmt.iterable->expr_type->kind == TYPE_ARRAY)
+        {
+            Type *elem_type = stmt->as.for_each_stmt.iterable->expr_type->as.array.element_type;
+            symbol_table_add_symbol(table, stmt->as.for_each_stmt.var_name, elem_type);
+        }
+        scan_stmt_for_captures(gen, stmt->as.for_each_stmt.body, table, lambda_depth);
+        symbol_table_pop_scope(table);
+        break;
+    default:
+        break;
+    }
+}
+
+/* Pre-pass to scan a function body for primitives captured by closures */
+void code_gen_scan_captured_primitives(CodeGen *gen, Stmt **stmts, int stmt_count)
+{
+    /* Clear any existing captured primitives */
+    code_gen_clear_captured_primitives(gen);
+
+    /* Create a temporary symbol table scope for scanning */
+    symbol_table_push_scope(gen->symbol_table);
+
+    /* Start with lambda_depth = 0 (not inside any lambda) */
+    for (int i = 0; i < stmt_count; i++)
+    {
+        scan_stmt_for_captures(gen, stmts[i], gen->symbol_table, 0);
+    }
+
+    symbol_table_pop_scope(gen->symbol_table);
+}
+
+/* Check if a variable name is a captured primitive */
+bool code_gen_is_captured_primitive(CodeGen *gen, const char *name)
+{
+    for (int i = 0; i < gen->captured_prim_count; i++)
+    {
+        if (strcmp(gen->captured_primitives[i], name) == 0)
+            return true;
+    }
+    return false;
+}
+
+/* Clear the captured primitives list */
+void code_gen_clear_captured_primitives(CodeGen *gen)
+{
+    gen->captured_prim_count = 0;
+}
+
+/* Push arena name onto the private block arena stack */
+void push_arena_to_stack(CodeGen *gen, const char *arena_name)
+{
+    /* Grow stack if needed */
+    if (gen->arena_stack_depth >= gen->arena_stack_capacity)
+    {
+        int new_cap = gen->arena_stack_capacity == 0 ? 4 : gen->arena_stack_capacity * 2;
+        char **new_stack = arena_alloc(gen->arena, new_cap * sizeof(char *));
+        for (int i = 0; i < gen->arena_stack_depth; i++)
+        {
+            new_stack[i] = gen->arena_stack[i];
+        }
+        gen->arena_stack = new_stack;
+        gen->arena_stack_capacity = new_cap;
+    }
+    gen->arena_stack[gen->arena_stack_depth] = arena_strdup(gen->arena, arena_name);
+    gen->arena_stack_depth++;
+}
+
+/* Pop arena name from the private block arena stack */
+const char *pop_arena_from_stack(CodeGen *gen)
+{
+    if (gen->arena_stack_depth <= 0)
+    {
+        return NULL;
+    }
+    gen->arena_stack_depth--;
+    return gen->arena_stack[gen->arena_stack_depth];
 }

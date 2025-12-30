@@ -56,6 +56,26 @@ static void captured_vars_add(CapturedVars *cv, Arena *arena, const char *name, 
     cv->count++;
 }
 
+/* Check if a type is a primitive that needs pointer indirection for capture-by-reference.
+ * Primitives (int, long, double, bool, byte, char) need to be captured by pointer
+ * so that mutations inside the lambda persist to the original variable.
+ * Reference types (arrays, strings, files) are already pointers and don't need indirection. */
+static bool is_primitive_type(Type *type)
+{
+    if (type == NULL) return false;
+    switch (type->kind) {
+        case TYPE_INT:
+        case TYPE_LONG:
+        case TYPE_DOUBLE:
+        case TYPE_BOOL:
+        case TYPE_BYTE:
+        case TYPE_CHAR:
+            return true;
+        default:
+            return false;
+    }
+}
+
 /* Helper structure for local variable tracking in lambda bodies */
 typedef struct {
     char **names;
@@ -632,6 +652,18 @@ char *code_gen_variable_expression(CodeGen *gen, VariableExpr *expr)
     DEBUG_VERBOSE("Entering code_gen_variable_expression");
     char *var_name = get_var_name(gen->arena, expr->name);
 
+    // Check if we're inside a lambda and this is a lambda parameter.
+    // Lambda parameters shadow outer variables, so don't look up in symbol table.
+    if (gen->enclosing_lambda_count > 0)
+    {
+        LambdaExpr *innermost = gen->enclosing_lambdas[gen->enclosing_lambda_count - 1];
+        if (is_lambda_param(innermost, var_name))
+        {
+            // It's a parameter of the innermost lambda - use directly, no dereference
+            return var_name;
+        }
+    }
+
     // Check if variable is 'as ref' - if so, dereference it
     Symbol *symbol = symbol_table_lookup_symbol(gen->symbol_table, expr->name);
     if (symbol && symbol->mem_qual == MEM_AS_REF)
@@ -927,11 +959,22 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BYTE:
                         push_func = "rt_array_push_byte";
                         break;
+                    case TYPE_FUNCTION:
+                    case TYPE_ARRAY:
+                        push_func = "rt_array_push_ptr";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for push\n");
                         exit(1);
                 }
                 // push returns new array pointer, assign back to variable if object is a variable
+                // For pointer types (function/array), we need to cast to void**
+                if (element_type->kind == TYPE_FUNCTION || element_type->kind == TYPE_ARRAY) {
+                    if (member->object->type == EXPR_VARIABLE) {
+                        return arena_sprintf(gen->arena, "(%s = (void *)%s(%s, (void **)%s, (void *)%s))", object_str, push_func, ARENA_VAR(gen), object_str, arg_str);
+                    }
+                    return arena_sprintf(gen->arena, "(void *)%s(%s, (void **)%s, (void *)%s)", push_func, ARENA_VAR(gen), object_str, arg_str);
+                }
                 if (member->object->type == EXPR_VARIABLE) {
                     return arena_sprintf(gen->arena, "(%s = %s(%s, %s, %s))", object_str, push_func, ARENA_VAR(gen), object_str, arg_str);
                 }
@@ -966,9 +1009,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BYTE:
                         pop_func = "rt_array_pop_byte";
                         break;
+                    case TYPE_FUNCTION:
+                    case TYPE_ARRAY:
+                        pop_func = "rt_array_pop_ptr";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for pop\n");
                         exit(1);
+                }
+                // For pointer types (function/array), we need to cast the result
+                if (element_type->kind == TYPE_FUNCTION || element_type->kind == TYPE_ARRAY) {
+                    const char *elem_type_str = get_c_type(gen->arena, element_type);
+                    return arena_sprintf(gen->arena, "(%s)%s((void **)%s)", elem_type_str, pop_func, object_str);
                 }
                 return arena_sprintf(gen->arena, "%s(%s)", pop_func, object_str);
             }
@@ -997,11 +1049,20 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BYTE:
                         concat_func = "rt_array_concat_byte";
                         break;
+                    case TYPE_FUNCTION:
+                    case TYPE_ARRAY:
+                        concat_func = "rt_array_concat_ptr";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for concat\n");
                         exit(1);
                 }
                 // concat returns a new array, doesn't modify the original
+                // For pointer types (function/array), we need to cast
+                if (element_type->kind == TYPE_FUNCTION || element_type->kind == TYPE_ARRAY) {
+                    const char *elem_type_str = get_c_type(gen->arena, element_type);
+                    return arena_sprintf(gen->arena, "(%s *)%s(%s, (void **)%s, (void **)%s)", elem_type_str, concat_func, ARENA_VAR(gen), object_str, arg_str);
+                }
                 return arena_sprintf(gen->arena, "%s(%s, %s, %s)", concat_func, ARENA_VAR(gen), object_str, arg_str);
             }
 
@@ -1711,6 +1772,11 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
         }
     }
+    /* Also handle array access where element is a function type (e.g., callbacks[0]()) */
+    else if (callee_type && callee_type->kind == TYPE_FUNCTION && call->callee->type == EXPR_ARRAY_ACCESS)
+    {
+        is_closure_call = true;
+    }
 
     if (is_closure_call)
     {
@@ -1887,7 +1953,10 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
     }
 
-    // Check if the callee is a shared function - if so, we need to pass the arena
+    // Check if the callee is a shared function - if so, we need to pass the arena.
+    // Functions returning heap-allocated types (TYPE_STRING, TYPE_ARRAY, TYPE_FUNCTION)
+    // are implicitly shared (set in type_checker_stmt.c:163-170) to match the code
+    // generator's logic in code_gen_stmt.c:301-307.
     bool callee_is_shared = false;
     if (call->callee->type == EXPR_VARIABLE)
     {
@@ -2072,6 +2141,11 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
         // For empty arrays with unknown element type (TYPE_NIL), return NULL.
         // The runtime handles NULL as an empty array.
         if (arr->element_count == 0 && elem_type->kind == TYPE_NIL) {
+            return arena_strdup(gen->arena, "NULL");
+        }
+        // For empty arrays of function or nested array types, return NULL.
+        // The runtime push functions handle NULL as an empty array.
+        if (arr->element_count == 0 && (elem_type->kind == TYPE_FUNCTION || elem_type->kind == TYPE_ARRAY)) {
             return arena_strdup(gen->arena, "NULL");
         }
         // For unsupported element types (like nested arrays), fall back to
@@ -2397,11 +2471,20 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         for (int i = 0; i < cv.count; i++)
         {
             const char *c_type = get_c_type(gen->arena, cv.types[i]);
-            /* Store values directly in closure, not pointers to values.
-             * This follows MEMORY.md: primitives have value semantics.
+            /* For primitives, store pointers to enable mutation persistence.
+             * When a lambda modifies a captured primitive, the change must
+             * persist to the original variable and across multiple calls.
              * Reference types (arrays, strings) are already pointers. */
-            struct_def = arena_sprintf(gen->arena, "%s    %s %s;\n",
-                                       struct_def, c_type, cv.names[i]);
+            if (is_primitive_type(cv.types[i]))
+            {
+                struct_def = arena_sprintf(gen->arena, "%s    %s *%s;\n",
+                                           struct_def, c_type, cv.names[i]);
+            }
+            else
+            {
+                struct_def = arena_sprintf(gen->arena, "%s    %s %s;\n",
+                                           struct_def, c_type, cv.names[i]);
+            }
         }
         struct_def = arena_sprintf(gen->arena, "%s} __closure_%d__;\n",
                                    struct_def, lambda_id);
@@ -2410,16 +2493,33 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
                                                   gen->lambda_forward_decls, struct_def);
 
-        /* Generate local variable declarations for captured vars in lambda body */
+        /* Generate local variable declarations for captured vars in lambda body.
+         * For primitives, we create a pointer alias that points to the closure's
+         * stored pointer. This way, reads/writes use the pointer and mutations
+         * persist both to the original variable and across lambda calls.
+         * For reference types, we just copy the pointer value. */
         char *capture_decls = arena_strdup(gen->arena, "");
         for (int i = 0; i < cv.count; i++)
         {
             const char *c_type = get_c_type(gen->arena, cv.types[i]);
-            /* Access value directly from closure - no dereference needed since
-             * we store values (not pointers to values) in the closure struct. */
-            capture_decls = arena_sprintf(gen->arena,
-                "%s    %s %s = ((__closure_%d__ *)__closure__)->%s;\n",
-                capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
+            if (is_primitive_type(cv.types[i]))
+            {
+                /* For primitives, the closure stores a pointer (long*). We declare a local
+                 * pointer variable that references the closure's stored pointer, so access
+                 * like (*count) works naturally. We use a local variable instead of #define
+                 * to avoid macro replacement issues when this lambda creates nested closures
+                 * (where __cl__->name would have 'name' replaced by the macro). */
+                capture_decls = arena_sprintf(gen->arena,
+                    "%s    %s *%s = ((__closure_%d__ *)__closure__)->%s;\n",
+                    capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
+            }
+            else
+            {
+                /* Reference types: copy the pointer value */
+                capture_decls = arena_sprintf(gen->arena,
+                    "%s    %s %s = ((__closure_%d__ *)__closure__)->%s;\n",
+                    capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
+            }
         }
 
         /* Generate the static lambda function body - use lambda's arena */
@@ -2569,11 +2669,22 @@ static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         for (int i = 0; i < cv.count; i++)
         {
-            /* Copy value directly, not address. For primitives this copies
-             * the value; for reference types (arrays, strings) this copies
-             * the pointer. Both are safe when the lambda escapes. */
-            closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
-                                         closure_init, cv.names[i], cv.names[i]);
+            /* For primitives: the outer variable is now declared as a pointer
+             * (via the pre-pass that marks captured primitives for heap allocation).
+             * We simply store that pointer in the closure - both outer scope and
+             * closure now share the same arena-allocated storage.
+             * For reference types (arrays, strings), just copy the pointer value. */
+            if (is_primitive_type(cv.types[i]))
+            {
+                /* The variable is already a pointer - just copy it to the closure */
+                closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
+                                             closure_init, cv.names[i], cv.names[i]);
+            }
+            else
+            {
+                closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
+                                             closure_init, cv.names[i], cv.names[i]);
+            }
         }
         closure_init = arena_sprintf(gen->arena,
             "%s    (__Closure__ *)__cl__;\n"

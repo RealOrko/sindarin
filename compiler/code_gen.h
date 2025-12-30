@@ -34,6 +34,17 @@ typedef struct {
     char *loop_arena_var;       // Name of current loop's per-iteration arena (NULL if shared loop)
     char *loop_cleanup_label;   // Label for loop cleanup (used by break/continue)
 
+    /* Loop arena stack for nested loops - tracks active loop arenas for proper cleanup */
+    char **loop_arena_stack;    // Stack of loop arena variable names
+    char **loop_cleanup_stack;  // Stack of loop cleanup label names
+    int loop_arena_depth;       // Current loop nesting depth (0 = not in loop)
+    int loop_arena_capacity;    // Capacity of loop arena stacks
+
+    /* Private block arena stack - tracks arena names for nested private blocks */
+    char **arena_stack;         // Stack of arena variable names for private blocks
+    int arena_stack_depth;      // Current depth of private block nesting
+    int arena_stack_capacity;   // Capacity of arena stack
+
     /* Lambda support */
     int lambda_count;           // Counter for unique lambda IDs
     char *lambda_forward_decls; // Buffer for lambda forward declarations
@@ -54,6 +65,15 @@ typedef struct {
     /* Tail call optimization state */
     bool in_tail_call_function;     // Are we generating a tail-call-optimized function?
     FunctionStmt *tail_call_fn;     // The function being optimized (for param access)
+
+    /* Captured variable tracking for closure mutation persistence.
+     * Primitive variables that are captured by closures need special handling:
+     * they must be heap-allocated so mutations persist across closure calls
+     * and are visible to the outer scope. */
+    char **captured_primitives;     // Names of captured primitive variables
+    long **captured_prim_ptrs;      // Pointers to arena-allocated storage (for redirection)
+    int captured_prim_count;
+    int captured_prim_capacity;
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);
