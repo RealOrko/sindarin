@@ -1,7 +1,7 @@
 # Sn Compiler - Root Makefile
 # Consolidates all build and test operations
 
-.PHONY: all build clean run test test-unit test-integration test-explore assembly measure-optimization help
+.PHONY: all build clean run test test-unit test-integration test-explore assembly measure-optimization benchmark help
 
 # Default optimization level for GCC when compiling generated C
 OPT_LEVEL ?= -O2
@@ -202,6 +202,15 @@ measure-optimization:
 	rm -rf $(MEASURE_TEMP)
 
 #------------------------------------------------------------------------------
+# benchmark - Run multi-language benchmark suite
+#------------------------------------------------------------------------------
+BENCHMARK_DIR := benchmark
+
+benchmark:
+	@echo "Running Sindarin benchmark suite..."
+	@cd $(BENCHMARK_DIR) && ./run_all.sh
+
+#------------------------------------------------------------------------------
 # help - Show available targets
 #------------------------------------------------------------------------------
 help:
@@ -217,6 +226,7 @@ help:
 	@echo "  make test-explore Run exploratory tests only"
 	@echo "  make assembly     Assemble and link assembly files"
 	@echo "  make measure-optimization  Measure optimization impact"
+	@echo "  make benchmark    Run multi-language benchmark suite"
 	@echo ""
 	@echo "Options:"
 	@echo "  OPT_LEVEL=-O0     Set GCC optimization level (default: -O2)"
