@@ -770,6 +770,15 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         DEBUG_VERBOSE("Returning function type for string substring method");
         return ast_create_function_type(table->arena, string_type, param_types, 2);
     }
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "regionEquals") == 0)
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[3] = {int_type, int_type, string_type};
+        DEBUG_VERBOSE("Returning function type for string regionEquals method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 3);
+    }
     else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "indexOf") == 0)
     {
         Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);

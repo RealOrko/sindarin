@@ -17,12 +17,11 @@ fn main(): void =>
     print($"String length: {length}\n")
 
     // Count occurrences of 'llo'
-    // Since we know the structure (repeated "Hello"), count efficiently
+    // Use regionEquals for non-allocating comparison (no substring allocation)
     var occurrences: int = 0
     var pos: int = 2
     shared while pos + 3 <= length =>
-        var sub: str = result.substring(pos, pos + 3)
-        if sub == "llo" =>
+        if result.regionEquals(pos, pos + 3, "llo") =>
             occurrences = occurrences + 1
         pos = pos + 5
 

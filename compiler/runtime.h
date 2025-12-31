@@ -299,6 +299,37 @@ static inline size_t rt_array_length(void *arr) {
     return ((RtArrayMetadata *)arr)[-1].size;
 }
 
+/* Check if string is mutable - inlined for fast path in append loops */
+static inline int rt_string_is_mutable(RtArena *arena, char *str) {
+    if (str == NULL) return 0;
+    RtStringMeta *meta = RT_STR_META(str);
+    return (meta->arena == arena &&
+            meta->capacity > 0 &&
+            meta->capacity < (1UL << 30) &&
+            meta->length <= meta->capacity);
+}
+
+/* Fast inline ensure_mutable - avoids function call when already mutable */
+static inline char *rt_string_ensure_mutable_inline(RtArena *arena, char *str) {
+    if (str != NULL && rt_string_is_mutable(arena, str)) {
+        return str;  /* Already mutable, fast path */
+    }
+    return rt_string_ensure_mutable(arena, str);  /* Slow path */
+}
+
+/* Compare a region of a string with a pattern without allocating.
+ * Returns 1 if str[start:end] equals pattern, 0 otherwise. */
+static inline int rt_str_region_equals(const char *str, long start, long end, const char *pattern) {
+    if (str == NULL || pattern == NULL) return 0;
+    long pat_len = 0;
+    while (pattern[pat_len]) pat_len++;
+    if (end - start != pat_len) return 0;
+    for (long i = 0; i < pat_len; i++) {
+        if (str[start + i] != pattern[i]) return 0;
+    }
+    return 1;
+}
+
 /* Array operations - allocate from arena */
 long *rt_array_push_long(RtArena *arena, long *arr, long element);
 double *rt_array_push_double(RtArena *arena, double *arr, double element);

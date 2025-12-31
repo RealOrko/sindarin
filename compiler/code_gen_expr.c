@@ -1396,6 +1396,20 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 STRING_METHOD_RETURNING_STRING(method_call);
             }
 
+            // Handle regionEquals(start, end, pattern) - non-allocating comparison, returns bool
+            if (strcmp(member_name_str, "regionEquals") == 0 && call->arg_count == 3) {
+                char *start_str = code_gen_expression(gen, call->arguments[0]);
+                char *end_str = code_gen_expression(gen, call->arguments[1]);
+                char *pattern_str = code_gen_expression(gen, call->arguments[2]);
+                if (object_is_temp) {
+                    return arena_sprintf(gen->arena,
+                        "({ char *_obj_tmp = %s; int _res = rt_str_region_equals(_obj_tmp, %s, %s, %s); _res; })",
+                        object_str, start_str, end_str, pattern_str);
+                }
+                return arena_sprintf(gen->arena, "rt_str_region_equals(%s, %s, %s, %s)",
+                    object_str, start_str, end_str, pattern_str);
+            }
+
             // Handle indexOf(search) - returns int, no string cleanup needed for result
             if (strcmp(member_name_str, "indexOf") == 0 && call->arg_count == 1) {
                 char *arg_str = code_gen_expression(gen, call->arguments[0]);
@@ -1593,17 +1607,17 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 }
 
                 // First ensure the string is mutable, then append.
-                // rt_string_ensure_mutable converts immutable strings to mutable.
+                // rt_string_ensure_mutable_inline uses fast inlined check when already mutable.
                 // rt_string_append returns potentially new pointer, assign back if variable.
                 // IMPORTANT: Use the function's main arena (__arena_1__), not the loop arena,
                 // because strings need to outlive the loop iteration.
                 if (member->object->type == EXPR_VARIABLE) {
                     return arena_sprintf(gen->arena,
-                        "(%s = rt_string_append(rt_string_ensure_mutable(__arena_1__, %s), %s))",
+                        "(%s = rt_string_append(rt_string_ensure_mutable_inline(__arena_1__, %s), %s))",
                         object_str, object_str, arg_str);
                 }
                 return arena_sprintf(gen->arena,
-                    "rt_string_append(rt_string_ensure_mutable(__arena_1__, %s), %s)",
+                    "rt_string_append(rt_string_ensure_mutable_inline(__arena_1__, %s), %s)",
                     object_str, arg_str);
             }
 
