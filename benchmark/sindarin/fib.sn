@@ -16,7 +16,7 @@ fn fib_iterative(n: int): int =>
         return n
     var a: int = 0
     var b: int = 1
-    for var i: int = 2; i <= n; i++ =>
+    shared for var i: int = 2; i <= n; i++ =>
         var temp: int = a + b
         a = b
         b = temp
