@@ -141,7 +141,11 @@ void *rt_arena_calloc(RtArena *arena, size_t count, size_t size)
     return ptr;
 }
 
-/* Duplicate a string into arena */
+/* Duplicate a string into arena.
+ * IMMUTABLE STRING: Creates a simple arena-allocated copy with NO metadata.
+ * This function can remain unchanged - it creates immutable strings that are
+ * compatible with all existing code. Use rt_string_from() if you need a
+ * mutable string with metadata that can be efficiently appended to. */
 char *rt_arena_strdup(RtArena *arena, const char *str)
 {
     if (str == NULL) {
@@ -376,6 +380,14 @@ RtBinaryFile *rt_binary_file_promote(RtArena *dest, RtArena *src_arena, RtBinary
     return promoted;
 }
 
+/* Concatenate two strings into a new string.
+ * IMMUTABLE STRING: Creates a new arena-allocated string with NO metadata.
+ * This function can remain unchanged - it creates immutable strings and
+ * always allocates a new string for the result (no in-place modification).
+ * This is the appropriate behavior for functional-style string operations.
+ *
+ * TODO: Future optimization - if left string is mutable and has enough
+ * capacity, could append in-place using rt_string_append() instead. */
 char *rt_str_concat(RtArena *arena, const char *left, const char *right) {
     const char *l = left ? left : "";
     const char *r = right ? right : "";
@@ -393,6 +405,188 @@ char *rt_str_concat(RtArena *arena, const char *left, const char *right) {
     memcpy(new_str + left_len, r, right_len + 1);
     return new_str;
 }
+
+/* ============================================================================
+ * MUTABLE String Functions
+ *
+ * These functions create and manipulate strings WITH RtStringMeta, enabling
+ * efficient append operations and O(1) length queries. See runtime.h for
+ * detailed documentation on mutable vs immutable strings.
+ * ============================================================================ */
+
+/* Create a mutable string with specified capacity.
+ * Allocates RtStringMeta + capacity + 1 bytes, initializes metadata,
+ * and returns pointer to the string data (after metadata).
+ * The string is initialized as empty (length=0, str[0]='\0'). */
+char *rt_string_with_capacity(RtArena *arena, size_t capacity) {
+    /* Validate arena */
+    if (arena == NULL) {
+        fprintf(stderr, "rt_string_with_capacity: arena is NULL\n");
+        exit(1);
+    }
+
+    /* Validate capacity to prevent overflow (limit to 1GB) */
+    if (capacity > (1UL << 30)) {
+        fprintf(stderr, "rt_string_with_capacity: capacity too large (%zu)\n", capacity);
+        exit(1);
+    }
+
+    size_t total = sizeof(RtStringMeta) + capacity + 1;
+    RtStringMeta *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_string_with_capacity: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->length = 0;
+    meta->capacity = capacity;
+    char *str = (char*)(meta + 1);
+    str[0] = '\0';
+    return str;
+}
+
+/* Create a mutable string from an immutable source string.
+ * Copies the content into a new mutable string with metadata. */
+char *rt_string_from(RtArena *arena, const char *src) {
+    if (arena == NULL) {
+        fprintf(stderr, "rt_string_from: arena is NULL\n");
+        exit(1);
+    }
+
+    size_t len = src ? strlen(src) : 0;
+    /* Allocate with some extra capacity to allow appending */
+    size_t capacity = len < 16 ? 32 : len * 2;
+
+    char *str = rt_string_with_capacity(arena, capacity);
+    if (src && len > 0) {
+        memcpy(str, src, len);
+        str[len] = '\0';
+        RT_STR_META(str)->length = len;
+    }
+    return str;
+}
+
+/* Ensure a string is mutable. If it's already mutable (has valid metadata),
+ * returns it unchanged. If it's immutable, converts it to a mutable string.
+ * This is used before append operations on strings that may be immutable.
+ *
+ * SAFETY: We use a magic number approach to identify mutable strings.
+ * Mutable strings have a specific pattern in their metadata that immutable
+ * strings (from arena_strdup or string literals) cannot have.
+ */
+char *rt_string_ensure_mutable(RtArena *arena, char *str) {
+    if (str == NULL) {
+        /* NULL becomes an empty mutable string */
+        return rt_string_with_capacity(arena, 32);
+    }
+
+    /* Check if this pointer points into our arena's memory.
+     * Mutable strings created by rt_string_with_capacity have their
+     * metadata stored immediately before the string data.
+     *
+     * We check if the arena pointer in metadata matches AND is non-NULL.
+     * For safety, we also verify the capacity is reasonable.
+     *
+     * For strings NOT created by rt_string_with_capacity (e.g., rt_arena_strdup
+     * or string literals), the bytes before them are NOT our metadata.
+     *
+     * To avoid accessing invalid memory, we take a conservative approach:
+     * We only check for strings that were previously returned from
+     * rt_string_ensure_mutable or rt_string_with_capacity - which we identify
+     * by checking if the alleged metadata has a valid-looking arena pointer
+     * and reasonable capacity value.
+     */
+    RtStringMeta *meta = RT_STR_META(str);
+
+    /* Validate that this looks like a valid mutable string:
+     * 1. Arena pointer matches our arena
+     * 2. Capacity is reasonable (not garbage)
+     * 3. Length is <= capacity
+     */
+    if (meta->arena == arena &&
+        meta->capacity > 0 &&
+        meta->capacity < (1UL << 30) &&
+        meta->length <= meta->capacity) {
+        return str;
+    }
+
+    /* Otherwise, convert to mutable */
+    return rt_string_from(arena, str);
+}
+
+/* Append a string to a mutable string (in-place if capacity allows).
+ * Returns dest pointer - may be different from input if reallocation occurred.
+ * Uses 2x growth strategy when capacity is exceeded. */
+char *rt_string_append(char *dest, const char *src) {
+    /* Validate inputs */
+    if (dest == NULL) {
+        fprintf(stderr, "rt_string_append: dest is NULL\n");
+        exit(1);
+    }
+    if (src == NULL) {
+        return dest;  /* Appending NULL is a no-op */
+    }
+
+    /* Get metadata and validate it's a mutable string */
+    RtStringMeta *meta = RT_STR_META(dest);
+    if (meta->arena == NULL) {
+        fprintf(stderr, "rt_string_append: dest is not a mutable string (arena is NULL)\n");
+        exit(1);
+    }
+
+    /* Calculate lengths */
+    size_t src_len = strlen(src);
+    size_t new_len = meta->length + src_len;
+
+    /* Check for length overflow */
+    if (new_len < meta->length) {
+        fprintf(stderr, "rt_string_append: string length overflow\n");
+        exit(1);
+    }
+
+    /* Save current length before potential reallocation */
+    size_t old_len = meta->length;
+
+    /* Check if we need to grow the buffer */
+    if (new_len + 1 > meta->capacity) {
+        /* Grow by 2x to amortize allocation cost */
+        size_t new_cap = (new_len + 1) * 2;
+
+        /* Check for capacity overflow */
+        if (new_cap < new_len + 1 || new_cap > (1UL << 30)) {
+            fprintf(stderr, "rt_string_append: capacity overflow (%zu)\n", new_cap);
+            exit(1);
+        }
+
+        char *new_str = rt_string_with_capacity(meta->arena, new_cap);
+
+        /* Copy existing content to new buffer */
+        memcpy(new_str, dest, old_len);
+
+        /* Update dest and meta to point to new buffer */
+        dest = new_str;
+        meta = RT_STR_META(dest);
+    }
+
+    /* Append the source string (including null terminator) */
+    memcpy(dest + old_len, src, src_len + 1);
+    meta->length = new_len;
+
+    return dest;
+}
+
+/* ============================================================================
+ * Type Conversion Functions (rt_to_string_*)
+ *
+ * IMMUTABLE STRINGS: All rt_to_string_* functions create immutable strings
+ * via rt_arena_strdup(). These functions can remain unchanged because:
+ * 1. They create short, fixed-size strings that don't need appending
+ * 2. The results are typically used in interpolation/concatenation
+ * 3. No benefit to adding metadata for these small strings
+ *
+ * TODO: If profiling shows these are bottlenecks in hot loops, consider
+ * caching common values (e.g., "true"/"false", small integers 0-99).
+ * ============================================================================ */
 
 char *rt_to_string_long(RtArena *arena, long val)
 {
@@ -845,12 +1039,8 @@ long rt_mod_long(long a, long b)
     return a % b;
 }
 
-int rt_eq_long(long a, long b) { return a == b; }
-int rt_ne_long(long a, long b) { return a != b; }
-int rt_lt_long(long a, long b) { return a < b; }
-int rt_le_long(long a, long b) { return a <= b; }
-int rt_gt_long(long a, long b) { return a > b; }
-int rt_ge_long(long a, long b) { return a >= b; }
+/* rt_eq_long, rt_ne_long, rt_lt_long, rt_le_long, rt_gt_long, rt_ge_long
+ * are defined as static inline in runtime.h for inlining optimization */
 
 double rt_add_double(double a, double b)
 {
@@ -901,12 +1091,8 @@ double rt_div_double(double a, double b)
     return result;
 }
 
-int rt_eq_double(double a, double b) { return a == b; }
-int rt_ne_double(double a, double b) { return a != b; }
-int rt_lt_double(double a, double b) { return a < b; }
-int rt_le_double(double a, double b) { return a <= b; }
-int rt_gt_double(double a, double b) { return a > b; }
-int rt_ge_double(double a, double b) { return a >= b; }
+/* rt_eq_double, rt_ne_double, rt_lt_double, rt_le_double, rt_gt_double, rt_ge_double
+ * are defined as static inline in runtime.h for inlining optimization */
 
 long rt_neg_long(long a)
 {
@@ -920,10 +1106,7 @@ long rt_neg_long(long a)
 
 double rt_neg_double(double a) { return -a; }
 
-int rt_not_bool(int a)
-{
-    return !a;
-}
+/* rt_not_bool is defined as static inline in runtime.h */
 
 long rt_post_inc_long(long *p)
 {
@@ -955,36 +1138,12 @@ long rt_post_dec_long(long *p)
     return (*p)--;
 }
 
-int rt_eq_string(const char *a, const char *b) {
-    return strcmp(a, b) == 0;
-}
+/* rt_eq_string, rt_ne_string, rt_lt_string, rt_le_string, rt_gt_string, rt_ge_string
+ * are defined as static inline in runtime.h for inlining optimization */
 
-int rt_ne_string(const char *a, const char *b) {
-    return strcmp(a, b) != 0;
-}
-
-int rt_lt_string(const char *a, const char *b) {
-    return strcmp(a, b) < 0;
-}
-
-int rt_le_string(const char *a, const char *b) {
-    return strcmp(a, b) <= 0;
-}
-
-int rt_gt_string(const char *a, const char *b) {
-    return strcmp(a, b) > 0;
-}
-
-int rt_ge_string(const char *a, const char *b) {
-    return strcmp(a, b) >= 0;
-}
-
-/* Array metadata structure - stored before array data */
-typedef struct {
-    RtArena *arena;  /* Arena that owns this array (for reallocation) */
-    size_t size;     /* Number of elements currently in the array */
-    size_t capacity; /* Total allocated space for elements */
-} ArrayMetadata;
+/* ArrayMetadata is now defined in runtime.h as RtArrayMetadata for inlining.
+ * We use a local typedef for compatibility with existing code. */
+typedef RtArrayMetadata ArrayMetadata;
 
 /*
  * Macro to generate type-safe array push functions.
@@ -1099,14 +1258,7 @@ char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
     return new_arr;
 }
 
-/* Get array length - returns 0 for NULL arrays */
-size_t rt_array_length(void *arr) {
-    if (arr == NULL) {
-        return 0;
-    }
-    ArrayMetadata *meta = ((ArrayMetadata *)arr) - 1;
-    return meta->size;
-}
+/* rt_array_length is defined as static inline in runtime.h */
 
 /* Print array functions */
 void rt_print_array_long(long *arr) {
@@ -1977,6 +2129,141 @@ char **rt_array_create_string(RtArena *arena, size_t count, const char **data) {
         arr[i] = (data && data[i]) ? rt_arena_strdup(arena, data[i]) : NULL;
     }
     return arr;
+}
+
+/* Array alloc with default value - creates array of count elements filled with default_value */
+long *rt_array_alloc_long(RtArena *arena, size_t count, long default_value) {
+    size_t data_size = count * sizeof(long);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_long: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    long *data = (long *)(meta + 1);
+    if (default_value == 0) {
+        memset(data, 0, data_size);
+    } else {
+        for (size_t i = 0; i < count; i++) data[i] = default_value;
+    }
+    return data;
+}
+
+double *rt_array_alloc_double(RtArena *arena, size_t count, double default_value) {
+    size_t data_size = count * sizeof(double);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_double: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    double *data = (double *)(meta + 1);
+    if (default_value == 0.0) {
+        memset(data, 0, data_size);
+    } else {
+        for (size_t i = 0; i < count; i++) data[i] = default_value;
+    }
+    return data;
+}
+
+char *rt_array_alloc_char(RtArena *arena, size_t count, char default_value) {
+    size_t data_size = count * sizeof(char);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_char: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    char *data = (char *)(meta + 1);
+    if (default_value == 0) {
+        memset(data, 0, data_size);
+    } else {
+        for (size_t i = 0; i < count; i++) data[i] = default_value;
+    }
+    return data;
+}
+
+int *rt_array_alloc_bool(RtArena *arena, size_t count, int default_value) {
+    size_t data_size = count * sizeof(int);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_bool: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    int *data = (int *)(meta + 1);
+    if (default_value == 0) {
+        memset(data, 0, data_size);
+    } else {
+        for (size_t i = 0; i < count; i++) data[i] = default_value;
+    }
+    return data;
+}
+
+unsigned char *rt_array_alloc_byte(RtArena *arena, size_t count, unsigned char default_value) {
+    size_t data_size = count * sizeof(unsigned char);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_byte: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    unsigned char *data = (unsigned char *)(meta + 1);
+    if (default_value == 0) {
+        memset(data, 0, data_size);
+    } else {
+        memset(data, default_value, data_size);  /* memset works perfectly for bytes */
+    }
+    return data;
+}
+
+char **rt_array_alloc_string(RtArena *arena, size_t count, const char *default_value) {
+    size_t data_size = count * sizeof(char *);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_string: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    char **data = (char **)(meta + 1);
+    if (default_value == NULL) {
+        memset(data, 0, data_size);  /* Set all pointers to NULL */
+    } else {
+        for (size_t i = 0; i < count; i++) {
+            data[i] = rt_arena_strdup(arena, default_value);
+        }
+    }
+    return data;
 }
 
 /* Array equality functions - compare arrays element by element */

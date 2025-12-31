@@ -16,10 +16,14 @@ VPATH = $(SRCDIR)
 
 .PHONY: all clean
 
-all: create-bin-dir $(TARGET)
+all: create-bin-dir $(TARGET) copy-runtime-header
 
 create-bin-dir:
 	@mkdir -p $(BIN_DIR)
+
+# Copy runtime.h to bin dir so generated code can include it
+copy-runtime-header: create-bin-dir
+	@cp runtime.h $(BIN_DIR)/runtime.h
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^

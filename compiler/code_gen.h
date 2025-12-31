@@ -40,6 +40,11 @@ typedef struct {
     int loop_arena_depth;       // Current loop nesting depth (0 = not in loop)
     int loop_arena_capacity;    // Capacity of loop arena stacks
 
+    /* Loop counter tracking for optimization - tracks variables known to be non-negative */
+    char **loop_counter_names;  // Names of loop counter variables (provably non-negative)
+    int loop_counter_count;     // Number of tracked loop counters
+    int loop_counter_capacity;  // Capacity of loop counter array
+
     /* Private block arena stack - tracks arena names for nested private blocks */
     char **arena_stack;         // Stack of arena variable names for private blocks
     int arena_stack_depth;      // Current depth of private block nesting

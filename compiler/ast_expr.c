@@ -222,6 +222,29 @@ Expr *ast_create_array_access_expr(Arena *arena, Expr *array, Expr *index, const
     return expr;
 }
 
+Expr *ast_create_sized_array_alloc_expr(Arena *arena, Type *element_type, Expr *size_expr, Expr *default_value, const Token *loc_token)
+{
+    if (element_type == NULL || size_expr == NULL)
+    {
+        DEBUG_ERROR("Cannot create sized array alloc with NULL element_type or size_expr");
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_SIZED_ARRAY_ALLOC;
+    expr->as.sized_array_alloc.element_type = element_type;
+    expr->as.sized_array_alloc.size_expr = size_expr;
+    expr->as.sized_array_alloc.default_value = default_value;  /* Can be NULL */
+    expr->expr_type = NULL;
+    expr->token = ast_dup_token(arena, loc_token);
+    return expr;
+}
+
 Expr *ast_create_increment_expr(Arena *arena, Expr *operand, const Token *loc_token)
 {
     if (operand == NULL)

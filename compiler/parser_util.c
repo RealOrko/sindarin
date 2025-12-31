@@ -256,17 +256,64 @@ Type *parser_type(Parser *parser)
         return ast_create_primitive_type(parser->arena, TYPE_NIL);
     }
 
-    while (parser_match(parser, TOKEN_LEFT_BRACKET))
+    while (parser_check(parser, TOKEN_LEFT_BRACKET))
     {
-        if (!parser_match(parser, TOKEN_RIGHT_BRACKET))
+        parser_advance(parser); /* consume '[' */
+
+        if (!parser_check(parser, TOKEN_RIGHT_BRACKET))
         {
-            parser_error_at_current(parser, "Expected ']' after '['");
+            /* Sized array detected: TYPE[expr] - parse size expression */
+            Expr *size_expr = parser_expression(parser);
+            if (size_expr == NULL)
+            {
+                parser_error_at_current(parser, "Expected size expression in sized array type");
+                return type;
+            }
+
+            /* Consume the closing bracket */
+            if (!parser_match(parser, TOKEN_RIGHT_BRACKET))
+            {
+                parser_error_at_current(parser, "Expected ']' after size expression");
+                return type;
+            }
+
+            /* Store for caller to use */
+            parser->sized_array_pending = 1;
+            parser->sized_array_size = size_expr;
             return type;
         }
+        /* Normal array type: TYPE[] - consume ']' and create array type */
+        parser_advance(parser); /* consume ']' */
         type = ast_create_array_type(parser->arena, type);
     }
 
     return type;
+}
+
+ParsedType parser_type_with_size(Parser *parser)
+{
+    ParsedType result;
+    result.size_expr = NULL;
+    result.is_sized_array = 0;
+
+    /* Reset any previous sized array state */
+    parser->sized_array_pending = 0;
+    parser->sized_array_size = NULL;
+
+    /* Parse the type */
+    result.type = parser_type(parser);
+
+    /* Check if parser_type() detected a sized array */
+    if (parser->sized_array_pending)
+    {
+        result.size_expr = parser->sized_array_size;
+        result.is_sized_array = 1;
+        /* Reset the parser state */
+        parser->sized_array_pending = 0;
+        parser->sized_array_size = NULL;
+    }
+
+    return result;
 }
 
 /* List of known static type names that support static method calls */

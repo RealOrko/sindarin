@@ -381,6 +381,407 @@ void test_rt_arena_many_allocations()
     rt_arena_destroy(arena);
 }
 
+void test_rt_array_alloc_long()
+{
+    printf("Testing rt_array_alloc_long...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Test with count=5, default_value=42 */
+    long *arr = rt_array_alloc_long(arena, 5, 42);
+    assert(arr != NULL);
+
+    /* Verify length is 5 */
+    assert(rt_array_length(arr) == 5);
+
+    /* Verify all elements are 42 */
+    for (size_t i = 0; i < 5; i++) {
+        assert(arr[i] == 42);
+    }
+
+    /* Test with default_value=0 (uses memset) */
+    long *arr2 = rt_array_alloc_long(arena, 10, 0);
+    assert(arr2 != NULL);
+    assert(rt_array_length(arr2) == 10);
+    for (size_t i = 0; i < 10; i++) {
+        assert(arr2[i] == 0);
+    }
+
+    /* Test with empty array */
+    long *arr3 = rt_array_alloc_long(arena, 0, 99);
+    assert(arr3 != NULL);
+    assert(rt_array_length(arr3) == 0);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_array_alloc_double()
+{
+    printf("Testing rt_array_alloc_double...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Test with count=3, default_value=3.14 */
+    double *arr = rt_array_alloc_double(arena, 3, 3.14);
+    assert(arr != NULL);
+
+    /* Verify length is 3 */
+    assert(rt_array_length(arr) == 3);
+
+    /* Verify all elements are 3.14 */
+    for (size_t i = 0; i < 3; i++) {
+        assert(arr[i] == 3.14);
+    }
+
+    /* Test with default_value=0.0 (uses memset) */
+    double *arr2 = rt_array_alloc_double(arena, 5, 0.0);
+    assert(arr2 != NULL);
+    assert(rt_array_length(arr2) == 5);
+    for (size_t i = 0; i < 5; i++) {
+        assert(arr2[i] == 0.0);
+    }
+
+    /* Test with empty array */
+    double *arr3 = rt_array_alloc_double(arena, 0, 1.5);
+    assert(arr3 != NULL);
+    assert(rt_array_length(arr3) == 0);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_array_alloc_char()
+{
+    printf("Testing rt_array_alloc_char...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Test with count=10, default_value='x' */
+    char *arr = rt_array_alloc_char(arena, 10, 'x');
+    assert(arr != NULL);
+
+    /* Verify length is 10 */
+    assert(rt_array_length(arr) == 10);
+
+    /* Verify all elements are 'x' */
+    for (size_t i = 0; i < 10; i++) {
+        assert(arr[i] == 'x');
+    }
+
+    /* Test with default_value=0 (uses memset) */
+    char *arr2 = rt_array_alloc_char(arena, 5, 0);
+    assert(arr2 != NULL);
+    assert(rt_array_length(arr2) == 5);
+    for (size_t i = 0; i < 5; i++) {
+        assert(arr2[i] == 0);
+    }
+
+    /* Test with empty array */
+    char *arr3 = rt_array_alloc_char(arena, 0, 'a');
+    assert(arr3 != NULL);
+    assert(rt_array_length(arr3) == 0);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_array_alloc_bool()
+{
+    printf("Testing rt_array_alloc_bool...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Test with count=100, default_value=1 (true) */
+    int *arr = rt_array_alloc_bool(arena, 100, 1);
+    assert(arr != NULL);
+
+    /* Verify length is 100 */
+    assert(rt_array_length(arr) == 100);
+
+    /* Verify all elements are 1 (true) */
+    for (size_t i = 0; i < 100; i++) {
+        assert(arr[i] == 1);
+    }
+
+    /* Test with default_value=0 (false, uses memset) */
+    int *arr2 = rt_array_alloc_bool(arena, 50, 0);
+    assert(arr2 != NULL);
+    assert(rt_array_length(arr2) == 50);
+    for (size_t i = 0; i < 50; i++) {
+        assert(arr2[i] == 0);
+    }
+
+    /* Test with empty array */
+    int *arr3 = rt_array_alloc_bool(arena, 0, 1);
+    assert(arr3 != NULL);
+    assert(rt_array_length(arr3) == 0);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_array_alloc_byte()
+{
+    printf("Testing rt_array_alloc_byte...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Test with count=8, default_value=255 */
+    unsigned char *arr = rt_array_alloc_byte(arena, 8, 255);
+    assert(arr != NULL);
+
+    /* Verify length is 8 */
+    assert(rt_array_length(arr) == 8);
+
+    /* Verify all elements are 255 */
+    for (size_t i = 0; i < 8; i++) {
+        assert(arr[i] == 255);
+    }
+
+    /* Test with default_value=0 (uses memset) */
+    unsigned char *arr2 = rt_array_alloc_byte(arena, 16, 0);
+    assert(arr2 != NULL);
+    assert(rt_array_length(arr2) == 16);
+    for (size_t i = 0; i < 16; i++) {
+        assert(arr2[i] == 0);
+    }
+
+    /* Test with empty array */
+    unsigned char *arr3 = rt_array_alloc_byte(arena, 0, 128);
+    assert(arr3 != NULL);
+    assert(rt_array_length(arr3) == 0);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_array_alloc_string()
+{
+    printf("Testing rt_array_alloc_string...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Test with count=5, default_value="hello" */
+    char **arr = rt_array_alloc_string(arena, 5, "hello");
+    assert(arr != NULL);
+
+    /* Verify length is 5 */
+    assert(rt_array_length(arr) == 5);
+
+    /* Verify all elements are "hello" (and are separate copies) */
+    for (size_t i = 0; i < 5; i++) {
+        assert(arr[i] != NULL);
+        assert(strcmp(arr[i], "hello") == 0);
+    }
+    /* Verify they are actually separate copies, not the same pointer */
+    assert(arr[0] != arr[1]);
+
+    /* Test with default_value=NULL */
+    char **arr2 = rt_array_alloc_string(arena, 3, NULL);
+    assert(arr2 != NULL);
+    assert(rt_array_length(arr2) == 3);
+    for (size_t i = 0; i < 3; i++) {
+        assert(arr2[i] == NULL);
+    }
+
+    /* Test with empty array */
+    char **arr3 = rt_array_alloc_string(arena, 0, "test");
+    assert(arr3 != NULL);
+    assert(rt_array_length(arr3) == 0);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_string_with_capacity()
+{
+    printf("Testing rt_string_with_capacity...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Test creating string with capacity 10 */
+    char *str = rt_string_with_capacity(arena, 10);
+    assert(str != NULL);
+
+    /* Verify capacity is 10 */
+    RtStringMeta *meta = RT_STR_META(str);
+    assert(meta->capacity == 10);
+    assert(meta->length == 0);
+    assert(meta->arena == arena);
+
+    /* Verify string is empty (null-terminated) */
+    assert(strcmp(str, "") == 0);
+    assert(str[0] == '\0');
+
+    /* Test creating string with capacity 0 */
+    char *str2 = rt_string_with_capacity(arena, 0);
+    assert(str2 != NULL);
+    RtStringMeta *meta2 = RT_STR_META(str2);
+    assert(meta2->capacity == 0);
+    assert(meta2->length == 0);
+    assert(str2[0] == '\0');
+
+    /* Test creating string with larger capacity */
+    char *str3 = rt_string_with_capacity(arena, 1000);
+    assert(str3 != NULL);
+    RtStringMeta *meta3 = RT_STR_META(str3);
+    assert(meta3->capacity == 1000);
+    assert(meta3->length == 0);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_string_append_empty()
+{
+    printf("Testing rt_string_append on empty string...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Create empty mutable string with capacity 20 */
+    char *str = rt_string_with_capacity(arena, 20);
+    assert(str != NULL);
+
+    /* Append to empty string */
+    str = rt_string_append(str, "hello");
+    assert(str != NULL);
+    assert(strcmp(str, "hello") == 0);
+
+    /* Verify metadata updated correctly */
+    RtStringMeta *meta = RT_STR_META(str);
+    assert(meta->length == 5);
+    assert(meta->capacity == 20);  /* Should not have reallocated */
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_string_append_multiple()
+{
+    printf("Testing rt_string_append multiple times...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Create string with small capacity to force reallocation */
+    char *str = rt_string_with_capacity(arena, 10);
+    assert(str != NULL);
+
+    /* First append - fits in capacity */
+    str = rt_string_append(str, "hello");
+    assert(strcmp(str, "hello") == 0);
+    assert(RT_STR_META(str)->length == 5);
+
+    /* Second append - still fits */
+    str = rt_string_append(str, " ");
+    assert(strcmp(str, "hello ") == 0);
+    assert(RT_STR_META(str)->length == 6);
+
+    /* Third append - triggers reallocation (would need 12 chars + null) */
+    char *old_str = str;
+    str = rt_string_append(str, "world!");
+    assert(strcmp(str, "hello world!") == 0);
+    assert(RT_STR_META(str)->length == 12);
+
+    /* Capacity should have grown (2x growth strategy) */
+    assert(RT_STR_META(str)->capacity > 10);
+
+    /* Pointer may have changed due to reallocation */
+    (void)old_str;  /* Avoid unused warning - we just document the behavior */
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_string_append_no_realloc()
+{
+    printf("Testing rt_string_append without reallocation...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    /* Create string with large capacity */
+    char *str = rt_string_with_capacity(arena, 100);
+    char *original_ptr = str;
+
+    /* Append several times - should never reallocate */
+    str = rt_string_append(str, "one");
+    assert(str == original_ptr);  /* Same pointer */
+    assert(RT_STR_META(str)->capacity == 100);
+
+    str = rt_string_append(str, " two");
+    assert(str == original_ptr);
+    assert(RT_STR_META(str)->capacity == 100);
+
+    str = rt_string_append(str, " three");
+    assert(str == original_ptr);
+    assert(RT_STR_META(str)->capacity == 100);
+
+    /* Verify final content */
+    assert(strcmp(str, "one two three") == 0);
+    assert(RT_STR_META(str)->length == 13);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_string_append_null_src()
+{
+    printf("Testing rt_string_append with NULL src...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    char *str = rt_string_with_capacity(arena, 20);
+    str = rt_string_append(str, "test");
+    assert(strcmp(str, "test") == 0);
+
+    /* Append NULL - should be no-op */
+    char *result = rt_string_append(str, NULL);
+    assert(result == str);
+    assert(strcmp(str, "test") == 0);
+    assert(RT_STR_META(str)->length == 4);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_string_append_empty_src()
+{
+    printf("Testing rt_string_append with empty src...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    char *str = rt_string_with_capacity(arena, 20);
+    str = rt_string_append(str, "initial");
+    assert(strcmp(str, "initial") == 0);
+
+    /* Append empty string - should work but add nothing */
+    str = rt_string_append(str, "");
+    assert(strcmp(str, "initial") == 0);
+    assert(RT_STR_META(str)->length == 7);
+
+    rt_arena_destroy(arena);
+}
+
+void test_rt_string_length_tracking()
+{
+    printf("Testing RT_STR_META length tracking...\n");
+
+    RtArena *arena = rt_arena_create(NULL);
+
+    char *str = rt_string_with_capacity(arena, 50);
+
+    /* Initial length should be 0 */
+    assert(RT_STR_META(str)->length == 0);
+
+    /* After each append, length should update */
+    str = rt_string_append(str, "a");
+    assert(RT_STR_META(str)->length == 1);
+
+    str = rt_string_append(str, "bb");
+    assert(RT_STR_META(str)->length == 3);
+
+    str = rt_string_append(str, "ccc");
+    assert(RT_STR_META(str)->length == 6);
+
+    str = rt_string_append(str, "dddd");
+    assert(RT_STR_META(str)->length == 10);
+
+    /* Verify final content matches length */
+    assert(strcmp(str, "abbcccdddd") == 0);
+    assert(strlen(str) == RT_STR_META(str)->length);
+
+    rt_arena_destroy(arena);
+}
+
 void test_rt_arena_main()
 {
     test_rt_arena_create();
@@ -402,4 +803,17 @@ void test_rt_arena_main()
     test_rt_arena_destroy_null();
     test_rt_arena_block_growth();
     test_rt_arena_many_allocations();
+    test_rt_array_alloc_long();
+    test_rt_array_alloc_double();
+    test_rt_array_alloc_char();
+    test_rt_array_alloc_bool();
+    test_rt_array_alloc_byte();
+    test_rt_array_alloc_string();
+    test_rt_string_with_capacity();
+    test_rt_string_append_empty();
+    test_rt_string_append_multiple();
+    test_rt_string_append_no_realloc();
+    test_rt_string_append_null_src();
+    test_rt_string_append_empty_src();
+    test_rt_string_length_tracking();
 }

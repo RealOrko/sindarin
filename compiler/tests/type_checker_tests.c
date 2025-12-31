@@ -9,6 +9,7 @@
 #include "../arena.h"
 #include "../debug.h"
 #include "../ast.h"
+#include "../ast_expr.h"
 #include "../token.h"
 #include "../type_checker.h"
 #include "../symbol_table.h"

@@ -30,4 +30,9 @@ void code_gen_clear_captured_primitives(CodeGen *gen);
 void push_arena_to_stack(CodeGen *gen, const char *arena_name);
 const char *pop_arena_from_stack(CodeGen *gen);
 
+/* Loop counter tracking for optimization - tracks variables known to be non-negative */
+void push_loop_counter(CodeGen *gen, const char *var_name);
+void pop_loop_counter(CodeGen *gen);
+bool is_tracked_loop_counter(CodeGen *gen, const char *var_name);
+
 #endif /* CODE_GEN_STMT_H */

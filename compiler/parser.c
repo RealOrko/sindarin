@@ -14,6 +14,8 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     parser->had_error = 0;
     parser->panic_mode = 0;
     parser->symbol_table = symbol_table;
+    parser->sized_array_pending = 0;
+    parser->sized_array_size = NULL;
 
     Token print_token;
     print_token.start = arena_strdup(arena, "print");

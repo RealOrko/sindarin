@@ -322,6 +322,7 @@ static const char *array_methods[] = {
 static const char *string_methods[] = {
     "substring", "indexOf", "split", "trim", "toUpper", "toLower",
     "startsWith", "endsWith", "contains", "replace", "charAt", "length",
+    "append",
     NULL
 };
 

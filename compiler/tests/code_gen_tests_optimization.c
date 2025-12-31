@@ -14,6 +14,8 @@
 #include "../ast.h"
 #include "../code_gen.h"
 #include "../code_gen_util.h"
+#include "../code_gen_stmt.h"
+#include "../code_gen_expr.h"
 #include "../symbol_table.h"
 
 /* Helper to set up a token */
@@ -959,6 +961,357 @@ static void test_try_constant_fold_unary_output(void)
 }
 
 /* ============================================================================
+ * LOOP COUNTER TRACKING TESTS
+ * ============================================================================ */
+
+/* Test basic push/pop/check for loop counter stack */
+static void test_loop_counter_push_pop(void)
+{
+    printf("Testing loop counter push/pop operations...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Initially empty - nothing tracked */
+    assert(is_tracked_loop_counter(&gen, "__idx_0__") == false);
+    assert(is_tracked_loop_counter(&gen, "i") == false);
+    assert(gen.loop_counter_count == 0);
+
+    /* Push first counter */
+    push_loop_counter(&gen, "__idx_0__");
+    assert(gen.loop_counter_count == 1);
+    assert(is_tracked_loop_counter(&gen, "__idx_0__") == true);
+    assert(is_tracked_loop_counter(&gen, "__idx_1__") == false);
+
+    /* Push second counter */
+    push_loop_counter(&gen, "__idx_1__");
+    assert(gen.loop_counter_count == 2);
+    assert(is_tracked_loop_counter(&gen, "__idx_0__") == true);
+    assert(is_tracked_loop_counter(&gen, "__idx_1__") == true);
+
+    /* Pop second counter */
+    pop_loop_counter(&gen);
+    assert(gen.loop_counter_count == 1);
+    assert(is_tracked_loop_counter(&gen, "__idx_0__") == true);
+    assert(is_tracked_loop_counter(&gen, "__idx_1__") == false);
+
+    /* Pop first counter */
+    pop_loop_counter(&gen);
+    assert(gen.loop_counter_count == 0);
+    assert(is_tracked_loop_counter(&gen, "__idx_0__") == false);
+
+    /* Pop on empty stack should be safe */
+    pop_loop_counter(&gen);
+    assert(gen.loop_counter_count == 0);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* Test loop counter stack grows when capacity is exceeded */
+static void test_loop_counter_stack_growth(void)
+{
+    printf("Testing loop counter stack growth...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Initial capacity should be 0 */
+    assert(gen.loop_counter_capacity == 0);
+    assert(gen.loop_counter_count == 0);
+
+    /* Push many counters to force stack growth */
+    char name[32];
+    for (int i = 0; i < 20; i++)
+    {
+        snprintf(name, sizeof(name), "__idx_%d__", i);
+        push_loop_counter(&gen, name);
+    }
+
+    assert(gen.loop_counter_count == 20);
+    assert(gen.loop_counter_capacity >= 20);  /* Should have grown */
+
+    /* Verify all counters are tracked */
+    for (int i = 0; i < 20; i++)
+    {
+        snprintf(name, sizeof(name), "__idx_%d__", i);
+        assert(is_tracked_loop_counter(&gen, name) == true);
+    }
+
+    /* Counter not in stack */
+    assert(is_tracked_loop_counter(&gen, "__idx_99__") == false);
+
+    /* Pop all and verify */
+    for (int i = 0; i < 20; i++)
+    {
+        pop_loop_counter(&gen);
+    }
+    assert(gen.loop_counter_count == 0);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* Test is_tracked_loop_counter with NULL input */
+static void test_loop_counter_null_check(void)
+{
+    printf("Testing loop counter NULL handling...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* NULL should always return false */
+    assert(is_tracked_loop_counter(&gen, NULL) == false);
+
+    /* Even with items in stack, NULL returns false */
+    push_loop_counter(&gen, "__idx_0__");
+    assert(is_tracked_loop_counter(&gen, NULL) == false);
+    assert(is_tracked_loop_counter(&gen, "__idx_0__") == true);
+
+    pop_loop_counter(&gen);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* ============================================================================
+ * IS_PROVABLY_NON_NEGATIVE TESTS
+ * ============================================================================ */
+
+/* Test is_provably_non_negative with non-negative integer literals */
+static void test_is_provably_non_negative_int_literals(void)
+{
+    printf("Testing is_provably_non_negative with integer literals...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Zero should be non-negative */
+    Expr *zero = make_int_literal(&arena, 0);
+    assert(is_provably_non_negative(&gen, zero) == true);
+
+    /* Positive integers should be non-negative */
+    Expr *positive = make_int_literal(&arena, 42);
+    assert(is_provably_non_negative(&gen, positive) == true);
+
+    /* Large positive should be non-negative */
+    Expr *large = make_int_literal(&arena, 1000000);
+    assert(is_provably_non_negative(&gen, large) == true);
+
+    /* INT_MAX should be non-negative */
+    Expr *int_max = make_int_literal(&arena, INT_MAX);
+    assert(is_provably_non_negative(&gen, int_max) == true);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* Test is_provably_non_negative with non-negative long literals */
+static void test_is_provably_non_negative_long_literals(void)
+{
+    printf("Testing is_provably_non_negative with long literals...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Zero should be non-negative */
+    Expr *zero = make_long_literal(&arena, 0L);
+    assert(is_provably_non_negative(&gen, zero) == true);
+
+    /* Positive longs should be non-negative */
+    Expr *positive = make_long_literal(&arena, 42L);
+    assert(is_provably_non_negative(&gen, positive) == true);
+
+    /* Large positive should be non-negative */
+    Expr *large = make_long_literal(&arena, 9999999999L);
+    assert(is_provably_non_negative(&gen, large) == true);
+
+    /* LONG_MAX should be non-negative */
+    Expr *long_max = make_long_literal(&arena, LONG_MAX);
+    assert(is_provably_non_negative(&gen, long_max) == true);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* Test is_provably_non_negative with negative literals */
+static void test_is_provably_non_negative_negative_literals(void)
+{
+    printf("Testing is_provably_non_negative with negative literals...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Negative integers should NOT be non-negative */
+    Expr *neg_int = make_int_literal(&arena, -1);
+    assert(is_provably_non_negative(&gen, neg_int) == false);
+
+    Expr *neg_int2 = make_int_literal(&arena, -42);
+    assert(is_provably_non_negative(&gen, neg_int2) == false);
+
+    /* INT_MIN should NOT be non-negative */
+    Expr *int_min = make_int_literal(&arena, INT_MIN);
+    assert(is_provably_non_negative(&gen, int_min) == false);
+
+    /* Negative longs should NOT be non-negative */
+    Expr *neg_long = make_long_literal(&arena, -1L);
+    assert(is_provably_non_negative(&gen, neg_long) == false);
+
+    Expr *neg_long2 = make_long_literal(&arena, -9999999999L);
+    assert(is_provably_non_negative(&gen, neg_long2) == false);
+
+    /* LONG_MIN should NOT be non-negative */
+    Expr *long_min = make_long_literal(&arena, LONG_MIN);
+    assert(is_provably_non_negative(&gen, long_min) == false);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* Test is_provably_non_negative with variables (untracked) */
+static void test_is_provably_non_negative_untracked_variables(void)
+{
+    printf("Testing is_provably_non_negative with untracked variables...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Untracked variable should NOT be non-negative */
+    Token var_tok;
+    init_token(&var_tok, TOKEN_IDENTIFIER, "x");
+    Expr *var_expr = ast_create_variable_expr(&arena, var_tok, &var_tok);
+    assert(is_provably_non_negative(&gen, var_expr) == false);
+
+    /* Another untracked variable */
+    Token idx_tok;
+    init_token(&idx_tok, TOKEN_IDENTIFIER, "index");
+    Expr *idx_expr = ast_create_variable_expr(&arena, idx_tok, &idx_tok);
+    assert(is_provably_non_negative(&gen, idx_expr) == false);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* Test is_provably_non_negative with tracked loop counter variables */
+static void test_is_provably_non_negative_tracked_loop_counters(void)
+{
+    printf("Testing is_provably_non_negative with tracked loop counters...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Push a loop counter */
+    push_loop_counter(&gen, "__idx_0__");
+
+    /* Tracked loop counter variable should be non-negative */
+    Token idx_tok;
+    init_token(&idx_tok, TOKEN_IDENTIFIER, "__idx_0__");
+    Expr *idx_expr = ast_create_variable_expr(&arena, idx_tok, &idx_tok);
+    assert(is_provably_non_negative(&gen, idx_expr) == true);
+
+    /* Untracked variable still returns false */
+    Token other_tok;
+    init_token(&other_tok, TOKEN_IDENTIFIER, "__idx_1__");
+    Expr *other_expr = ast_create_variable_expr(&arena, other_tok, &other_tok);
+    assert(is_provably_non_negative(&gen, other_expr) == false);
+
+    /* Pop the counter - now it should return false */
+    pop_loop_counter(&gen);
+    assert(is_provably_non_negative(&gen, idx_expr) == false);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* Test is_provably_non_negative with other expression types */
+static void test_is_provably_non_negative_other_expressions(void)
+{
+    printf("Testing is_provably_non_negative with other expression types...\n");
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+
+    /* Double literals should return false (not valid array indices) */
+    Expr *dbl = make_double_literal(&arena, 3.14);
+    assert(is_provably_non_negative(&gen, dbl) == false);
+
+    /* Bool literals should return false */
+    Expr *bool_lit = make_bool_literal(&arena, true);
+    assert(is_provably_non_negative(&gen, bool_lit) == false);
+
+    /* Binary expressions should return false (even if operands are non-negative) */
+    Expr *left = make_int_literal(&arena, 5);
+    Expr *right = make_int_literal(&arena, 3);
+    Expr *add = make_binary_expr(&arena, left, TOKEN_PLUS, right);
+    assert(is_provably_non_negative(&gen, add) == false);
+
+    /* Unary expressions should return false */
+    Expr *operand = make_int_literal(&arena, 42);
+    Expr *neg = make_unary_expr(&arena, TOKEN_MINUS, operand);
+    assert(is_provably_non_negative(&gen, neg) == false);
+
+    /* NULL expression should return false */
+    assert(is_provably_non_negative(&gen, NULL) == false);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+    arena_free(&arena);
+}
+
+/* ============================================================================
  * MAIN TEST RUNNER
  * ============================================================================ */
 
@@ -999,6 +1352,19 @@ void test_code_gen_optimization_main(void)
     /* Constant folding code generation tests */
     test_try_constant_fold_binary_output();
     test_try_constant_fold_unary_output();
+
+    /* Loop counter tracking tests */
+    test_loop_counter_push_pop();
+    test_loop_counter_stack_growth();
+    test_loop_counter_null_check();
+
+    /* is_provably_non_negative tests */
+    test_is_provably_non_negative_int_literals();
+    test_is_provably_non_negative_long_literals();
+    test_is_provably_non_negative_negative_literals();
+    test_is_provably_non_negative_untracked_variables();
+    test_is_provably_non_negative_tracked_loop_counters();
+    test_is_provably_non_negative_other_expressions();
 
     printf("\n=== All Code Generation Optimization Tests Passed ===\n");
 }

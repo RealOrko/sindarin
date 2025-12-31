@@ -422,5 +422,17 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
             ast_print_expr(arena, expr->as.static_call.arguments[i], indent_level + 2);
         }
         break;
+
+    case EXPR_SIZED_ARRAY_ALLOC:
+        DEBUG_VERBOSE_INDENT(indent_level, "SizedArrayAlloc: %s[]",
+                             ast_type_to_string(arena, expr->as.sized_array_alloc.element_type));
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Size:");
+        ast_print_expr(arena, expr->as.sized_array_alloc.size_expr, indent_level + 2);
+        if (expr->as.sized_array_alloc.default_value)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "Default:");
+            ast_print_expr(arena, expr->as.sized_array_alloc.default_value, indent_level + 2);
+        }
+        break;
     }
 }

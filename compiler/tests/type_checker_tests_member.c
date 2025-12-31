@@ -362,6 +362,57 @@ void test_type_check_array_printable()
     DEBUG_INFO("Finished test_type_check_array_printable");
 }
 
+void test_type_check_string_member_append()
+{
+    DEBUG_INFO("Starting test_type_check_string_member_append");
+    printf("Testing type check for string.append member access...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable table;
+    symbol_table_init(&arena, &table);
+
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *string_type = ast_create_primitive_type(&arena, TYPE_STRING);
+
+    /* var s: str = "hello" */
+    Token s_tok;
+    setup_token(&s_tok, TOKEN_IDENTIFIER, "s", 1, "test.sn", &arena);
+    Token str_lit_tok;
+    setup_literal_token(&str_lit_tok, TOKEN_STRING_LITERAL, "\"hello\"", 1, "test.sn", &arena);
+    LiteralValue str_val = {.string_value = "hello"};
+    Expr *str_init = ast_create_literal_expr(&arena, str_val, string_type, false, &str_lit_tok);
+    Stmt *s_decl = ast_create_var_decl_stmt(&arena, s_tok, string_type, str_init, NULL);
+
+    /* s.append */
+    Expr *var_s = ast_create_variable_expr(&arena, s_tok, NULL);
+    Token append_tok;
+    setup_token(&append_tok, TOKEN_IDENTIFIER, "append", 2, "test.sn", &arena);
+    Expr *append_member = ast_create_member_expr(&arena, var_s, append_tok, NULL);
+    Stmt *dummy_stmt = ast_create_expr_stmt(&arena, append_member, NULL);
+
+    ast_module_add_statement(&arena, &module, s_decl);
+    ast_module_add_statement(&arena, &module, dummy_stmt);
+
+    int no_error = type_check_module(&module, &table);
+    assert(no_error == 1);
+
+    /* Verify append_member has function type (str) -> str */
+    assert(append_member->expr_type != NULL);
+    assert(append_member->expr_type->kind == TYPE_FUNCTION);
+    assert(append_member->expr_type->as.function.return_type->kind == TYPE_STRING);
+    assert(append_member->expr_type->as.function.param_count == 1);
+    assert(append_member->expr_type->as.function.param_types[0]->kind == TYPE_STRING);
+
+    symbol_table_cleanup(&table);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_type_check_string_member_append");
+}
+
 void test_type_checker_member_main()
 {
     test_type_check_array_member_length();
@@ -371,4 +422,5 @@ void test_type_checker_member_main()
     test_type_check_array_member_clear();
     test_type_check_array_member_concat();
     test_type_check_array_printable();
+    test_type_check_string_member_append();
 }

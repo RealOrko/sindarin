@@ -94,7 +94,8 @@ typedef enum
     EXPR_RANGE,
     EXPR_SPREAD,
     EXPR_LAMBDA,
-    EXPR_STATIC_CALL
+    EXPR_STATIC_CALL,
+    EXPR_SIZED_ARRAY_ALLOC
 } ExprType;
 
 typedef struct
@@ -197,6 +198,13 @@ typedef struct
 
 typedef struct
 {
+    Type *element_type;  // Type of array elements (e.g., int, str, bool)
+    Expr *size_expr;     // Expression for array size (must evaluate to int)
+    Expr *default_value; // Optional default value for all elements (can be NULL)
+} SizedArrayAllocExpr;
+
+typedef struct
+{
     Parameter *params;
     int param_count;
     Type *return_type;
@@ -236,6 +244,7 @@ struct Expr
         InterpolExpr interpol;
         LambdaExpr lambda;
         StaticCallExpr static_call;
+        SizedArrayAllocExpr sized_array_alloc;
     } as;
 
     Type *expr_type;

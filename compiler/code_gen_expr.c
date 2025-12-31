@@ -76,6 +76,42 @@ static bool is_primitive_type(Type *type)
     }
 }
 
+/* Check if an expression is provably non-negative (for array index optimization).
+ * Returns true for:
+ *   - Integer literals >= 0
+ *   - Long literals >= 0
+ *   - Variables that are tracked as loop counters (provably non-negative)
+ * Returns false for negative literals, untracked variables, and all other expressions.
+ */
+bool is_provably_non_negative(CodeGen *gen, Expr *expr)
+{
+    if (expr == NULL) return false;
+
+    /* Check for non-negative integer/long literals */
+    if (expr->type == EXPR_LITERAL)
+    {
+        if (expr->as.literal.type == NULL) return false;
+
+        if (expr->as.literal.type->kind == TYPE_INT ||
+            expr->as.literal.type->kind == TYPE_LONG)
+        {
+            return expr->as.literal.value.int_value >= 0;
+        }
+        /* Other literal types (double, bool, etc.) are not valid array indices */
+        return false;
+    }
+
+    /* Check for loop counter variables (provably non-negative) */
+    if (expr->type == EXPR_VARIABLE)
+    {
+        char *var_name = get_var_name(gen->arena, expr->as.variable.name);
+        return is_tracked_loop_counter(gen, var_name);
+    }
+
+    /* All other expression types are not provably non-negative */
+    return false;
+}
+
 /* Helper structure for local variable tracking in lambda bodies */
 typedef struct {
     char **names;
@@ -714,22 +750,26 @@ char *code_gen_index_assign_expression(CodeGen *gen, IndexAssignExpr *expr)
     char *index_str = code_gen_expression(gen, expr->index);
     char *value_str = code_gen_expression(gen, expr->value);
 
-    // Handle negative index - arr[idx < 0 ? len + idx : idx] = value
-    if (expr->index->type == EXPR_LITERAL && expr->index->as.literal.type->kind == TYPE_INT)
+    // Check if index is provably non-negative (literal >= 0 or tracked loop counter)
+    if (is_provably_non_negative(gen, expr->index))
     {
-        long idx_val = expr->index->as.literal.value.int_value;
-        if (idx_val >= 0)
-        {
-            // Positive literal index
-            return arena_sprintf(gen->arena, "(%s[%s] = %s)",
-                                 array_str, index_str, value_str);
-        }
+        // Non-negative index - direct array access
+        return arena_sprintf(gen->arena, "(%s[%s] = %s)",
+                             array_str, index_str, value_str);
+    }
+
+    // Check if index is a negative literal - can simplify to: arr[len + idx]
+    if (expr->index->type == EXPR_LITERAL &&
+        expr->index->as.literal.type != NULL &&
+        (expr->index->as.literal.type->kind == TYPE_INT ||
+         expr->index->as.literal.type->kind == TYPE_LONG))
+    {
         // Negative literal - adjust by array length
         return arena_sprintf(gen->arena, "(%s[rt_array_length(%s) + %s] = %s)",
                              array_str, array_str, index_str, value_str);
     }
 
-    // For variable indices, generate runtime check for negative index
+    // For potentially negative variable indices, generate runtime check
     return arena_sprintf(gen->arena, "(%s[(%s) < 0 ? rt_array_length(%s) + (%s) : (%s)] = %s)",
                          array_str, index_str, array_str, index_str, index_str, value_str);
 }
@@ -1322,7 +1362,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
         }
 
-        // String methods
+        // Handle string methods
         if (object_type->kind == TYPE_STRING) {
             char *object_str = code_gen_expression(gen, member->object);
             bool object_is_temp = expression_produces_temp(member->object);
@@ -1540,6 +1580,31 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         object_str);
                 }
                 return arena_sprintf(gen->arena, "rt_str_is_blank(%s)", object_str);
+            }
+
+            // Handle append(str) - appends to mutable string, returns new string pointer
+            if (strcmp(member_name_str, "append") == 0 && call->arg_count == 1) {
+                char *arg_str = code_gen_expression(gen, call->arguments[0]);
+                Type *arg_type = call->arguments[0]->expr_type;
+
+                if (arg_type->kind != TYPE_STRING) {
+                    fprintf(stderr, "Error: append() argument must be a string\n");
+                    exit(1);
+                }
+
+                // First ensure the string is mutable, then append.
+                // rt_string_ensure_mutable converts immutable strings to mutable.
+                // rt_string_append returns potentially new pointer, assign back if variable.
+                // IMPORTANT: Use the function's main arena (__arena_1__), not the loop arena,
+                // because strings need to outlive the loop iteration.
+                if (member->object->type == EXPR_VARIABLE) {
+                    return arena_sprintf(gen->arena,
+                        "(%s = rt_string_append(rt_string_ensure_mutable(__arena_1__, %s), %s))",
+                        object_str, object_str, arg_str);
+                }
+                return arena_sprintf(gen->arena,
+                    "rt_string_append(rt_string_ensure_mutable(__arena_1__, %s), %s)",
+                    object_str, arg_str);
             }
 
             #undef STRING_METHOD_RETURNING_STRING
@@ -2268,21 +2333,25 @@ char *code_gen_array_access_expression(CodeGen *gen, ArrayAccessExpr *expr)
     char *array_str = code_gen_expression(gen, expr->array);
     char *index_str = code_gen_expression(gen, expr->index);
 
-    // Check if index is a literal - if it's a non-negative literal, skip the runtime check
-    if (expr->index->type == EXPR_LITERAL && expr->index->as.literal.type->kind == TYPE_INT)
+    // Check if index is provably non-negative (literal >= 0 or tracked loop counter)
+    if (is_provably_non_negative(gen, expr->index))
     {
-        long idx_val = expr->index->as.literal.value.int_value;
-        if (idx_val >= 0)
-        {
-            // Positive literal index - no adjustment needed
-            return arena_sprintf(gen->arena, "%s[%s]", array_str, index_str);
-        }
-        // Negative literal - can simplify to: arr[rt_array_length(arr) + idx]
+        // Non-negative index - direct array access, no adjustment needed
+        return arena_sprintf(gen->arena, "%s[%s]", array_str, index_str);
+    }
+
+    // Check if index is a negative literal - can simplify to: arr[len + idx]
+    if (expr->index->type == EXPR_LITERAL &&
+        expr->index->as.literal.type != NULL &&
+        (expr->index->as.literal.type->kind == TYPE_INT ||
+         expr->index->as.literal.type->kind == TYPE_LONG))
+    {
+        // Negative literal - adjust by array length
         return arena_sprintf(gen->arena, "%s[rt_array_length(%s) + %s]",
                              array_str, array_str, index_str);
     }
 
-    // For variable indices, generate runtime check for negative index
+    // For potentially negative variable indices, generate runtime check
     // arr[idx < 0 ? rt_array_length(arr) + idx : idx]
     return arena_sprintf(gen->arena, "%s[(%s) < 0 ? rt_array_length(%s) + (%s) : (%s)]",
                          array_str, index_str, array_str, index_str, index_str);
@@ -3272,6 +3341,55 @@ static char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         method_name.length, method_name.start);
 }
 
+static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_sized_array_alloc_expression");
+
+    /* Extract fields from sized_array_alloc */
+    SizedArrayAllocExpr *alloc = &expr->as.sized_array_alloc;
+    Type *element_type = alloc->element_type;
+    Expr *size_expr = alloc->size_expr;
+    Expr *default_value = alloc->default_value;
+
+    /* Determine the runtime function suffix based on element type */
+    const char *suffix = NULL;
+    switch (element_type->kind) {
+        case TYPE_INT: suffix = "long"; break;
+        case TYPE_DOUBLE: suffix = "double"; break;
+        case TYPE_CHAR: suffix = "char"; break;
+        case TYPE_BOOL: suffix = "bool"; break;
+        case TYPE_BYTE: suffix = "byte"; break;
+        case TYPE_STRING: suffix = "string"; break;
+        default:
+            fprintf(stderr, "Error: Unsupported element type for sized array allocation\n");
+            exit(1);
+    }
+
+    /* Generate code for the size expression */
+    char *size_str = code_gen_expression(gen, size_expr);
+
+    /* Generate code for the default value */
+    char *default_str;
+    if (default_value != NULL) {
+        default_str = code_gen_expression(gen, default_value);
+    } else {
+        /* Use type-appropriate zero value when no default provided */
+        switch (element_type->kind) {
+            case TYPE_INT: default_str = "0"; break;
+            case TYPE_DOUBLE: default_str = "0.0"; break;
+            case TYPE_CHAR: default_str = "'\\0'"; break;
+            case TYPE_BOOL: default_str = "0"; break;
+            case TYPE_BYTE: default_str = "0"; break;
+            case TYPE_STRING: default_str = "NULL"; break;
+            default: default_str = "0"; break;
+        }
+    }
+
+    /* Construct the runtime function call: rt_array_alloc_{suffix}(arena, size, default) */
+    return arena_sprintf(gen->arena, "rt_array_alloc_%s(%s, %s, %s)",
+                         suffix, ARENA_VAR(gen), size_str, default_str);
+}
+
 char *code_gen_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_expression");
@@ -3317,6 +3435,8 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_lambda_expression(gen, expr);
     case EXPR_STATIC_CALL:
         return code_gen_static_call_expression(gen, expr);
+    case EXPR_SIZED_ARRAY_ALLOC:
+        return code_gen_sized_array_alloc_expression(gen, expr);
     default:
         exit(1);
     }

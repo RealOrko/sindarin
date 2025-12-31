@@ -76,10 +76,11 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
             "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)\n"
             "\n"
             "Code generation options:\n"
-            "  --unchecked        Use unchecked arithmetic (no overflow checking, faster)\n"
+            "  --checked          Force checked arithmetic (overflow detection, slower)\n"
+            "  --unchecked        Force unchecked arithmetic (no overflow checking, faster)\n"
             "  -O0                No Sn optimization (for debugging)\n"
             "  -O1                Basic Sn optimizations (dead code elimination, string merging)\n"
-            "  -O2                Full Sn optimizations (default: + tail call optimization)\n"
+            "  -O2                Full Sn optimizations (default: + tail call, unchecked arithmetic)\n"
             "\n"
             "By default, compiles to an executable and removes the intermediate C file.\n"
             "Requires GCC to be installed for compilation.\n",
@@ -103,6 +104,11 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
             init_debug(log_level);
         }
     }
+
+    // Track whether arithmetic mode was explicitly set by user
+    int arithmetic_mode_explicit = 0;
+    // Track whether -O2 was explicitly specified (for unchecked arithmetic default)
+    int o2_explicit = 0;
 
     // Second pass: parse all arguments
     for (int i = 1; i < argc; i++)
@@ -128,6 +134,12 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
         else if (strcmp(argv[i], "--unchecked") == 0)
         {
             options->arithmetic_mode = ARITH_UNCHECKED;
+            arithmetic_mode_explicit = 1;
+        }
+        else if (strcmp(argv[i], "--checked") == 0)
+        {
+            options->arithmetic_mode = ARITH_CHECKED;
+            arithmetic_mode_explicit = 1;
         }
         else if (strcmp(argv[i], "-O0") == 0)
         {
@@ -140,6 +152,7 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
         else if (strcmp(argv[i], "-O2") == 0)
         {
             options->optimization_level = OPT_LEVEL_FULL;
+            o2_explicit = 1;
         }
         else if (strcmp(argv[i], "--no-opt") == 0)
         {
@@ -178,6 +191,13 @@ int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
                 return 0;
             }
         }
+    }
+
+    // Explicit -O2 defaults to unchecked arithmetic unless user specified --checked
+    // (Default optimization level is -O2, but only enable unchecked when explicitly requested)
+    if (o2_explicit && !arithmetic_mode_explicit)
+    {
+        options->arithmetic_mode = ARITH_UNCHECKED;
     }
 
     // Check that source file was provided

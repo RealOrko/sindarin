@@ -18,7 +18,17 @@ typedef struct
     int interp_count;
     int interp_capacity;
     Arena *arena;
+    int sized_array_pending;   /* Set when parser_type() detects TYPE[expr] syntax */
+    Expr *sized_array_size;    /* Size expression parsed from TYPE[expr] syntax */
 } Parser;
+
+/* Result struct for parser_type_with_size() */
+typedef struct
+{
+    Type *type;           /* The parsed type (element type if sized array) */
+    Expr *size_expr;      /* Size expression if TYPE[expr] syntax, NULL otherwise */
+    int is_sized_array;   /* 1 if sized array syntax was detected */
+} ParsedType;
 
 void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol_table);
 void parser_cleanup(Parser *parser);
@@ -33,6 +43,7 @@ int parser_check(Parser *parser, TokenType type);
 int parser_match(Parser *parser, TokenType type);
 
 Type *parser_type(Parser *parser);
+ParsedType parser_type_with_size(Parser *parser);
 MemoryQualifier parser_memory_qualifier(Parser *parser);
 FunctionModifier parser_function_modifier(Parser *parser);
 

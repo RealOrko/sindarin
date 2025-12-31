@@ -13,6 +13,7 @@ Expr *ast_create_assign_expr(Arena *arena, Token name, Expr *value, const Token 
 Expr *ast_create_call_expr(Arena *arena, Expr *callee, Expr **arguments, int arg_count, const Token *loc_token);
 Expr *ast_create_array_expr(Arena *arena, Expr **elements, int element_count, const Token *loc_token);
 Expr *ast_create_array_access_expr(Arena *arena, Expr *array, Expr *index, const Token *loc_token);
+Expr *ast_create_sized_array_alloc_expr(Arena *arena, Type *element_type, Expr *size_expr, Expr *default_value, const Token *loc_token);
 Expr *ast_create_increment_expr(Arena *arena, Expr *operand, const Token *loc_token);
 Expr *ast_create_decrement_expr(Arena *arena, Expr *operand, const Token *loc_token);
 Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, char **format_specs, int part_count, const Token *loc_token);

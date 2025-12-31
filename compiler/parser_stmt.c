@@ -1,6 +1,7 @@
 #include "parser_stmt.h"
 #include "parser_util.h"
 #include "parser_expr.h"
+#include "ast_expr.h"
 #include "debug.h"
 #include <stdlib.h>
 #include <string.h>
@@ -287,9 +288,18 @@ Stmt *parser_var_declaration(Parser *parser)
     // Type annotation is optional if there's an initializer (type inference)
     Type *type = NULL;
     MemoryQualifier mem_qualifier = MEM_DEFAULT;
+    Expr *sized_array_size_expr = NULL;
     if (parser_match(parser, TOKEN_COLON))
     {
-        type = parser_type(parser);
+        ParsedType parsed = parser_type_with_size(parser);
+        type = parsed.type;
+
+        /* Check if this is a sized array type (e.g., int[10]) */
+        if (parsed.is_sized_array)
+        {
+            sized_array_size_expr = parsed.size_expr;
+        }
+
         // Parse optional "as val" or "as ref" after type
         mem_qualifier = parser_memory_qualifier(parser);
     }
@@ -298,6 +308,16 @@ Stmt *parser_var_declaration(Parser *parser)
     if (parser_match(parser, TOKEN_EQUAL))
     {
         initializer = parser_expression(parser);
+    }
+
+    /* If this is a sized array declaration, create the sized array alloc expression */
+    if (sized_array_size_expr != NULL)
+    {
+        Expr *default_value = initializer; /* The initializer becomes the default value */
+        initializer = ast_create_sized_array_alloc_expr(
+            parser->arena, type, sized_array_size_expr, default_value, &var_token);
+        /* The variable type becomes an array of the element type */
+        type = ast_create_array_type(parser->arena, type);
     }
 
     // Must have either type annotation or initializer (or both)

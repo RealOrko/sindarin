@@ -7,9 +7,8 @@
 // Sieve of Eratosthenes - finds all primes up to n
 fn sieve(n: int): int =>
     // Create array of bools (true = potentially prime)
-    var is_prime: bool[] = {}
-    for var i: int = 0; i <= n; i++ =>
-        is_prime.push(true)
+    // Using sized array allocation for O(1) initialization
+    var is_prime: bool[n + 1] = true
 
     // 0 and 1 are not prime
     is_prime[0] = false

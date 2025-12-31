@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <string.h>
 
 /* ============================================================================
  * Arena Memory Management
@@ -132,8 +133,16 @@ RtBinaryFile *rt_binary_file_promote(RtArena *dest, RtArena *src_arena, RtBinary
  * String operations
  * ============================================================================ */
 
-/* String concatenation - allocates from arena */
+/* String concatenation - allocates from arena (IMMUTABLE string, no metadata) */
 char *rt_str_concat(RtArena *arena, const char *left, const char *right);
+
+/* MUTABLE string operations - these create/modify strings WITH RtStringMeta.
+ * Mutable strings have metadata stored before the string data, enabling
+ * efficient append operations and O(1) length queries via RT_STR_META(). */
+char *rt_string_with_capacity(RtArena *arena, size_t capacity);
+char *rt_string_from(RtArena *arena, const char *src);
+char *rt_string_ensure_mutable(RtArena *arena, char *str);
+char *rt_string_append(char *dest, const char *src);
 
 /* Print functions (no allocation) */
 void rt_print_long(long val);
@@ -161,13 +170,13 @@ long rt_div_long(long a, long b);
 long rt_mod_long(long a, long b);
 long rt_neg_long(long a);
 
-/* Long comparisons */
-int rt_eq_long(long a, long b);
-int rt_ne_long(long a, long b);
-int rt_lt_long(long a, long b);
-int rt_le_long(long a, long b);
-int rt_gt_long(long a, long b);
-int rt_ge_long(long a, long b);
+/* Long comparisons - inlined for performance */
+static inline int rt_eq_long(long a, long b) { return a == b; }
+static inline int rt_ne_long(long a, long b) { return a != b; }
+static inline int rt_lt_long(long a, long b) { return a < b; }
+static inline int rt_le_long(long a, long b) { return a <= b; }
+static inline int rt_gt_long(long a, long b) { return a > b; }
+static inline int rt_ge_long(long a, long b) { return a >= b; }
 
 /* Double arithmetic (with overflow checking) */
 double rt_add_double(double a, double b);
@@ -176,28 +185,119 @@ double rt_mul_double(double a, double b);
 double rt_div_double(double a, double b);
 double rt_neg_double(double a);
 
-/* Double comparisons */
-int rt_eq_double(double a, double b);
-int rt_ne_double(double a, double b);
-int rt_lt_double(double a, double b);
-int rt_le_double(double a, double b);
-int rt_gt_double(double a, double b);
-int rt_ge_double(double a, double b);
+/* Double comparisons - inlined for performance */
+static inline int rt_eq_double(double a, double b) { return a == b; }
+static inline int rt_ne_double(double a, double b) { return a != b; }
+static inline int rt_lt_double(double a, double b) { return a < b; }
+static inline int rt_le_double(double a, double b) { return a <= b; }
+static inline int rt_gt_double(double a, double b) { return a > b; }
+static inline int rt_ge_double(double a, double b) { return a >= b; }
 
-/* Boolean operations */
-int rt_not_bool(int a);
+/* Boolean operations - inlined for performance */
+static inline int rt_not_bool(int a) { return !a; }
 
 /* Increment/decrement */
 long rt_post_inc_long(long *p);
 long rt_post_dec_long(long *p);
 
-/* String comparisons */
-int rt_eq_string(const char *a, const char *b);
-int rt_ne_string(const char *a, const char *b);
-int rt_lt_string(const char *a, const char *b);
-int rt_le_string(const char *a, const char *b);
-int rt_gt_string(const char *a, const char *b);
-int rt_ge_string(const char *a, const char *b);
+/* String comparisons - inlined for performance */
+static inline int rt_eq_string(const char *a, const char *b) { return strcmp(a, b) == 0; }
+static inline int rt_ne_string(const char *a, const char *b) { return strcmp(a, b) != 0; }
+static inline int rt_lt_string(const char *a, const char *b) { return strcmp(a, b) < 0; }
+static inline int rt_le_string(const char *a, const char *b) { return strcmp(a, b) <= 0; }
+static inline int rt_gt_string(const char *a, const char *b) { return strcmp(a, b) > 0; }
+static inline int rt_ge_string(const char *a, const char *b) { return strcmp(a, b) >= 0; }
+
+/* ============================================================================
+ * Array Metadata
+ * ============================================================================
+ * Array metadata structure - stored immediately before array data in memory.
+ * This allows rt_array_length to be inlined for maximum performance.
+ * ============================================================================ */
+
+typedef struct {
+    RtArena *arena;  /* Arena that owns this array (for reallocation) */
+    size_t size;     /* Number of elements currently in the array */
+    size_t capacity; /* Total allocated space for elements */
+} RtArrayMetadata;
+
+/* ============================================================================
+ * String metadata structure - stored immediately before string data in memory.
+ * This allows rt_str_length to be inlined for maximum performance.
+ * ============================================================================
+ *
+ * MUTABLE VS IMMUTABLE STRINGS - DESIGN AND COMPATIBILITY
+ * --------------------------------------------------------
+ *
+ * The Sn runtime supports two kinds of strings:
+ *
+ * 1. IMMUTABLE STRINGS (traditional, no metadata):
+ *    - String literals: "hello" - plain char* pointing to read-only data
+ *    - Strings from rt_str_concat(): returns new immutable string each time
+ *    - Strings from rt_arena_strdup(): simple arena-allocated copy
+ *    - These are plain char* with NO metadata stored before them
+ *    - Use strlen() to get length (O(n) operation)
+ *
+ * 2. MUTABLE STRINGS (new, with metadata):
+ *    - Created with rt_string_with_capacity(): has RtStringMeta before data
+ *    - Can be appended to efficiently using rt_string_append()
+ *    - Pre-allocated capacity avoids reallocation for small appends
+ *    - Use RT_STR_META(s)->length for O(1) length access
+ *
+ * BACKWARD COMPATIBILITY APPROACH:
+ * - Existing code continues to work unchanged with immutable strings
+ * - Functions that modify strings MUST check if the string has metadata
+ *   before using RT_STR_META (otherwise undefined behavior)
+ * - Use rt_string_is_mutable(s) to check if a string has metadata
+ * - Immutable strings can be converted to mutable with rt_string_from()
+ *
+ * IMPORTANT: RT_STR_META(s) must ONLY be called on mutable strings created
+ * with rt_string_with_capacity() or rt_string_from(). Using it on literal
+ * strings or strings from rt_str_concat() will access invalid memory!
+ *
+ * ============================================================================ */
+
+typedef struct {
+    RtArena *arena;  /* Arena that owns this string (for reallocation) */
+    size_t length;   /* Number of characters in the string (excluding null) */
+    size_t capacity; /* Total allocated space for characters */
+} RtStringMeta;
+
+/* STRUCTURE SIZE AND MEMORY LAYOUT:
+ *
+ * RtStringMeta has the same memory layout philosophy as RtArrayMetadata:
+ * - Both contain: arena pointer + size/length + capacity
+ * - On 64-bit systems: sizeof(RtStringMeta) = 24 bytes (3 * 8 bytes)
+ * - On 32-bit systems: sizeof(RtStringMeta) = 12 bytes (3 * 4 bytes)
+ *
+ * Memory layout for mutable strings:
+ *   [RtStringMeta (24 bytes)] [string data...] [null terminator]
+ *                             ^
+ *                             |-- String pointer points HERE
+ *
+ * The metadata is stored BEFORE the string data pointer, so:
+ *   RT_STR_META(s) = (RtStringMeta*)((char*)s - sizeof(RtStringMeta))
+ *
+ * This matches the array metadata pattern where ArrayMetadata[-1] accesses
+ * the metadata stored before the array data.
+ */
+
+/* Compile-time size verification (24 bytes on 64-bit, 12 bytes on 32-bit) */
+_Static_assert(sizeof(RtStringMeta) == sizeof(RtArrayMetadata),
+               "RtStringMeta and RtArrayMetadata must have same size");
+_Static_assert(sizeof(RtStringMeta) == 3 * sizeof(void*),
+               "RtStringMeta size should be 3 pointers (arena + length + capacity)");
+
+/* Macro to access string metadata - stored immediately before string data.
+ * WARNING: Only use on mutable strings created with rt_string_with_capacity()
+ * or rt_string_from(). Using on immutable strings is undefined behavior! */
+#define RT_STR_META(s) ((RtStringMeta*)((char*)(s) - sizeof(RtStringMeta)))
+
+/* Get array length - inlined for performance (critical for loops) */
+static inline size_t rt_array_length(void *arr) {
+    if (arr == NULL) return 0;
+    return ((RtArrayMetadata *)arr)[-1].size;
+}
 
 /* Array operations - allocate from arena */
 long *rt_array_push_long(RtArena *arena, long *arr, long element);
@@ -206,9 +306,6 @@ char *rt_array_push_char(RtArena *arena, char *arr, char element);
 char **rt_array_push_string(RtArena *arena, char **arr, const char *element);
 int *rt_array_push_bool(RtArena *arena, int *arr, int element);
 unsigned char *rt_array_push_byte(RtArena *arena, unsigned char *arr, unsigned char element);
-
-/* Array length */
-size_t rt_array_length(void *arr);
 
 /* Array print functions */
 void rt_print_array_long(long *arr);
@@ -316,6 +413,14 @@ char *rt_array_create_char(RtArena *arena, size_t count, const char *data);
 int *rt_array_create_bool(RtArena *arena, size_t count, const int *data);
 unsigned char *rt_array_create_byte(RtArena *arena, size_t count, const unsigned char *data);
 char **rt_array_create_string(RtArena *arena, size_t count, const char **data);
+
+/* Array alloc with default value - creates array of count elements filled with default_value */
+long *rt_array_alloc_long(RtArena *arena, size_t count, long default_value);
+double *rt_array_alloc_double(RtArena *arena, size_t count, double default_value);
+char *rt_array_alloc_char(RtArena *arena, size_t count, char default_value);
+int *rt_array_alloc_bool(RtArena *arena, size_t count, int default_value);
+unsigned char *rt_array_alloc_byte(RtArena *arena, size_t count, unsigned char default_value);
+char **rt_array_alloc_string(RtArena *arena, size_t count, const char *default_value);
 
 /* Array equality functions - compare arrays element by element */
 int rt_array_eq_long(long *a, long *b);

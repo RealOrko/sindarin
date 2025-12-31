@@ -881,6 +881,14 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         DEBUG_VERBOSE("Returning function type for string isBlank method");
         return ast_create_function_type(table->arena, bool_type, param_types, 0);
     }
+    /* String append() method - appends to mutable string, returns new string pointer */
+    else if (object_type->kind == TYPE_STRING && strcmp(expr->as.member.member_name.start, "append") == 0)
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for string append method");
+        return ast_create_function_type(table->arena, string_type, param_types, 1);
+    }
     /* TextFile instance methods */
     else if (object_type->kind == TYPE_TEXT_FILE && token_equals(expr->as.member.member_name, "readChar"))
     {
@@ -2340,6 +2348,62 @@ static Type *type_check_static_call(Expr *expr, SymbolTable *table)
     return NULL;
 }
 
+static Type *type_check_sized_array_alloc(Expr *expr, SymbolTable *table)
+{
+    DEBUG_VERBOSE("Type checking sized array allocation");
+
+    /* Extract sized array allocation components */
+    Type *element_type = expr->as.sized_array_alloc.element_type;
+    Expr *size_expr = expr->as.sized_array_alloc.size_expr;
+    Expr *default_value = expr->as.sized_array_alloc.default_value;
+
+    DEBUG_VERBOSE("  element_type: %p, size_expr: %p, default_value: %p",
+                  (void *)element_type, (void *)size_expr, (void *)default_value);
+
+    /* 1. Validate size expression is an integer type */
+    Type *size_type = type_check_expr(size_expr, table);
+    if (size_type == NULL)
+    {
+        return NULL;
+    }
+
+    if (size_type->kind != TYPE_INT && size_type->kind != TYPE_LONG)
+    {
+        type_error(expr->token, "Array size must be an integer type");
+        return NULL;
+    }
+
+    DEBUG_VERBOSE("  size expression type validated: %d", size_type->kind);
+
+    /* 2. If default_value is present, verify it matches element_type */
+    if (default_value != NULL)
+    {
+        Type *default_type = type_check_expr(default_value, table);
+        if (default_type == NULL)
+        {
+            return NULL;
+        }
+
+        /* Check for exact type match */
+        if (!ast_type_equals(element_type, default_type))
+        {
+            /* Check for numeric type promotion (e.g., int default for long array) */
+            Type *promoted = get_promoted_type(table->arena, element_type, default_type);
+            if (promoted == NULL || !ast_type_equals(promoted, element_type))
+            {
+                type_error(expr->token, "Default value type does not match array element type");
+                return NULL;
+            }
+        }
+
+        DEBUG_VERBOSE("  default value type validated");
+    }
+
+    /* 3. Return array type of element_type */
+    DEBUG_VERBOSE("Returning sized array type with element type: %d", element_type->kind);
+    return ast_create_array_type(table->arena, element_type);
+}
+
 Type *type_check_expr(Expr *expr, SymbolTable *table)
 {
     if (expr == NULL)
@@ -2407,6 +2471,9 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_STATIC_CALL:
         t = type_check_static_call(expr, table);
+        break;
+    case EXPR_SIZED_ARRAY_ALLOC:
+        t = type_check_sized_array_alloc(expr, table);
         break;
     }
     expr->expr_type = t;

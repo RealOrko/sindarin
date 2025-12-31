@@ -367,6 +367,15 @@ void collect_used_variables(Expr *expr, Token **used_vars, int *used_count,
         }
         break;
 
+    case EXPR_SIZED_ARRAY_ALLOC:
+        /* Sized array allocations use both the size expression and default value */
+        collect_used_variables(expr->as.sized_array_alloc.size_expr, used_vars, used_count, used_capacity, arena);
+        if (expr->as.sized_array_alloc.default_value)
+        {
+            collect_used_variables(expr->as.sized_array_alloc.default_value, used_vars, used_count, used_capacity, arena);
+        }
+        break;
+
     case EXPR_LITERAL:
     default:
         break;
@@ -705,6 +714,14 @@ static Expr *simplify_noop_expr(Optimizer *opt, Expr *expr)
 
     case EXPR_MEMBER:
         expr->as.member.object = simplify_noop_expr(opt, expr->as.member.object);
+        break;
+
+    case EXPR_SIZED_ARRAY_ALLOC:
+        expr->as.sized_array_alloc.size_expr = simplify_noop_expr(opt, expr->as.sized_array_alloc.size_expr);
+        if (expr->as.sized_array_alloc.default_value)
+        {
+            expr->as.sized_array_alloc.default_value = simplify_noop_expr(opt, expr->as.sized_array_alloc.default_value);
+        }
         break;
 
     default:
@@ -1171,6 +1188,14 @@ Expr *optimize_string_expr(Optimizer *opt, Expr *expr)
     case EXPR_ARRAY_ACCESS:
         expr->as.array_access.array = optimize_string_expr(opt, expr->as.array_access.array);
         expr->as.array_access.index = optimize_string_expr(opt, expr->as.array_access.index);
+        break;
+
+    case EXPR_SIZED_ARRAY_ALLOC:
+        expr->as.sized_array_alloc.size_expr = optimize_string_expr(opt, expr->as.sized_array_alloc.size_expr);
+        if (expr->as.sized_array_alloc.default_value)
+        {
+            expr->as.sized_array_alloc.default_value = optimize_string_expr(opt, expr->as.sized_array_alloc.default_value);
+        }
         break;
 
     default:

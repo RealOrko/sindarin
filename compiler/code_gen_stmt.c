@@ -670,6 +670,16 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
 
     symbol_table_push_scope(gen->symbol_table);
     indented_fprintf(gen, indent, "{\n");
+
+    /* Track loop counter variable for optimization if initializer is a var declaration */
+    bool tracking_loop_counter = false;
+    if (stmt->initializer && stmt->initializer->type == STMT_VAR_DECL)
+    {
+        const char *var_name = stmt->initializer->as.var_decl.name.start;
+        push_loop_counter(gen, var_name);
+        tracking_loop_counter = true;
+    }
+
     if (stmt->initializer)
     {
         code_gen_statement(gen, stmt->initializer, indent + 1);
@@ -728,6 +738,13 @@ void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent)
 
     code_gen_free_locals(gen, gen->symbol_table->current, false, indent + 1);
     indented_fprintf(gen, indent, "}\n");
+
+    /* Pop loop counter if we were tracking one */
+    if (tracking_loop_counter)
+    {
+        pop_loop_counter(gen);
+    }
+
     symbol_table_pop_scope(gen->symbol_table);
 
     gen->in_shared_context = old_in_shared_context;
@@ -1208,4 +1225,52 @@ const char *pop_arena_from_stack(CodeGen *gen)
     }
     gen->arena_stack_depth--;
     return gen->arena_stack[gen->arena_stack_depth];
+}
+
+/* Push a loop counter variable name onto the tracking stack.
+ * Loop counters (like for-each __idx__ vars or C-style for loop vars starting at 0)
+ * are provably non-negative and can skip negative index checks. */
+void push_loop_counter(CodeGen *gen, const char *var_name)
+{
+    /* Grow stack if needed */
+    if (gen->loop_counter_count >= gen->loop_counter_capacity)
+    {
+        int new_cap = gen->loop_counter_capacity == 0 ? 8 : gen->loop_counter_capacity * 2;
+        char **new_stack = arena_alloc(gen->arena, new_cap * sizeof(char *));
+        for (int i = 0; i < gen->loop_counter_count; i++)
+        {
+            new_stack[i] = gen->loop_counter_names[i];
+        }
+        gen->loop_counter_names = new_stack;
+        gen->loop_counter_capacity = new_cap;
+    }
+    gen->loop_counter_names[gen->loop_counter_count] = arena_strdup(gen->arena, var_name);
+    gen->loop_counter_count++;
+}
+
+/* Pop a loop counter variable name from the tracking stack. */
+void pop_loop_counter(CodeGen *gen)
+{
+    if (gen->loop_counter_count > 0)
+    {
+        gen->loop_counter_count--;
+    }
+}
+
+/* Check if a variable name is a tracked loop counter (provably non-negative). */
+bool is_tracked_loop_counter(CodeGen *gen, const char *var_name)
+{
+    if (var_name == NULL)
+    {
+        return false;
+    }
+    for (int i = 0; i < gen->loop_counter_count; i++)
+    {
+        if (gen->loop_counter_names[i] != NULL &&
+            strcmp(gen->loop_counter_names[i], var_name) == 0)
+        {
+            return true;
+        }
+    }
+    return false;
 }

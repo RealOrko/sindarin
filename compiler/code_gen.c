@@ -38,6 +38,11 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->loop_arena_depth = 0;
     gen->loop_arena_capacity = 0;
 
+    /* Initialize loop counter tracking for optimization */
+    gen->loop_counter_names = NULL;
+    gen->loop_counter_count = 0;
+    gen->loop_counter_capacity = 0;
+
     /* Initialize private block arena stack */
     gen->arena_stack = NULL;
     gen->arena_stack_depth = 0;
@@ -97,7 +102,9 @@ static void code_gen_headers(CodeGen *gen)
     indented_fprintf(gen, 0, "#include <string.h>\n");
     indented_fprintf(gen, 0, "#include <stdio.h>\n");
     indented_fprintf(gen, 0, "#include <stdbool.h>\n");
-    indented_fprintf(gen, 0, "#include <limits.h>\n\n");
+    indented_fprintf(gen, 0, "#include <limits.h>\n");
+    /* Include runtime.h for inline function definitions (comparisons, array_length, etc.) */
+    indented_fprintf(gen, 0, "#include \"runtime.h\"\n\n");
 }
 
 static void code_gen_externs(CodeGen *gen)
@@ -153,43 +160,26 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char *rt_format_double(RtArena *, double, const char *);\n");
     indented_fprintf(gen, 0, "extern char *rt_format_string(RtArena *, const char *, const char *);\n\n");
 
-    indented_fprintf(gen, 0, "/* Runtime long arithmetic */\n");
+    indented_fprintf(gen, 0, "/* Runtime long arithmetic (comparisons are static inline in runtime.h) */\n");
     indented_fprintf(gen, 0, "extern long rt_add_long(long, long);\n");
     indented_fprintf(gen, 0, "extern long rt_sub_long(long, long);\n");
     indented_fprintf(gen, 0, "extern long rt_mul_long(long, long);\n");
     indented_fprintf(gen, 0, "extern long rt_div_long(long, long);\n");
     indented_fprintf(gen, 0, "extern long rt_mod_long(long, long);\n");
     indented_fprintf(gen, 0, "extern long rt_neg_long(long);\n");
-    indented_fprintf(gen, 0, "extern long rt_eq_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_ne_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_lt_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_le_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_gt_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_ge_long(long, long);\n");
+    /* rt_eq_long, rt_ne_long, etc. are static inline in runtime.h */
     indented_fprintf(gen, 0, "extern long rt_post_inc_long(long *);\n");
     indented_fprintf(gen, 0, "extern long rt_post_dec_long(long *);\n\n");
 
-    indented_fprintf(gen, 0, "/* Runtime double arithmetic */\n");
+    indented_fprintf(gen, 0, "/* Runtime double arithmetic (comparisons are static inline in runtime.h) */\n");
     indented_fprintf(gen, 0, "extern double rt_add_double(double, double);\n");
     indented_fprintf(gen, 0, "extern double rt_sub_double(double, double);\n");
     indented_fprintf(gen, 0, "extern double rt_mul_double(double, double);\n");
     indented_fprintf(gen, 0, "extern double rt_div_double(double, double);\n");
-    indented_fprintf(gen, 0, "extern double rt_neg_double(double);\n");
-    indented_fprintf(gen, 0, "extern long rt_eq_double(double, double);\n");
-    indented_fprintf(gen, 0, "extern long rt_ne_double(double, double);\n");
-    indented_fprintf(gen, 0, "extern long rt_lt_double(double, double);\n");
-    indented_fprintf(gen, 0, "extern long rt_le_double(double, double);\n");
-    indented_fprintf(gen, 0, "extern long rt_gt_double(double, double);\n");
-    indented_fprintf(gen, 0, "extern long rt_ge_double(double, double);\n\n");
+    indented_fprintf(gen, 0, "extern double rt_neg_double(double);\n\n");
+    /* rt_eq_double, rt_ne_double, etc. are static inline in runtime.h */
 
-    indented_fprintf(gen, 0, "/* Runtime boolean and string comparisons */\n");
-    indented_fprintf(gen, 0, "extern long rt_not_bool(long);\n");
-    indented_fprintf(gen, 0, "extern long rt_eq_string(const char *, const char *);\n");
-    indented_fprintf(gen, 0, "extern long rt_ne_string(const char *, const char *);\n");
-    indented_fprintf(gen, 0, "extern long rt_lt_string(const char *, const char *);\n");
-    indented_fprintf(gen, 0, "extern long rt_le_string(const char *, const char *);\n");
-    indented_fprintf(gen, 0, "extern long rt_gt_string(const char *, const char *);\n");
-    indented_fprintf(gen, 0, "extern long rt_ge_string(const char *, const char *);\n\n");
+    /* rt_not_bool, rt_eq_string, etc. are declared in runtime.h */
 
     indented_fprintf(gen, 0, "/* Runtime array operations */\n");
     indented_fprintf(gen, 0, "extern long *rt_array_push_long(RtArena *, long *, long);\n");
@@ -198,8 +188,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_push_string(RtArena *, char **, const char *);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_push_bool(RtArena *, int *, int);\n");
     indented_fprintf(gen, 0, "extern unsigned char *rt_array_push_byte(RtArena *, unsigned char *, unsigned char);\n");
-    indented_fprintf(gen, 0, "extern void **rt_array_push_ptr(RtArena *, void **, void *);\n");
-    indented_fprintf(gen, 0, "extern long rt_array_length(void *);\n\n");
+    indented_fprintf(gen, 0, "extern void **rt_array_push_ptr(RtArena *, void **, void *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array print functions */\n");
     indented_fprintf(gen, 0, "extern void rt_print_array_long(long *);\n");
@@ -447,6 +436,12 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_str_split_whitespace(RtArena *, const char *);\n");
     indented_fprintf(gen, 0, "extern char **rt_str_split_lines(RtArena *, const char *);\n");
     indented_fprintf(gen, 0, "extern int rt_str_is_blank(const char *);\n\n");
+
+    indented_fprintf(gen, 0, "/* Mutable string operations */\n");
+    indented_fprintf(gen, 0, "extern char *rt_string_with_capacity(RtArena *, size_t);\n");
+    indented_fprintf(gen, 0, "extern char *rt_string_from(RtArena *, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_string_ensure_mutable(RtArena *, char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_string_append(char *, const char *);\n\n");
 
     indented_fprintf(gen, 0, "/* Time type and operations */\n");
     indented_fprintf(gen, 0, "typedef struct RtTime RtTime;\n");

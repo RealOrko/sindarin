@@ -8,6 +8,9 @@
 /* Check if expression produces a temporary that needs cleanup */
 bool expression_produces_temp(Expr *expr);
 
+/* Check if an expression is provably non-negative (for array index optimization) */
+bool is_provably_non_negative(CodeGen *gen, Expr *expr);
+
 /* Main expression code generation entry point */
 char *code_gen_expression(CodeGen *gen, Expr *expr);
 

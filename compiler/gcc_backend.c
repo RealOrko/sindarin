@@ -142,17 +142,17 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     {
         snprintf(command, sizeof(command),
             "gcc -no-pie -fsanitize=address -fno-omit-frame-pointer -g "
-            "-w -std=c99 -D_GNU_SOURCE "
+            "-w -std=c99 -D_GNU_SOURCE -I\"%s\" "
             "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
-            c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
     }
     else
     {
         /* Still need -fsanitize=address because runtime objects require it */
         snprintf(command, sizeof(command),
-            "gcc -O2 -fsanitize=address -w -std=c99 -D_GNU_SOURCE "
+            "gcc -O2 -fsanitize=address -w -std=c99 -D_GNU_SOURCE -I\"%s\" "
             "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
-            c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
     }
 
     if (verbose)

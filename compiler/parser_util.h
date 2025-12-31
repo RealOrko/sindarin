@@ -25,6 +25,7 @@ void synchronize(Parser *parser);
 
 /* Type parsing */
 Type *parser_type(Parser *parser);
+ParsedType parser_type_with_size(Parser *parser);
 
 /* Static type name checking - returns 1 if identifier could be a static type name */
 int parser_is_static_type_name(const char *name, int length);
