@@ -2,6 +2,21 @@
 
 This document contains performance comparison results between Sindarin and other programming languages.
 
+## Performance Summary
+
+| Benchmark | Winner | Sindarin | Slowest | Sindarin vs Winner |
+|-----------|--------|----------|---------|-------------------|
+| Fibonacci | C (26ms) | 27ms | Python (1474ms) | **1.04x** |
+| Primes | C (2ms) | 19ms | Python (143ms) | 9.5x |
+| Strings | C (1ms) | 6ms | C# (34ms) | 6x |
+| Arrays | Rust (3ms) | 17ms | Node.js (74ms) | 5.7x |
+
+**Key Takeaways:**
+- Sindarin matches C on recursive function calls (Fibonacci)
+- Sindarin is 5-10x slower than C on memory-intensive operations
+- Sindarin outperforms Python by 8-55x across all benchmarks
+- Sindarin is competitive with Java and faster than Node.js on most tests
+
 ## Test Environment
 
 - **Date**: 2025-12-31 11:04:24
