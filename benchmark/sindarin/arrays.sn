@@ -8,9 +8,10 @@ fn main(): void =>
     var start: Time = Time.now()
 
     // Create array with 1,000,000 integers (0 to 999,999)
-    var arr: int[] = {}
+    // Use sized array allocation for O(1) initialization
+    var arr: int[1000000]
     for var i: int = 0; i < 1000000; i++ =>
-        arr.push(i)
+        arr[i] = i
 
     // Sum all elements
     var sum: int = 0
