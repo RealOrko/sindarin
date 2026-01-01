@@ -60,7 +60,7 @@ elem_type *rt_array_push_##suffix(RtArena *arena, elem_type *arr, elem_type elem
     alloc_arena = meta->arena ? meta->arena : arena;                           \
                                                                                \
     if (meta->size >= meta->capacity) {                                        \
-        new_capacity = meta->capacity * 2;                                     \
+        new_capacity = meta->capacity == 0 ? 4 : meta->capacity * 2;           \
         if (new_capacity < meta->capacity) {                                   \
             fprintf(stderr, "rt_array_push_" #suffix ": capacity overflow\n"); \
             exit(1);                                                           \
@@ -118,7 +118,7 @@ char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
     alloc_arena = meta->arena ? meta->arena : arena;
 
     if (meta->size >= meta->capacity) {
-        new_capacity = meta->capacity * 2;
+        new_capacity = meta->capacity == 0 ? 4 : meta->capacity * 2;
         if (new_capacity < meta->capacity) {
             fprintf(stderr, "rt_array_push_string: capacity overflow\n");
             exit(1);
@@ -1255,4 +1255,58 @@ char **rt_array_alloc_string(RtArena *arena, size_t count, const char *default_v
         }
     }
     return data;
+}
+
+/* ============================================================================
+ * Array Push Copy Functions (Non-mutating)
+ * ============================================================================
+ * Create a NEW array with element appended - the original is not modified.
+ */
+#define DEFINE_ARRAY_PUSH_COPY(suffix, elem_type)                               \
+elem_type *rt_array_push_copy_##suffix(RtArena *arena, elem_type *arr, elem_type elem) { \
+    size_t len = arr ? rt_array_length(arr) : 0;                                \
+    size_t new_len = len + 1;                                                   \
+    size_t capacity = new_len > 4 ? new_len : 4;                                \
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(elem_type)); \
+    if (meta == NULL) {                                                         \
+        fprintf(stderr, "rt_array_push_copy_" #suffix ": allocation failed\n"); \
+        exit(1);                                                                \
+    }                                                                           \
+    meta->arena = arena;                                                        \
+    meta->size = new_len;                                                       \
+    meta->capacity = capacity;                                                  \
+    elem_type *new_arr = (elem_type *)(meta + 1);                               \
+    for (size_t i = 0; i < len; i++) {                                          \
+        new_arr[i] = arr[i];                                                    \
+    }                                                                           \
+    new_arr[len] = elem;                                                        \
+    return new_arr;                                                             \
+}
+
+/* Generate array push copy functions for each type */
+DEFINE_ARRAY_PUSH_COPY(long, long)
+DEFINE_ARRAY_PUSH_COPY(double, double)
+DEFINE_ARRAY_PUSH_COPY(char, char)
+DEFINE_ARRAY_PUSH_COPY(bool, int)
+DEFINE_ARRAY_PUSH_COPY(byte, unsigned char)
+
+/* String push copy needs special handling to strdup elements */
+char **rt_array_push_copy_string(RtArena *arena, char **arr, const char *elem) {
+    size_t len = arr ? rt_array_length(arr) : 0;
+    size_t new_len = len + 1;
+    size_t capacity = new_len > 4 ? new_len : 4;
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_push_copy_string: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = new_len;
+    meta->capacity = capacity;
+    char **new_arr = (char **)(meta + 1);
+    for (size_t i = 0; i < len; i++) {
+        new_arr[i] = arr[i] ? rt_arena_strdup(arena, arr[i]) : NULL;
+    }
+    new_arr[len] = elem ? rt_arena_strdup(arena, elem) : NULL;
+    return new_arr;
 }

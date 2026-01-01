@@ -9,6 +9,9 @@
 #include "runtime/runtime_arithmetic_tests.c"
 #include "runtime/runtime_string_tests.c"
 #include "runtime/runtime_byte_tests.c"
+#include "runtime/runtime_array_tests.c"
+#include "runtime/runtime_time_tests.c"
+#include "runtime/runtime_path_tests.c"
 #include "standalone/symbol_table_tests.c"
 #include "standalone/token_tests.c"
 #include "type_checker/type_checker_tests.c"
@@ -39,6 +42,18 @@ int main()
     // *** Runtime Byte ***
 
     test_rt_byte_main();
+
+    // *** Runtime Array ***
+
+    test_rt_array_main();
+
+    // *** Runtime Time ***
+
+    test_rt_time_main();
+
+    // *** Runtime Path ***
+
+    test_rt_path_main();
 
     // *** AST ***
     

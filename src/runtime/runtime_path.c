@@ -288,15 +288,13 @@ char **rt_push_string_to_array(RtArena *arena, char **arr, const char *str) {
 /* List files in a directory (non-recursive) */
 char **rt_directory_list(RtArena *arena, const char *path) {
     if (path == NULL) {
-        fprintf(stderr, "Directory.list: path cannot be null\n");
-        exit(1);
+        return rt_create_string_array(arena, 4);  /* Return empty array */
     }
 
     DIR *dir = opendir(path);
     if (dir == NULL) {
-        fprintf(stderr, "Directory.list: cannot open directory '%s': %s\n",
-                path, strerror(errno));
-        exit(1);
+        /* Directory doesn't exist or can't be opened - return empty array */
+        return rt_create_string_array(arena, 4);
     }
 
     char **result = rt_create_string_array(arena, 16);
