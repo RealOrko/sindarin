@@ -12,6 +12,7 @@ Core documentation for the Sindarin programming language:
 | [TYPES.md](language/TYPES.md) | Primitive and built-in types |
 | [STRINGS.md](language/STRINGS.md) | String methods, interpolation, and escape sequences |
 | [ARRAYS.md](language/ARRAYS.md) | Array operations, slicing, and methods |
+| [LAMBDAS.md](language/LAMBDAS.md) | Lambda expressions and closures |
 | [FILE_IO.md](language/FILE_IO.md) | TextFile and BinaryFile operations |
 | [TIME.md](language/TIME.md) | Date and time operations |
 | [MEMORY.md](language/MEMORY.md) | Arena memory management |

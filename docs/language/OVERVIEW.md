@@ -270,6 +270,7 @@ bin/sn source.sn -g -o program
 - [TYPES.md](TYPES.md) - Primitive and built-in types
 - [STRINGS.md](STRINGS.md) - String methods and interpolation
 - [ARRAYS.md](ARRAYS.md) - Array operations and slicing
+- [LAMBDAS.md](LAMBDAS.md) - Lambda expressions and closures
 - [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile operations
 - [TIME.md](TIME.md) - Date and time operations
 - [MEMORY.md](MEMORY.md) - Arena memory management

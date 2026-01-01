@@ -101,6 +101,7 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 - [docs/language/TYPES.md](docs/language/TYPES.md) - Primitive and built-in types
 - [docs/language/STRINGS.md](docs/language/STRINGS.md) - String methods and interpolation
 - [docs/language/ARRAYS.md](docs/language/ARRAYS.md) - Array operations
+- [docs/language/LAMBDAS.md](docs/language/LAMBDAS.md) - Lambda expressions and closures
 - [docs/language/FILE_IO.md](docs/language/FILE_IO.md) - File I/O (TextFile, BinaryFile)
 - [docs/language/TIME.md](docs/language/TIME.md) - Time operations
 - [docs/language/MEMORY.md](docs/language/MEMORY.md) - Arena memory management
