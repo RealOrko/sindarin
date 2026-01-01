@@ -81,4 +81,10 @@ static inline int rt_ge_string(const char *a, const char *b) { return strcmp(a, 
 /* Check if string is empty or contains only whitespace */
 int rt_str_is_blank(const char *str);
 
+/* Split string on whitespace */
+char **rt_str_split_whitespace(RtArena *arena, const char *str);
+
+/* Split string on line endings */
+char **rt_str_split_lines(RtArena *arena, const char *str);
+
 #endif /* RUNTIME_H */

@@ -6,6 +6,9 @@
 #include "optimizer/optimizer_tests.c"
 #include "parser/parser_tests.c"
 #include "runtime/runtime_arena_tests.c"
+#include "runtime/runtime_arithmetic_tests.c"
+#include "runtime/runtime_string_tests.c"
+#include "runtime/runtime_byte_tests.c"
 #include "standalone/symbol_table_tests.c"
 #include "standalone/token_tests.c"
 #include "type_checker/type_checker_tests.c"
@@ -24,6 +27,18 @@ int main()
     // *** Runtime Arena ***
 
     test_rt_arena_main();
+
+    // *** Runtime Arithmetic ***
+
+    test_rt_arithmetic_main();
+
+    // *** Runtime String ***
+
+    test_rt_string_main();
+
+    // *** Runtime Byte ***
+
+    test_rt_byte_main();
 
     // *** AST ***
     

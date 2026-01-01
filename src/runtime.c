@@ -40,11 +40,61 @@ long rt_sub_long(long a, long b)
 
 long rt_mul_long(long a, long b)
 {
-    if (a != 0 && b != 0 && ((a > LONG_MAX / b) || (a < LONG_MIN / b)))
+    if (a == 0 || b == 0)
     {
-        fprintf(stderr, "rt_mul_long: overflow detected\n");
-        exit(1);
+        return 0;
     }
+
+    if ((a > 0 && b > 0) || (a < 0 && b < 0))
+    {
+        /* Result will be positive, check against LONG_MAX */
+        if (a > 0)
+        {
+            if (a > LONG_MAX / b)
+            {
+                fprintf(stderr, "rt_mul_long: overflow detected\n");
+                exit(1);
+            }
+        }
+        else
+        {
+            /* Both negative: need (-a) * (-b) <= LONG_MAX */
+            /* Special case: LONG_MIN cannot be negated */
+            if (a == LONG_MIN || b == LONG_MIN)
+            {
+                fprintf(stderr, "rt_mul_long: overflow detected\n");
+                exit(1);
+            }
+            if ((-a) > LONG_MAX / (-b))
+            {
+                fprintf(stderr, "rt_mul_long: overflow detected\n");
+                exit(1);
+            }
+        }
+    }
+    else
+    {
+        /* Result will be negative, check against LONG_MIN */
+        if (a > 0)
+        {
+            /* a > 0, b < 0 */
+            if (b < LONG_MIN / a)
+            {
+                fprintf(stderr, "rt_mul_long: overflow detected\n");
+                exit(1);
+            }
+        }
+        else
+        {
+            /* a < 0, b > 0 */
+            if (a < LONG_MIN / b)
+            {
+                fprintf(stderr, "rt_mul_long: overflow detected\n");
+                exit(1);
+            }
+        }
+    }
+
     return a * b;
 }
 

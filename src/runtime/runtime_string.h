@@ -123,6 +123,23 @@ void rt_print_array_byte(unsigned char *arr);
 void rt_print_array_string(char **arr);
 
 /* ============================================================================
+ * String Query Functions
+ * ============================================================================ */
+
+long rt_str_length(const char *str);
+long rt_str_indexOf(const char *str, const char *search);
+int rt_str_contains(const char *str, const char *search);
+long rt_str_charAt(const char *str, long index);
+char *rt_str_substring(RtArena *arena, const char *str, long start, long end);
+char *rt_str_toUpper(RtArena *arena, const char *str);
+char *rt_str_toLower(RtArena *arena, const char *str);
+int rt_str_startsWith(const char *str, const char *prefix);
+int rt_str_endsWith(const char *str, const char *suffix);
+char *rt_str_trim(RtArena *arena, const char *str);
+char *rt_str_replace(RtArena *arena, const char *str, const char *old, const char *new_str);
+char **rt_str_split(RtArena *arena, const char *str, const char *delimiter);
+
+/* ============================================================================
  * Inline String Functions
  * ============================================================================ */
 
