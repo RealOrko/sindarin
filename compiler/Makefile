@@ -1,18 +1,18 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -g -fsanitize=address -fno-omit-frame-pointer -MMD -MP -D_GNU_SOURCE
+CFLAGS = -Wall -Wextra -std=c99 -g -fsanitize=address -fno-omit-frame-pointer -MMD -MP -D_GNU_SOURCE -I. -Iruntime
 #CFLAGS = -Wall -Wextra -std=c99 -g -MMD -MP -D_GNU_SOURCE
 LDFLAGS = -fsanitize=address
 #LDFLAGS = 
 
 SRCDIR = .
-SRCS = arena.c file.c runtime.c token.c lexer.c lexer_util.c lexer_scan.c ast.c ast_type.c ast_expr.c ast_stmt.c ast_print.c parser.c parser_util.c parser_expr.c parser_stmt.c symbol_table.c code_gen.c code_gen_util.c code_gen_expr.c code_gen_stmt.c optimizer.c compiler.c debug.c diagnostic.c type_checker.c type_checker_util.c type_checker_expr.c type_checker_stmt.c gcc_backend.c main.c
-HEADERS = arena.h file.h runtime.h token.h lexer.h lexer_util.h lexer_scan.h ast.h ast_type.h ast_expr.h ast_stmt.h ast_print.h parser.h parser_util.h parser_expr.h parser_stmt.h symbol_table.h code_gen.h code_gen_util.h code_gen_expr.h code_gen_stmt.h optimizer.h compiler.h debug.h diagnostic.h type_checker.h type_checker_util.h type_checker_expr.h type_checker_stmt.h gcc_backend.h
+SRCS = arena.c file.c runtime.c token.c lexer.c lexer_util.c lexer_scan.c ast.c ast_type.c ast_expr.c ast_stmt.c ast_print.c parser.c parser_util.c parser_expr.c parser_stmt.c symbol_table.c code_gen.c code_gen_util.c code_gen_expr.c code_gen_expr_lambda.c code_gen_expr_call_array.c code_gen_expr_call_file.c code_gen_expr_call_string.c code_gen_expr_call_time.c code_gen_expr_array.c code_gen_expr_static.c code_gen_expr_string.c code_gen_stmt.c optimizer.c compiler.c debug.c diagnostic.c type_checker.c type_checker_util.c type_checker_expr.c type_checker_expr_call.c type_checker_stmt.c gcc_backend.c main.c runtime/runtime_arena.c runtime/runtime_string.c runtime/runtime_array.c runtime/runtime_text_file.c runtime/runtime_binary_file.c runtime/runtime_io.c runtime/runtime_byte.c runtime/runtime_path.c runtime/runtime_time.c
+HEADERS = arena.h file.h runtime.h token.h lexer.h lexer_util.h lexer_scan.h ast.h ast_type.h ast_expr.h ast_stmt.h ast_print.h parser.h parser_util.h parser_expr.h parser_stmt.h symbol_table.h code_gen.h code_gen_util.h code_gen_expr.h code_gen_expr_lambda.h code_gen_expr_call.h code_gen_expr_array.h code_gen_expr_static.h code_gen_expr_string.h code_gen_stmt.h optimizer.h compiler.h debug.h diagnostic.h type_checker.h type_checker_util.h type_checker_expr.h type_checker_expr_call.h type_checker_stmt.h gcc_backend.h runtime/runtime_arena.h runtime/runtime_string.h runtime/runtime_array.h runtime/runtime_file.h runtime/runtime_io.h runtime/runtime_byte.h runtime/runtime_path.h runtime/runtime_time.h
 BIN_DIR = ../bin
 OBJS = $(addprefix $(BIN_DIR)/, $(notdir $(SRCS:.c=.o)))
 DEPS = $(OBJS:.o=.d)
 TARGET = $(BIN_DIR)/sn
 
-VPATH = $(SRCDIR)
+VPATH = $(SRCDIR) runtime
 
 .PHONY: all clean
 
@@ -23,7 +23,16 @@ create-bin-dir:
 
 # Copy runtime.h to bin dir so generated code can include it
 copy-runtime-header: create-bin-dir
+	@mkdir -p $(BIN_DIR)/runtime
 	@cp runtime.h $(BIN_DIR)/runtime.h
+	@cp runtime/runtime_arena.h $(BIN_DIR)/runtime/runtime_arena.h
+	@cp runtime/runtime_string.h $(BIN_DIR)/runtime/runtime_string.h
+	@cp runtime/runtime_array.h $(BIN_DIR)/runtime/runtime_array.h
+	@cp runtime/runtime_file.h $(BIN_DIR)/runtime/runtime_file.h
+	@cp runtime/runtime_io.h $(BIN_DIR)/runtime/runtime_io.h
+	@cp runtime/runtime_byte.h $(BIN_DIR)/runtime/runtime_byte.h
+	@cp runtime/runtime_path.h $(BIN_DIR)/runtime/runtime_path.h
+	@cp runtime/runtime_time.h $(BIN_DIR)/runtime/runtime_time.h
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -43,7 +52,7 @@ TEST_TARGET = $(BIN_DIR)/tests
 
 tests: create-bin-dir $(TEST_TARGET)
 
-$(TEST_TARGET): $(TEST_OBJS) $(BIN_DIR)/arena.o $(BIN_DIR)/debug.o $(BIN_DIR)/diagnostic.o $(BIN_DIR)/ast.o $(BIN_DIR)/ast_type.o $(BIN_DIR)/ast_expr.o $(BIN_DIR)/ast_stmt.o $(BIN_DIR)/ast_print.o $(BIN_DIR)/code_gen.o $(BIN_DIR)/code_gen_util.o $(BIN_DIR)/code_gen_expr.o $(BIN_DIR)/code_gen_stmt.o $(BIN_DIR)/optimizer.o $(BIN_DIR)/lexer.o $(BIN_DIR)/lexer_util.o $(BIN_DIR)/lexer_scan.o $(BIN_DIR)/parser.o $(BIN_DIR)/parser_util.o $(BIN_DIR)/parser_expr.o $(BIN_DIR)/parser_stmt.o $(BIN_DIR)/symbol_table.o $(BIN_DIR)/type_checker.o $(BIN_DIR)/type_checker_util.o $(BIN_DIR)/type_checker_expr.o $(BIN_DIR)/type_checker_stmt.o $(BIN_DIR)/token.o $(BIN_DIR)/file.o $(BIN_DIR)/runtime.o
+$(TEST_TARGET): $(TEST_OBJS) $(BIN_DIR)/arena.o $(BIN_DIR)/debug.o $(BIN_DIR)/diagnostic.o $(BIN_DIR)/ast.o $(BIN_DIR)/ast_type.o $(BIN_DIR)/ast_expr.o $(BIN_DIR)/ast_stmt.o $(BIN_DIR)/ast_print.o $(BIN_DIR)/code_gen.o $(BIN_DIR)/code_gen_util.o $(BIN_DIR)/code_gen_expr.o $(BIN_DIR)/code_gen_expr_lambda.o $(BIN_DIR)/code_gen_expr_call_array.o $(BIN_DIR)/code_gen_expr_call_file.o $(BIN_DIR)/code_gen_expr_call_string.o $(BIN_DIR)/code_gen_expr_call_time.o $(BIN_DIR)/code_gen_expr_array.o $(BIN_DIR)/code_gen_expr_static.o $(BIN_DIR)/code_gen_expr_string.o $(BIN_DIR)/code_gen_stmt.o $(BIN_DIR)/optimizer.o $(BIN_DIR)/lexer.o $(BIN_DIR)/lexer_util.o $(BIN_DIR)/lexer_scan.o $(BIN_DIR)/parser.o $(BIN_DIR)/parser_util.o $(BIN_DIR)/parser_expr.o $(BIN_DIR)/parser_stmt.o $(BIN_DIR)/symbol_table.o $(BIN_DIR)/type_checker.o $(BIN_DIR)/type_checker_util.o $(BIN_DIR)/type_checker_expr.o $(BIN_DIR)/type_checker_expr_call.o $(BIN_DIR)/type_checker_stmt.o $(BIN_DIR)/token.o $(BIN_DIR)/file.o $(BIN_DIR)/runtime.o $(BIN_DIR)/runtime_arena.o $(BIN_DIR)/runtime_string.o $(BIN_DIR)/runtime_array.o $(BIN_DIR)/runtime_text_file.o $(BIN_DIR)/runtime_binary_file.o $(BIN_DIR)/runtime_io.o $(BIN_DIR)/runtime_byte.o $(BIN_DIR)/runtime_path.o
 	$(CC) $(LDFLAGS) -o $@ $^
 
 $(BIN_DIR)/%.o: $(TEST_SRCDIR)/%.c

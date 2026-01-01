@@ -1,4 +1,9 @@
 #include "code_gen_expr.h"
+#include "code_gen_expr_lambda.h"
+#include "code_gen_expr_call.h"
+#include "code_gen_expr_array.h"
+#include "code_gen_expr_static.h"
+#include "code_gen_expr_string.h"
 #include "code_gen_util.h"
 #include "code_gen_stmt.h"
 #include "debug.h"
@@ -10,441 +15,31 @@
 
 /* Forward declarations */
 char *code_gen_range_expression(CodeGen *gen, Expr *expr);
-static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr);
+/* code_gen_lambda_expression is now in code_gen_expr_lambda.h */
 
-/* Helper structure for captured variable tracking */
-typedef struct {
-    char **names;
-    Type **types;
-    int count;
-    int capacity;
-} CapturedVars;
+/* CapturedVars structure, captured_vars_init, captured_vars_add -
+ * RELOCATED to code_gen_expr_lambda.h/c */
 
-static void captured_vars_init(CapturedVars *cv)
-{
-    cv->names = NULL;
-    cv->types = NULL;
-    cv->count = 0;
-    cv->capacity = 0;
-}
+/* is_primitive_type - RELOCATED to code_gen_expr_lambda.c */
 
-static void captured_vars_add(CapturedVars *cv, Arena *arena, const char *name, Type *type)
-{
-    /* Check if already captured */
-    for (int i = 0; i < cv->count; i++)
-    {
-        if (strcmp(cv->names[i], name) == 0)
-            return;
-    }
-    /* Grow arrays if needed */
-    if (cv->count >= cv->capacity)
-    {
-        int new_cap = cv->capacity == 0 ? 4 : cv->capacity * 2;
-        char **new_names = arena_alloc(arena, new_cap * sizeof(char *));
-        Type **new_types = arena_alloc(arena, new_cap * sizeof(Type *));
-        for (int i = 0; i < cv->count; i++)
-        {
-            new_names[i] = cv->names[i];
-            new_types[i] = cv->types[i];
-        }
-        cv->names = new_names;
-        cv->types = new_types;
-        cv->capacity = new_cap;
-    }
-    cv->names[cv->count] = arena_strdup(arena, name);
-    cv->types[cv->count] = type;
-    cv->count++;
-}
+/* is_provably_non_negative - RELOCATED to code_gen_expr_array.c */
 
-/* Check if a type is a primitive that needs pointer indirection for capture-by-reference.
- * Primitives (int, long, double, bool, byte, char) need to be captured by pointer
- * so that mutations inside the lambda persist to the original variable.
- * Reference types (arrays, strings, files) are already pointers and don't need indirection. */
-static bool is_primitive_type(Type *type)
-{
-    if (type == NULL) return false;
-    switch (type->kind) {
-        case TYPE_INT:
-        case TYPE_LONG:
-        case TYPE_DOUBLE:
-        case TYPE_BOOL:
-        case TYPE_BYTE:
-        case TYPE_CHAR:
-            return true;
-        default:
-            return false;
-    }
-}
-
-/* Check if an expression is provably non-negative (for array index optimization).
- * Returns true for:
- *   - Integer literals >= 0
- *   - Long literals >= 0
- *   - Variables that are tracked as loop counters (provably non-negative)
- * Returns false for negative literals, untracked variables, and all other expressions.
+/* RELOCATED to code_gen_expr_lambda.h/c:
+ * - LocalVars structure
+ * - EnclosingLambdaContext structure
+ * - find_enclosing_lambda_param function
+ * - local_vars_init, local_vars_add, collect_local_vars_from_stmt
  */
-bool is_provably_non_negative(CodeGen *gen, Expr *expr)
-{
-    if (expr == NULL) return false;
 
-    /* Check for non-negative integer/long literals */
-    if (expr->type == EXPR_LITERAL)
-    {
-        if (expr->as.literal.type == NULL) return false;
+/* is_local_var - RELOCATED to code_gen_expr_lambda.c */
 
-        if (expr->as.literal.type->kind == TYPE_INT ||
-            expr->as.literal.type->kind == TYPE_LONG)
-        {
-            return expr->as.literal.value.int_value >= 0;
-        }
-        /* Other literal types (double, bool, etc.) are not valid array indices */
-        return false;
-    }
+/* collect_local_vars_from_stmt - RELOCATED to code_gen_expr_lambda.c */
 
-    /* Check for loop counter variables (provably non-negative) */
-    if (expr->type == EXPR_VARIABLE)
-    {
-        char *var_name = get_var_name(gen->arena, expr->as.variable.name);
-        return is_tracked_loop_counter(gen, var_name);
-    }
+/* is_lambda_param - RELOCATED to code_gen_expr_lambda.c */
 
-    /* All other expression types are not provably non-negative */
-    return false;
-}
+/* collect_captured_vars - RELOCATED to code_gen_expr_lambda.c */
 
-/* Helper structure for local variable tracking in lambda bodies */
-typedef struct {
-    char **names;
-    int count;
-    int capacity;
-} LocalVars;
-
-/* Helper structure for tracking enclosing lambda parameters */
-typedef struct EnclosingLambdaContext {
-    LambdaExpr **lambdas;
-    int count;
-    int capacity;
-} EnclosingLambdaContext;
-
-/* Check if a name is a parameter of any enclosing lambda, and get its type */
-static Type *find_enclosing_lambda_param(EnclosingLambdaContext *ctx, const char *name)
-{
-    if (ctx == NULL) return NULL;
-    for (int i = 0; i < ctx->count; i++)
-    {
-        LambdaExpr *lambda = ctx->lambdas[i];
-        for (int j = 0; j < lambda->param_count; j++)
-        {
-            char param_name[256];
-            int len = lambda->params[j].name.length < 255 ? lambda->params[j].name.length : 255;
-            strncpy(param_name, lambda->params[j].name.start, len);
-            param_name[len] = '\0';
-            if (strcmp(param_name, name) == 0)
-            {
-                return lambda->params[j].type;
-            }
-        }
-    }
-    return NULL;
-}
-
-static void local_vars_init(LocalVars *lv)
-{
-    lv->names = NULL;
-    lv->count = 0;
-    lv->capacity = 0;
-}
-
-static void local_vars_add(LocalVars *lv, Arena *arena, const char *name)
-{
-    /* Check if already tracked */
-    for (int i = 0; i < lv->count; i++)
-    {
-        if (strcmp(lv->names[i], name) == 0)
-            return;
-    }
-    /* Grow array if needed */
-    if (lv->count >= lv->capacity)
-    {
-        int new_cap = lv->capacity == 0 ? 8 : lv->capacity * 2;
-        char **new_names = arena_alloc(arena, new_cap * sizeof(char *));
-        for (int i = 0; i < lv->count; i++)
-        {
-            new_names[i] = lv->names[i];
-        }
-        lv->names = new_names;
-        lv->capacity = new_cap;
-    }
-    lv->names[lv->count] = arena_strdup(arena, name);
-    lv->count++;
-}
-
-static bool is_local_var(LocalVars *lv, const char *name)
-{
-    for (int i = 0; i < lv->count; i++)
-    {
-        if (strcmp(lv->names[i], name) == 0)
-            return true;
-    }
-    return false;
-}
-
-/* Forward declaration for collecting locals from statements */
-static void collect_local_vars_from_stmt(Stmt *stmt, LocalVars *lv, Arena *arena);
-
-/* Collect local variable declarations from a statement */
-static void collect_local_vars_from_stmt(Stmt *stmt, LocalVars *lv, Arena *arena)
-{
-    if (stmt == NULL) return;
-
-    switch (stmt->type)
-    {
-    case STMT_VAR_DECL:
-    {
-        /* Add this variable to locals */
-        char name[256];
-        int len = stmt->as.var_decl.name.length < 255 ? stmt->as.var_decl.name.length : 255;
-        strncpy(name, stmt->as.var_decl.name.start, len);
-        name[len] = '\0';
-        local_vars_add(lv, arena, name);
-        break;
-    }
-    case STMT_BLOCK:
-        for (int i = 0; i < stmt->as.block.count; i++)
-            collect_local_vars_from_stmt(stmt->as.block.statements[i], lv, arena);
-        break;
-    case STMT_IF:
-        collect_local_vars_from_stmt(stmt->as.if_stmt.then_branch, lv, arena);
-        if (stmt->as.if_stmt.else_branch)
-            collect_local_vars_from_stmt(stmt->as.if_stmt.else_branch, lv, arena);
-        break;
-    case STMT_WHILE:
-        collect_local_vars_from_stmt(stmt->as.while_stmt.body, lv, arena);
-        break;
-    case STMT_FOR:
-        if (stmt->as.for_stmt.initializer)
-            collect_local_vars_from_stmt(stmt->as.for_stmt.initializer, lv, arena);
-        collect_local_vars_from_stmt(stmt->as.for_stmt.body, lv, arena);
-        break;
-    case STMT_FOR_EACH:
-    {
-        /* The loop variable is a local */
-        char name[256];
-        int len = stmt->as.for_each_stmt.var_name.length < 255 ? stmt->as.for_each_stmt.var_name.length : 255;
-        strncpy(name, stmt->as.for_each_stmt.var_name.start, len);
-        name[len] = '\0';
-        local_vars_add(lv, arena, name);
-        collect_local_vars_from_stmt(stmt->as.for_each_stmt.body, lv, arena);
-        break;
-    }
-    default:
-        break;
-    }
-}
-
-/* Helper to check if a name is a lambda parameter */
-static bool is_lambda_param(LambdaExpr *lambda, const char *name)
-{
-    for (int i = 0; i < lambda->param_count; i++)
-    {
-        char param_name[256];
-        int len = lambda->params[i].name.length < 255 ? lambda->params[i].name.length : 255;
-        strncpy(param_name, lambda->params[i].name.start, len);
-        param_name[len] = '\0';
-        if (strcmp(param_name, name) == 0)
-            return true;
-    }
-    return false;
-}
-
-/* Forward declaration for statement traversal */
-static void collect_captured_vars_from_stmt(Stmt *stmt, LambdaExpr *lambda, SymbolTable *table,
-                                            CapturedVars *cv, LocalVars *lv, EnclosingLambdaContext *enclosing, Arena *arena);
-
-/* Recursively collect captured variables from an expression */
-static void collect_captured_vars(Expr *expr, LambdaExpr *lambda, SymbolTable *table,
-                                  CapturedVars *cv, LocalVars *lv, EnclosingLambdaContext *enclosing, Arena *arena)
-{
-    if (expr == NULL) return;
-
-    switch (expr->type)
-    {
-    case EXPR_VARIABLE:
-    {
-        char name[256];
-        int len = expr->as.variable.name.length < 255 ? expr->as.variable.name.length : 255;
-        strncpy(name, expr->as.variable.name.start, len);
-        name[len] = '\0';
-
-        /* Skip if it's a lambda parameter */
-        if (is_lambda_param(lambda, name))
-            return;
-
-        /* Skip if it's a local variable declared in the lambda body */
-        if (lv != NULL && is_local_var(lv, name))
-            return;
-
-        /* Skip builtins */
-        if (strcmp(name, "print") == 0 || strcmp(name, "len") == 0)
-            return;
-
-        /* Look up in symbol table to see if it's an outer variable */
-        Symbol *sym = symbol_table_lookup_symbol(table, expr->as.variable.name);
-        if (sym != NULL)
-        {
-            /* It's a captured variable from outer scope */
-            captured_vars_add(cv, arena, name, sym->type);
-        }
-        else
-        {
-            /* Check if it's a parameter from an enclosing lambda */
-            Type *enclosing_type = find_enclosing_lambda_param(enclosing, name);
-            if (enclosing_type != NULL)
-            {
-                captured_vars_add(cv, arena, name, enclosing_type);
-            }
-        }
-        break;
-    }
-    case EXPR_BINARY:
-        collect_captured_vars(expr->as.binary.left, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.binary.right, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_UNARY:
-        collect_captured_vars(expr->as.unary.operand, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_ASSIGN:
-        collect_captured_vars(expr->as.assign.value, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_INDEX_ASSIGN:
-        collect_captured_vars(expr->as.index_assign.array, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.index_assign.index, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.index_assign.value, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_CALL:
-        collect_captured_vars(expr->as.call.callee, lambda, table, cv, lv, enclosing, arena);
-        for (int i = 0; i < expr->as.call.arg_count; i++)
-            collect_captured_vars(expr->as.call.arguments[i], lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_ARRAY:
-        for (int i = 0; i < expr->as.array.element_count; i++)
-            collect_captured_vars(expr->as.array.elements[i], lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_ARRAY_ACCESS:
-        collect_captured_vars(expr->as.array_access.array, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.array_access.index, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_INCREMENT:
-    case EXPR_DECREMENT:
-        collect_captured_vars(expr->as.operand, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_INTERPOLATED:
-        for (int i = 0; i < expr->as.interpol.part_count; i++)
-            collect_captured_vars(expr->as.interpol.parts[i], lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_MEMBER:
-        collect_captured_vars(expr->as.member.object, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_ARRAY_SLICE:
-        collect_captured_vars(expr->as.array_slice.array, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.array_slice.start, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.array_slice.end, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.array_slice.step, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_RANGE:
-        collect_captured_vars(expr->as.range.start, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars(expr->as.range.end, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_SPREAD:
-        collect_captured_vars(expr->as.spread.array, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case EXPR_LAMBDA:
-        /* Recurse into nested lambdas to collect transitive captures */
-        /* Variables captured by nested lambdas that are from outer scopes
-           need to be captured by this lambda too */
-        {
-            LambdaExpr *nested_lambda = &expr->as.lambda;
-            if (nested_lambda->has_stmt_body)
-            {
-                for (int i = 0; i < nested_lambda->body_stmt_count; i++)
-                {
-                    collect_captured_vars_from_stmt(nested_lambda->body_stmts[i], lambda, table, cv, lv, enclosing, arena);
-                }
-            }
-            else if (nested_lambda->body)
-            {
-                collect_captured_vars(nested_lambda->body, lambda, table, cv, lv, enclosing, arena);
-            }
-        }
-        break;
-    case EXPR_STATIC_CALL:
-        for (int i = 0; i < expr->as.static_call.arg_count; i++)
-        {
-            collect_captured_vars(expr->as.static_call.arguments[i], lambda, table, cv, lv, enclosing, arena);
-        }
-        break;
-    case EXPR_LITERAL:
-    default:
-        break;
-    }
-}
-
-/* Recursively collect captured variables from a statement */
-static void collect_captured_vars_from_stmt(Stmt *stmt, LambdaExpr *lambda, SymbolTable *table,
-                                            CapturedVars *cv, LocalVars *lv, EnclosingLambdaContext *enclosing, Arena *arena)
-{
-    if (stmt == NULL) return;
-
-    switch (stmt->type)
-    {
-    case STMT_EXPR:
-        collect_captured_vars(stmt->as.expression.expression, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_VAR_DECL:
-        if (stmt->as.var_decl.initializer)
-            collect_captured_vars(stmt->as.var_decl.initializer, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_RETURN:
-        if (stmt->as.return_stmt.value)
-            collect_captured_vars(stmt->as.return_stmt.value, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_BLOCK:
-        for (int i = 0; i < stmt->as.block.count; i++)
-            collect_captured_vars_from_stmt(stmt->as.block.statements[i], lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_IF:
-        collect_captured_vars(stmt->as.if_stmt.condition, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars_from_stmt(stmt->as.if_stmt.then_branch, lambda, table, cv, lv, enclosing, arena);
-        if (stmt->as.if_stmt.else_branch)
-            collect_captured_vars_from_stmt(stmt->as.if_stmt.else_branch, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_WHILE:
-        collect_captured_vars(stmt->as.while_stmt.condition, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars_from_stmt(stmt->as.while_stmt.body, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_FOR:
-        if (stmt->as.for_stmt.initializer)
-            collect_captured_vars_from_stmt(stmt->as.for_stmt.initializer, lambda, table, cv, lv, enclosing, arena);
-        if (stmt->as.for_stmt.condition)
-            collect_captured_vars(stmt->as.for_stmt.condition, lambda, table, cv, lv, enclosing, arena);
-        if (stmt->as.for_stmt.increment)
-            collect_captured_vars(stmt->as.for_stmt.increment, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars_from_stmt(stmt->as.for_stmt.body, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_FOR_EACH:
-        collect_captured_vars(stmt->as.for_each_stmt.iterable, lambda, table, cv, lv, enclosing, arena);
-        collect_captured_vars_from_stmt(stmt->as.for_each_stmt.body, lambda, table, cv, lv, enclosing, arena);
-        break;
-    case STMT_FUNCTION:
-        /* Don't recurse into nested functions - they have their own scope */
-        break;
-    case STMT_BREAK:
-    case STMT_CONTINUE:
-    case STMT_IMPORT:
-    default:
-        break;
-    }
-}
+/* collect_captured_vars_from_stmt: relocated to code_gen_expr_lambda.c */
 
 bool expression_produces_temp(Expr *expr)
 {
@@ -467,14 +62,7 @@ bool expression_produces_temp(Expr *expr)
     }
 }
 
-/* Check if an expression is a string literal - can be used directly without copying */
-static bool is_string_literal_expr(Expr *expr)
-{
-    if (expr == NULL) return false;
-    if (expr->type != EXPR_LITERAL) return false;
-    if (expr->expr_type == NULL) return false;
-    return expr->expr_type->kind == TYPE_STRING;
-}
+/* is_string_literal_expr - RELOCATED to code_gen_expr_string.c */
 
 /* Helper to determine if a type is numeric */
 static bool is_numeric(Type *type)
@@ -774,197 +362,66 @@ char *code_gen_index_assign_expression(CodeGen *gen, IndexAssignExpr *expr)
                          array_str, index_str, array_str, index_str, index_str, value_str);
 }
 
-/* Helper to get the format function for a type kind */
-static const char *get_rt_format_func(TypeKind kind)
-{
-    switch (kind)
-    {
-    case TYPE_INT:
-    case TYPE_LONG:
-        return "rt_format_long";
-    case TYPE_DOUBLE:
-        return "rt_format_double";
-    case TYPE_STRING:
-        return "rt_format_string";
-    default:
-        return NULL;  /* No format function for this type */
-    }
-}
-
-/* Check if any part has a format specifier */
-static bool has_any_format_spec(InterpolExpr *expr)
-{
-    if (expr->format_specs == NULL) return false;
-    for (int i = 0; i < expr->part_count; i++)
-    {
-        if (expr->format_specs[i] != NULL) return true;
-    }
-    return false;
-}
-
-char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
-{
-    DEBUG_VERBOSE("Entering code_gen_interpolated_expression");
-    int count = expr->part_count;
-    if (count == 0)
-    {
-        /* Empty interpolation - just return empty string literal directly */
-        return "\"\"";
-    }
-
-    /* Gather information about each part */
-    char **part_strs = arena_alloc(gen->arena, count * sizeof(char *));
-    Type **part_types = arena_alloc(gen->arena, count * sizeof(Type *));
-    bool *is_literal = arena_alloc(gen->arena, count * sizeof(bool));
-    bool *is_temp = arena_alloc(gen->arena, count * sizeof(bool));
-
-    int non_literal_count = 0;
-    int needs_conversion_count = 0;
-    bool uses_format_specs = has_any_format_spec(expr);
-
-    for (int i = 0; i < count; i++)
-    {
-        part_strs[i] = code_gen_expression(gen, expr->parts[i]);
-        part_types[i] = expr->parts[i]->expr_type;
-        is_literal[i] = is_string_literal_expr(expr->parts[i]);
-        is_temp[i] = expression_produces_temp(expr->parts[i]);
-
-        if (!is_literal[i]) non_literal_count++;
-        if (part_types[i]->kind != TYPE_STRING) needs_conversion_count++;
-    }
-
-    /* Optimization: Single string literal without format - use directly */
-    if (count == 1 && is_literal[0] && !uses_format_specs)
-    {
-        return part_strs[0];
-    }
-
-    /* Optimization: Single string variable/temp without format - return as is or copy */
-    if (count == 1 && part_types[0]->kind == TYPE_STRING && !uses_format_specs)
-    {
-        if (is_temp[0])
-        {
-            return part_strs[0];
-        }
-        else if (is_literal[0])
-        {
-            return part_strs[0];
-        }
-        else
-        {
-            /* Variable needs to be copied to arena */
-            return arena_sprintf(gen->arena, "rt_to_string_string(%s, %s)", ARENA_VAR(gen), part_strs[0]);
-        }
-    }
-
-    /* Optimization: Two string literals or all literals without format - simple concat */
-    if (count == 2 && needs_conversion_count == 0 && !is_temp[0] && !is_temp[1] && !uses_format_specs)
-    {
-        return arena_sprintf(gen->arena, "rt_str_concat(%s, %s, %s)", ARENA_VAR(gen), part_strs[0], part_strs[1]);
-    }
-
-    /* General case: Need to build a block expression */
-    char *result = arena_strdup(gen->arena, "({\n");
-
-    /* Track which parts need temp variables and which can be used directly */
-    char **use_strs = arena_alloc(gen->arena, count * sizeof(char *));
-    int temp_var_count = 0;
-
-    /* First pass: convert non-strings and capture temps, handle format specifiers */
-    for (int i = 0; i < count; i++)
-    {
-        char *format_spec = (expr->format_specs != NULL) ? expr->format_specs[i] : NULL;
-
-        if (format_spec != NULL)
-        {
-            /* Has format specifier - use rt_format_* functions */
-            const char *format_func = get_rt_format_func(part_types[i]->kind);
-            if (format_func != NULL)
-            {
-                result = arena_sprintf(gen->arena, "%s        char *_p%d = %s(%s, %s, \"%s\");\n",
-                                       result, temp_var_count, format_func, ARENA_VAR(gen), part_strs[i], format_spec);
-            }
-            else
-            {
-                /* Fallback: convert to string first, then format */
-                const char *to_str = get_rt_to_string_func(part_types[i]->kind);
-                result = arena_sprintf(gen->arena, "%s        char *_tmp%d = %s(%s, %s);\n",
-                                       result, temp_var_count, to_str, ARENA_VAR(gen), part_strs[i]);
-                result = arena_sprintf(gen->arena, "%s        char *_p%d = rt_format_string(%s, _tmp%d, \"%s\");\n",
-                                       result, temp_var_count, ARENA_VAR(gen), temp_var_count, format_spec);
-            }
-            use_strs[i] = arena_sprintf(gen->arena, "_p%d", temp_var_count);
-            temp_var_count++;
-        }
-        else if (part_types[i]->kind != TYPE_STRING)
-        {
-            /* Non-string needs conversion (no format specifier) */
-            const char *to_str = get_rt_to_string_func(part_types[i]->kind);
-            result = arena_sprintf(gen->arena, "%s        char *_p%d = %s(%s, %s);\n",
-                                   result, temp_var_count, to_str, ARENA_VAR(gen), part_strs[i]);
-            use_strs[i] = arena_sprintf(gen->arena, "_p%d", temp_var_count);
-            temp_var_count++;
-        }
-        else if (is_temp[i])
-        {
-            /* Temp string - capture it */
-            result = arena_sprintf(gen->arena, "%s        char *_p%d = %s;\n",
-                                   result, temp_var_count, part_strs[i]);
-            use_strs[i] = arena_sprintf(gen->arena, "_p%d", temp_var_count);
-            temp_var_count++;
-        }
-        else if (is_literal[i])
-        {
-            /* String literal - use directly (no copy needed) */
-            use_strs[i] = part_strs[i];
-        }
-        else
-        {
-            /* String variable - can use directly in concat (rt_str_concat handles it) */
-            use_strs[i] = part_strs[i];
-        }
-    }
-
-    /* Build concatenation chain */
-    if (count == 1)
-    {
-        result = arena_sprintf(gen->arena, "%s        %s;\n    })", result, use_strs[0]);
-        return result;
-    }
-    else if (count == 2)
-    {
-        result = arena_sprintf(gen->arena, "%s        rt_str_concat(%s, %s, %s);\n    })",
-                               result, ARENA_VAR(gen), use_strs[0], use_strs[1]);
-        return result;
-    }
-    else
-    {
-        /* Chain of concats - minimize intermediate vars */
-        result = arena_sprintf(gen->arena, "%s        char *_r = rt_str_concat(%s, %s, %s);\n",
-                               result, ARENA_VAR(gen), use_strs[0], use_strs[1]);
-
-        for (int i = 2; i < count; i++)
-        {
-            result = arena_sprintf(gen->arena, "%s        _r = rt_str_concat(%s, _r, %s);\n",
-                                   result, ARENA_VAR(gen), use_strs[i]);
-        }
-
-        result = arena_sprintf(gen->arena, "%s        _r;\n    })", result);
-        return result;
-    }
-}
+/* get_rt_format_func, has_any_format_spec, code_gen_interpolated_expression
+ * - RELOCATED to code_gen_expr_string.c */
 
 char *code_gen_call_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_call_expression");
     CallExpr *call = &expr->as.call;
-    
+
     if (call->callee->type == EXPR_MEMBER) {
         MemberExpr *member = &call->callee->as.member;
         char *member_name_str = get_var_name(gen->arena, member->member_name);
         Type *object_type = member->object->expr_type;
+        char *result = NULL;
 
+        /* Dispatch to type-specific handlers (modular code generation)
+         * Each handler returns NULL if it doesn't handle the method,
+         * allowing fallback to the original inline implementations.
+         */
+        switch (object_type->kind) {
+            case TYPE_ARRAY: {
+                Type *element_type = object_type->as.array.element_type;
+                result = code_gen_array_method_call(gen, expr, member_name_str,
+                    member->object, element_type, call->arg_count, call->arguments);
+                if (result) return result;
+                break;
+            }
+            case TYPE_STRING: {
+                bool object_is_temp = expression_produces_temp(member->object);
+                result = code_gen_string_method_call(gen, member_name_str,
+                    member->object, object_is_temp, call->arg_count, call->arguments);
+                if (result) return result;
+                break;
+            }
+            case TYPE_TEXT_FILE: {
+                result = code_gen_text_file_method_call(gen, member_name_str,
+                    member->object, call->arg_count, call->arguments);
+                if (result) return result;
+                break;
+            }
+            case TYPE_BINARY_FILE: {
+                result = code_gen_binary_file_method_call(gen, member_name_str,
+                    member->object, call->arg_count, call->arguments);
+                if (result) return result;
+                break;
+            }
+            case TYPE_TIME: {
+                result = code_gen_time_method_call(gen, member_name_str,
+                    member->object, call->arg_count, call->arguments);
+                if (result) return result;
+                break;
+            }
+            default:
+                break;
+        }
+
+        /* Fallback to original inline implementations for methods not yet
+         * handled by the modular handlers (e.g., append for strings).
+         */
         if (object_type->kind == TYPE_ARRAY) {
+            /* Array methods - fallback for methods not in modular handler */
             char *object_str = code_gen_expression(gen, member->object);
             Type *element_type = object_type->as.array.element_type;
 
@@ -1362,7 +819,11 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
         }
 
-        // Handle string methods
+        /* Handle string methods
+         * NOTE: These methods are also implemented in code_gen_expr_call_string.c
+         * for modular code generation. The implementations here remain for
+         * backward compatibility during the transition.
+         */
         if (object_type->kind == TYPE_STRING) {
             char *object_str = code_gen_expression(gen, member->object);
             bool object_is_temp = expression_produces_temp(member->object);
@@ -1624,7 +1085,11 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             #undef STRING_METHOD_RETURNING_STRING
         }
 
-        /* TextFile instance methods */
+        /* TextFile instance methods
+         * NOTE: These methods are also implemented in code_gen_expr_call_file.c
+         * for modular code generation. The implementations here remain for
+         * backward compatibility during the transition.
+         */
         if (object_type->kind == TYPE_TEXT_FILE) {
             char *object_str = code_gen_expression(gen, member->object);
 
@@ -1747,7 +1212,11 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
         }
 
-        /* BinaryFile instance methods */
+        /* BinaryFile instance methods
+         * NOTE: These methods are also implemented in code_gen_expr_call_file.c
+         * for modular code generation. The implementations here remain for
+         * backward compatibility during the transition.
+         */
         if (object_type->kind == TYPE_BINARY_FILE) {
             char *object_str = code_gen_expression(gen, member->object);
 
@@ -1828,7 +1297,11 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
         }
 
-        /* Time instance methods */
+        /* Time instance methods
+         * NOTE: These methods are also implemented in code_gen_expr_call_time.c
+         * for modular code generation. The implementations here remain for
+         * backward compatibility during the transition.
+         */
         if (object_type->kind == TYPE_TIME) {
             char *object_str = code_gen_expression(gen, member->object);
 
@@ -2240,136 +1713,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
     return result;
 }
 
-char *code_gen_array_expression(CodeGen *gen, Expr *e)
-{
-    ArrayExpr *arr = &e->as.array;
-    DEBUG_VERBOSE("Entering code_gen_array_expression");
-    Type *arr_type = e->expr_type;
-    if (arr_type->kind != TYPE_ARRAY) {
-        fprintf(stderr, "Error: Expected array type\n");
-        exit(1);
-    }
-    Type *elem_type = arr_type->as.array.element_type;
-    const char *elem_c = get_c_type(gen->arena, elem_type);
+/* code_gen_array_expression - RELOCATED to code_gen_expr_array.c */
 
-    // Check if we have any spread or range elements
-    bool has_complex = false;
-    for (int i = 0; i < arr->element_count; i++) {
-        if (arr->elements[i]->type == EXPR_SPREAD || arr->elements[i]->type == EXPR_RANGE) {
-            has_complex = true;
-            break;
-        }
-    }
-
-    // Determine the runtime function suffix based on element type
-    const char *suffix = NULL;
-    switch (elem_type->kind) {
-        case TYPE_INT: suffix = "long"; break;
-        case TYPE_DOUBLE: suffix = "double"; break;
-        case TYPE_CHAR: suffix = "char"; break;
-        case TYPE_BOOL: suffix = "bool"; break;
-        case TYPE_BYTE: suffix = "byte"; break;
-        case TYPE_STRING: suffix = "string"; break;
-        default: suffix = NULL; break;
-    }
-
-    // If we have spread or range elements, generate concatenation code
-    if (has_complex && suffix != NULL) {
-        // Start with empty array or first element
-        char *result = NULL;
-
-        for (int i = 0; i < arr->element_count; i++) {
-            Expr *elem = arr->elements[i];
-            char *elem_str;
-
-            if (elem->type == EXPR_SPREAD) {
-                // Spread: clone the array to avoid aliasing issues
-                char *arr_str = code_gen_expression(gen, elem->as.spread.array);
-                elem_str = arena_sprintf(gen->arena, "rt_array_clone_%s(%s, %s)", suffix, ARENA_VAR(gen), arr_str);
-            } else if (elem->type == EXPR_RANGE) {
-                // Range: concat the range result
-                elem_str = code_gen_range_expression(gen, elem);
-            } else {
-                // Regular element: create single-element array
-                char *val = code_gen_expression(gen, elem);
-                const char *literal_type = (elem_type->kind == TYPE_BOOL) ? "int" : elem_c;
-                elem_str = arena_sprintf(gen->arena, "rt_array_create_%s(%s, 1, (%s[]){%s})",
-                                        suffix, ARENA_VAR(gen), literal_type, val);
-            }
-
-            if (result == NULL) {
-                result = elem_str;
-            } else {
-                // Concat with previous result
-                result = arena_sprintf(gen->arena, "rt_array_concat_%s(%s, %s, %s)",
-                                      suffix, ARENA_VAR(gen), result, elem_str);
-            }
-        }
-
-        return result ? result : arena_sprintf(gen->arena, "rt_array_create_%s(%s, 0, NULL)", suffix, ARENA_VAR(gen));
-    }
-
-    // Simple case: no spread or range elements
-    // Build the element list
-    char *inits = arena_strdup(gen->arena, "");
-    for (int i = 0; i < arr->element_count; i++) {
-        char *el = code_gen_expression(gen, arr->elements[i]);
-        char *sep = i > 0 ? ", " : "";
-        inits = arena_sprintf(gen->arena, "%s%s%s", inits, sep, el);
-    }
-
-    if (suffix == NULL) {
-        // For empty arrays with unknown element type (TYPE_NIL), return NULL.
-        // The runtime handles NULL as an empty array.
-        if (arr->element_count == 0 && elem_type->kind == TYPE_NIL) {
-            return arena_strdup(gen->arena, "NULL");
-        }
-        // For empty arrays of function or nested array types, return NULL.
-        // The runtime push functions handle NULL as an empty array.
-        if (arr->element_count == 0 && (elem_type->kind == TYPE_FUNCTION || elem_type->kind == TYPE_ARRAY)) {
-            return arena_strdup(gen->arena, "NULL");
-        }
-        // For unsupported element types (like nested arrays), fall back to
-        // compound literal without runtime wrapper
-        return arena_sprintf(gen->arena, "(%s[]){%s}", elem_c, inits);
-    }
-
-    // Generate: rt_array_create_<suffix>(arena, count, (elem_type[]){...})
-    // For bool arrays, use "int" for compound literal since runtime uses int internally
-    const char *literal_type = (elem_type->kind == TYPE_BOOL) ? "int" : elem_c;
-    return arena_sprintf(gen->arena, "rt_array_create_%s(%s, %d, (%s[]){%s})",
-                         suffix, ARENA_VAR(gen), arr->element_count, literal_type, inits);
-}
-
-char *code_gen_array_access_expression(CodeGen *gen, ArrayAccessExpr *expr)
-{
-    DEBUG_VERBOSE("Entering code_gen_array_access_expression");
-    char *array_str = code_gen_expression(gen, expr->array);
-    char *index_str = code_gen_expression(gen, expr->index);
-
-    // Check if index is provably non-negative (literal >= 0 or tracked loop counter)
-    if (is_provably_non_negative(gen, expr->index))
-    {
-        // Non-negative index - direct array access, no adjustment needed
-        return arena_sprintf(gen->arena, "%s[%s]", array_str, index_str);
-    }
-
-    // Check if index is a negative literal - can simplify to: arr[len + idx]
-    if (expr->index->type == EXPR_LITERAL &&
-        expr->index->as.literal.type != NULL &&
-        (expr->index->as.literal.type->kind == TYPE_INT ||
-         expr->index->as.literal.type->kind == TYPE_LONG))
-    {
-        // Negative literal - adjust by array length
-        return arena_sprintf(gen->arena, "%s[rt_array_length(%s) + %s]",
-                             array_str, array_str, index_str);
-    }
-
-    // For potentially negative variable indices, generate runtime check
-    // arr[idx < 0 ? rt_array_length(arr) + idx : idx]
-    return arena_sprintf(gen->arena, "%s[(%s) < 0 ? rt_array_length(%s) + (%s) : (%s)]",
-                         array_str, index_str, array_str, index_str, index_str);
-}
+/* code_gen_array_access_expression - RELOCATED to code_gen_expr_array.c */
 
 char *code_gen_increment_expression(CodeGen *gen, Expr *expr)
 {
@@ -2423,6 +1769,7 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
         return arena_sprintf(gen->arena, "rt_str_length(%s)", object_str);
     }
 
+    /* TextFile and BinaryFile properties - also in code_gen_expr_call_file.c */
     // Handle TextFile.path
     if (object_type->kind == TYPE_TEXT_FILE && strcmp(member_name_str, "path") == 0) {
         return arena_sprintf(gen->arena, "rt_text_file_get_path(%s, %s)",
@@ -2481,879 +1828,15 @@ char *code_gen_spread_expression(CodeGen *gen, Expr *expr)
     return code_gen_expression(gen, expr->as.spread.array);
 }
 
-char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
-{
-    DEBUG_VERBOSE("Entering code_gen_array_slice_expression");
-    ArraySliceExpr *slice = &expr->as.array_slice;
+/* code_gen_array_slice_expression - RELOCATED to code_gen_expr_array.c */
 
-    char *array_str = code_gen_expression(gen, slice->array);
+/* code_gen_lambda_stmt_body - RELOCATED to code_gen_expr_lambda.c */
 
-    // Get start, end, and step values - use LONG_MIN to signal defaults
-    char *start_str = slice->start ? code_gen_expression(gen, slice->start) : "LONG_MIN";
-    char *end_str = slice->end ? code_gen_expression(gen, slice->end) : "LONG_MIN";
-    char *step_str = slice->step ? code_gen_expression(gen, slice->step) : "LONG_MIN";
+/* code_gen_lambda_expression - RELOCATED to code_gen_expr_lambda.c */
 
-    // Determine element type for the correct slice function
-    Type *array_type = slice->array->expr_type;
-    Type *elem_type = array_type->as.array.element_type;
+/* codegen_token_equals - RELOCATED to code_gen_expr_static.c */
 
-    const char *slice_func = NULL;
-    switch (elem_type->kind) {
-        case TYPE_LONG:
-        case TYPE_INT:
-            slice_func = "rt_array_slice_long";
-            break;
-        case TYPE_DOUBLE:
-            slice_func = "rt_array_slice_double";
-            break;
-        case TYPE_CHAR:
-            slice_func = "rt_array_slice_char";
-            break;
-        case TYPE_STRING:
-            slice_func = "rt_array_slice_string";
-            break;
-        case TYPE_BOOL:
-            slice_func = "rt_array_slice_bool";
-            break;
-        case TYPE_BYTE:
-            slice_func = "rt_array_slice_byte";
-            break;
-        default:
-            fprintf(stderr, "Error: Unsupported array element type for slice\n");
-            exit(1);
-    }
-
-    return arena_sprintf(gen->arena, "%s(%s, %s, %s, %s, %s)", slice_func, ARENA_VAR(gen), array_str, start_str, end_str, step_str);
-}
-
-/* Helper to generate statement body code for lambda
- * lambda_func_name: the generated function name like "__lambda_5__"
- * This sets up context so return statements work correctly */
-static char *code_gen_lambda_stmt_body(CodeGen *gen, LambdaExpr *lambda, int indent,
-                                        const char *lambda_func_name, Type *return_type)
-{
-    /* Save current context */
-    char *old_function = gen->current_function;
-    Type *old_return_type = gen->current_return_type;
-
-    /* Set up lambda context - use the lambda function name for return labels */
-    gen->current_function = (char *)lambda_func_name;
-    gen->current_return_type = return_type;
-
-    /* Generate code for each statement in the lambda body */
-    /* We need to capture the output since code_gen_statement writes to gen->output */
-    FILE *old_output = gen->output;
-    char *body_buffer = NULL;
-    size_t body_size = 0;
-    gen->output = open_memstream(&body_buffer, &body_size);
-
-    for (int i = 0; i < lambda->body_stmt_count; i++)
-    {
-        code_gen_statement(gen, lambda->body_stmts[i], indent);
-    }
-
-    fclose(gen->output);
-    gen->output = old_output;
-
-    /* Restore context */
-    gen->current_function = old_function;
-    gen->current_return_type = old_return_type;
-
-    /* Copy to arena and free temp buffer */
-    char *result = arena_strdup(gen->arena, body_buffer ? body_buffer : "");
-    free(body_buffer);
-
-    return result;
-}
-
-static char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
-{
-    DEBUG_VERBOSE("Entering code_gen_lambda_expression");
-    LambdaExpr *lambda = &expr->as.lambda;
-    int lambda_id = gen->lambda_count++;
-    FunctionModifier modifier = lambda->modifier;
-
-    /* Store the lambda_id in the expression for later reference */
-    expr->as.lambda.lambda_id = lambda_id;
-
-    /* Collect captured variables - from expression body or statement body */
-    CapturedVars cv;
-    captured_vars_init(&cv);
-
-    /* First collect local variables declared in the lambda body */
-    LocalVars lv;
-    local_vars_init(&lv);
-    if (lambda->has_stmt_body)
-    {
-        for (int i = 0; i < lambda->body_stmt_count; i++)
-        {
-            collect_local_vars_from_stmt(lambda->body_stmts[i], &lv, gen->arena);
-        }
-    }
-
-    /* Build enclosing lambda context from CodeGen state */
-    EnclosingLambdaContext enclosing;
-    enclosing.lambdas = gen->enclosing_lambdas;
-    enclosing.count = gen->enclosing_lambda_count;
-    enclosing.capacity = gen->enclosing_lambda_capacity;
-
-    /* Now collect captured variables, skipping locals */
-    if (lambda->has_stmt_body)
-    {
-        for (int i = 0; i < lambda->body_stmt_count; i++)
-        {
-            collect_captured_vars_from_stmt(lambda->body_stmts[i], lambda, gen->symbol_table, &cv, &lv, &enclosing, gen->arena);
-        }
-    }
-    else
-    {
-        collect_captured_vars(lambda->body, lambda, gen->symbol_table, &cv, NULL, &enclosing, gen->arena);
-    }
-
-    /* Get C types for return type and parameters */
-    const char *ret_c_type = get_c_type(gen->arena, lambda->return_type);
-
-    /* Build parameter list string for the static function */
-    /* First param is always the closure pointer (void *) */
-    char *params_decl = arena_strdup(gen->arena, "void *__closure__");
-
-    for (int i = 0; i < lambda->param_count; i++)
-    {
-        const char *param_c_type = get_c_type(gen->arena, lambda->params[i].type);
-        char *param_name = arena_strndup(gen->arena, lambda->params[i].name.start,
-                                         lambda->params[i].name.length);
-        params_decl = arena_sprintf(gen->arena, "%s, %s %s", params_decl, param_c_type, param_name);
-    }
-
-    /* Generate arena handling code based on modifier */
-    char *arena_setup = arena_strdup(gen->arena, "");
-    char *arena_cleanup = arena_strdup(gen->arena, "");
-
-    if (modifier == FUNC_PRIVATE)
-    {
-        /* Private lambda: create isolated arena, destroy before return */
-        arena_setup = arena_sprintf(gen->arena,
-            "    RtArena *__lambda_arena__ = rt_arena_create(NULL);\n"
-            "    (void)__closure__;\n");
-        arena_cleanup = arena_sprintf(gen->arena,
-            "    rt_arena_destroy(__lambda_arena__);\n");
-    }
-    else
-    {
-        /* Default/Shared lambda: use arena from closure */
-        arena_setup = arena_sprintf(gen->arena,
-            "    RtArena *__lambda_arena__ = ((__Closure__ *)__closure__)->arena;\n");
-    }
-
-    if (cv.count > 0)
-    {
-        /* Generate custom closure struct for this lambda (with arena field) */
-        char *struct_def = arena_sprintf(gen->arena,
-            "typedef struct __closure_%d__ {\n"
-            "    void *fn;\n"
-            "    RtArena *arena;\n",
-            lambda_id);
-        for (int i = 0; i < cv.count; i++)
-        {
-            const char *c_type = get_c_type(gen->arena, cv.types[i]);
-            /* For primitives, store pointers to enable mutation persistence.
-             * When a lambda modifies a captured primitive, the change must
-             * persist to the original variable and across multiple calls.
-             * Reference types (arrays, strings) are already pointers. */
-            if (is_primitive_type(cv.types[i]))
-            {
-                struct_def = arena_sprintf(gen->arena, "%s    %s *%s;\n",
-                                           struct_def, c_type, cv.names[i]);
-            }
-            else
-            {
-                struct_def = arena_sprintf(gen->arena, "%s    %s %s;\n",
-                                           struct_def, c_type, cv.names[i]);
-            }
-        }
-        struct_def = arena_sprintf(gen->arena, "%s} __closure_%d__;\n",
-                                   struct_def, lambda_id);
-
-        /* Add struct def to forward declarations (before lambda functions) */
-        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
-                                                  gen->lambda_forward_decls, struct_def);
-
-        /* Generate local variable declarations for captured vars in lambda body.
-         * For primitives, we create a pointer alias that points to the closure's
-         * stored pointer. This way, reads/writes use the pointer and mutations
-         * persist both to the original variable and across lambda calls.
-         * For reference types, we just copy the pointer value. */
-        char *capture_decls = arena_strdup(gen->arena, "");
-        for (int i = 0; i < cv.count; i++)
-        {
-            const char *c_type = get_c_type(gen->arena, cv.types[i]);
-            if (is_primitive_type(cv.types[i]))
-            {
-                /* For primitives, the closure stores a pointer (long*). We declare a local
-                 * pointer variable that references the closure's stored pointer, so access
-                 * like (*count) works naturally. We use a local variable instead of #define
-                 * to avoid macro replacement issues when this lambda creates nested closures
-                 * (where __cl__->name would have 'name' replaced by the macro). */
-                capture_decls = arena_sprintf(gen->arena,
-                    "%s    %s *%s = ((__closure_%d__ *)__closure__)->%s;\n",
-                    capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
-            }
-            else
-            {
-                /* Reference types: copy the pointer value */
-                capture_decls = arena_sprintf(gen->arena,
-                    "%s    %s %s = ((__closure_%d__ *)__closure__)->%s;\n",
-                    capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
-            }
-        }
-
-        /* Generate the static lambda function body - use lambda's arena */
-        char *saved_arena_var = gen->current_arena_var;
-        gen->current_arena_var = "__lambda_arena__";
-
-        /* Push this lambda to enclosing context for nested lambdas */
-        if (gen->enclosing_lambda_count >= gen->enclosing_lambda_capacity)
-        {
-            int new_cap = gen->enclosing_lambda_capacity == 0 ? 4 : gen->enclosing_lambda_capacity * 2;
-            LambdaExpr **new_lambdas = arena_alloc(gen->arena, new_cap * sizeof(LambdaExpr *));
-            for (int i = 0; i < gen->enclosing_lambda_count; i++)
-            {
-                new_lambdas[i] = gen->enclosing_lambdas[i];
-            }
-            gen->enclosing_lambdas = new_lambdas;
-            gen->enclosing_lambda_capacity = new_cap;
-        }
-        gen->enclosing_lambdas[gen->enclosing_lambda_count++] = lambda;
-
-        /* Generate forward declaration */
-        char *forward_decl = arena_sprintf(gen->arena,
-            "static %s __lambda_%d__(%s);\n",
-            ret_c_type, lambda_id, params_decl);
-
-        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
-                                                  gen->lambda_forward_decls, forward_decl);
-
-        /* Generate the actual lambda function definition with capture access */
-        char *lambda_func;
-        char *lambda_func_name = arena_sprintf(gen->arena, "__lambda_%d__", lambda_id);
-        if (lambda->has_stmt_body)
-        {
-            /* Multi-line lambda with statement body - needs return value and label */
-            char *body_code = code_gen_lambda_stmt_body(gen, lambda, 1, lambda_func_name, lambda->return_type);
-
-            /* Check if void return type - special handling needed */
-            int is_void_return = (lambda->return_type && lambda->return_type->kind == TYPE_VOID);
-
-            if (is_void_return)
-            {
-                /* Void return - no return value declaration needed */
-                if (modifier == FUNC_PRIVATE)
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static void %s(%s) {\n"
-                        "%s"
-                        "%s"
-                        "%s"
-                        "%s_return:\n"
-                        "%s"
-                        "    return;\n"
-                        "}\n\n",
-                        lambda_func_name, params_decl, arena_setup, capture_decls,
-                        body_code, lambda_func_name, arena_cleanup);
-                }
-                else
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static void %s(%s) {\n"
-                        "%s"
-                        "%s"
-                        "%s"
-                        "%s_return:\n"
-                        "    return;\n"
-                        "}\n\n",
-                        lambda_func_name, params_decl, arena_setup, capture_decls,
-                        body_code, lambda_func_name);
-                }
-            }
-            else
-            {
-                const char *default_val = get_default_value(lambda->return_type);
-                if (modifier == FUNC_PRIVATE)
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static %s %s(%s) {\n"
-                        "%s"
-                        "%s"
-                        "    %s _return_value = %s;\n"
-                        "%s"
-                        "%s_return:\n"
-                        "%s"
-                        "    return _return_value;\n"
-                        "}\n\n",
-                        ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls,
-                        ret_c_type, default_val, body_code, lambda_func_name, arena_cleanup);
-                }
-                else
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static %s %s(%s) {\n"
-                        "%s"
-                        "%s"
-                        "    %s _return_value = %s;\n"
-                        "%s"
-                        "%s_return:\n"
-                        "    return _return_value;\n"
-                        "}\n\n",
-                        ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls,
-                        ret_c_type, default_val, body_code, lambda_func_name);
-                }
-            }
-        }
-        else
-        {
-            /* Single-line lambda with expression body */
-            char *body_code = code_gen_expression(gen, lambda->body);
-            if (modifier == FUNC_PRIVATE)
-            {
-                /* Private: create arena, compute result, destroy arena, return */
-                lambda_func = arena_sprintf(gen->arena,
-                    "static %s %s(%s) {\n"
-                    "%s"
-                    "%s"
-                    "    %s __result__ = %s;\n"
-                    "%s"
-                    "    return __result__;\n"
-                    "}\n\n",
-                    ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls,
-                    ret_c_type, body_code, arena_cleanup);
-            }
-            else
-            {
-                lambda_func = arena_sprintf(gen->arena,
-                    "static %s %s(%s) {\n"
-                    "%s"
-                    "%s"
-                    "    return %s;\n"
-                    "}\n\n",
-                    ret_c_type, lambda_func_name, params_decl, arena_setup, capture_decls, body_code);
-            }
-        }
-        gen->current_arena_var = saved_arena_var;
-
-        /* Append to definitions buffer */
-        gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
-                                                gen->lambda_definitions, lambda_func);
-
-        /* Return code that creates and populates the closure */
-        char *closure_init = arena_sprintf(gen->arena,
-            "({\n"
-            "    __closure_%d__ *__cl__ = rt_arena_alloc(%s, sizeof(__closure_%d__));\n"
-            "    __cl__->fn = (void *)__lambda_%d__;\n"
-            "    __cl__->arena = %s;\n",
-            lambda_id, ARENA_VAR(gen), lambda_id, lambda_id, ARENA_VAR(gen));
-
-        for (int i = 0; i < cv.count; i++)
-        {
-            /* For primitives: the outer variable is now declared as a pointer
-             * (via the pre-pass that marks captured primitives for heap allocation).
-             * We simply store that pointer in the closure - both outer scope and
-             * closure now share the same arena-allocated storage.
-             * For reference types (arrays, strings), just copy the pointer value. */
-            if (is_primitive_type(cv.types[i]))
-            {
-                /* The variable is already a pointer - just copy it to the closure */
-                closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
-                                             closure_init, cv.names[i], cv.names[i]);
-            }
-            else
-            {
-                closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
-                                             closure_init, cv.names[i], cv.names[i]);
-            }
-        }
-        closure_init = arena_sprintf(gen->arena,
-            "%s    (__Closure__ *)__cl__;\n"
-            "})",
-            closure_init);
-
-        /* Pop this lambda from enclosing context */
-        gen->enclosing_lambda_count--;
-
-        return closure_init;
-    }
-    else
-    {
-        /* No captures - use simple generic closure */
-        /* Generate the static lambda function body - use lambda's arena */
-        char *saved_arena_var = gen->current_arena_var;
-        gen->current_arena_var = "__lambda_arena__";
-
-        /* Push this lambda to enclosing context for nested lambdas */
-        if (gen->enclosing_lambda_count >= gen->enclosing_lambda_capacity)
-        {
-            int new_cap = gen->enclosing_lambda_capacity == 0 ? 4 : gen->enclosing_lambda_capacity * 2;
-            LambdaExpr **new_lambdas = arena_alloc(gen->arena, new_cap * sizeof(LambdaExpr *));
-            for (int i = 0; i < gen->enclosing_lambda_count; i++)
-            {
-                new_lambdas[i] = gen->enclosing_lambdas[i];
-            }
-            gen->enclosing_lambdas = new_lambdas;
-            gen->enclosing_lambda_capacity = new_cap;
-        }
-        gen->enclosing_lambdas[gen->enclosing_lambda_count++] = lambda;
-
-        char *lambda_func_name = arena_sprintf(gen->arena, "__lambda_%d__", lambda_id);
-
-        /* Generate forward declaration */
-        char *forward_decl = arena_sprintf(gen->arena,
-            "static %s %s(%s);\n",
-            ret_c_type, lambda_func_name, params_decl);
-
-        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
-                                                  gen->lambda_forward_decls, forward_decl);
-
-        /* Generate the actual lambda function definition */
-        char *lambda_func;
-        if (lambda->has_stmt_body)
-        {
-            /* Multi-line lambda with statement body - needs return value and label */
-            char *body_code = code_gen_lambda_stmt_body(gen, lambda, 1, lambda_func_name, lambda->return_type);
-
-            /* Check if void return type - special handling needed */
-            int is_void_return = (lambda->return_type && lambda->return_type->kind == TYPE_VOID);
-
-            if (is_void_return)
-            {
-                /* Void return - no return value declaration needed */
-                if (modifier == FUNC_PRIVATE)
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static void %s(%s) {\n"
-                        "%s"
-                        "%s"
-                        "%s_return:\n"
-                        "%s"
-                        "    return;\n"
-                        "}\n\n",
-                        lambda_func_name, params_decl, arena_setup,
-                        body_code, lambda_func_name, arena_cleanup);
-                }
-                else
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static void %s(%s) {\n"
-                        "%s"
-                        "%s"
-                        "%s_return:\n"
-                        "    return;\n"
-                        "}\n\n",
-                        lambda_func_name, params_decl, arena_setup,
-                        body_code, lambda_func_name);
-                }
-            }
-            else
-            {
-                const char *default_val = get_default_value(lambda->return_type);
-                if (modifier == FUNC_PRIVATE)
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static %s %s(%s) {\n"
-                        "%s"
-                        "    %s _return_value = %s;\n"
-                        "%s"
-                        "%s_return:\n"
-                        "%s"
-                        "    return _return_value;\n"
-                        "}\n\n",
-                        ret_c_type, lambda_func_name, params_decl, arena_setup,
-                        ret_c_type, default_val, body_code, lambda_func_name, arena_cleanup);
-                }
-                else
-                {
-                    lambda_func = arena_sprintf(gen->arena,
-                        "static %s %s(%s) {\n"
-                        "%s"
-                        "    %s _return_value = %s;\n"
-                        "%s"
-                        "%s_return:\n"
-                        "    return _return_value;\n"
-                        "}\n\n",
-                        ret_c_type, lambda_func_name, params_decl, arena_setup,
-                        ret_c_type, default_val, body_code, lambda_func_name);
-                }
-            }
-        }
-        else
-        {
-            /* Single-line lambda with expression body */
-            char *body_code = code_gen_expression(gen, lambda->body);
-            if (modifier == FUNC_PRIVATE)
-            {
-                /* Private: create arena, compute result, destroy arena, return */
-                lambda_func = arena_sprintf(gen->arena,
-                    "static %s %s(%s) {\n"
-                    "%s"
-                    "    %s __result__ = %s;\n"
-                    "%s"
-                    "    return __result__;\n"
-                    "}\n\n",
-                    ret_c_type, lambda_func_name, params_decl, arena_setup,
-                    ret_c_type, body_code, arena_cleanup);
-            }
-            else
-            {
-                lambda_func = arena_sprintf(gen->arena,
-                    "static %s %s(%s) {\n"
-                    "%s"
-                    "    return %s;\n"
-                    "}\n\n",
-                    ret_c_type, lambda_func_name, params_decl, arena_setup, body_code);
-            }
-        }
-        gen->current_arena_var = saved_arena_var;
-
-        /* Append to definitions buffer */
-        gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
-                                                gen->lambda_definitions, lambda_func);
-
-        /* Pop this lambda from enclosing context */
-        gen->enclosing_lambda_count--;
-
-        /* Return code that creates the closure using generic __Closure__ type */
-        return arena_sprintf(gen->arena,
-            "({\n"
-            "    __Closure__ *__cl__ = rt_arena_alloc(%s, sizeof(__Closure__));\n"
-            "    __cl__->fn = (void *)__lambda_%d__;\n"
-            "    __cl__->arena = %s;\n"
-            "    __cl__;\n"
-            "})",
-            ARENA_VAR(gen), lambda_id, ARENA_VAR(gen));
-    }
-}
-
-static bool codegen_token_equals(Token tok, const char *str)
-{
-    size_t len = strlen(str);
-    return tok.length == (int)len && strncmp(tok.start, str, len) == 0;
-}
-
-static char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
-{
-    DEBUG_VERBOSE("Entering code_gen_static_call_expression");
-    StaticCallExpr *call = &expr->as.static_call;
-    Token type_name = call->type_name;
-    Token method_name = call->method_name;
-
-    /* Generate argument expressions */
-    char *arg0 = call->arg_count > 0 ? code_gen_expression(gen, call->arguments[0]) : NULL;
-    char *arg1 = call->arg_count > 1 ? code_gen_expression(gen, call->arguments[1]) : NULL;
-
-    /* TextFile static methods */
-    if (codegen_token_equals(type_name, "TextFile"))
-    {
-        if (codegen_token_equals(method_name, "open"))
-        {
-            /* TextFile.open(path) -> rt_text_file_open(arena, path) */
-            return arena_sprintf(gen->arena, "rt_text_file_open(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "exists"))
-        {
-            /* TextFile.exists(path) -> rt_text_file_exists(path) */
-            return arena_sprintf(gen->arena, "rt_text_file_exists(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "readAll"))
-        {
-            /* TextFile.readAll(path) -> rt_text_file_read_all(arena, path) */
-            return arena_sprintf(gen->arena, "rt_text_file_read_all(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "writeAll"))
-        {
-            /* TextFile.writeAll(path, content) -> rt_text_file_write_all(path, content) */
-            return arena_sprintf(gen->arena, "rt_text_file_write_all(%s, %s)", arg0, arg1);
-        }
-        else if (codegen_token_equals(method_name, "delete"))
-        {
-            /* TextFile.delete(path) -> rt_text_file_delete(path) */
-            return arena_sprintf(gen->arena, "rt_text_file_delete(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "copy"))
-        {
-            /* TextFile.copy(src, dst) -> rt_text_file_copy(src, dst) */
-            return arena_sprintf(gen->arena, "rt_text_file_copy(%s, %s)", arg0, arg1);
-        }
-        else if (codegen_token_equals(method_name, "move"))
-        {
-            /* TextFile.move(src, dst) -> rt_text_file_move(src, dst) */
-            return arena_sprintf(gen->arena, "rt_text_file_move(%s, %s)", arg0, arg1);
-        }
-    }
-
-    /* BinaryFile static methods */
-    if (codegen_token_equals(type_name, "BinaryFile"))
-    {
-        if (codegen_token_equals(method_name, "open"))
-        {
-            /* BinaryFile.open(path) -> rt_binary_file_open(arena, path) */
-            return arena_sprintf(gen->arena, "rt_binary_file_open(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "exists"))
-        {
-            /* BinaryFile.exists(path) -> rt_binary_file_exists(path) */
-            return arena_sprintf(gen->arena, "rt_binary_file_exists(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "readAll"))
-        {
-            /* BinaryFile.readAll(path) -> rt_binary_file_read_all(arena, path) */
-            return arena_sprintf(gen->arena, "rt_binary_file_read_all(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "writeAll"))
-        {
-            /* BinaryFile.writeAll(path, data) -> rt_binary_file_write_all(path, data) */
-            return arena_sprintf(gen->arena, "rt_binary_file_write_all(%s, %s)", arg0, arg1);
-        }
-        else if (codegen_token_equals(method_name, "delete"))
-        {
-            /* BinaryFile.delete(path) -> rt_binary_file_delete(path) */
-            return arena_sprintf(gen->arena, "rt_binary_file_delete(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "copy"))
-        {
-            /* BinaryFile.copy(src, dst) -> rt_binary_file_copy(src, dst) */
-            return arena_sprintf(gen->arena, "rt_binary_file_copy(%s, %s)", arg0, arg1);
-        }
-        else if (codegen_token_equals(method_name, "move"))
-        {
-            /* BinaryFile.move(src, dst) -> rt_binary_file_move(src, dst) */
-            return arena_sprintf(gen->arena, "rt_binary_file_move(%s, %s)", arg0, arg1);
-        }
-    }
-
-    /* Stdin static methods */
-    if (codegen_token_equals(type_name, "Stdin"))
-    {
-        if (codegen_token_equals(method_name, "readLine"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdin_read_line(%s)", ARENA_VAR(gen));
-        }
-        else if (codegen_token_equals(method_name, "readChar"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdin_read_char()");
-        }
-        else if (codegen_token_equals(method_name, "readWord"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdin_read_word(%s)", ARENA_VAR(gen));
-        }
-        else if (codegen_token_equals(method_name, "hasChars"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdin_has_chars()");
-        }
-        else if (codegen_token_equals(method_name, "hasLines"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdin_has_lines()");
-        }
-        else if (codegen_token_equals(method_name, "isEof"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdin_is_eof()");
-        }
-    }
-
-    /* Stdout static methods */
-    if (codegen_token_equals(type_name, "Stdout"))
-    {
-        if (codegen_token_equals(method_name, "write"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdout_write(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "writeLine"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdout_write_line(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "flush"))
-        {
-            return arena_sprintf(gen->arena, "rt_stdout_flush()");
-        }
-    }
-
-    /* Stderr static methods */
-    if (codegen_token_equals(type_name, "Stderr"))
-    {
-        if (codegen_token_equals(method_name, "write"))
-        {
-            return arena_sprintf(gen->arena, "rt_stderr_write(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "writeLine"))
-        {
-            return arena_sprintf(gen->arena, "rt_stderr_write_line(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "flush"))
-        {
-            return arena_sprintf(gen->arena, "rt_stderr_flush()");
-        }
-    }
-
-    /* Bytes static methods */
-    if (codegen_token_equals(type_name, "Bytes"))
-    {
-        if (codegen_token_equals(method_name, "fromHex"))
-        {
-            /* Bytes.fromHex(hex) -> rt_bytes_from_hex(arena, hex) */
-            return arena_sprintf(gen->arena, "rt_bytes_from_hex(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "fromBase64"))
-        {
-            /* Bytes.fromBase64(b64) -> rt_bytes_from_base64(arena, b64) */
-            return arena_sprintf(gen->arena, "rt_bytes_from_base64(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-    }
-
-    /* Path static methods */
-    if (codegen_token_equals(type_name, "Path"))
-    {
-        if (codegen_token_equals(method_name, "directory"))
-        {
-            /* Path.directory(path) -> rt_path_directory(arena, path) */
-            return arena_sprintf(gen->arena, "rt_path_directory(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "filename"))
-        {
-            /* Path.filename(path) -> rt_path_filename(arena, path) */
-            return arena_sprintf(gen->arena, "rt_path_filename(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "extension"))
-        {
-            /* Path.extension(path) -> rt_path_extension(arena, path) */
-            return arena_sprintf(gen->arena, "rt_path_extension(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "join"))
-        {
-            /* Path.join handles 2 or 3 arguments */
-            if (call->arg_count == 2)
-            {
-                return arena_sprintf(gen->arena, "rt_path_join2(%s, %s, %s)",
-                                     ARENA_VAR(gen), arg0, arg1);
-            }
-            else if (call->arg_count == 3)
-            {
-                char *arg2 = code_gen_expression(gen, call->arguments[2]);
-                return arena_sprintf(gen->arena, "rt_path_join3(%s, %s, %s, %s)",
-                                     ARENA_VAR(gen), arg0, arg1, arg2);
-            }
-            else
-            {
-                /* For more than 3 arguments, chain the joins */
-                char *result = arena_sprintf(gen->arena, "rt_path_join2(%s, %s, %s)",
-                                            ARENA_VAR(gen), arg0, arg1);
-                for (int i = 2; i < call->arg_count; i++)
-                {
-                    char *next_arg = code_gen_expression(gen, call->arguments[i]);
-                    result = arena_sprintf(gen->arena, "rt_path_join2(%s, %s, %s)",
-                                          ARENA_VAR(gen), result, next_arg);
-                }
-                return result;
-            }
-        }
-        else if (codegen_token_equals(method_name, "absolute"))
-        {
-            /* Path.absolute(path) -> rt_path_absolute(arena, path) */
-            return arena_sprintf(gen->arena, "rt_path_absolute(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "exists"))
-        {
-            /* Path.exists(path) -> rt_path_exists(path) */
-            return arena_sprintf(gen->arena, "rt_path_exists(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "isFile"))
-        {
-            /* Path.isFile(path) -> rt_path_is_file(path) */
-            return arena_sprintf(gen->arena, "rt_path_is_file(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "isDirectory"))
-        {
-            /* Path.isDirectory(path) -> rt_path_is_directory(path) */
-            return arena_sprintf(gen->arena, "rt_path_is_directory(%s)", arg0);
-        }
-    }
-
-    /* Directory static methods */
-    if (codegen_token_equals(type_name, "Directory"))
-    {
-        if (codegen_token_equals(method_name, "list"))
-        {
-            /* Directory.list(path) -> rt_directory_list(arena, path) */
-            return arena_sprintf(gen->arena, "rt_directory_list(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "listRecursive"))
-        {
-            /* Directory.listRecursive(path) -> rt_directory_list_recursive(arena, path) */
-            return arena_sprintf(gen->arena, "rt_directory_list_recursive(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "create"))
-        {
-            /* Directory.create(path) -> rt_directory_create(path) */
-            return arena_sprintf(gen->arena, "rt_directory_create(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "delete"))
-        {
-            /* Directory.delete(path) -> rt_directory_delete(path) */
-            return arena_sprintf(gen->arena, "rt_directory_delete(%s)", arg0);
-        }
-        else if (codegen_token_equals(method_name, "deleteRecursive"))
-        {
-            /* Directory.deleteRecursive(path) -> rt_directory_delete_recursive(path) */
-            return arena_sprintf(gen->arena, "rt_directory_delete_recursive(%s)", arg0);
-        }
-    }
-
-    /* Time static methods */
-    if (codegen_token_equals(type_name, "Time"))
-    {
-        if (codegen_token_equals(method_name, "now"))
-        {
-            /* Time.now() -> rt_time_now(arena) */
-            return arena_sprintf(gen->arena, "rt_time_now(%s)", ARENA_VAR(gen));
-        }
-        else if (codegen_token_equals(method_name, "utc"))
-        {
-            /* Time.utc() -> rt_time_utc(arena) */
-            return arena_sprintf(gen->arena, "rt_time_utc(%s)", ARENA_VAR(gen));
-        }
-        else if (codegen_token_equals(method_name, "fromMillis"))
-        {
-            /* Time.fromMillis(ms) -> rt_time_from_millis(arena, ms) */
-            return arena_sprintf(gen->arena, "rt_time_from_millis(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "fromSeconds"))
-        {
-            /* Time.fromSeconds(s) -> rt_time_from_seconds(arena, s) */
-            return arena_sprintf(gen->arena, "rt_time_from_seconds(%s, %s)",
-                                 ARENA_VAR(gen), arg0);
-        }
-        else if (codegen_token_equals(method_name, "sleep"))
-        {
-            /* Time.sleep(ms) -> rt_time_sleep(ms) */
-            return arena_sprintf(gen->arena, "rt_time_sleep(%s)", arg0);
-        }
-    }
-
-    /* Fallback for unimplemented static methods */
-    return arena_sprintf(gen->arena,
-        "(fprintf(stderr, \"Static method call not yet implemented: %.*s.%.*s\\n\"), exit(1), (void *)0)",
-        type_name.length, type_name.start,
-        method_name.length, method_name.start);
-}
+/* code_gen_static_call_expression - RELOCATED to code_gen_expr_static.c */
 
 static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
 {

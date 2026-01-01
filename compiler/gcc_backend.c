@@ -72,7 +72,16 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     char arena_obj[PATH_MAX];
     char debug_obj[PATH_MAX];
     char runtime_obj[PATH_MAX];
-    char command[PATH_MAX * 5 + 256];
+    char runtime_arena_obj[PATH_MAX];
+    char runtime_string_obj[PATH_MAX];
+    char runtime_array_obj[PATH_MAX];
+    char runtime_text_file_obj[PATH_MAX];
+    char runtime_binary_file_obj[PATH_MAX];
+    char runtime_io_obj[PATH_MAX];
+    char runtime_byte_obj[PATH_MAX];
+    char runtime_path_obj[PATH_MAX];
+    char runtime_time_obj[PATH_MAX];
+    char command[PATH_MAX * 16];
 
     /* Determine output executable path if not specified */
     if (output_exe == NULL || output_exe[0] == '\0')
@@ -98,6 +107,15 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     snprintf(arena_obj, sizeof(arena_obj), "%s/arena.o", compiler_dir);
     snprintf(debug_obj, sizeof(debug_obj), "%s/debug.o", compiler_dir);
     snprintf(runtime_obj, sizeof(runtime_obj), "%s/runtime.o", compiler_dir);
+    snprintf(runtime_arena_obj, sizeof(runtime_arena_obj), "%s/runtime_arena.o", compiler_dir);
+    snprintf(runtime_string_obj, sizeof(runtime_string_obj), "%s/runtime_string.o", compiler_dir);
+    snprintf(runtime_array_obj, sizeof(runtime_array_obj), "%s/runtime_array.o", compiler_dir);
+    snprintf(runtime_text_file_obj, sizeof(runtime_text_file_obj), "%s/runtime_text_file.o", compiler_dir);
+    snprintf(runtime_binary_file_obj, sizeof(runtime_binary_file_obj), "%s/runtime_binary_file.o", compiler_dir);
+    snprintf(runtime_io_obj, sizeof(runtime_io_obj), "%s/runtime_io.o", compiler_dir);
+    snprintf(runtime_byte_obj, sizeof(runtime_byte_obj), "%s/runtime_byte.o", compiler_dir);
+    snprintf(runtime_path_obj, sizeof(runtime_path_obj), "%s/runtime_path.o", compiler_dir);
+    snprintf(runtime_time_obj, sizeof(runtime_time_obj), "%s/runtime_time.o", compiler_dir);
 
     /* Check that runtime objects exist */
     if (access(arena_obj, R_OK) != 0)
@@ -114,6 +132,51 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     if (access(runtime_obj, R_OK) != 0)
     {
         fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_obj);
+        return false;
+    }
+    if (access(runtime_arena_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_arena_obj);
+        return false;
+    }
+    if (access(runtime_string_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_string_obj);
+        return false;
+    }
+    if (access(runtime_array_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_array_obj);
+        return false;
+    }
+    if (access(runtime_text_file_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_text_file_obj);
+        return false;
+    }
+    if (access(runtime_binary_file_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_binary_file_obj);
+        return false;
+    }
+    if (access(runtime_io_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_io_obj);
+        return false;
+    }
+    if (access(runtime_byte_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_byte_obj);
+        return false;
+    }
+    if (access(runtime_path_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_path_obj);
+        return false;
+    }
+    if (access(runtime_time_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_time_obj);
         return false;
     }
 
@@ -143,16 +206,16 @@ bool gcc_compile(const char *c_file, const char *output_exe,
         snprintf(command, sizeof(command),
             "gcc -no-pie -fsanitize=address -fno-omit-frame-pointer -g "
             "-w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_time_obj, exe_path, error_file);
     }
     else
     {
         /* Still need -fsanitize=address because runtime objects require it */
         snprintf(command, sizeof(command),
             "gcc -O2 -fsanitize=address -w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, exe_path, error_file);
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_time_obj, exe_path, error_file);
     }
 
     if (verbose)

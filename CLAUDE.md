@@ -92,4 +92,4 @@ Types: `int`, `long`, `double`, `str`, `char`, `bool`, `byte`, `void`
 
 Built-in types: `TextFile`, `BinaryFile`, `Time`
 
-See also: `docs/FILE_IO.md`, `docs/ARRAYS.md`, `docs/MEMORY.md`
+See also: `./IO.md`, `./ARRAY.md`, `./MEMORY.md`, `./TIME.md`, `./DATE.md`, `./OPTIMIZATIONS.md`
