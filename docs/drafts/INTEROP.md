@@ -1,8 +1,8 @@
 # C Interoperability in Sindarin
 
-This document specifies how Sindarin interfaces with native C libraries. Since Sindarin compiles to C, interoperability is natural but requires explicit declarations for external functions, headers, and linking.
+> **DRAFT - NOT IMPLEMENTED** - This document specifies how Sindarin will interface with native C libraries. It contains both decided features and open questions.
 
-**Status:** Draft - contains both decided features and open questions.
+Since Sindarin compiles to C, interoperability is natural but requires explicit declarations for external functions, headers, and linking.
 
 ---
 
@@ -323,6 +323,6 @@ int main() {
 
 ## See Also
 
-- [MEMORY.md](MEMORY.md) - Arena memory management
-- [ARRAYS.md](ARRAYS.md) - Array types and byte arrays
-- [FILE_IO.md](FILE_IO.md) - Built-in file I/O (example of runtime integration)
+- [MEMORY.md](../language/MEMORY.md) - Arena memory management
+- [ARRAYS.md](../language/ARRAYS.md) - Array types and byte arrays
+- [FILE_IO.md](../language/FILE_IO.md) - Built-in file I/O (example of runtime integration)

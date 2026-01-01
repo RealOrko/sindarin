@@ -92,4 +92,27 @@ Types: `int`, `long`, `double`, `str`, `char`, `bool`, `byte`, `void`
 
 Built-in types: `TextFile`, `BinaryFile`, `Time`
 
-See also: `./IO.md`, `./ARRAY.md`, `./MEMORY.md`, `./TIME.md`, `./DATE.md`, `./OPTIMIZATIONS.md`
+## 📖 Documentation
+
+See [docs/README.md](docs/README.md) for the full documentation index.
+
+**Language Reference:**
+- [docs/language/OVERVIEW.md](docs/language/OVERVIEW.md) - Language philosophy and syntax
+- [docs/language/TYPES.md](docs/language/TYPES.md) - Primitive and built-in types
+- [docs/language/STRINGS.md](docs/language/STRINGS.md) - String methods and interpolation
+- [docs/language/ARRAYS.md](docs/language/ARRAYS.md) - Array operations
+- [docs/language/FILE_IO.md](docs/language/FILE_IO.md) - File I/O (TextFile, BinaryFile)
+- [docs/language/TIME.md](docs/language/TIME.md) - Time operations
+- [docs/language/MEMORY.md](docs/language/MEMORY.md) - Arena memory management
+
+**Draft Specifications:**
+- [docs/drafts/DATE.md](docs/drafts/DATE.md) - Date type (not implemented)
+- [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
+- [docs/drafts/FORMAT_SPECIFIERS.md](docs/drafts/FORMAT_SPECIFIERS.md) - Format specifiers (draft)
+
+**Internal Documentation:**
+- [docs/internal/TESTING.md](docs/internal/TESTING.md) - Test coverage
+- [docs/internal/OPTIMIZATIONS.md](docs/internal/OPTIMIZATIONS.md) - Compiler optimizations
+- [docs/internal/RUNTIME.md](docs/internal/RUNTIME.md) - Runtime library
+- [docs/internal/REFACTOR.md](docs/internal/REFACTOR.md) - Refactoring notes
+- [docs/internal/ISSUES.md](docs/internal/ISSUES.md) - Known issues
