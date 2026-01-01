@@ -1,8 +1,14 @@
 CC = gcc
+
+# Release build (default): optimized, no sanitizer
+CFLAGS = -Wall -Wextra -std=c99 -O3 -flto -MMD -MP -D_GNU_SOURCE -I. -Iruntime
+LDFLAGS = -flto -O3
+
+# Debug build: use 'make DEBUG=1' for sanitizer and debug symbols
+ifdef DEBUG
 CFLAGS = -Wall -Wextra -std=c99 -g -fsanitize=address -fno-omit-frame-pointer -MMD -MP -D_GNU_SOURCE -I. -Iruntime
-#CFLAGS = -Wall -Wextra -std=c99 -g -MMD -MP -D_GNU_SOURCE
 LDFLAGS = -fsanitize=address
-#LDFLAGS = 
+endif
 
 SRCDIR = .
 SRCS = arena.c file.c runtime.c token.c \

@@ -181,9 +181,8 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     }
 
     /* Build GCC command
-     * Note: Runtime objects are compiled with address sanitizer, so we always
-     * need to link with -fsanitize=address. The debug_mode flag controls whether
-     * we include extra debug info (-g) and frame pointers.
+     * Note: Debug mode uses address sanitizer and debug symbols.
+     * Release mode uses -O3 and -flto for maximum optimization.
      *
      * We use -w to suppress all warnings on generated code - any issues should
      * be caught by the Sn type checker, not GCC. We redirect stderr to capture
@@ -211,9 +210,9 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     }
     else
     {
-        /* Still need -fsanitize=address because runtime objects require it */
+        /* Release mode: maximum optimization with -O3 and link-time optimization */
         snprintf(command, sizeof(command),
-            "gcc -O2 -fsanitize=address -w -std=c99 -D_GNU_SOURCE -I\"%s\" "
+            "gcc -O3 -flto -w -std=c99 -D_GNU_SOURCE -I\"%s\" "
             "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -o \"%s\" 2>\"%s\"",
             compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_time_obj, exe_path, error_file);
     }

@@ -474,12 +474,16 @@ void test_code_gen_array_type_in_function_param()
     symbol_table_cleanup(&sym_table);
 
     // Expected: forward declaration + void print_arr(long * arr) { ... }
-    // Note: print_arr() doesn't need arena since it doesn't allocate anything
+    // Note: All functions now get an arena for potential string/array allocations
+    // Array parameters are cloned for safety
     const char *expected = get_expected(&arena,
                                   "void print_arr(long *);\n\n"
                                   "void print_arr(long * print_arr) {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    print_arr = rt_array_clone_long(__arena_1__, print_arr);\n"
                                   "    goto print_arr_return;\n"
                                   "print_arr_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
                                   "    return;\n"
                                   "}\n\n"
                                   "int main() {\n"
