@@ -1,6 +1,6 @@
 # Exploratory Test Coverage Analysis
 
-This document tracks test coverage for the Sn compiler's exploratory test suite (`compiler/tests/exploratory/`).
+This document tracks test coverage for the Sn compiler's exploratory test suite (`tests/exploratory/`).
 
 ALWAYS RUN COMPILATION AND BINARY OUTPUT WITH TIMEOUT TO AVOID CRASHING THE HOST MACHINE!!!
 
@@ -394,7 +394,7 @@ make test-explore TEST=test_84 # Run specific test (if supported)
 
 ## Adding New Tests
 
-1. Create `compiler/tests/exploratory/test_XX_name.sn`
+1. Create `tests/exploratory/test_XX_name.sn`
 2. Include expected output comments or assertions
 3. Run `make test-explore` to verify
 4. Update this document with coverage notes

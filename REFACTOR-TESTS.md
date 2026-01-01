@@ -6,7 +6,7 @@ This document tracks the restructuring of the Sn compiler project layout and tes
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 0 | Root directory restructuring (`compiler/` → `src/`, tests to root) | :black_square_button: PENDING |
+| Phase 0 | Root directory restructuring (`compiler/` → `src/`, tests to root) | :white_check_mark: COMPLETE |
 | Phase 1 | Reorganize unit tests into module subfolders | :black_square_button: PENDING |
 | Phase 2 | Reorganize integration tests by feature area | :black_square_button: PENDING |
 | Phase 3 | Reorganize exploratory tests by feature area | :black_square_button: PENDING |

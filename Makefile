@@ -9,10 +9,10 @@ OPT_LEVEL ?= -O2
 # Directories
 BIN_DIR := bin
 LOG_DIR := log
-COMPILER_DIR := compiler
-TEST_DIR := $(COMPILER_DIR)/tests/integration
+SRC_DIR := src
+TEST_DIR := tests/integration
 TEMP_DIR := /tmp/sn_integration_tests
-EXPLORE_DIR := $(COMPILER_DIR)/tests/exploratory
+EXPLORE_DIR := tests/exploratory
 EXPLORE_OUT := $(EXPLORE_DIR)/output
 
 # Colors (for terminal output)
@@ -32,9 +32,9 @@ all: build
 build: clean
 	@mkdir -p $(BIN_DIR) $(LOG_DIR)
 	@echo "Building compiler..."
-	@$(MAKE) -C $(COMPILER_DIR) clean
-	@$(MAKE) -C $(COMPILER_DIR) > $(LOG_DIR)/build-output.log 2>&1
-	@$(MAKE) -C $(COMPILER_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) clean
+	@$(MAKE) -C $(SRC_DIR) > $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
 	@cat $(LOG_DIR)/build-output.log
 	@# Clean up intermediate files, keeping only required runtime objects
 	@find $(BIN_DIR) -name "*.d" -delete

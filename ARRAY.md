@@ -612,7 +612,7 @@ var inclusive: int[] = 1...10   // {1, 2, 3, ..., 10}
 
 ### Integration Tests
 
-Create `compiler/tests/integration/` test files:
+Create `tests/integration/` test files:
 
 ```sn
 // arrays_slice.sn - Test all slicing operations

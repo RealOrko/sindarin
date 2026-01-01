@@ -109,13 +109,13 @@ The size expression `n` can be a literal or any integer expression (runtime-dete
    ```
 
 **Files to Modify**
-- `compiler/parser_util.c` - Type parsing
-- `compiler/parser_expr.c` - Expression parsing
-- `compiler/ast.h` - New AST node type
-- `compiler/type_checker_expr.c` - Type validation
-- `compiler/code_gen_expr.c` - C code generation
-- `compiler/runtime.c` - Allocation functions
-- `compiler/runtime.h` - Function declarations
+- `src/parser/parser_util.c` - Type parsing
+- `src/parser/parser_expr.c` - Expression parsing
+- `src/ast.h` - New AST node type
+- `src/type_checker/type_checker_expr.c` - Type validation
+- `src/code_gen/code_gen_expr.c` - C code generation
+- `src/runtime.c` - Allocation functions
+- `src/runtime.h` - Function declarations
 
 **Expected Impact**: Prime sieve 8263ms → ~50ms (165x improvement)
 
@@ -239,10 +239,10 @@ for var i: int = 0; i < 100000; i++ =>
 - Literal strings passed to functions work unchanged
 
 **Files to Modify**
-- `compiler/runtime.h` - String metadata structure
-- `compiler/runtime.c` - `rt_string_append()`, `rt_string_with_capacity()`
-- `compiler/type_checker_expr.c` - Validate `.append()` method
-- `compiler/code_gen_expr.c` - Generate append code
+- `src/runtime.h` - String metadata structure
+- `src/runtime.c` - `rt_string_append()`, `rt_string_with_capacity()`
+- `src/type_checker/type_checker_expr.c` - Validate `.append()` method
+- `src/code_gen/code_gen_expr.c` - Generate append code
 
 **Expected Impact**: String ops 1166ms → ~10ms (100x improvement)
 
@@ -322,7 +322,7 @@ if (index_expr->type == EXPR_LITERAL &&
 ```
 
 **Files to Modify**
-- `compiler/code_gen_expr.c:2265-2289`
+- `src/code_gen/code_gen_expr.c:2265-2289`
 
 **Expected Impact**: 10-15% improvement on array-heavy code
 
@@ -366,7 +366,7 @@ static void generate_for_each_statement(CodeGenerator *gen, AstStmt *stmt) {
 ```
 
 **Files to Modify**
-- `compiler/code_gen_stmt.c` - For-each loop generation
+- `src/code_gen/code_gen_stmt.c` - For-each loop generation
 
 **Expected Impact**: 5-10% improvement on for-each loops
 
@@ -398,7 +398,7 @@ indented_fprintf(gen, 0,
 **Note**: Need to expose `ArrayMetadata` structure in generated code header.
 
 **Files to Modify**
-- `compiler/code_gen.c:192-250` - Runtime declarations
+- `src/code_gen.c:192-250` - Runtime declarations
 
 **Expected Impact**: 3-5% improvement overall
 
@@ -433,9 +433,9 @@ if (strcmp(argv[i], "--checked") == 0) {
 ```
 
 **Files to Modify**
-- `compiler/main.c` - Argument parsing
-- `compiler/compiler.c` - Option handling
-- `compiler/code_gen.c:59` - Check flag
+- `src/main.c` - Argument parsing
+- `src/compiler.c` - Option handling
+- `src/code_gen.c:59` - Check flag
 
 **Expected Impact**: 2-4x improvement on arithmetic-heavy code
 
@@ -465,8 +465,8 @@ if (expr->binary.op == OP_DIV) {
 ```
 
 **Files to Modify**
-- `compiler/code_gen_util.c:706-709`
-- `compiler/code_gen_expr.c` - Division generation
+- `src/code_gen/code_gen_util.c:706-709`
+- `src/code_gen/code_gen_expr.c` - Division generation
 
 **Expected Impact**: Minor, but cleaner generated code
 

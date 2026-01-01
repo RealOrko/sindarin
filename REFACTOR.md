@@ -2,6 +2,8 @@
 
 This document tracks the restructuring of the Sn compiler codebase to improve maintainability, readability, and modularity.
 
+> **Note:** This refactoring has been completed. The `compiler/` directory has since been renamed to `src/`. All paths below refer to the old `compiler/` location which is now `src/`.
+
 ## Status
 
 | Phase | Description | Status |

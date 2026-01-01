@@ -401,7 +401,7 @@ make test-explore     # Exploratory tests only
 ## 📁 Project Structure
 
 ```
-├── compiler/              # 🔧 Compiler source code
+├── src/                   # 🔧 Compiler source code
 │   ├── main.c             # Entry point
 │   ├── compiler.c/h       # Compilation orchestration
 │   ├── lexer*.c/h         # Tokenizer (lexer, lexer_scan, lexer_util)
@@ -413,11 +413,11 @@ make test-explore     # Exploratory tests only
 │   ├── runtime.c/h        # Runtime library (built-in functions)
 │   ├── symbol_table.c/h   # Scope and symbol management
 │   ├── diagnostic.c/h     # Error reporting
-│   ├── arena.c/h          # Memory management
-│   └── tests/             # Test files
-│       ├── *_tests.c      # Unit tests
-│       ├── integration/   # Integration tests (.sn files)
-│       └── exploratory/   # Exploratory tests (.sn files)
+│   └── arena.c/h          # Memory management
+├── tests/                 # 🧪 Test files
+│   ├── unit/              # Unit tests (*_tests.c)
+│   ├── integration/       # Integration tests (.sn files)
+│   └── exploratory/       # Exploratory tests (.sn files)
 ├── samples/               # 📝 Example .sn programs
 ├── docs/                  # 📚 Documentation
 │   ├── ARRAYS.md          # Array operations

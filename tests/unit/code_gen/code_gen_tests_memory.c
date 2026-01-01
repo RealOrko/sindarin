@@ -12,7 +12,7 @@
 #include "../token.h"
 #include "../symbol_table.h"
 #include "../file.h"
-#include "test_utils.h"
+#include "../test_utils.h"
 
 static const char *test_output_path_mem = "test_output_mem.c";
 static const char *expected_output_path_mem = "expected_output_mem.c";

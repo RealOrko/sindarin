@@ -135,9 +135,9 @@ This allows GCC to inline across translation units automatically, potentially in
 
 ## Files Modified
 
-- `compiler/runtime.h` - Added `static inline` definitions
-- `compiler/runtime.c` - Removed duplicate implementations
-- `compiler/code_gen.c` - Added `#include "runtime.h"`, removed conflicting externs
-- `compiler/gcc_backend.c` - Added `-I<compiler_dir>` include path
-- `compiler/Makefile` - Added rule to copy `runtime.h` to `bin/`
-- `compiler/tests/test_utils.h` - Updated expected output for unit tests
+- `src/runtime.h` - Added `static inline` definitions
+- `src/runtime.c` - Removed duplicate implementations
+- `src/code_gen.c` - Added `#include "runtime.h"`, removed conflicting externs
+- `src/gcc_backend.c` - Added `-I<src_dir>` include path
+- `src/Makefile` - Added rule to copy `runtime.h` to `bin/`
+- `tests/unit/test_utils.h` - Updated expected output for unit tests

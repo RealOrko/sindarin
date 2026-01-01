@@ -85,7 +85,7 @@ $(BIN_DIR)/%.o: %.c
 -include $(DEPS)
 
 # Tests
-TEST_SRCDIR = tests
+TEST_SRCDIR = ../tests/unit
 TEST_SRCS = $(TEST_SRCDIR)/_all_.c
 TEST_OBJS = $(addprefix $(BIN_DIR)/, $(notdir $(TEST_SRCS:.c=.o)))
 TEST_TARGET = $(BIN_DIR)/tests

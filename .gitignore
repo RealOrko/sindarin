@@ -2,5 +2,5 @@ bin/
 log/
 *.o
 .idea/
-compiler/tests/exploratory/output/
+tests/exploratory/output/
 .claude-looper/

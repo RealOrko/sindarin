@@ -74,9 +74,9 @@ Optimization:
 
 ## 🧪 Tests
 
-- **Unit:** `compiler/tests/*_tests.c` → `bin/tests`
-- **Integration:** `compiler/tests/integration/*.sn`
-- **Exploratory:** `compiler/tests/exploratory/*.sn`
+- **Unit:** `tests/unit/*_tests.c` → `bin/tests`
+- **Integration:** `tests/integration/*.sn`
+- **Exploratory:** `tests/exploratory/*.sn`
 
 ## 📚 Syntax
 
