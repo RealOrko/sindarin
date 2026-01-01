@@ -1,6 +1,6 @@
 #include "lexer.h"
-#include "lexer_util.h"
-#include "lexer_scan.h"
+#include "lexer/lexer_util.h"
+#include "lexer/lexer_scan.h"
 #include "debug.h"
 #include <stdio.h>
 #include <string.h>

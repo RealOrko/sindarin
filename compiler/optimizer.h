@@ -91,4 +91,9 @@ int optimizer_merge_string_literals(Optimizer *opt, Module *module);
    Returns the optimized expression (may be the same or a new one). */
 Expr *optimize_string_expr(Optimizer *opt, Expr *expr);
 
+/* Include sub-module headers */
+#include "optimizer/optimizer_util.h"
+#include "optimizer/optimizer_string.h"
+#include "optimizer/optimizer_tail_call.h"
+
 #endif /* OPTIMIZER_H */

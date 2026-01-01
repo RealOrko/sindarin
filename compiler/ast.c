@@ -1,8 +1,8 @@
 #include "ast.h"
-#include "ast_type.h"
-#include "ast_expr.h"
-#include "ast_stmt.h"
-#include "ast_print.h"
+#include "ast/ast_type.h"
+#include "ast/ast_expr.h"
+#include "ast/ast_stmt.h"
+#include "ast/ast_print.h"
 #include "debug.h"
 #include <string.h>
 #include <stdlib.h>

@@ -1,7 +1,7 @@
 #include "code_gen.h"
-#include "code_gen_util.h"
-#include "code_gen_expr.h"
-#include "code_gen_stmt.h"
+#include "code_gen/code_gen_util.h"
+#include "code_gen/code_gen_expr.h"
+#include "code_gen/code_gen_stmt.h"
 #include "debug.h"
 #include "parser.h"
 #include <stdlib.h>

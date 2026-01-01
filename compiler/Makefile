@@ -5,14 +5,48 @@ LDFLAGS = -fsanitize=address
 #LDFLAGS = 
 
 SRCDIR = .
-SRCS = arena.c file.c runtime.c token.c lexer.c lexer_util.c lexer_scan.c ast.c ast_type.c ast_expr.c ast_stmt.c ast_print.c parser.c parser_util.c parser_expr.c parser_stmt.c symbol_table.c code_gen.c code_gen_util.c code_gen_expr.c code_gen_expr_lambda.c code_gen_expr_call_array.c code_gen_expr_call_file.c code_gen_expr_call_string.c code_gen_expr_call_time.c code_gen_expr_array.c code_gen_expr_static.c code_gen_expr_string.c code_gen_stmt.c optimizer.c optimizer_util.c optimizer_tail_call.c optimizer_string.c compiler.c debug.c diagnostic.c type_checker.c type_checker_util.c type_checker_expr.c type_checker_expr_call.c type_checker_expr_array.c type_checker_expr_lambda.c type_checker_stmt.c gcc_backend.c main.c runtime/runtime_arena.c runtime/runtime_string.c runtime/runtime_array.c runtime/runtime_text_file.c runtime/runtime_binary_file.c runtime/runtime_io.c runtime/runtime_byte.c runtime/runtime_path.c runtime/runtime_time.c
-HEADERS = arena.h file.h runtime.h token.h lexer.h lexer_util.h lexer_scan.h ast.h ast_type.h ast_expr.h ast_stmt.h ast_print.h parser.h parser_util.h parser_expr.h parser_stmt.h symbol_table.h code_gen.h code_gen_util.h code_gen_expr.h code_gen_expr_lambda.h code_gen_expr_call.h code_gen_expr_array.h code_gen_expr_static.h code_gen_expr_string.h code_gen_stmt.h optimizer.h optimizer_util.h optimizer_tail_call.h optimizer_string.h compiler.h debug.h diagnostic.h type_checker.h type_checker_util.h type_checker_expr.h type_checker_expr_call.h type_checker_expr_array.h type_checker_expr_lambda.h type_checker_stmt.h gcc_backend.h runtime/runtime_arena.h runtime/runtime_string.h runtime/runtime_array.h runtime/runtime_file.h runtime/runtime_io.h runtime/runtime_byte.h runtime/runtime_path.h runtime/runtime_time.h
+SRCS = arena.c file.c runtime.c token.c \
+	lexer.c lexer/lexer_util.c lexer/lexer_scan.c \
+	ast.c ast/ast_type.c ast/ast_expr.c ast/ast_stmt.c ast/ast_print.c \
+	parser.c parser/parser_util.c parser/parser_expr.c parser/parser_stmt.c \
+	symbol_table.c \
+	code_gen.c code_gen/code_gen_util.c code_gen/code_gen_expr.c code_gen/code_gen_expr_lambda.c \
+	code_gen/code_gen_expr_call_array.c code_gen/code_gen_expr_call_file.c \
+	code_gen/code_gen_expr_call_string.c code_gen/code_gen_expr_call_time.c \
+	code_gen/code_gen_expr_array.c code_gen/code_gen_expr_static.c code_gen/code_gen_expr_string.c \
+	code_gen/code_gen_stmt.c \
+	optimizer.c optimizer/optimizer_util.c optimizer/optimizer_tail_call.c optimizer/optimizer_string.c \
+	compiler.c debug.c diagnostic.c \
+	type_checker.c type_checker/type_checker_util.c type_checker/type_checker_expr.c \
+	type_checker/type_checker_expr_call.c type_checker/type_checker_expr_array.c \
+	type_checker/type_checker_expr_lambda.c type_checker/type_checker_stmt.c \
+	gcc_backend.c main.c \
+	runtime/runtime_arena.c runtime/runtime_string.c runtime/runtime_array.c \
+	runtime/runtime_text_file.c runtime/runtime_binary_file.c runtime/runtime_io.c \
+	runtime/runtime_byte.c runtime/runtime_path.c runtime/runtime_time.c
+HEADERS = arena.h file.h runtime.h token.h \
+	lexer.h lexer/lexer_util.h lexer/lexer_scan.h \
+	ast.h ast/ast_type.h ast/ast_expr.h ast/ast_stmt.h ast/ast_print.h \
+	parser.h parser/parser_util.h parser/parser_expr.h parser/parser_stmt.h \
+	symbol_table.h \
+	code_gen.h code_gen/code_gen_util.h code_gen/code_gen_expr.h code_gen/code_gen_expr_lambda.h \
+	code_gen/code_gen_expr_call.h code_gen/code_gen_expr_array.h code_gen/code_gen_expr_static.h \
+	code_gen/code_gen_expr_string.h code_gen/code_gen_stmt.h \
+	optimizer.h optimizer/optimizer_util.h optimizer/optimizer_tail_call.h optimizer/optimizer_string.h \
+	compiler.h debug.h diagnostic.h \
+	type_checker.h type_checker/type_checker_util.h type_checker/type_checker_expr.h \
+	type_checker/type_checker_expr_call.h type_checker/type_checker_expr_array.h \
+	type_checker/type_checker_expr_lambda.h type_checker/type_checker_stmt.h \
+	gcc_backend.h \
+	runtime/runtime_arena.h runtime/runtime_string.h runtime/runtime_array.h \
+	runtime/runtime_file.h runtime/runtime_io.h runtime/runtime_byte.h \
+	runtime/runtime_path.h runtime/runtime_time.h
 BIN_DIR = ../bin
 OBJS = $(addprefix $(BIN_DIR)/, $(notdir $(SRCS:.c=.o)))
 DEPS = $(OBJS:.o=.d)
 TARGET = $(BIN_DIR)/sn
 
-VPATH = $(SRCDIR) runtime
+VPATH = $(SRCDIR) ast lexer parser type_checker optimizer code_gen runtime
 
 .PHONY: all clean
 

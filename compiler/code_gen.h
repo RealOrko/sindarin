@@ -93,4 +93,14 @@ void code_gen_if_statement(CodeGen *gen, IfStmt *stmt, int indent);
 void code_gen_while_statement(CodeGen *gen, WhileStmt *stmt, int indent);
 void code_gen_for_statement(CodeGen *gen, ForStmt *stmt, int indent);
 
+/* Include sub-module headers */
+#include "code_gen/code_gen_util.h"
+#include "code_gen/code_gen_stmt.h"
+#include "code_gen/code_gen_expr.h"
+#include "code_gen/code_gen_expr_array.h"
+#include "code_gen/code_gen_expr_call.h"
+#include "code_gen/code_gen_expr_lambda.h"
+#include "code_gen/code_gen_expr_static.h"
+#include "code_gen/code_gen_expr_string.h"
+
 #endif

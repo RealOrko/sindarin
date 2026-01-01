@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include "../arena.h"
 #include "../ast.h"
-#include "../code_gen_util.h"
+#include "../code_gen/code_gen_util.h"
 
 /* Test is_constant_expr for literals */
 static void test_is_constant_expr_literal(void)

@@ -1,7 +1,7 @@
 #include "parser.h"
-#include "parser_util.h"
-#include "parser_expr.h"
-#include "parser_stmt.h"
+#include "parser/parser_util.h"
+#include "parser/parser_expr.h"
+#include "parser/parser_stmt.h"
 #include "debug.h"
 #include "file.h"
 #include <stdio.h>

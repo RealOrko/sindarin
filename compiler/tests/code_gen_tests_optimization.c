@@ -13,9 +13,9 @@
 #include "../arena.h"
 #include "../ast.h"
 #include "../code_gen.h"
-#include "../code_gen_util.h"
-#include "../code_gen_stmt.h"
-#include "../code_gen_expr.h"
+#include "../code_gen/code_gen_util.h"
+#include "../code_gen/code_gen_stmt.h"
+#include "../code_gen/code_gen_expr.h"
 #include "../symbol_table.h"
 
 /* Helper to set up a token */

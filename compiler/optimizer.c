@@ -1,7 +1,7 @@
 #include "optimizer.h"
-#include "optimizer_util.h"
-#include "optimizer_tail_call.h"
-#include "optimizer_string.h"
+#include "optimizer/optimizer_util.h"
+#include "optimizer/optimizer_tail_call.h"
+#include "optimizer/optimizer_string.h"
 #include "debug.h"
 #include <stdlib.h>
 

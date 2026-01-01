@@ -7,7 +7,7 @@ This document tracks the restructuring of the Sn compiler codebase to improve ma
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Phase 1 | Split monolithic files into focused modules | ✅ COMPLETE |
-| Phase 2 | Organize modules into subfolders | 🔲 PENDING |
+| Phase 2 | Organize modules into subfolders | ✅ COMPLETE |
 
 ---
 
