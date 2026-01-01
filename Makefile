@@ -75,7 +75,7 @@ test-unit:
 #------------------------------------------------------------------------------
 test-integration:
 	@mkdir -p $(TEMP_DIR)
-	@echo "Running Sn Integration Tests (optimization: $(OPT_LEVEL))"
+	@echo "Running Sn Integration Tests (optimization: -O0)"
 	@echo "=================================================="
 	@echo ""
 	@passed=0; failed=0; skipped=0; \
@@ -91,7 +91,7 @@ test-integration:
 			skipped=$$((skipped + 1)); \
 			continue; \
 		fi; \
-		if ! $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -l 1 -g $(OPT_LEVEL) 2>"$(TEMP_DIR)/$$test_name.compile_err"; then \
+		if ! $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -l 1 -g -O0 2>"$(TEMP_DIR)/$$test_name.compile_err"; then \
 			printf "$(RED)FAIL$(NC) (compilation error)\n"; \
 			head -5 "$(TEMP_DIR)/$$test_name.compile_err"; \
 			failed=$$((failed + 1)); \
@@ -137,7 +137,7 @@ test-explore:
 		echo "Testing: $$test_name"; \
 		echo "========================================"; \
 		echo "Source: $$test_file" > "$$log_file"; \
-		if ! timeout 5s $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -g >> "$$log_file" 2>&1; then \
+		if ! timeout 5s $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -g -O0 >> "$$log_file" 2>&1; then \
 			echo "  COMPILE FAILED"; \
 			cat "$$log_file"; \
 			echo ""; \
