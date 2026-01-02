@@ -59,7 +59,7 @@ char *code_gen_time_method_call(CodeGen *gen, const char *method_name,
             ARENA_VAR(gen), object_str);
     }
     if (strcmp(method_name, "toDate") == 0 && arg_count == 0) {
-        return arena_sprintf(gen->arena, "rt_time_to_date(%s, %s)",
+        return arena_sprintf(gen->arena, "rt_time_get_date(%s, %s)",
             ARENA_VAR(gen), object_str);
     }
     if (strcmp(method_name, "toTime") == 0 && arg_count == 0) {

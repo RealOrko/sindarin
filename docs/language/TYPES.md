@@ -165,13 +165,22 @@ f.close()
 
 See [FILE_IO.md](FILE_IO.md) for full documentation.
 
+### Date
+
+Represents calendar dates without time components. See [DATE.md](DATE.md) for full documentation.
+
+```sindarin
+var today: Date = Date.today()
+var formatted: str = today.format("YYYY-MM-DD")
+```
+
 ### Time
 
 Represents date and time values. See [TIME.md](TIME.md) for full documentation.
 
 ```sindarin
 var now: Time = Time.now()
-var formatted: str = now.format("%Y-%m-%d %H:%M:%S")
+var formatted: str = now.format("YYYY-MM-DD HH:mm:ss")
 ```
 
 ## Type Summary Table
@@ -189,6 +198,7 @@ var formatted: str = now.format("%Y-%m-%d %H:%M:%S")
 | `type[]` | Array of type | `{1, 2, 3}`, `{"a", "b"}` |
 | `TextFile` | Text file handle | (from `TextFile.open()`) |
 | `BinaryFile` | Binary file handle | (from `BinaryFile.open()`) |
+| `Date` | Calendar date value | (from `Date.today()`) |
 | `Time` | Date/time value | (from `Time.now()`) |
 
 ## Type Annotations
@@ -259,5 +269,6 @@ var text: str = bytes.toString()
 - [STRINGS.md](STRINGS.md) - String methods and interpolation
 - [ARRAYS.md](ARRAYS.md) - Array operations
 - [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile types
+- [DATE.md](DATE.md) - Date type operations
 - [TIME.md](TIME.md) - Time type operations
 - [MEMORY.md](MEMORY.md) - Memory management and type lifetimes

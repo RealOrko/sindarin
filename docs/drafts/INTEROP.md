@@ -6,6 +6,24 @@ Since Sindarin compiles to C, interoperability is natural but requires explicit 
 
 ---
 
+## Overview
+
+```sindarin
+#pragma include "<math.h>"
+#pragma link "m"
+
+native fn sin(x: double): double
+native fn cos(x: double): double
+
+fn main(): int =>
+    var angle: double = 3.14159 / 4.0
+    print($"sin(45°) = {sin(angle)}\n")
+    print($"cos(45°) = {cos(angle)}\n")
+    return 0
+```
+
+---
+
 ## Native Function Declarations
 
 External C functions are declared using the `native` keyword. These declarations tell the compiler the function exists externally and specify its signature.

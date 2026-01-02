@@ -11,6 +11,7 @@
 #include "runtime/runtime_byte_tests.c"
 #include "runtime/runtime_array_tests.c"
 #include "runtime/runtime_time_tests.c"
+#include "runtime/runtime_date_tests.c"
 #include "runtime/runtime_path_tests.c"
 #include "standalone/symbol_table_tests.c"
 #include "standalone/token_tests.c"
@@ -50,6 +51,10 @@ int main()
     // *** Runtime Time ***
 
     test_rt_time_main();
+
+    // *** Runtime Date ***
+
+    test_rt_date_main();
 
     // *** Runtime Path ***
 

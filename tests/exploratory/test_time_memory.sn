@@ -60,7 +60,7 @@ fn main(): int =>
     // Multiple format calls
     print("\nMultiple format calls:\n")
     var isoStr: str = now.toIso()
-    var dateStr: str = now.toDate()
+    var dateStr: str = now.toDate().toIso()
     var timeStr: str = now.toTime()
     print($"  toIso():  {isoStr}\n")
     print($"  toDate(): {dateStr}\n")
@@ -90,16 +90,16 @@ fn main(): int =>
 
     // Call createTime() - returns Time allocated in our arena
     var epoch: Time = createTime(0)
-    print($"  createTime(0) returned: {epoch.toDate()}\n")
+    print($"  createTime(0) returned: {epoch.toDate().toIso()}\n")
     // Time remains valid and methods work
     print($"  Year: {epoch.year()}, Month: {epoch.month()}, Day: {epoch.day()}\n")
 
     // Create another time via shared function
     var y2k: Time = createTime(946684800)
-    print($"  createTime(946684800) returned: {y2k.toDate()}\n")
+    print($"  createTime(946684800) returned: {y2k.toDate().toIso()}\n")
 
     // Both times remain valid
-    print($"  Both valid - epoch: {epoch.toDate()}, y2k: {y2k.toDate()}\n")
+    print($"  Both valid - epoch: {epoch.toDate().toIso()}, y2k: {y2k.toDate().toIso()}\n")
 
     // Shared functions use caller's arena, so returned values
     // are valid for the lifetime of the caller's scope
@@ -135,7 +135,7 @@ fn main(): int =>
         blockTime = Time.now()
         print($"  Inside shared block: {blockTime.toIso()}\n")
     // Time remains accessible after block exits
-    print($"  After shared block: {blockTime.toDate()}\n")
+    print($"  After shared block: {blockTime.toDate().toIso()}\n")
     print($"  Year still accessible: {blockTime.year()}\n")
     print("  Shared block allocates in outer arena\n")
 
@@ -195,7 +195,7 @@ fn main(): int =>
     var str1: str = stringNow.format("YYYY-MM-DD")
     var str2: str = stringNow.format("HH:mm:ss")
     var str3: str = stringNow.toIso()
-    var str4: str = stringNow.toDate()
+    var str4: str = stringNow.toDate().toIso()
     var str5: str = stringNow.toTime()
 
     print($"  format(YYYY-MM-DD): {str1}\n")

@@ -76,7 +76,9 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 | [TYPES](docs/language/TYPES.md) | Primitive and built-in types |
 | [STRINGS](docs/language/STRINGS.md) | String methods and interpolation |
 | [ARRAYS](docs/language/ARRAYS.md) | Array operations and slicing |
+| [LAMBDAS](docs/language/LAMBDAS.md) | Lambda expressions and closures |
 | [FILE_IO](docs/language/FILE_IO.md) | TextFile and BinaryFile operations |
+| [DATE](docs/language/DATE.md) | Calendar date operations |
 | [TIME](docs/language/TIME.md) | Date and time operations |
 | [MEMORY](docs/language/MEMORY.md) | Arena memory management |
 

@@ -108,7 +108,7 @@ fn main(): int =>
     print("\nTesting toIso/toDate/toTime...\n")
 
     print($"  toIso(): {t.toIso()}\n")
-    print($"  toDate(): {t.toDate()}\n")
+    print($"  toDate(): {t.toDate().toIso()}\n")
     print($"  toTime(): {t.toTime()}\n")
 
     print("\nConvenience methods complete - PASS\n")

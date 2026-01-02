@@ -1345,7 +1345,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     ARENA_VAR(gen), object_str);
             }
             if (strcmp(member_name_str, "toDate") == 0 && call->arg_count == 0) {
-                return arena_sprintf(gen->arena, "rt_time_to_date(%s, %s)",
+                return arena_sprintf(gen->arena, "rt_time_get_date(%s, %s)",
                     ARENA_VAR(gen), object_str);
             }
             if (strcmp(member_name_str, "toTime") == 0 && call->arg_count == 0) {
@@ -1400,6 +1400,128 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 char *other_str = code_gen_expression(gen, call->arguments[0]);
                 return arena_sprintf(gen->arena, "rt_time_equals(%s, %s)",
                     object_str, other_str);
+            }
+        }
+
+        /* Date instance methods */
+        if (object_type->kind == TYPE_DATE) {
+            char *object_str = code_gen_expression(gen, member->object);
+
+            /* Getter methods - return int/long */
+            if (strcmp(member_name_str, "year") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_get_year(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "month") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_get_month(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "day") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_get_day(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "weekday") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_get_weekday(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "dayOfYear") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_get_day_of_year(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "epochDays") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_get_epoch_days(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "daysInMonth") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_get_days_in_month(%s)", object_str);
+            }
+
+            /* Bool getter methods */
+            if (strcmp(member_name_str, "isLeapYear") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_is_leap(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "isWeekend") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_is_weekend(%s)", object_str);
+            }
+            if (strcmp(member_name_str, "isWeekday") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_is_weekday(%s)", object_str);
+            }
+
+            /* Formatting methods - return string */
+            if (strcmp(member_name_str, "format") == 0 && call->arg_count == 1) {
+                char *pattern_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_format(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, pattern_str);
+            }
+            if (strcmp(member_name_str, "toIso") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_to_iso(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+            if (strcmp(member_name_str, "toString") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_to_string(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* Arithmetic methods - return Date */
+            if (strcmp(member_name_str, "addDays") == 0 && call->arg_count == 1) {
+                char *days_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_add_days(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, days_str);
+            }
+            if (strcmp(member_name_str, "addWeeks") == 0 && call->arg_count == 1) {
+                char *weeks_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_add_weeks(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, weeks_str);
+            }
+            if (strcmp(member_name_str, "addMonths") == 0 && call->arg_count == 1) {
+                char *months_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_add_months(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, months_str);
+            }
+            if (strcmp(member_name_str, "addYears") == 0 && call->arg_count == 1) {
+                char *years_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_add_years(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, years_str);
+            }
+            if (strcmp(member_name_str, "diffDays") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_diff_days(%s, %s)",
+                    object_str, other_str);
+            }
+
+            /* Boundary methods - return Date */
+            if (strcmp(member_name_str, "startOfMonth") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_start_of_month(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+            if (strcmp(member_name_str, "endOfMonth") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_end_of_month(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+            if (strcmp(member_name_str, "startOfYear") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_start_of_year(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+            if (strcmp(member_name_str, "endOfYear") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_end_of_year(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* Comparison methods - return bool */
+            if (strcmp(member_name_str, "isBefore") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_is_before(%s, %s)",
+                    object_str, other_str);
+            }
+            if (strcmp(member_name_str, "isAfter") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_is_after(%s, %s)",
+                    object_str, other_str);
+            }
+            if (strcmp(member_name_str, "equals") == 0 && call->arg_count == 1) {
+                char *other_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_date_equals(%s, %s)",
+                    object_str, other_str);
+            }
+
+            /* Conversion methods */
+            if (strcmp(member_name_str, "toTime") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_date_to_time(%s, %s)",
+                    ARENA_VAR(gen), object_str);
             }
         }
     }

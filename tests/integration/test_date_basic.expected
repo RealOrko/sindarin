@@ -1,0 +1,44 @@
+=== Date Creation ===
+fromYmd(2025, 6, 15): 2025-06-15
+fromString("2025-12-25"): 2025-12-25
+fromEpochDays(0): 1970-01-01
+fromEpochDays(20088): 2024-12-31
+
+=== Static Utility Methods ===
+isLeapYear(2024): true
+isLeapYear(2025): false
+isLeapYear(2000): true
+isLeapYear(1900): false
+daysInMonth(2024, 2): 29
+daysInMonth(2025, 2): 28
+daysInMonth(2025, 1): 31
+daysInMonth(2025, 4): 30
+
+=== Getter Methods ===
+Date: 2025-07-04
+year(): 2025
+month(): 7
+day(): 4
+weekday(): 5
+dayOfYear(): 185
+epochDays(): 20273
+daysInMonth(): 31
+isLeapYear(): false
+isWeekend(): false
+isWeekday(): true
+
+=== Formatting Methods ===
+toIso(): 2025-12-25
+toString(): December 25, 2025
+format("YYYY-MM-DD"): 2025-12-25
+format("M/D/YYYY"): 12/25/2025
+format("DD/MM/YYYY"): 25/12/2025
+format("MMMM D, YYYY"): December 25, 2025
+format("ddd, MMM D"): Thu, Dec 25
+format("dddd"): Thursday
+
+=== Weekday Verification ===
+2025-01-01 weekday: 3
+2025-01-01 dddd: Wednesday
+
+PASS

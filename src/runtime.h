@@ -26,6 +26,7 @@
 /* Utility modules - depend on arena */
 #include "runtime/runtime_byte.h"
 #include "runtime/runtime_path.h"
+#include "runtime/runtime_date.h"
 #include "runtime/runtime_time.h"
 
 /* ============================================================================

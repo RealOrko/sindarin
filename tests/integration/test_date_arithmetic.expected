@@ -1,0 +1,55 @@
+=== addDays ===
+Start: 2025-01-15
+addDays(10): 2025-01-25
+addDays(-10): 2025-01-05
+addDays(0): 2025-01-15
+
+=== addWeeks ===
+addWeeks(2): 2025-01-29
+addWeeks(-1): 2025-01-08
+
+=== addMonths ===
+Start: 2025-03-15
+addMonths(1): 2025-04-15
+addMonths(3): 2025-06-15
+addMonths(-2): 2025-01-15
+addMonths(12): 2026-03-15
+
+=== addYears ===
+Start: 2025-06-15
+addYears(1): 2026-06-15
+addYears(5): 2030-06-15
+addYears(-10): 2015-06-15
+
+=== diffDays ===
+From: 2025-01-01
+To: 2025-01-10
+end.diffDays(start): 9
+start.diffDays(end): -9
+Days in 2025: 364
+Days in 2024 (leap): 365
+
+=== Boundary Methods ===
+Date: 2025-06-15
+startOfMonth(): 2025-06-01
+endOfMonth(): 2025-06-30
+startOfYear(): 2025-01-01
+endOfYear(): 2025-12-31
+Feb 2024 start: 2024-02-01
+Feb 2024 end: 2024-02-29
+
+=== Comparisons ===
+d4: 2025-01-01
+d5: 2025-12-31
+d6: 2025-01-01
+d4.isBefore(d5): true
+d5.isBefore(d4): false
+d4.isAfter(d5): false
+d5.isAfter(d4): true
+d4.equals(d6): true
+d4.equals(d5): false
+d4.isBefore(d4): false
+d4.isAfter(d4): false
+d4.equals(d4): true
+
+PASS

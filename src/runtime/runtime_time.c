@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include "runtime_time.h"
+#include "runtime_date.h"
 
 /* ============================================================================
  * Time Implementation
@@ -40,7 +41,16 @@ static void rt_time_to_tm(RtTime *time, struct tm *tm_result)
         fprintf(stderr, "rt_time_to_tm: NULL time\n");
         exit(1);
     }
-    time_t secs = time->milliseconds / 1000;
+    /* Use floor division for negative milliseconds
+     * C's integer division truncates toward zero, but we need floor */
+    long long ms = time->milliseconds;
+    time_t secs;
+    if (ms >= 0) {
+        secs = ms / 1000;
+    } else {
+        /* Floor division: (ms - 999) / 1000 for negative ms */
+        secs = (ms - 999) / 1000;
+    }
     localtime_r(&secs, tm_result);
 }
 
@@ -504,4 +514,31 @@ int rt_time_equals(RtTime *time, RtTime *other)
     }
 
     return (time->milliseconds == other->milliseconds) ? 1 : 0;
+}
+
+/* ============================================================================
+ * Time/Date Conversion
+ * ============================================================================ */
+
+/* Convert Time to Date (extract just the date portion in local timezone) */
+RtDate *rt_time_get_date(RtArena *arena, RtTime *time)
+{
+    if (arena == NULL) {
+        fprintf(stderr, "rt_time_get_date: NULL arena\n");
+        return NULL;
+    }
+    if (time == NULL) {
+        fprintf(stderr, "rt_time_get_date: NULL time\n");
+        return NULL;
+    }
+
+    /* Use localtime to extract date components in the local timezone */
+    struct tm tm;
+    rt_time_to_tm(time, &tm);
+
+    int year = tm.tm_year + 1900;
+    int month = tm.tm_mon + 1;
+    int day = tm.tm_mday;
+
+    return rt_date_from_ymd(arena, year, month, day);
 }

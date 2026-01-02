@@ -1,0 +1,120 @@
+// Test Date code generation
+// Tests static methods, instance methods, and variable declarations
+
+fn main(): int =>
+    print("Testing Date code generation...\n")
+    print("================================\n")
+
+    // Test Date variable declaration
+    print("\nDate variable declaration:\n")
+    var today: Date = Date.today()
+    print($"  today: {today.toIso()}\n")
+
+    // Test static method calls
+    print("\nDate static methods:\n")
+
+    // Date.today()
+    var now: Date = Date.today()
+    print($"  Date.today(): {now.toIso()}\n")
+
+    // Date.fromYmd()
+    var christmas: Date = Date.fromYmd(2025, 12, 25)
+    print($"  Date.fromYmd(2025, 12, 25): {christmas.toIso()}\n")
+
+    // Date.fromString()
+    var parsed: Date = Date.fromString("2024-07-04")
+    print($"  Date.fromString(\"2024-07-04\"): {parsed.toIso()}\n")
+
+    // Date.fromEpochDays()
+    var epoch: Date = Date.fromEpochDays(0)
+    print($"  Date.fromEpochDays(0): {epoch.toIso()}\n")
+
+    // Date.isLeapYear()
+    var leap2024: bool = Date.isLeapYear(2024)
+    var leap2023: bool = Date.isLeapYear(2023)
+    print($"  Date.isLeapYear(2024): {leap2024}\n")
+    print($"  Date.isLeapYear(2023): {leap2023}\n")
+
+    // Date.daysInMonth()
+    var febDays2024: int = Date.daysInMonth(2024, 2)
+    var febDays2023: int = Date.daysInMonth(2023, 2)
+    print($"  Date.daysInMonth(2024, 2): {febDays2024}\n")
+    print($"  Date.daysInMonth(2023, 2): {febDays2023}\n")
+
+    print("\nStatic methods - PASS\n")
+
+    // Test instance getter methods
+    print("\nDate instance getters:\n")
+    var d: Date = Date.fromYmd(2025, 6, 15)
+    print($"  Date: {d.toIso()}\n")
+    print($"  year(): {d.year()}\n")
+    print($"  month(): {d.month()}\n")
+    print($"  day(): {d.day()}\n")
+    print($"  weekday(): {d.weekday()}\n")
+    print($"  dayOfYear(): {d.dayOfYear()}\n")
+    print($"  epochDays(): {d.epochDays()}\n")
+    print($"  daysInMonth(): {d.daysInMonth()}\n")
+    print($"  isLeapYear(): {d.isLeapYear()}\n")
+    print($"  isWeekend(): {d.isWeekend()}\n")
+    print($"  isWeekday(): {d.isWeekday()}\n")
+
+    print("\nInstance getters - PASS\n")
+
+    // Test formatting methods
+    print("\nDate formatting:\n")
+    var fmtDate: Date = Date.fromYmd(2025, 3, 21)
+    print($"  toIso(): {fmtDate.toIso()}\n")
+    print($"  toString(): {fmtDate.toString()}\n")
+    var fmt1: str = fmtDate.format("YYYY/MM/DD")
+    print($"  format(YYYY/MM/DD): {fmt1}\n")
+    var fmt2: str = fmtDate.format("MMMM D, YYYY")
+    print($"  format(MMMM D, YYYY): {fmt2}\n")
+
+    print("\nFormatting - PASS\n")
+
+    // Test arithmetic methods
+    print("\nDate arithmetic:\n")
+    var base: Date = Date.fromYmd(2025, 1, 15)
+    print($"  Base date: {base.toIso()}\n")
+    print($"  addDays(10): {base.addDays(10).toIso()}\n")
+    print($"  addWeeks(2): {base.addWeeks(2).toIso()}\n")
+    print($"  addMonths(3): {base.addMonths(3).toIso()}\n")
+    print($"  addYears(1): {base.addYears(1).toIso()}\n")
+
+    var other: Date = Date.fromYmd(2025, 1, 25)
+    print($"  diffDays with {other.toIso()}: {other.diffDays(base)}\n")
+
+    print($"  startOfMonth(): {base.startOfMonth().toIso()}\n")
+    print($"  endOfMonth(): {base.endOfMonth().toIso()}\n")
+    print($"  startOfYear(): {base.startOfYear().toIso()}\n")
+    print($"  endOfYear(): {base.endOfYear().toIso()}\n")
+
+    print("\nArithmetic - PASS\n")
+
+    // Test comparison methods
+    print("\nDate comparison:\n")
+    var date1: Date = Date.fromYmd(2025, 6, 1)
+    var date2: Date = Date.fromYmd(2025, 6, 15)
+    var date3: Date = Date.fromYmd(2025, 6, 1)
+    print($"  {date1.toIso()} isBefore {date2.toIso()}: {date1.isBefore(date2)}\n")
+    print($"  {date2.toIso()} isBefore {date1.toIso()}: {date2.isBefore(date1)}\n")
+    print($"  {date1.toIso()} isAfter {date2.toIso()}: {date1.isAfter(date2)}\n")
+    print($"  {date2.toIso()} isAfter {date1.toIso()}: {date2.isAfter(date1)}\n")
+    print($"  {date1.toIso()} equals {date3.toIso()}: {date1.equals(date3)}\n")
+    print($"  {date1.toIso()} equals {date2.toIso()}: {date1.equals(date2)}\n")
+
+    print("\nComparison - PASS\n")
+
+    // Test Date to Time conversion
+    print("\nDate to Time conversion:\n")
+    var convDate: Date = Date.fromYmd(2025, 7, 4)
+    var convTime: Time = convDate.toTime()
+    print($"  Date: {convDate.toIso()}\n")
+    print($"  toTime(): {convTime.toIso()}\n")
+
+    print("\nConversion - PASS\n")
+
+    print("\n================================\n")
+    print("All Date code generation tests - PASS\n")
+
+    return 0

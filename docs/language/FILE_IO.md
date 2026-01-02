@@ -792,6 +792,58 @@ fn analyzeLog(path: str): void =>
 
 ---
 
+## Threading
+
+File operations work naturally with Sindarin's threading model. Use `&` to spawn I/O in background threads and `!` to synchronize.
+
+### Parallel File Reads
+
+```sindarin
+var f1: str = &TextFile.readAll("file1.txt")
+var f2: str = &TextFile.readAll("file2.txt")
+var f3: str = &TextFile.readAll("file3.txt")
+
+// Wait for all to complete
+[f1, f2, f3]!
+
+print($"Total: {f1.length + f2.length + f3.length} bytes\n")
+```
+
+### Background Write
+
+```sindarin
+// Fire and forget - write happens in background
+&TextFile.writeAll("backup.txt", data)
+
+// Continue with other work...
+```
+
+### Inline Sync
+
+```sindarin
+// Spawn and immediately wait
+var content: str = &TextFile.readAll("large.txt")!
+
+// Use in expressions
+var total: int = &countLines("a.txt")! + &countLines("b.txt")!
+```
+
+### Memory Semantics
+
+File handles and data follow the frozen reference rules:
+
+```sindarin
+var data: str = "content to write"
+var result: void = &TextFile.writeAll("out.txt", data)
+
+data = "modified"  // COMPILE ERROR: data frozen by thread
+
+result!            // sync releases freeze
+data = "modified"  // OK
+```
+
+---
+
 ## Error Handling
 
 File operations panic on errors (file not found, permission denied, etc.). Always check existence before operations that require existing files:
@@ -980,5 +1032,6 @@ RtTextFile *rt_text_file_promote(RtArena *dest, RtTextFile *src) {
 
 ## See Also
 
+- [THREADING.md](../drafts/THREADING.md) - Threading model (`&` spawn, `!` sync)
 - [MEMORY.md](MEMORY.md) - Arena memory management details
 - [ARRAYS.md](ARRAYS.md) - Array operations including byte arrays

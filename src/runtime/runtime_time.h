@@ -113,4 +113,14 @@ int rt_time_is_after(RtTime *time, RtTime *other);
 /* Check if times are equal */
 int rt_time_equals(RtTime *time, RtTime *other);
 
+/* ============================================================================
+ * Time/Date Conversion
+ * ============================================================================ */
+
+/* Forward declaration for RtDate */
+struct RtDate;
+
+/* Convert Time to Date (extract just the date portion) */
+struct RtDate *rt_time_get_date(RtArena *arena, RtTime *time);
+
 #endif /* RUNTIME_TIME_H */

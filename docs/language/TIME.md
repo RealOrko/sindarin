@@ -483,6 +483,6 @@ fn getTimestamp(): str =>
 
 ## See Also
 
-- [README.md](../README.md) - Language overview
+- [DATE.md](DATE.md) - Calendar date operations
 - [MEMORY.md](MEMORY.md) - Arena memory management details
 - [FILE_IO.md](FILE_IO.md) - File I/O operations

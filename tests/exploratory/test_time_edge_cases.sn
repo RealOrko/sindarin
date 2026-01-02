@@ -13,7 +13,7 @@ fn main(): int =>
     print($"    Year:  {epochMs.year()}\n")
     print($"    Month: {epochMs.month()}\n")
     print($"    Day:   {epochMs.day()}\n")
-    print($"    Date:  {epochMs.toDate()}\n")
+    print($"    Date:  {epochMs.toDate().toIso()}\n")
 
     // Time.fromSeconds(0) - Unix epoch
     var epochSec: Time = Time.fromSeconds(0)
@@ -21,7 +21,7 @@ fn main(): int =>
     print($"    Year:  {epochSec.year()}\n")
     print($"    Month: {epochSec.month()}\n")
     print($"    Day:   {epochSec.day()}\n")
-    print($"    Date:  {epochSec.toDate()}\n")
+    print($"    Date:  {epochSec.toDate().toIso()}\n")
 
     print("\nUnix epoch tests - PASS\n")
 
@@ -32,7 +32,7 @@ fn main(): int =>
     print($"    Year:  {beforeEpoch.year()}\n")
     print($"    Month: {beforeEpoch.month()}\n")
     print($"    Day:   {beforeEpoch.day()}\n")
-    print($"    Date:  {beforeEpoch.toDate()}\n")
+    print($"    Date:  {beforeEpoch.toDate().toIso()}\n")
 
     print("\nNegative epoch test - PASS\n")
 
@@ -43,7 +43,7 @@ fn main(): int =>
     print($"    Year:  {year2100.year()}\n")
     print($"    Month: {year2100.month()}\n")
     print($"    Day:   {year2100.day()}\n")
-    print($"    Date:  {year2100.toDate()}\n")
+    print($"    Date:  {year2100.toDate().toIso()}\n")
 
     print("\nLarge epoch test - PASS\n")
 
@@ -171,8 +171,8 @@ fn main(): int =>
     var stressStart: Time = Time.fromSeconds(0)
     // Use chained addDays to simulate 100 operations
     var stressTime: Time = stressStart.addDays(100)
-    print($"    Start: {stressStart.toDate()}\n")
-    print($"    After addDays(100): {stressTime.toDate()}\n")
+    print($"    Start: {stressStart.toDate().toIso()}\n")
+    print($"    After addDays(100): {stressTime.toDate().toIso()}\n")
     var expectedDays: int = stressTime.diff(stressStart) / 1000 / 60 / 60 / 24
     print($"    Difference: {expectedDays} days\n")
 
@@ -193,8 +193,8 @@ fn main(): int =>
     var largeDiff: int = y2100.diff(year2000)
     var diffDays: int = largeDiff / 1000 / 60 / 60 / 24
     var diffYears: int = diffDays / 365
-    print($"    Year 2000: {year2000.toDate()}\n")
-    print($"    Year 2100: {y2100.toDate()}\n")
+    print($"    Year 2000: {year2000.toDate().toIso()}\n")
+    print($"    Year 2100: {y2100.toDate().toIso()}\n")
     print($"    Difference: {largeDiff}ms ({diffDays} days, ~{diffYears} years)\n")
 
     print("\nStress tests - PASS\n")

@@ -40,6 +40,8 @@ const char *type_name(Type *type)
         case TYPE_FUNCTION:    return "function";
         case TYPE_TEXT_FILE:   return "TextFile";
         case TYPE_BINARY_FILE: return "BinaryFile";
+        case TYPE_DATE:        return "Date";
+        case TYPE_TIME:        return "Time";
         default:               return "unknown";
     }
 }
@@ -116,7 +118,8 @@ bool is_reference_type(Type *type)
                   type->kind == TYPE_ARRAY ||
                   type->kind == TYPE_FUNCTION ||
                   type->kind == TYPE_TEXT_FILE ||
-                  type->kind == TYPE_BINARY_FILE;
+                  type->kind == TYPE_BINARY_FILE ||
+                  type->kind == TYPE_DATE;
     DEBUG_VERBOSE("Checking if type is reference: %s", result ? "true" : "false");
     return result;
 }

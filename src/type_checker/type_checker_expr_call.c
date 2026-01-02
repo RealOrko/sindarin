@@ -1080,13 +1080,13 @@ Type *type_check_time_method(Expr *expr, Type *object_type, Token member_name, S
         return ast_create_function_type(table->arena, str_type, param_types, 0);
     }
 
-    /* time.toDate() -> str */
+    /* time.toDate() -> Date */
     if (token_equals(member_name, "toDate"))
     {
-        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
         Type *param_types[] = {NULL};
         DEBUG_VERBOSE("Returning function type for Time toDate method");
-        return ast_create_function_type(table->arena, str_type, param_types, 0);
+        return ast_create_function_type(table->arena, date_type, param_types, 0);
     }
 
     /* time.toTime() -> str */
@@ -1193,6 +1193,285 @@ Type *type_check_time_method(Expr *expr, Type *object_type, Token member_name, S
     }
 
     /* Not a Time method */
+    return NULL;
+}
+
+/* ============================================================================
+ * Date Method Type Checking
+ * ============================================================================
+ * Handles type checking for Date method access (not calls).
+ * Returns the function type for the method, or NULL if not a Date method.
+ * Caller should handle errors for invalid members.
+ * ============================================================================ */
+
+Type *type_check_date_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table)
+{
+    (void)expr; /* Reserved for future use (e.g., error location) */
+
+    /* Only handle Date types */
+    if (object_type->kind != TYPE_DATE)
+    {
+        return NULL;
+    }
+
+    /* Date getter methods returning int */
+
+    /* date.year() -> int */
+    if (token_equals(member_name, "year"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date year method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* date.month() -> int */
+    if (token_equals(member_name, "month"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date month method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* date.day() -> int */
+    if (token_equals(member_name, "day"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date day method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* date.weekday() -> int */
+    if (token_equals(member_name, "weekday"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date weekday method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* date.dayOfYear() -> int */
+    if (token_equals(member_name, "dayOfYear"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date dayOfYear method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* date.epochDays() -> int */
+    if (token_equals(member_name, "epochDays"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date epochDays method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* date.daysInMonth() -> int */
+    if (token_equals(member_name, "daysInMonth"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date daysInMonth method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* Date getter methods returning bool */
+
+    /* date.isLeapYear() -> bool */
+    if (token_equals(member_name, "isLeapYear"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date isLeapYear method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+
+    /* date.isWeekend() -> bool */
+    if (token_equals(member_name, "isWeekend"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date isWeekend method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+
+    /* date.isWeekday() -> bool */
+    if (token_equals(member_name, "isWeekday"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date isWeekday method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+
+    /* Date formatting methods */
+
+    /* date.format(pattern) -> str */
+    if (token_equals(member_name, "format"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[1] = {string_type};
+        DEBUG_VERBOSE("Returning function type for Date format method");
+        return ast_create_function_type(table->arena, str_type, param_types, 1);
+    }
+
+    /* date.toIso() -> str */
+    if (token_equals(member_name, "toIso"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date toIso method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+
+    /* date.toString() -> str */
+    if (token_equals(member_name, "toString"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date toString method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+
+    /* Date arithmetic methods returning Date */
+
+    /* date.addDays(days) -> Date */
+    if (token_equals(member_name, "addDays"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for Date addDays method");
+        return ast_create_function_type(table->arena, date_type, param_types, 1);
+    }
+
+    /* date.addWeeks(weeks) -> Date */
+    if (token_equals(member_name, "addWeeks"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for Date addWeeks method");
+        return ast_create_function_type(table->arena, date_type, param_types, 1);
+    }
+
+    /* date.addMonths(months) -> Date */
+    if (token_equals(member_name, "addMonths"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for Date addMonths method");
+        return ast_create_function_type(table->arena, date_type, param_types, 1);
+    }
+
+    /* date.addYears(years) -> Date */
+    if (token_equals(member_name, "addYears"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for Date addYears method");
+        return ast_create_function_type(table->arena, date_type, param_types, 1);
+    }
+
+    /* date.diffDays(other) -> int */
+    if (token_equals(member_name, "diffDays"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[1] = {date_type};
+        DEBUG_VERBOSE("Returning function type for Date diffDays method");
+        return ast_create_function_type(table->arena, int_type, param_types, 1);
+    }
+
+    /* Date boundary methods returning Date */
+
+    /* date.startOfMonth() -> Date */
+    if (token_equals(member_name, "startOfMonth"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date startOfMonth method");
+        return ast_create_function_type(table->arena, date_type, param_types, 0);
+    }
+
+    /* date.endOfMonth() -> Date */
+    if (token_equals(member_name, "endOfMonth"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date endOfMonth method");
+        return ast_create_function_type(table->arena, date_type, param_types, 0);
+    }
+
+    /* date.startOfYear() -> Date */
+    if (token_equals(member_name, "startOfYear"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date startOfYear method");
+        return ast_create_function_type(table->arena, date_type, param_types, 0);
+    }
+
+    /* date.endOfYear() -> Date */
+    if (token_equals(member_name, "endOfYear"))
+    {
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date endOfYear method");
+        return ast_create_function_type(table->arena, date_type, param_types, 0);
+    }
+
+    /* Date comparison methods */
+
+    /* date.isBefore(other) -> bool */
+    if (token_equals(member_name, "isBefore"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[1] = {date_type};
+        DEBUG_VERBOSE("Returning function type for Date isBefore method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+
+    /* date.isAfter(other) -> bool */
+    if (token_equals(member_name, "isAfter"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[1] = {date_type};
+        DEBUG_VERBOSE("Returning function type for Date isAfter method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+
+    /* date.equals(other) -> bool */
+    if (token_equals(member_name, "equals"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *date_type = ast_create_primitive_type(table->arena, TYPE_DATE);
+        Type *param_types[1] = {date_type};
+        DEBUG_VERBOSE("Returning function type for Date equals method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+
+    /* Date/Time conversion */
+
+    /* date.toTime() -> Time */
+    if (token_equals(member_name, "toTime"))
+    {
+        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Date toTime method");
+        return ast_create_function_type(table->arena, time_type, param_types, 0);
+    }
+
+    /* Not a Date method */
     return NULL;
 }
 
@@ -1582,6 +1861,115 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         {
             char msg[128];
             snprintf(msg, sizeof(msg), "Unknown Time static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Date static methods */
+    if (token_equals(type_name, "Date"))
+    {
+        if (token_equals(method_name, "today"))
+        {
+            /* Date.today(): Date */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Date.today takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_DATE);
+        }
+        else if (token_equals(method_name, "fromYmd"))
+        {
+            /* Date.fromYmd(year, month, day: int): Date */
+            if (call->arg_count != 3)
+            {
+                type_error(&method_name, "Date.fromYmd requires exactly 3 arguments (year, month, day)");
+                return NULL;
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                Type *arg_type = call->arguments[i]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_INT)
+                {
+                    type_error(&method_name, "Date.fromYmd requires int arguments");
+                    return NULL;
+                }
+            }
+            return ast_create_primitive_type(table->arena, TYPE_DATE);
+        }
+        else if (token_equals(method_name, "fromString"))
+        {
+            /* Date.fromString(str: str): Date */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Date.fromString requires exactly 1 argument");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Date.fromString requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_DATE);
+        }
+        else if (token_equals(method_name, "fromEpochDays"))
+        {
+            /* Date.fromEpochDays(days: int): Date */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Date.fromEpochDays requires exactly 1 argument (days)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Date.fromEpochDays requires an int argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_DATE);
+        }
+        else if (token_equals(method_name, "isLeapYear"))
+        {
+            /* Date.isLeapYear(year: int): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Date.isLeapYear requires exactly 1 argument (year)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Date.isLeapYear requires an int argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "daysInMonth"))
+        {
+            /* Date.daysInMonth(year: int, month: int): int */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Date.daysInMonth requires exactly 2 arguments (year, month)");
+                return NULL;
+            }
+            for (int i = 0; i < 2; i++)
+            {
+                Type *arg_type = call->arguments[i]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_INT)
+                {
+                    type_error(&method_name, "Date.daysInMonth requires int arguments");
+                    return NULL;
+                }
+            }
+            return ast_create_primitive_type(table->arena, TYPE_INT);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Date static method '%.*s'",
                      method_name.length, method_name.start);
             type_error(&method_name, msg);
             return NULL;

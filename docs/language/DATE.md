@@ -1,8 +1,6 @@
 # Date in Sindarin
 
-> **NOT IMPLEMENTED** - This document describes the planned `Date` type. It is not yet implemented. See [TIME.md](../language/TIME.md) for the currently available `Time` type.
-
-Sindarin will provide a built-in `Date` type for working with calendar dates without time components. The `Date` type is ideal for birthdays, holidays, scheduling, and date arithmetic. It will integrate with Sindarin's arena-based memory management.
+Sindarin provides a built-in `Date` type for working with calendar dates without time components. The `Date` type is ideal for birthdays, holidays, scheduling, and date arithmetic. It integrates with Sindarin's arena-based memory management.
 
 ## Overview
 
@@ -597,5 +595,6 @@ fn getFormattedDate(): str =>
 
 ## See Also
 
-- [TIME.md](../language/TIME.md) - Time and datetime operations
-- [MEMORY.md](../language/MEMORY.md) - Arena memory management details
+- [TIME.md](TIME.md) - Time and datetime operations
+- [MEMORY.md](MEMORY.md) - Arena memory management details
+- [TYPES.md](TYPES.md) - All built-in types

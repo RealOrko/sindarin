@@ -379,6 +379,17 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         /* Fall through to error handling if not a valid Time method */
     }
 
+    /* Try Date method type checking */
+    if (object_type->kind == TYPE_DATE)
+    {
+        Type *result = type_check_date_method(expr, object_type, expr->as.member.member_name, table);
+        if (result != NULL)
+        {
+            return result;
+        }
+        /* Fall through to error handling if not a valid Date method */
+    }
+
     /* No valid method found */
     {
         /* Create null-terminated member name for error message */

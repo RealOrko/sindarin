@@ -90,7 +90,7 @@ $"Hello {name}"
 
 Types: `int`, `long`, `double`, `str`, `char`, `bool`, `byte`, `void`
 
-Built-in types: `TextFile`, `BinaryFile`, `Time`
+Built-in types: `TextFile`, `BinaryFile`, `Date`, `Time`
 
 ## 📖 Documentation
 
@@ -103,11 +103,11 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 - [docs/language/ARRAYS.md](docs/language/ARRAYS.md) - Array operations
 - [docs/language/LAMBDAS.md](docs/language/LAMBDAS.md) - Lambda expressions and closures
 - [docs/language/FILE_IO.md](docs/language/FILE_IO.md) - File I/O (TextFile, BinaryFile)
+- [docs/language/DATE.md](docs/language/DATE.md) - Date operations
 - [docs/language/TIME.md](docs/language/TIME.md) - Time operations
 - [docs/language/MEMORY.md](docs/language/MEMORY.md) - Arena memory management
 
 **Draft Specifications:**
-- [docs/drafts/DATE.md](docs/drafts/DATE.md) - Date type (not implemented)
 - [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
 - [docs/drafts/FORMAT_SPECIFIERS.md](docs/drafts/FORMAT_SPECIFIERS.md) - Format specifiers (draft)
 

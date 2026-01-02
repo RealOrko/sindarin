@@ -291,6 +291,45 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         }
     }
 
+    /* Date static methods */
+    if (codegen_token_equals(type_name, "Date"))
+    {
+        if (codegen_token_equals(method_name, "today"))
+        {
+            /* Date.today() -> rt_date_today(arena) */
+            return arena_sprintf(gen->arena, "rt_date_today(%s)", ARENA_VAR(gen));
+        }
+        else if (codegen_token_equals(method_name, "fromYmd"))
+        {
+            /* Date.fromYmd(y, m, d) -> rt_date_from_ymd(arena, y, m, d) */
+            char *arg2 = code_gen_expression(gen, call->arguments[2]);
+            return arena_sprintf(gen->arena, "rt_date_from_ymd(%s, %s, %s, %s)",
+                                 ARENA_VAR(gen), arg0, arg1, arg2);
+        }
+        else if (codegen_token_equals(method_name, "fromString"))
+        {
+            /* Date.fromString(s) -> rt_date_from_string(arena, s) */
+            return arena_sprintf(gen->arena, "rt_date_from_string(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "fromEpochDays"))
+        {
+            /* Date.fromEpochDays(days) -> rt_date_from_epoch_days(arena, days) */
+            return arena_sprintf(gen->arena, "rt_date_from_epoch_days(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "isLeapYear"))
+        {
+            /* Date.isLeapYear(year) -> rt_date_is_leap_year(year) */
+            return arena_sprintf(gen->arena, "rt_date_is_leap_year(%s)", arg0);
+        }
+        else if (codegen_token_equals(method_name, "daysInMonth"))
+        {
+            /* Date.daysInMonth(year, month) -> rt_date_days_in_month(year, month) */
+            return arena_sprintf(gen->arena, "rt_date_days_in_month(%s, %s)", arg0, arg1);
+        }
+    }
+
     /* Time static methods */
     if (codegen_token_equals(type_name, "Time"))
     {

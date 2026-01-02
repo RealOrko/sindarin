@@ -14,6 +14,7 @@ Core documentation for the Sindarin programming language:
 | [ARRAYS.md](language/ARRAYS.md) | Array operations, slicing, and methods |
 | [LAMBDAS.md](language/LAMBDAS.md) | Lambda expressions and closures |
 | [FILE_IO.md](language/FILE_IO.md) | TextFile and BinaryFile operations |
+| [DATE.md](language/DATE.md) | Calendar date operations |
 | [TIME.md](language/TIME.md) | Date and time operations |
 | [MEMORY.md](language/MEMORY.md) | Arena memory management |
 
@@ -23,7 +24,6 @@ These features are planned but **not yet implemented**:
 
 | Document | Status | Description |
 |----------|--------|-------------|
-| [DATE.md](drafts/DATE.md) | Not Implemented | Calendar date type (separate from Time) |
 | [INTEROP.md](drafts/INTEROP.md) | Draft | C interoperability and native functions |
 | [FORMAT_SPECIFIERS.md](drafts/FORMAT_SPECIFIERS.md) | Draft | Format specifiers for string interpolation |
 

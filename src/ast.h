@@ -28,6 +28,7 @@ typedef enum
     TYPE_ANY,
     TYPE_TEXT_FILE,
     TYPE_BINARY_FILE,
+    TYPE_DATE,
     TYPE_TIME
 } TypeKind;
 

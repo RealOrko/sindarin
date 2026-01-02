@@ -1,0 +1,64 @@
+=== Month-End Clamping ===
+Jan 31: 2025-01-31
+Jan 31 + 1 month: 2025-02-28
+Jan 31 (2024): 2024-01-31
+Jan 31 (2024) + 1 month: 2024-02-29
+Mar 31: 2025-03-31
+Mar 31 + 1 month: 2025-04-30
+Aug 31: 2025-08-31
+Aug 31 - 1 month: 2025-07-31
+
+=== Leap Year Clamping ===
+Feb 29 2024: 2024-02-29
+Feb 29 + 1 year: 2025-02-28
+Feb 29 + 4 years: 2028-02-29
+Feb 29 - 1 year: 2023-02-28
+
+=== Epoch Boundary ===
+Unix epoch: 1970-01-01
+epochDays(): 0
+epoch - 1 day: 1969-12-31
+1969-12-31 epochDays: -1
+
+=== Year Boundary Crossing ===
+Dec 31 2024: 2024-12-31
+Dec 31 + 1 day: 2025-01-01
+Dec 31 + 1 month: 2025-01-31
+Jan 1 2025: 2025-01-01
+Jan 1 - 1 day: 2024-12-31
+Jan 1 - 1 month: 2024-12-01
+
+=== Large Values ===
+Start: 2025-06-15
++ 100 months: 2033-10-15
+- 100 months: 2017-02-15
++ 50 years: 2075-06-15
+- 50 years: 1975-06-15
+
+=== Century Leap Year Rules ===
+1900 leap year: false
+2000 leap year: true
+2100 leap year: false
+2400 leap year: true
+Feb 1900 days: 28
+Feb 2000 days: 29
+
+=== Far Future/Past ===
+Year 3000: 3000-06-15
+Year 3000 weekday: 0
+Year 1500: 1500-06-15
+Year 1500 weekday: 5
+
+=== Day of Year ===
+Jan 1 2025 dayOfYear: 1
+Dec 31 2025 dayOfYear: 365
+Dec 31 2024 (leap) dayOfYear: 366
+
+=== Weekend/Weekday ===
+Sat 2025-01-04 isWeekend: true
+Sat 2025-01-04 isWeekday: false
+Sun 2025-01-05 isWeekend: true
+Mon 2025-01-06 isWeekend: false
+Mon 2025-01-06 isWeekday: true
+
+PASS

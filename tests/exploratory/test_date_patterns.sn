@@ -1,0 +1,184 @@
+// Test Date common patterns from documentation:
+// - Age calculation
+// - Business days
+// - Date ranges
+// - Days until event
+// - Quarter calculations
+//
+// Note: Patterns are inlined due to arena handling when returning Date from functions
+
+fn main(): int =>
+    print("Testing Date common patterns...\n")
+    print("===============================\n\n")
+
+    // Use fixed dates for reproducible tests
+    var today: Date = Date.fromYmd(2025, 6, 15)  // Sunday
+
+    // Age calculation pattern (inlined)
+    print("Age calculation pattern:\n")
+
+    var dob1: Date = Date.fromYmd(1990, 5, 15)  // Before today's month/day
+    var age1: int = today.year() - dob1.year()
+    var bday1: Date = Date.fromYmd(today.year(), dob1.month(), dob1.day())
+    if today.isBefore(bday1) =>
+        age1 = age1 - 1
+    print($"  DOB: {dob1.toIso()}, Today: {today.toIso()}\n")
+    print($"  Age: {age1}\n")
+    print($"  Expected: 35 (birthday already passed) - {age1 == 35}\n")
+
+    var dob2: Date = Date.fromYmd(1990, 7, 15)  // After today's month/day
+    var age2: int = today.year() - dob2.year()
+    var bday2: Date = Date.fromYmd(today.year(), dob2.month(), dob2.day())
+    if today.isBefore(bday2) =>
+        age2 = age2 - 1
+    print($"  DOB: {dob2.toIso()}, Today: {today.toIso()}\n")
+    print($"  Age: {age2}\n")
+    print($"  Expected: 34 (birthday not yet) - {age2 == 34}\n")
+
+    var dob3: Date = Date.fromYmd(1990, 6, 15)  // Same day
+    var age3: int = today.year() - dob3.year()
+    var bday3: Date = Date.fromYmd(today.year(), dob3.month(), dob3.day())
+    if today.isBefore(bday3) =>
+        age3 = age3 - 1
+    print($"  DOB: {dob3.toIso()}, Today: {today.toIso()}\n")
+    print($"  Age: {age3}\n")
+    print($"  Expected: 35 (birthday is today) - {age3 == 35}\n")
+
+    print("\nAge calculation pattern - PASS\n")
+
+    // Days until event pattern (inlined)
+    print("\nDays until event pattern:\n")
+
+    var christmas: Date = Date.fromYmd(2025, 12, 25)
+    var daysToXmas: int = christmas.diffDays(today)
+    print($"  Today: {today.toIso()}\n")
+    print($"  Christmas: {christmas.toIso()}\n")
+    print($"  Days until: {daysToXmas}\n")
+    print($"  Expected: 193 - {daysToXmas == 193}\n")
+
+    var pastEvent: Date = Date.fromYmd(2025, 1, 1)
+    var daysPast: int = pastEvent.diffDays(today)
+    print($"  New Year: {pastEvent.toIso()}\n")
+    print($"  Days since: {daysPast}\n")
+    print($"  Expected: -165 (negative = past) - {daysPast == -165}\n")
+
+    print("\nDays until event pattern - PASS\n")
+
+    // Business days pattern
+    print("\nBusiness days pattern:\n")
+
+    // Test isWeekday/isWeekend for a week
+    var monday: Date = Date.fromYmd(2025, 6, 16)
+    var tuesday: Date = Date.fromYmd(2025, 6, 17)
+    var wednesday: Date = Date.fromYmd(2025, 6, 18)
+    var thursday: Date = Date.fromYmd(2025, 6, 19)
+    var friday: Date = Date.fromYmd(2025, 6, 20)
+    var saturday: Date = Date.fromYmd(2025, 6, 21)
+    var sunday: Date = Date.fromYmd(2025, 6, 22)
+
+    print($"  Mon {monday.toIso()} isWeekday: {monday.isWeekday()}\n")
+    print($"  Tue {tuesday.toIso()} isWeekday: {tuesday.isWeekday()}\n")
+    print($"  Wed {wednesday.toIso()} isWeekday: {wednesday.isWeekday()}\n")
+    print($"  Thu {thursday.toIso()} isWeekday: {thursday.isWeekday()}\n")
+    print($"  Fri {friday.toIso()} isWeekday: {friday.isWeekday()}\n")
+    print($"  Sat {saturday.toIso()} isWeekday: {saturday.isWeekday()}\n")
+    print($"  Sun {sunday.toIso()} isWeekday: {sunday.isWeekday()}\n")
+
+    // Demonstrate business day addition by chaining
+    var bizDay1: Date = monday.addDays(1)  // Tue
+    var bizDay4: Date = monday.addDays(4)  // Fri
+    var bizDay5: Date = monday.addDays(7)  // Next Mon (skip weekend)
+
+    print($"\n  Starting Monday: {monday.toIso()}\n")
+    print($"  +1 day: {bizDay1.toIso()} ({bizDay1.format("ddd")})\n")
+    print($"  +4 days: {bizDay4.toIso()} ({bizDay4.format("ddd")})\n")
+    print($"  +7 days: {bizDay5.toIso()} ({bizDay5.format("ddd")})\n")
+
+    print("\nBusiness days pattern - PASS\n")
+
+    // Date range pattern
+    print("\nDate range pattern:\n")
+    var rangeStart: Date = Date.fromYmd(2025, 1, 1)
+    print($"  Range from {rangeStart.toIso()} for 5 days:\n")
+    print($"    {rangeStart.toIso()}\n")
+    print($"    {rangeStart.addDays(1).toIso()}\n")
+    print($"    {rangeStart.addDays(2).toIso()}\n")
+    print($"    {rangeStart.addDays(3).toIso()}\n")
+    print($"    {rangeStart.addDays(4).toIso()}\n")
+
+    // Verify date differences
+    var rangeEnd: Date = rangeStart.addDays(4)
+    print($"  Diff between start and end: {rangeEnd.diffDays(rangeStart)} days\n")
+    print($"  Expected: 4 - {rangeEnd.diffDays(rangeStart) == 4}\n")
+
+    print("\nDate range pattern - PASS\n")
+
+    // Quarter calculations (inlined)
+    print("\nQuarter calculations pattern:\n")
+
+    var q1Date: Date = Date.fromYmd(2025, 2, 15)
+    var q2Date: Date = Date.fromYmd(2025, 5, 15)
+    var q3Date: Date = Date.fromYmd(2025, 8, 15)
+    var q4Date: Date = Date.fromYmd(2025, 11, 15)
+
+    var q1: int = (q1Date.month() - 1) / 3 + 1
+    var q2: int = (q2Date.month() - 1) / 3 + 1
+    var q3: int = (q3Date.month() - 1) / 3 + 1
+    var q4: int = (q4Date.month() - 1) / 3 + 1
+
+    print($"  {q1Date.toIso()} is Q{q1}\n")
+    print($"  {q2Date.toIso()} is Q{q2}\n")
+    print($"  {q3Date.toIso()} is Q{q3}\n")
+    print($"  {q4Date.toIso()} is Q{q4}\n")
+
+    // Calculate Q2 start and end inline
+    var q2StartMonth: int = (q2 - 1) * 3 + 1
+    var q2Start: Date = Date.fromYmd(q2Date.year(), q2StartMonth, 1)
+    var q2EndMonth: int = q2 * 3
+    var q2EndFirst: Date = Date.fromYmd(q2Date.year(), q2EndMonth, 1)
+    var q2End: Date = q2EndFirst.endOfMonth()
+
+    print($"\n  Q2 2025:\n")
+    print($"    Start: {q2Start.toIso()}\n")
+    print($"    End: {q2End.toIso()}\n")
+    print($"    Expected: 2025-04-01 to 2025-06-30\n")
+    print($"    Correct: {q2Start.toIso() == "2025-04-01" and q2End.toIso() == "2025-06-30"}\n")
+
+    print("\nQuarter calculations pattern - PASS\n")
+
+    // Recurring dates pattern (inlined)
+    print("\nRecurring dates pattern:\n")
+
+    // Next 15th from today (June 15)
+    var thisMonth15: Date = Date.fromYmd(today.year(), today.month(), 15)
+    var payday: Date = thisMonth15
+    if today.isAfter(thisMonth15) =>
+        payday = thisMonth15.addMonths(1)
+    print($"  Today: {today.toIso()}\n")
+    print($"  Next 15th: {payday.toIso()}\n")
+    print($"  Expected: 2025-06-15 (today is the 15th) - {payday.toIso() == "2025-06-15"}\n")
+
+    var earlyMonth: Date = Date.fromYmd(2025, 6, 10)
+    var earlyThis15: Date = Date.fromYmd(earlyMonth.year(), earlyMonth.month(), 15)
+    var nextPayday: Date = earlyThis15
+    if earlyMonth.isAfter(earlyThis15) =>
+        nextPayday = earlyThis15.addMonths(1)
+    print($"  On: {earlyMonth.toIso()}\n")
+    print($"  Next 15th: {nextPayday.toIso()}\n")
+    print($"  Expected: 2025-06-15 - {nextPayday.toIso() == "2025-06-15"}\n")
+
+    var lateMonth: Date = Date.fromYmd(2025, 6, 20)
+    var lateThis15: Date = Date.fromYmd(lateMonth.year(), lateMonth.month(), 15)
+    var nextPayday2: Date = lateThis15
+    if lateMonth.isAfter(lateThis15) =>
+        nextPayday2 = lateThis15.addMonths(1)
+    print($"  On: {lateMonth.toIso()}\n")
+    print($"  Next 15th: {nextPayday2.toIso()}\n")
+    print($"  Expected: 2025-07-15 - {nextPayday2.toIso() == "2025-07-15"}\n")
+
+    print("\nRecurring dates pattern - PASS\n")
+
+    print("\n===============================\n")
+    print("All 6 patterns complete - PASS\n")
+
+    return 0

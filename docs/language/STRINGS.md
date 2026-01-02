@@ -174,6 +174,40 @@ var replaced: str = "hello".replace("l", "L")  // "heLLo"
 var updated: str = "foo bar foo".replace("foo", "baz")  // "baz bar baz"
 ```
 
+### Appending
+
+#### append(other)
+
+Appends a string to the end of the current string, modifying it in place. Returns the string (which must be reassigned as the pointer may change due to reallocation):
+
+```sindarin
+var text: str = "Hello"
+text = text.append(" World")  // "Hello World"
+text = text.append("!")       // "Hello World!"
+```
+
+The `append` method is optimized for efficient string building with amortized O(1) performance. When building strings incrementally, prefer `append` over repeated concatenation:
+
+```sindarin
+// Efficient: uses append for incremental building
+var result: str = ""
+for i in 0..10 =>
+  result = result.append($"{i} ")
+
+// Less efficient: creates intermediate strings
+var result2: str = ""
+for i in 0..10 =>
+  result2 = result2 + $"{i} "  // Creates new string each iteration
+```
+
+**Important:** Always reassign the result of `append` back to the variable, as the underlying buffer may be reallocated:
+
+```sindarin
+var s: str = "start"
+s = s.append(" middle")  // Correct: reassign the result
+s = s.append(" end")
+```
+
 ### Splitting
 
 #### split(delimiter)
