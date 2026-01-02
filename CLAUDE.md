@@ -109,11 +109,5 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 
 **Draft Specifications:**
 - [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
-- [docs/drafts/FORMAT_SPECIFIERS.md](docs/drafts/FORMAT_SPECIFIERS.md) - Format specifiers (draft)
+- [docs/drafts/FORMATTING.md](docs/drafts/FORMATTING.md) - Format specifiers (draft)
 
-**Internal Documentation:**
-- [docs/internal/TESTING.md](docs/internal/TESTING.md) - Test coverage
-- [docs/internal/OPTIMIZATIONS.md](docs/internal/OPTIMIZATIONS.md) - Compiler optimizations
-- [docs/internal/RUNTIME.md](docs/internal/RUNTIME.md) - Runtime library
-- [docs/internal/REFACTOR.md](docs/internal/REFACTOR.md) - Refactoring notes
-- [docs/internal/ISSUES.md](docs/internal/ISSUES.md) - Known issues
