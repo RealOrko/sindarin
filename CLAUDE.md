@@ -108,6 +108,8 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 - [docs/language/MEMORY.md](docs/language/MEMORY.md) - Arena memory management
 
 **Draft Specifications:**
-- [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
 - [docs/drafts/FORMATTING.md](docs/drafts/FORMATTING.md) - Format specifiers (draft)
+- [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
+- [docs/drafts/NETWORK_IO.md](docs/drafts/NETWORK_IO.md) - Network I/O (draft)
+- [docs/drafts/THREADING.md](docs/drafts/THREADING.md) - Threading (draft)
 
