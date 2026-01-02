@@ -9,13 +9,14 @@
 
 // Entry point for file I/O demos
 fn demo_fileio(): void =>
-  print("=== Sindarin File I/O ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                       Sindarin File I/O                          │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   demo_textfile()
   demo_binaryfile()
   demo_file_utilities()
 
-  print("\n=== File I/O Demo Complete ===\n")
 
 // ----------------------------------------------------------------------------
 // 1. TextFile Operations

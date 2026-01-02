@@ -6,7 +6,9 @@
 
 // Entry point for function demos
 fn demo_functions(): void =>
-  print("=== Sindarin Functions ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                       Sindarin Functions                         │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   // 1. Basic functions - void functions work fine
   print("--- Basic Functions ---\n")
@@ -34,7 +36,6 @@ fn demo_functions(): void =>
   print("factorial(5) = 120\n")
   print("fibonacci sequence: 0, 1, 1, 2, 3, 5, 8...\n")
 
-  print("\n=== Done ===\n")
 
 fn greet(): void =>
   print("Hello from greet()!\n")

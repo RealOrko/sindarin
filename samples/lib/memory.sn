@@ -21,7 +21,9 @@ fn compute_sum() private: int =>
 
 // Entry point for memory demos
 fn demo_memory(): void =>
-  print("=== Sindarin Memory Management ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                   Sindarin Memory Management                     │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   // 1. Shared Functions
   print("--- Shared Functions ---\n")
@@ -94,4 +96,3 @@ fn demo_memory(): void =>
   value = 100
   print($"modified value = {value}\n")
 
-  print("\n=== Done ===\n")

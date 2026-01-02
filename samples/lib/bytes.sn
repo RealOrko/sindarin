@@ -12,14 +12,15 @@
 
 // Entry point for byte demos
 fn demo_bytes(): void =>
-  print("=== Sindarin Byte Type ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                       Sindarin Byte Type                         │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   show_byte_basics()
   show_byte_values()
   show_byte_conversions()
   show_byte_arrays()
 
-  print("\n=== Byte Type Demo Complete ===\n")
 
 // ----------------------------------------------------------------------------
 // 1. Byte Basics

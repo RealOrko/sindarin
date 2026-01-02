@@ -1,5 +1,7 @@
 fn demo_lambda(): void =>
-    print("--- Lambda Expressions ---\n\n")
+    print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+    print("│                     Sindarin Lambda Expressions                  │\n")
+    print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
     // =========================================
     // Explicit Type Annotations (verbose style)
@@ -57,4 +59,3 @@ fn demo_lambda(): void =>
     var y: int = triple(multiply(2, 3))
     print($"  triple(multiply(2, 3)) = {y}\n")
 
-    print("\nLambda demo complete!\n")

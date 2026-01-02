@@ -7,7 +7,9 @@
 
 // Entry point for array demos
 fn demo_arrays(): void =>
-  print("=== Sindarin Arrays ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                        Sindarin Arrays                           │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   // 1. Declaration and initialization
   print("--- Declaration ---\n")
@@ -318,4 +320,3 @@ fn demo_arrays(): void =>
   print(strings)
   print("\n")
 
-  print("\n=== Done ===\n")

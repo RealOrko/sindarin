@@ -7,7 +7,9 @@
 
 // Entry point for string demos
 fn demo_strings(): void =>
-  print("=== Sindarin Strings ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                        Sindarin Strings                          │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   // 1. String literals
   print("--- String Literals ---\n")
@@ -231,4 +233,3 @@ fn demo_strings(): void =>
   print($"\"hello\" isBlank: {notBlank.isBlank()}\n")
   print($"\"  hi  \" isBlank: {notBlank2.isBlank()}\n")
 
-  print("\n=== Done ===\n")

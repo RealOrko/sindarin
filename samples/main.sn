@@ -18,6 +18,8 @@ import "lib/lambda"
 import "lib/closure"
 import "lib/bytes"
 import "lib/fileio"
+import "lib/date"
+import "lib/time"
 
 fn main(): void =>
   print("╔══════════════════════════════════════════════════════════════════╗\n")
@@ -36,6 +38,8 @@ fn main(): void =>
   demo_closure()
   demo_bytes()
   demo_fileio()
+  demo_date()
+  demo_time()
 
   print("╔══════════════════════════════════════════════════════════════════╗\n")
   print("║                    All Demos Complete!                           ║\n")

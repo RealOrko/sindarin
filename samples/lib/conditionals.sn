@@ -6,7 +6,9 @@
 
 // Entry point for conditional demos
 fn demo_conditionals(): void =>
-  print("=== Sindarin Conditionals ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                      Sindarin Conditionals                       │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   // 1. Basic if
   print("--- If Statements ---\n")
@@ -101,4 +103,3 @@ fn demo_conditionals(): void =>
     m = q
   print($"max({p}, {q}) = {m}\n")
 
-  print("\n=== Done ===\n")

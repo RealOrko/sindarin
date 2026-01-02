@@ -14,7 +14,9 @@
 
 // Entry point for type demos
 fn demo_types(): void =>
-  print("=== Sindarin Type System ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                      Sindarin Type System                        │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   show_integers()
   show_doubles()
@@ -23,7 +25,6 @@ fn demo_types(): void =>
   show_booleans()
   show_type_conversion()
 
-  print("\n=== Type Demo Complete ===\n")
 
 // ----------------------------------------------------------------------------
 // 1. Integers (int)

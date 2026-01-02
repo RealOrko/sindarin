@@ -13,7 +13,9 @@
 
 // Entry point for loop demos
 fn demo_loops(): void =>
-  print("=== Sindarin Loop Features ===\n\n")
+  print("\n┌──────────────────────────────────────────────────────────────────┐\n")
+  print("│                      Sindarin Loop Features                      │\n")
+  print("└──────────────────────────────────────────────────────────────────┘\n\n")
 
   show_while_loops()
   show_for_loops()
@@ -21,7 +23,6 @@ fn demo_loops(): void =>
   show_break_continue()
   show_nested_loops()
 
-  print("\n=== Loop Demo Complete ===\n")
 
 // ----------------------------------------------------------------------------
 // 1. While Loops
