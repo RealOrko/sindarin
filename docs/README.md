@@ -20,12 +20,14 @@ Core documentation for the Sindarin programming language:
 
 ## Draft Specifications
 
-These features are planned but **not yet implemented**:
+These features are planned or partially implemented:
 
 | Document | Status | Description |
 |----------|--------|-------------|
+| [FORMATTING.md](drafts/FORMATTING.md) | Partial | String formatting and format specifiers |
 | [INTEROP.md](drafts/INTEROP.md) | Draft | C interoperability and native functions |
-| [FORMAT_SPECIFIERS.md](drafts/FORMAT_SPECIFIERS.md) | Draft | Format specifiers for string interpolation |
+| [NETWORK_IO.md](drafts/NETWORK_IO.md) | Draft | Network I/O (TCP, UDP, Unix sockets) |
+| [THREADING.md](drafts/THREADING.md) | Draft | Threading with `&` and `!` operators |
 
 ## Internal Documentation
 
@@ -38,15 +40,17 @@ For contributors and compiler developers:
 | [REFACTOR.md](internal/REFACTOR.md) | Compiler refactoring notes |
 | [RUNTIME.md](internal/RUNTIME.md) | Runtime library documentation |
 | [ISSUES.md](internal/ISSUES.md) | Known issues and tracking |
-| [ARRAY_IMPLEMENTATION.md](internal/ARRAY_IMPLEMENTATION.md) | Array implementation notes |
+| [ARRAY_PLAN.md](internal/ARRAY_PLAN.md) | Array feature implementation plan |
+| [REFACTOR_TESTS.md](internal/REFACTOR_TESTS.md) | Project restructuring notes |
+| [DOCS.md](internal/DOCS.md) | Documentation consolidation plan |
 
-### Audit Reports
+### Analysis Reports
 
 | Document | Description |
 |----------|-------------|
-| [type_checker_error_audit.md](internal/type_checker_error_audit.md) | Type checker error audit |
-| [optimization_report.md](internal/optimization_report.md) | Optimization analysis report |
-| [string_interpolation_analysis.md](internal/string_interpolation_analysis.md) | String interpolation analysis |
+| [TYPE_CHECKER.md](internal/TYPE_CHECKER.md) | Type checker error message audit |
+| [OPTIMIZATIONS_REPORT.md](internal/OPTIMIZATIONS_REPORT.md) | Optimization impact report |
+| [STRING_INTERPOLATION.md](internal/STRING_INTERPOLATION.md) | String interpolation technical analysis |
 
 ## Quick Links
 
