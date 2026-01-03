@@ -27,7 +27,9 @@ These features are planned or partially implemented:
 |----------|--------|-------------|
 | [FORMATTING.md](drafts/FORMATTING.md) | Partial | String formatting and format specifiers |
 | [INTEROP.md](drafts/INTEROP.md) | Draft | C interoperability and native functions |
+| [NAMESPACES.md](drafts/NAMESPACES.md) | Draft | Namespace support |
 | [NETWORK_IO.md](drafts/NETWORK_IO.md) | Draft | Network I/O (TCP, UDP, Unix sockets) |
+| [PROCESSES.md](drafts/PROCESSES.md) | Draft | Process management and execution |
 
 ## Internal Documentation
 

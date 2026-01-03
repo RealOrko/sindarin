@@ -1,7 +1,7 @@
 # Sn Compiler - Root Makefile
 # Consolidates all build and test operations
 
-.PHONY: all build clean run test test-unit test-integration test-integration-errors test-threading test-explore assembly measure-optimization benchmark help
+.PHONY: all build clean run test test-unit test-integration test-integration-errors test-explore test-explore-errors test-threading assembly measure-optimization benchmark help
 
 # Default optimization level for GCC when compiling generated C
 OPT_LEVEL ?= -O2
@@ -14,12 +14,15 @@ TEST_DIR := tests/integration
 ERROR_TEST_DIR := tests/integration/errors
 TEMP_DIR := /tmp/sn_integration_tests
 EXPLORE_DIR := tests/exploratory
+EXPLORE_ERROR_DIR := tests/exploratory/errors
 EXPLORE_OUT := $(EXPLORE_DIR)/output
 
 # Colors (for terminal output)
 RED := \033[0;31m
 GREEN := \033[0;32m
 YELLOW := \033[0;33m
+BLUE := \033[0;34m
+BOLD := \033[1m
 NC := \033[0m
 
 #------------------------------------------------------------------------------
@@ -61,24 +64,37 @@ run:
 #------------------------------------------------------------------------------
 # test - Run all tests (unit, integration, exploratory)
 #------------------------------------------------------------------------------
-test: test-unit test-integration test-integration-errors test-explore
+test: test-unit test-integration test-integration-errors test-explore test-explore-errors
 
 #------------------------------------------------------------------------------
 # test-unit - Run unit tests
 #------------------------------------------------------------------------------
 test-unit:
+	@echo ""
+	@echo "$(BOLD)Unit Tests$(NC)"
+	@echo "============================================================"
 	@mkdir -p $(LOG_DIR)
-	@$(BIN_DIR)/tests > $(LOG_DIR)/test-output.log 2>&1
-	@cat $(LOG_DIR)/test-output.log
+	@if $(BIN_DIR)/tests > $(LOG_DIR)/test-output.log 2>&1; then \
+		cat $(LOG_DIR)/test-output.log; \
+		echo ""; \
+		echo "------------------------------------------------------------"; \
+		printf "$(GREEN)Unit tests passed$(NC)\n"; \
+	else \
+		cat $(LOG_DIR)/test-output.log; \
+		echo ""; \
+		echo "------------------------------------------------------------"; \
+		printf "$(RED)Unit tests failed$(NC)\n"; \
+		exit 1; \
+	fi
 
 #------------------------------------------------------------------------------
-# test-integration - Run integration tests
+# test-integration - Run integration tests (positive tests that should pass)
 #------------------------------------------------------------------------------
 test-integration:
-	@mkdir -p $(TEMP_DIR)
-	@echo "Running Sn Integration Tests (optimization: -O0)"
-	@echo "=================================================="
 	@echo ""
+	@echo "$(BOLD)Integration Tests$(NC)"
+	@echo "============================================================"
+	@mkdir -p $(TEMP_DIR)
 	@passed=0; failed=0; skipped=0; \
 	for test_file in $(TEST_DIR)/*.sn; do \
 		[ -f "$$test_file" ] || continue; \
@@ -87,15 +103,15 @@ test-integration:
 		panic_file="$${test_file%.sn}.panic"; \
 		exe_file="$(TEMP_DIR)/$$test_name"; \
 		output_file="$(TEMP_DIR)/$$test_name.out"; \
-		printf "  %-40s " "$$test_name"; \
+		printf "  %-45s " "$$test_name"; \
 		if [ ! -f "$$expected_file" ]; then \
-			printf "$(YELLOW)SKIP$(NC) (no .expected file)\n"; \
+			printf "$(YELLOW)SKIP$(NC) (no .expected)\n"; \
 			skipped=$$((skipped + 1)); \
 			continue; \
 		fi; \
 		if ! $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -l 1 -g -O0 2>"$(TEMP_DIR)/$$test_name.compile_err"; then \
-			printf "$(RED)FAIL$(NC) (compilation error)\n"; \
-			head -5 "$(TEMP_DIR)/$$test_name.compile_err"; \
+			printf "$(RED)FAIL$(NC) (compile error)\n"; \
+			head -3 "$(TEMP_DIR)/$$test_name.compile_err" | sed 's/^/    /'; \
 			failed=$$((failed + 1)); \
 			continue; \
 		fi; \
@@ -103,14 +119,14 @@ test-integration:
 		run_exit_code=$$?; \
 		if [ -f "$$panic_file" ]; then \
 			if [ $$run_exit_code -eq 0 ]; then \
-				printf "$(RED)FAIL$(NC) (expected panic but succeeded)\n"; \
+				printf "$(RED)FAIL$(NC) (expected panic)\n"; \
 				failed=$$((failed + 1)); \
 				continue; \
 			fi; \
 		else \
 			if [ $$run_exit_code -ne 0 ]; then \
-				printf "$(RED)FAIL$(NC) (runtime error or timeout)\n"; \
-				head -5 "$$output_file"; \
+				printf "$(RED)FAIL$(NC) (runtime error)\n"; \
+				head -3 "$$output_file" | sed 's/^/    /'; \
 				failed=$$((failed + 1)); \
 				continue; \
 			fi; \
@@ -120,15 +136,13 @@ test-integration:
 			passed=$$((passed + 1)); \
 		else \
 			printf "$(RED)FAIL$(NC) (output mismatch)\n"; \
-			echo "  Expected:"; \
-			head -3 "$$expected_file" | sed 's/^/    /'; \
-			echo "  Got:"; \
-			head -3 "$$output_file" | sed 's/^/    /'; \
+			echo "    Expected: $$(head -1 "$$expected_file")"; \
+			echo "    Got:      $$(head -1 "$$output_file")"; \
 			failed=$$((failed + 1)); \
 		fi; \
 	done; \
 	echo ""; \
-	echo "============================"; \
+	echo "------------------------------------------------------------"; \
 	printf "Results: $(GREEN)%d passed$(NC), $(RED)%d failed$(NC), $(YELLOW)%d skipped$(NC)\n" $$passed $$failed $$skipped; \
 	rm -rf $(TEMP_DIR); \
 	if [ $$failed -gt 0 ]; then exit 1; fi
@@ -137,24 +151,24 @@ test-integration:
 # test-integration-errors - Run compile error tests (tests that should fail)
 #------------------------------------------------------------------------------
 test-integration-errors:
-	@mkdir -p $(TEMP_DIR)
-	@echo "Running Sn Integration Error Tests (compile failures)"
-	@echo "======================================================="
 	@echo ""
+	@echo "$(BOLD)Integration Error Tests$(NC) (expected compile failures)"
+	@echo "============================================================"
+	@mkdir -p $(TEMP_DIR)
 	@passed=0; failed=0; skipped=0; \
 	for test_file in $(ERROR_TEST_DIR)/*.sn; do \
 		[ -f "$$test_file" ] || continue; \
 		test_name=$$(basename "$$test_file" .sn); \
 		expected_file="$${test_file%.sn}.expected"; \
 		compile_err="$(TEMP_DIR)/$$test_name.compile_err"; \
-		printf "  %-40s " "$$test_name"; \
+		printf "  %-45s " "$$test_name"; \
 		if [ ! -f "$$expected_file" ]; then \
-			printf "$(YELLOW)SKIP$(NC) (no .expected file)\n"; \
+			printf "$(YELLOW)SKIP$(NC) (no .expected)\n"; \
 			skipped=$$((skipped + 1)); \
 			continue; \
 		fi; \
 		if $(BIN_DIR)/sn "$$test_file" -o "$(TEMP_DIR)/$$test_name" -l 1 2>"$$compile_err"; then \
-			printf "$(RED)FAIL$(NC) (expected compile error but succeeded)\n"; \
+			printf "$(RED)FAIL$(NC) (should not compile)\n"; \
 			failed=$$((failed + 1)); \
 			continue; \
 		fi; \
@@ -162,18 +176,106 @@ test-integration-errors:
 			printf "$(GREEN)PASS$(NC)\n"; \
 			passed=$$((passed + 1)); \
 		else \
-			printf "$(RED)FAIL$(NC) (error message mismatch)\n"; \
-			echo "  Expected:"; \
-			head -1 "$$expected_file" | sed 's/^/    /'; \
-			echo "  Got:"; \
-			head -3 "$$compile_err" | sed 's/^/    /'; \
+			printf "$(RED)FAIL$(NC) (wrong error)\n"; \
+			echo "    Expected: $$(head -1 "$$expected_file")"; \
+			echo "    Got:      $$(head -1 "$$compile_err" | sed 's/.*error[0m: //')"; \
 			failed=$$((failed + 1)); \
 		fi; \
 	done; \
 	echo ""; \
-	echo "============================"; \
+	echo "------------------------------------------------------------"; \
 	printf "Results: $(GREEN)%d passed$(NC), $(RED)%d failed$(NC), $(YELLOW)%d skipped$(NC)\n" $$passed $$failed $$skipped; \
 	rm -rf $(TEMP_DIR); \
+	if [ $$failed -gt 0 ]; then exit 1; fi
+
+#------------------------------------------------------------------------------
+# test-explore - Run exploratory tests (positive tests that should pass)
+#------------------------------------------------------------------------------
+test-explore:
+	@echo ""
+	@echo "$(BOLD)Exploratory Tests$(NC)"
+	@echo "============================================================"
+	@rm -rf $(EXPLORE_OUT) && mkdir -p $(EXPLORE_OUT)
+	@passed=0; failed=0; skipped=0; \
+	for test_file in $(EXPLORE_DIR)/test_*.sn; do \
+		[ -f "$$test_file" ] || continue; \
+		test_name=$$(basename "$$test_file" .sn); \
+		expected_file="$${test_file%.sn}.expected"; \
+		exe_file="$(EXPLORE_OUT)/$$test_name"; \
+		output_file="$(EXPLORE_OUT)/$$test_name.out"; \
+		printf "  %-45s " "$$test_name"; \
+		if ! timeout 10s $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -g -O0 2>"$(EXPLORE_OUT)/$$test_name.compile_err"; then \
+			printf "$(RED)FAIL$(NC) (compile error)\n"; \
+			head -3 "$(EXPLORE_OUT)/$$test_name.compile_err" | sed 's/^/    /'; \
+			failed=$$((failed + 1)); \
+			continue; \
+		fi; \
+		ASAN_OPTIONS=detect_leaks=0 timeout 30s "$$exe_file" > "$$output_file" 2>&1; \
+		run_exit_code=$$?; \
+		if [ $$run_exit_code -ne 0 ]; then \
+			printf "$(RED)FAIL$(NC) (exit code: $$run_exit_code)\n"; \
+			head -3 "$$output_file" | sed 's/^/    /'; \
+			failed=$$((failed + 1)); \
+			continue; \
+		fi; \
+		if [ -f "$$expected_file" ]; then \
+			if diff -q "$$output_file" "$$expected_file" > /dev/null 2>&1; then \
+				printf "$(GREEN)PASS$(NC)\n"; \
+				passed=$$((passed + 1)); \
+			else \
+				printf "$(RED)FAIL$(NC) (output mismatch)\n"; \
+				echo "    Expected: $$(head -1 "$$expected_file")"; \
+				echo "    Got:      $$(head -1 "$$output_file")"; \
+				failed=$$((failed + 1)); \
+			fi; \
+		else \
+			printf "$(GREEN)PASS$(NC)\n"; \
+			passed=$$((passed + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "------------------------------------------------------------"; \
+	printf "Results: $(GREEN)%d passed$(NC), $(RED)%d failed$(NC), $(YELLOW)%d skipped$(NC)\n" $$passed $$failed $$skipped; \
+	if [ $$failed -gt 0 ]; then exit 1; fi
+
+#------------------------------------------------------------------------------
+# test-explore-errors - Run exploratory error tests (expected compile failures)
+#------------------------------------------------------------------------------
+test-explore-errors:
+	@echo ""
+	@echo "$(BOLD)Exploratory Error Tests$(NC) (expected compile failures)"
+	@echo "============================================================"
+	@mkdir -p $(EXPLORE_OUT)
+	@passed=0; failed=0; skipped=0; \
+	for test_file in $(EXPLORE_ERROR_DIR)/*.sn; do \
+		[ -f "$$test_file" ] || continue; \
+		test_name=$$(basename "$$test_file" .sn); \
+		expected_file="$${test_file%.sn}.expected"; \
+		compile_err="$(EXPLORE_OUT)/$$test_name.compile_err"; \
+		printf "  %-45s " "$$test_name"; \
+		if [ ! -f "$$expected_file" ]; then \
+			printf "$(YELLOW)SKIP$(NC) (no .expected)\n"; \
+			skipped=$$((skipped + 1)); \
+			continue; \
+		fi; \
+		if $(BIN_DIR)/sn "$$test_file" -o "$(EXPLORE_OUT)/$$test_name" -l 1 2>"$$compile_err"; then \
+			printf "$(RED)FAIL$(NC) (should not compile)\n"; \
+			failed=$$((failed + 1)); \
+			continue; \
+		fi; \
+		if grep -qF "$$(cat "$$expected_file" | head -1)" "$$compile_err"; then \
+			printf "$(GREEN)PASS$(NC)\n"; \
+			passed=$$((passed + 1)); \
+		else \
+			printf "$(RED)FAIL$(NC) (wrong error)\n"; \
+			echo "    Expected: $$(head -1 "$$expected_file")"; \
+			echo "    Got:      $$(head -1 "$$compile_err" | sed 's/.*error[0m: //')"; \
+			failed=$$((failed + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "------------------------------------------------------------"; \
+	printf "Results: $(GREEN)%d passed$(NC), $(RED)%d failed$(NC), $(YELLOW)%d skipped$(NC)\n" $$passed $$failed $$skipped; \
 	if [ $$failed -gt 0 ]; then exit 1; fi
 
 #------------------------------------------------------------------------------
@@ -181,39 +283,6 @@ test-integration-errors:
 #------------------------------------------------------------------------------
 test-threading:
 	@./scripts/test_threading.sh
-
-#------------------------------------------------------------------------------
-# test-explore - Run exploratory tests from testing/*.sn
-#------------------------------------------------------------------------------
-test-explore:
-	@rm -rf $(EXPLORE_OUT) && mkdir -p $(EXPLORE_OUT)
-	@echo "=== Sindarin Exploratory Test Results ==="
-	@echo "Date: $$(date)"
-	@echo ""
-	@for test_file in $(EXPLORE_DIR)/test_*.sn; do \
-		[ -f "$$test_file" ] || continue; \
-		test_name=$$(basename "$$test_file" .sn); \
-		exe_file="$(EXPLORE_OUT)/$$test_name"; \
-		log_file="$(EXPLORE_OUT)/$$test_name.log"; \
-		echo "Testing: $$test_name"; \
-		echo "========================================"; \
-		echo "Source: $$test_file" > "$$log_file"; \
-		if ! timeout 5s $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -g -O0 >> "$$log_file" 2>&1; then \
-			echo "  COMPILE FAILED"; \
-			cat "$$log_file"; \
-			echo ""; \
-			continue; \
-		fi; \
-		if run_output=$$(timeout 30s "$$exe_file" 2>&1); then \
-			echo "  PASSED"; \
-		else \
-			echo "  RUNTIME ERROR (exit code: $$?)"; \
-			echo "Output:"; \
-			echo "$$run_output"; \
-		fi; \
-		echo ""; \
-	done; \
-	echo "Results written to $(EXPLORE_OUT)"
 
 #------------------------------------------------------------------------------
 # assembly - Assemble and link assembly files
@@ -281,10 +350,14 @@ help:
 	@echo "  make build        Build compiler and test binary"
 	@echo "  make clean        Remove build artifacts"
 	@echo "  make run          Compile and run samples/main.sn"
-	@echo "  make test         Run all tests (unit, integration, exploratory)"
-	@echo "  make test-unit    Run unit tests only"
-	@echo "  make test-integration  Run integration tests only"
-	@echo "  make test-explore Run exploratory tests only"
+	@echo ""
+	@echo "  make test         Run all tests"
+	@echo "  make test-unit    Run unit tests"
+	@echo "  make test-integration        Run integration tests (positive)"
+	@echo "  make test-integration-errors Run integration error tests (negative)"
+	@echo "  make test-explore            Run exploratory tests (positive)"
+	@echo "  make test-explore-errors     Run exploratory error tests (negative)"
+	@echo ""
 	@echo "  make assembly     Assemble and link assembly files"
 	@echo "  make measure-optimization  Measure optimization impact"
 	@echo "  make benchmark    Run multi-language benchmark suite"

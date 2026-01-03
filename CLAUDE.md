@@ -111,5 +111,7 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 **Draft Specifications:**
 - [docs/drafts/FORMATTING.md](docs/drafts/FORMATTING.md) - Format specifiers (draft)
 - [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
+- [docs/drafts/NAMESPACES.md](docs/drafts/NAMESPACES.md) - Namespaces (draft)
 - [docs/drafts/NETWORK_IO.md](docs/drafts/NETWORK_IO.md) - Network I/O (draft)
+- [docs/drafts/PROCESSES.md](docs/drafts/PROCESSES.md) - Process management (draft)
 

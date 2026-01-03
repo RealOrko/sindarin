@@ -2275,20 +2275,81 @@ static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
     char *handle_var = arena_sprintf(gen->arena, "__spawn_handle_%d__", temp_id);
 
     /* Generate arguments code.
-     * For 'as ref' primitive parameters, pass address instead of value. */
+     * For 'as ref' primitive parameters, pass address instead of value.
+     * For function type arguments that are named function references, wrap in closure. */
     char *arg_assignments = arena_strdup(gen->arena, "");
     for (int i = 0; i < call->arg_count; i++)
     {
-        char *arg_code = code_gen_expression(gen, call->arguments[i]);
+        Expr *arg_expr = call->arguments[i];
+        char *arg_code = code_gen_expression(gen, arg_expr);
 
         /* Check if this is an 'as ref' primitive parameter */
         bool is_ref_primitive = false;
         if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
-            call->arguments[i]->expr_type != NULL)
+            arg_expr->expr_type != NULL)
         {
-            TypeKind kind = call->arguments[i]->expr_type->kind;
+            TypeKind kind = arg_expr->expr_type->kind;
             is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
                                kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+        }
+
+        /* Check if this is a function type argument that needs closure wrapping.
+         * Named functions (not lambdas/closures) need to be wrapped in a closure
+         * when passed as function type parameters. We also need to generate a thunk
+         * because named functions don't use the closure calling convention. */
+        bool needs_closure_wrap = false;
+        char *thunk_name = NULL;
+        if (arg_expr->expr_type != NULL && arg_expr->expr_type->kind == TYPE_FUNCTION &&
+            arg_expr->type == EXPR_VARIABLE)
+        {
+            /* Check if this is a named function (not a closure variable) */
+            Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, arg_expr->as.variable.name);
+            if (sym != NULL && sym->is_function)
+            {
+                needs_closure_wrap = true;
+
+                /* Generate a thunk wrapper that adapts the function to closure calling convention.
+                 * The thunk ignores the closure pointer (first arg) and calls the real function. */
+                Type *fn_type = arg_expr->expr_type;
+                int thunk_id = gen->temp_count++;
+                thunk_name = arena_sprintf(gen->arena, "__fn_thunk_%d__", thunk_id);
+
+                /* Build thunk parameter list with closure as first param */
+                char *thunk_params = arena_strdup(gen->arena, "void *__cl__");
+                char *call_args = arena_strdup(gen->arena, "");
+                for (int p = 0; p < fn_type->as.function.param_count; p++)
+                {
+                    char *param_type = get_c_type(gen->arena, fn_type->as.function.param_types[p]);
+                    thunk_params = arena_sprintf(gen->arena, "%s, %s __p%d__", thunk_params, param_type, p);
+                    if (p > 0) call_args = arena_sprintf(gen->arena, "%s, ", call_args);
+                    call_args = arena_sprintf(gen->arena, "%s__p%d__", call_args, p);
+                }
+
+                char *ret_type = get_c_type(gen->arena, fn_type->as.function.return_type);
+                char *thunk_def;
+                if (fn_type->as.function.return_type->kind == TYPE_VOID)
+                {
+                    thunk_def = arena_sprintf(gen->arena,
+                        "static %s %s(%s) { (void)__cl__; %s(%s); }\n",
+                        ret_type, thunk_name, thunk_params, arg_code, call_args);
+                }
+                else
+                {
+                    thunk_def = arena_sprintf(gen->arena,
+                        "static %s %s(%s) { (void)__cl__; return %s(%s); }\n",
+                        ret_type, thunk_name, thunk_params, arg_code, call_args);
+                }
+
+                /* Add forward declaration so the thunk can be used before its definition */
+                char *thunk_fwd = arena_sprintf(gen->arena, "static %s %s(%s);\n",
+                                                ret_type, thunk_name, thunk_params);
+                gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s",
+                                                          gen->lambda_forward_decls, thunk_fwd);
+
+                /* Add thunk definition */
+                gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
+                                                        gen->lambda_definitions, thunk_def);
+            }
         }
 
         if (is_ref_primitive)
@@ -2296,6 +2357,15 @@ static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
             /* For 'as ref' params, store address of the argument */
             arg_assignments = arena_sprintf(gen->arena, "%s%s->arg%d = &%s; ",
                                             arg_assignments, args_var, i, arg_code);
+        }
+        else if (needs_closure_wrap)
+        {
+            /* Wrap named function in a closure using the thunk.
+             * The thunk adapts the function to the closure calling convention. */
+            arg_assignments = arena_sprintf(gen->arena,
+                "%s%s->arg%d = ({ __Closure__ *__fn_cl__ = rt_arena_alloc(%s, sizeof(__Closure__)); "
+                "__fn_cl__->fn = (void *)%s; __fn_cl__->arena = %s; __fn_cl__; }); ",
+                arg_assignments, args_var, i, caller_arena, thunk_name, caller_arena);
         }
         else
         {

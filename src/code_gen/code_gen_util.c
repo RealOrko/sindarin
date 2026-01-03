@@ -910,6 +910,14 @@ bool expr_needs_arena(Expr *expr)
         /* Lambdas create closures */
         return true;
 
+    case EXPR_THREAD_SPAWN:
+        /* Thread spawns need arena for allocating thread args and result */
+        return true;
+
+    case EXPR_THREAD_SYNC:
+        /* Thread sync may promote results to caller's arena */
+        return true;
+
     default:
         return false;
     }
