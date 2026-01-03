@@ -443,9 +443,19 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
 
     case EXPR_THREAD_SYNC:
         DEBUG_VERBOSE_INDENT(indent_level, "ThreadSync%s:",
-                             expr->as.thread_sync.is_array ? " (array)" : "");
+                             expr->as.thread_sync.is_array ? " (sync list)" : "");
         DEBUG_VERBOSE_INDENT(indent_level + 1, "Handle:");
         ast_print_expr(arena, expr->as.thread_sync.handle, indent_level + 2);
+        break;
+
+    case EXPR_SYNC_LIST:
+        DEBUG_VERBOSE_INDENT(indent_level, "SyncList (%d elements):",
+                             expr->as.sync_list.element_count);
+        for (int i = 0; i < expr->as.sync_list.element_count; i++)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level + 1, "[%d]:", i);
+            ast_print_expr(arena, expr->as.sync_list.elements[i], indent_level + 2);
+        }
         break;
     }
 }

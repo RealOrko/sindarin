@@ -18,8 +18,8 @@ fn main(): void =>
 
     print("All processes spawned\n")
 
-    // Sync all using array sync
-    ({p1, p2, p3, p4, p5, p6, p7, p8, p9, p10})!
+    // Sync all using sync list
+    [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10]!
 
     print("All processes synced\n")
 

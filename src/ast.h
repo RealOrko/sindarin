@@ -100,7 +100,8 @@ typedef enum
     EXPR_STATIC_CALL,
     EXPR_SIZED_ARRAY_ALLOC,
     EXPR_THREAD_SPAWN,
-    EXPR_THREAD_SYNC
+    EXPR_THREAD_SYNC,
+    EXPR_SYNC_LIST
 } ExprType;
 
 typedef struct
@@ -216,9 +217,15 @@ typedef struct
 
 typedef struct
 {
-    Expr *handle;        // Thread handle or array of handles to sync
-    bool is_array;       // True if syncing an array of thread handles
+    Expr *handle;        // Thread handle or sync list of handles to sync
+    bool is_array;       // True if syncing a list of thread handles: [r1, r2]!
 } ThreadSyncExpr;
+
+typedef struct
+{
+    Expr **elements;     // Variables to sync: [r1, r2, r3]
+    int element_count;
+} SyncListExpr;
 
 typedef struct
 {
@@ -264,6 +271,7 @@ struct Expr
         SizedArrayAllocExpr sized_array_alloc;
         ThreadSpawnExpr thread_spawn;
         ThreadSyncExpr thread_sync;
+        SyncListExpr sync_list;
     } as;
 
     Type *expr_type;
@@ -430,6 +438,7 @@ Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_cou
                                   FunctionModifier modifier, const Token *loc_token);
 Expr *ast_create_thread_spawn_expr(Arena *arena, Expr *call, FunctionModifier modifier, const Token *loc_token);
 Expr *ast_create_thread_sync_expr(Arena *arena, Expr *handle, bool is_array, const Token *loc_token);
+Expr *ast_create_sync_list_expr(Arena *arena, Expr **elements, int element_count, const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token);

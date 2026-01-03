@@ -259,11 +259,10 @@ Expr *parser_postfix(Parser *parser)
         }
         else if (parser_match(parser, TOKEN_BANG))
         {
-            /* Thread sync: r! or [r1, r2]!
-             * Determine if this is an array sync based on expression type */
+            /* Thread sync: r! for single, [r1, r2, r3]! for multiple */
             Token bang = parser->previous;
-            bool is_array = (expr->type == EXPR_ARRAY);
-            expr = ast_create_thread_sync_expr(parser->arena, expr, is_array, &bang);
+            bool is_sync_list = (expr->type == EXPR_SYNC_LIST);
+            expr = ast_create_thread_sync_expr(parser->arena, expr, is_sync_list, &bang);
         }
         else
         {
@@ -545,6 +544,45 @@ Expr *parser_primary(Parser *parser)
 
         parser_consume(parser, TOKEN_RIGHT_BRACE, "Expected '}' after array elements");
         return ast_create_array_expr(parser->arena, elements, count, &left_brace);
+    }
+
+    /* Sync list: [r1, r2, r3] - for multi-thread synchronization with ! */
+    if (parser_match(parser, TOKEN_LEFT_BRACKET))
+    {
+        Token left_bracket = parser->previous;
+        Expr **elements = NULL;
+        int count = 0;
+        int capacity = 0;
+
+        if (!parser_check(parser, TOKEN_RIGHT_BRACKET))
+        {
+            do
+            {
+                Expr *elem = parser_expression(parser);
+                if (elem != NULL)
+                {
+                    if (count >= capacity)
+                    {
+                        capacity = capacity == 0 ? 8 : capacity * 2;
+                        Expr **new_elements = arena_alloc(parser->arena, sizeof(Expr *) * capacity);
+                        if (new_elements == NULL)
+                        {
+                            parser_error(parser, "Out of memory");
+                            return NULL;
+                        }
+                        if (elements != NULL && count > 0)
+                        {
+                            memcpy(new_elements, elements, sizeof(Expr *) * count);
+                        }
+                        elements = new_elements;
+                    }
+                    elements[count++] = elem;
+                }
+            } while (parser_match(parser, TOKEN_COMMA));
+        }
+
+        parser_consume(parser, TOKEN_RIGHT_BRACKET, "Expected ']' after sync list elements");
+        return ast_create_sync_list_expr(parser->arena, elements, count, &left_bracket);
     }
 
     if (parser_match(parser, TOKEN_INTERPOL_STRING))

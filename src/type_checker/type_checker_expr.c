@@ -692,39 +692,39 @@ static Type *type_check_thread_sync(Expr *expr, SymbolTable *table)
         return NULL;
     }
 
-    /* Check for array sync pattern: [r1, r2, r3]! */
+    /* Check for sync list pattern: [r1, r2, r3]! */
     if (is_array)
     {
-        /* Validate handle is an array expression */
-        if (handle->type != EXPR_ARRAY)
+        /* Validate handle is a sync list expression */
+        if (handle->type != EXPR_SYNC_LIST)
         {
-            type_error(expr->token, "Array sync requires array literal of thread handles");
+            type_error(expr->token, "Multi-sync requires [var1, var2, ...]! syntax");
             return NULL;
         }
 
-        ArrayExpr *arr = &handle->as.array;
+        SyncListExpr *sync_list = &handle->as.sync_list;
 
         /* First pass: validate all elements are valid thread variables.
          * We validate all before syncing any to ensure atomic-like behavior. */
-        for (int i = 0; i < arr->element_count; i++)
+        for (int i = 0; i < sync_list->element_count; i++)
         {
-            Expr *elem = arr->elements[i];
+            Expr *elem = sync_list->elements[i];
             if (elem == NULL)
             {
-                type_error(expr->token, "Array sync element cannot be null");
+                type_error(expr->token, "Sync list element cannot be null");
                 return NULL;
             }
 
             if (elem->type != EXPR_VARIABLE)
             {
-                type_error(expr->token, "Array sync elements must be thread handle variables");
+                type_error(expr->token, "Sync list elements must be thread handle variables");
                 return NULL;
             }
 
             Symbol *sym = symbol_table_lookup_symbol(table, elem->as.variable.name);
             if (sym == NULL)
             {
-                type_error(expr->token, "Cannot sync unknown variable in array");
+                type_error(expr->token, "Cannot sync unknown variable in sync list");
                 return NULL;
             }
 
@@ -732,7 +732,7 @@ static Type *type_check_thread_sync(Expr *expr, SymbolTable *table)
              * Normal state (never spawned) is an error. */
             if (sym->thread_state == THREAD_STATE_NORMAL)
             {
-                type_error(expr->token, "Array sync element is not a thread variable");
+                type_error(expr->token, "Sync list element is not a thread variable");
                 return NULL;
             }
         }
@@ -740,9 +740,9 @@ static Type *type_check_thread_sync(Expr *expr, SymbolTable *table)
         /* Second pass: sync all pending variables.
          * Skip already synchronized ones (handles mixed states gracefully). */
         int synced_count = 0;
-        for (int i = 0; i < arr->element_count; i++)
+        for (int i = 0; i < sync_list->element_count; i++)
         {
-            Expr *elem = arr->elements[i];
+            Expr *elem = sync_list->elements[i];
             Symbol *sym = symbol_table_lookup_symbol(table, elem->as.variable.name);
 
             /* Only sync if still pending - already synchronized is OK */
@@ -757,10 +757,10 @@ static Type *type_check_thread_sync(Expr *expr, SymbolTable *table)
             /* Already synchronized variables are silently accepted */
         }
 
-        DEBUG_VERBOSE("Array sync type checked with %d elements, %d newly synced, returning void",
-                      arr->element_count, synced_count);
+        DEBUG_VERBOSE("Sync list type checked with %d elements, %d newly synced, returning void",
+                      sync_list->element_count, synced_count);
 
-        /* Array sync returns void - no single return value */
+        /* Sync list returns void - no single return value */
         return ast_create_primitive_type(table->arena, TYPE_VOID);
     }
 
@@ -887,6 +887,12 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_THREAD_SYNC:
         t = type_check_thread_sync(expr, table);
+        break;
+    case EXPR_SYNC_LIST:
+        /* Sync lists are only valid as part of thread sync: [r1, r2]!
+         * A standalone sync list is a type error */
+        type_error(expr->token, "Sync list [r1, r2, ...] must be followed by '!' for synchronization");
+        t = NULL;
         break;
     }
     expr->expr_type = t;

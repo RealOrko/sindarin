@@ -98,7 +98,7 @@ var p3: Process = &Process.run("echo", {"three"})
 
 // All processes running in parallel
 
-({p1, p2, p3})!     // wait for all to complete
+[p1, p2, p3]!       // wait for all to complete
 
 print(p1.stdout)    // "one\n"
 print(p2.stdout)    // "two\n"
@@ -207,7 +207,7 @@ fn main(): void =>
     var backend: Process = &Process.run("make", {"backend"})
     var tests: Process = &Process.run("make", {"tests"})
 
-    ({frontend, backend, tests})!
+    [frontend, backend, tests]!
 
     if frontend.exitCode + backend.exitCode + tests.exitCode == 0 =>
         print("All builds succeeded\n")
@@ -305,75 +305,6 @@ if p.exitCode != 0 =>
 
 ---
 
-## Implementation Notes
-
-### Code Generation
-
-`Process.run()` generates calls to runtime functions:
-
-```sindarin
-var p: Process = Process.run("ls", {"-la"})
-```
-
-```c
-// Generated C
-RtProcess *p = rt_process_run_with_args(arena, "ls", args);
-```
-
-### Async Execution
-
-`&Process.run()` generates a thread wrapper:
-
-```sindarin
-var p: Process = &Process.run("make")
-```
-
-```c
-// Generated C - thread wrapper
-void* __thread_wrapper__(void* args_ptr) {
-    RtProcess *result = rt_process_run(arena, args->cmd);
-    rt_thread_result_set_value(args->result, &result, sizeof(RtProcess*), arena);
-    return NULL;
-}
-
-// Spawn site
-RtThreadHandle *handle = rt_thread_spawn(arena, __thread_wrapper__, args);
-```
-
-### POSIX Implementation
-
-The runtime uses `fork`, `exec`, and `pipe` for process execution:
-
-```c
-// Simplified runtime implementation
-RtProcess* rt_process_run(RtArena *arena, const char *cmd) {
-    int stdout_pipe[2], stderr_pipe[2];
-    pipe(stdout_pipe);
-    pipe(stderr_pipe);
-
-    pid_t pid = fork();
-    if (pid == 0) {
-        // Child: redirect and exec
-        dup2(stdout_pipe[1], STDOUT_FILENO);
-        dup2(stderr_pipe[1], STDERR_FILENO);
-        execlp(cmd, cmd, NULL);
-        _exit(127);  // exec failed
-    }
-
-    // Parent: wait and capture
-    int status;
-    waitpid(pid, &status, 0);
-
-    RtProcess *p = rt_arena_alloc(arena, sizeof(RtProcess));
-    p->exit_code = WEXITSTATUS(status);
-    p->stdout_data = read_fd_to_string(arena, stdout_pipe[0]);
-    p->stderr_data = read_fd_to_string(arena, stderr_pipe[0]);
-    return p;
-}
-```
-
----
-
 ## Limitations
 
 The following features are not supported:
@@ -398,7 +329,7 @@ The following features are not supported:
 | `Process.run(cmd, args)` | Run with arguments, wait for completion |
 | `var p: Process = &Process.run(...)` | Spawn async, p is pending |
 | `p!` | Synchronize, wait for completion |
-| `({p1, p2, p3})!` | Wait for all processes |
+| `[p1, p2, p3]!` | Wait for all processes |
 | `&Process.run(...)` | Fire and forget |
 
 ### Properties

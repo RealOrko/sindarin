@@ -554,3 +554,20 @@ Expr *ast_create_thread_sync_expr(Arena *arena, Expr *handle, bool is_array, con
     expr->token = ast_clone_token(arena, loc_token);
     return expr;
 }
+
+Expr *ast_create_sync_list_expr(Arena *arena, Expr **elements, int element_count, const Token *loc_token)
+{
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_SYNC_LIST;
+    expr->as.sync_list.elements = elements;
+    expr->as.sync_list.element_count = element_count;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}

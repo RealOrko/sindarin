@@ -56,37 +56,37 @@ static void pop_loop_arena(CodeGen *gen)
 
 /* Generate thread sync as a statement - assigns results back to variables
  * For single sync (r!): r = sync_result
- * For array sync ({r1, r2, r3}!): r1 = sync_result1; r2 = sync_result2; ... */
+ * For sync list ([r1, r2, r3]!): r1 = sync_result1; r2 = sync_result2; ... */
 static void code_gen_thread_sync_statement(CodeGen *gen, Expr *expr, int indent)
 {
     ThreadSyncExpr *sync = &expr->as.thread_sync;
 
     if (sync->is_array)
     {
-        /* Array sync: {r1, r2, r3}!
+        /* Sync list: [r1, r2, r3]!
          * Generate sync and assignment for each variable */
-        Expr *array_expr = sync->handle;
-        if (array_expr->type != EXPR_ARRAY)
+        Expr *list_expr = sync->handle;
+        if (list_expr->type != EXPR_SYNC_LIST)
         {
-            fprintf(stderr, "Error: Array sync requires array expression\n");
+            fprintf(stderr, "Error: Multi-sync requires sync list expression\n");
             exit(1);
         }
 
-        ArrayExpr *arr = &array_expr->as.array;
+        SyncListExpr *sync_list = &list_expr->as.sync_list;
 
-        if (arr->element_count == 0)
+        if (sync_list->element_count == 0)
         {
-            /* Empty array sync - no-op */
+            /* Empty sync list - no-op */
             return;
         }
 
         /* Sync each variable and assign result back */
-        for (int i = 0; i < arr->element_count; i++)
+        for (int i = 0; i < sync_list->element_count; i++)
         {
-            Expr *elem = arr->elements[i];
+            Expr *elem = sync_list->elements[i];
             if (elem->type != EXPR_VARIABLE)
             {
-                fprintf(stderr, "Error: Array sync elements must be variables\n");
+                fprintf(stderr, "Error: Sync list elements must be variables\n");
                 exit(1);
             }
 

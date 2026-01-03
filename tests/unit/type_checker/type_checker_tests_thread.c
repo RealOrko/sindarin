@@ -938,12 +938,12 @@ static void test_array_sync_validates_array_handle(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 1, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 2, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 2, &arr_tok);
 
     /* Create array sync expression with is_array = true */
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 1, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     /* Type check should succeed and return void */
     type_checker_reset_error();
@@ -1017,12 +1017,12 @@ static void test_array_sync_non_variable_element_error(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 1, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 1, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 1, &arr_tok);
 
     /* Create array sync */
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 1, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     /* Type check should fail - element is not a variable */
     type_checker_reset_error();
@@ -1057,12 +1057,12 @@ static void test_array_sync_non_pending_element_error(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 1, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 1, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 1, &arr_tok);
 
     /* Create array sync */
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 1, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     /* Type check should fail - element is not pending */
     type_checker_reset_error();
@@ -1098,11 +1098,11 @@ static void test_array_sync_returns_void(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 1, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 1, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 1, &arr_tok);
 
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 1, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     type_checker_reset_error();
     Type *result = type_check_expr(sync_expr, &table);
@@ -1159,11 +1159,11 @@ static void test_array_sync_mixed_states(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 1, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 3, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 3, &arr_tok);
 
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 1, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     /* Type check should succeed - mixed states handled gracefully */
     type_checker_reset_error();
@@ -1239,11 +1239,11 @@ static void test_array_sync_unfreezes_all_arguments(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 2, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 2, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 2, &arr_tok);
 
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 2, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     /* Type check */
     type_checker_reset_error();
@@ -1314,11 +1314,11 @@ static void test_array_sync_shared_frozen_variable(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 2, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 2, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 2, &arr_tok);
 
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 2, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     /* Type check - should sync both and decrement freeze_count twice */
     type_checker_reset_error();
@@ -1488,11 +1488,11 @@ static void test_array_sync_all_elements_accessible(void)
 
     Token arr_tok;
     setup_token(&arr_tok, TOKEN_LEFT_BRACKET, "[", 1, "test.sn", &arena);
-    Expr *array_expr = ast_create_array_expr(&arena, elements, 3, &arr_tok);
+    Expr *sync_list_expr = ast_create_sync_list_expr(&arena, elements, 3, &arr_tok);
 
     Token sync_tok;
     setup_token(&sync_tok, TOKEN_BANG, "!", 1, "test.sn", &arena);
-    Expr *sync_expr = ast_create_thread_sync_expr(&arena, array_expr, true, &sync_tok);
+    Expr *sync_expr = ast_create_thread_sync_expr(&arena, sync_list_expr, true, &sync_tok);
 
     /* Sync all */
     type_checker_reset_error();

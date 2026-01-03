@@ -1,4 +1,4 @@
-// Test: Array sync pattern {r1, r2, r3}!
+// Test: Sync list pattern [r1, r2, r3]!
 // Spawns multiple threads into separate variables, then syncs all at once
 
 fn compute_a(): int =>
@@ -16,9 +16,8 @@ fn main(): void =>
     var r2: int = &compute_b()
     var r3: int = &compute_c()
 
-    // Sync all at once using array sync syntax
-    // Note: Parentheses needed to disambiguate from block statement
-    ({r1, r2, r3})!
+    // Sync all at once using sync list syntax
+    [r1, r2, r3]!
 
     // All results should now be available
     print($"r1: {r1}\n")

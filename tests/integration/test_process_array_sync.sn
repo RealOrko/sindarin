@@ -1,5 +1,5 @@
-// Test array synchronization with Process variables
-// Verifies ({p1, p2, p3})! syntax
+// Test sync list synchronization with Process variables
+// Verifies [p1, p2, p3]! syntax
 
 fn main(): int =>
     // Spawn multiple processes
@@ -9,8 +9,8 @@ fn main(): int =>
 
     print("spawned all\n")
 
-    // Array sync - wait for all at once
-    ({p1, p2, p3})!
+    // Sync list - wait for all at once
+    [p1, p2, p3]!
 
     print("synced all\n")
 

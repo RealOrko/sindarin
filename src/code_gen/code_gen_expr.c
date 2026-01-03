@@ -2594,28 +2594,28 @@ static char *code_gen_thread_sync_expression(CodeGen *gen, Expr *expr)
 
     if (sync->is_array)
     {
-        /* Array sync: [r1, r2, r3]!
+        /* Sync list: [r1, r2, r3]!
          * This generates code to:
          * 1. Build an array of RtThreadHandle* pointers
          * 2. Call rt_thread_sync_all to sync all handles
          * 3. Return void
          */
-        DEBUG_VERBOSE("Thread sync: array sync");
+        DEBUG_VERBOSE("Thread sync: sync list");
 
-        /* The handle expression should be an array expression */
-        Expr *array_expr = sync->handle;
-        if (array_expr->type != EXPR_ARRAY)
+        /* The handle expression should be a sync list expression */
+        Expr *list_expr = sync->handle;
+        if (list_expr->type != EXPR_SYNC_LIST)
         {
-            fprintf(stderr, "Error: Array sync requires array expression\n");
+            fprintf(stderr, "Error: Multi-sync requires sync list expression\n");
             exit(1);
         }
 
-        ArrayExpr *arr = &array_expr->as.array;
-        int count = arr->element_count;
+        SyncListExpr *sync_list = &list_expr->as.sync_list;
+        int count = sync_list->element_count;
 
         if (count == 0)
         {
-            /* Empty array sync - no-op */
+            /* Empty sync list - no-op */
             return arena_strdup(gen->arena, "((void)0)");
         }
 
@@ -2626,7 +2626,7 @@ static char *code_gen_thread_sync_expression(CodeGen *gen, Expr *expr)
         char *handles_init = arena_strdup(gen->arena, "");
         for (int i = 0; i < count; i++)
         {
-            char *handle_code = code_gen_expression(gen, arr->elements[i]);
+            char *handle_code = code_gen_expression(gen, sync_list->elements[i]);
             if (i > 0)
             {
                 handles_init = arena_sprintf(gen->arena, "%s, ", handles_init);
@@ -2850,6 +2850,10 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_thread_spawn_expression(gen, expr);
     case EXPR_THREAD_SYNC:
         return code_gen_thread_sync_expression(gen, expr);
+    case EXPR_SYNC_LIST:
+        /* Sync lists are only valid as part of thread sync [r1, r2]! */
+        fprintf(stderr, "Error: Sync list without sync operator\n");
+        exit(1);
     default:
         exit(1);
     }
