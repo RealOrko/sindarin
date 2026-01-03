@@ -107,6 +107,7 @@ static void code_gen_headers(CodeGen *gen)
     indented_fprintf(gen, 0, "#include <stdbool.h>\n");
     indented_fprintf(gen, 0, "#include <limits.h>\n");
     indented_fprintf(gen, 0, "#include <setjmp.h>\n");  /* For thread panic handling */
+    indented_fprintf(gen, 0, "#include <pthread.h>\n"); /* For thread operations (pthread_self) */
     /* Include runtime.h for inline function definitions (comparisons, array_length, etc.) */
     indented_fprintf(gen, 0, "#include \"runtime.h\"\n\n");
 }

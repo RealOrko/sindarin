@@ -2171,24 +2171,23 @@ static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
 
     /* Generate wrapper function definition with panic handling.
      * We set up a panic context with setjmp so that panics in the thread
-     * are captured and can be propagated to the caller on sync. */
+     * are captured and can be propagated to the caller on sync.
+     *
+     * Note: The arena is already created by rt_thread_spawn() and stored in
+     * args->thread_arena. For shared mode, thread_arena == caller_arena.
+     * We just use args->thread_arena directly. */
     char *wrapper_def = arena_sprintf(gen->arena,
         "static void *%s(void *args_ptr) {\n"
         "    %s *args = (%s *)args_ptr;\n"
-        "    RtArena *__arena__;\n"
         "\n"
-        "    /* Set up arena based on mode flags */\n"
-        "    if (args->is_shared) {\n"
-        "        /* Shared mode: use caller's arena (already frozen) */\n"
-        "        __arena__ = args->caller_arena;\n"
-        "    } else if (args->is_private) {\n"
-        "        /* Private mode: create isolated arena */\n"
-        "        __arena__ = rt_arena_create(NULL);\n"
-        "        args->thread_arena = __arena__;\n"
-        "    } else {\n"
-        "        /* Default mode: create arena with parent */\n"
-        "        __arena__ = rt_arena_create(args->caller_arena);\n"
-        "        args->thread_arena = __arena__;\n"
+        "    /* Use arena created by rt_thread_spawn(). For shared mode, this is\n"
+        "     * the caller's arena. For default/private modes, it's a new arena. */\n"
+        "    RtArena *__arena__ = args->thread_arena;\n"
+        "\n"
+        "    /* For shared mode, set ourselves as the frozen arena owner so we can allocate.\n"
+        "     * This must be done before any allocation to avoid race with rt_thread_spawn. */\n"
+        "    if (args->is_shared && args->caller_arena != NULL) {\n"
+        "        args->caller_arena->frozen_owner = pthread_self();\n"
         "    }\n"
         "\n"
         "    /* Set up panic context to catch panics in this thread */\n"

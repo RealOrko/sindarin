@@ -405,13 +405,8 @@ RtThreadHandle *rt_thread_spawn(RtArena *arena, void *(*wrapper)(void *),
         /* Shared mode: reuse caller's arena directly */
         args->thread_arena = args->caller_arena;
         handle->thread_arena = NULL;  /* Don't destroy - it's the caller's */
-
-        /* Freeze caller arena to prevent allocations from main thread
-         * while shared thread is executing. Track it so we can unfreeze on sync. */
-        if (args->caller_arena != NULL) {
-            rt_arena_freeze(args->caller_arena);
-            handle->frozen_arena = args->caller_arena;
-        }
+        /* Note: Arena freezing happens AFTER thread tracking to allow allocation */
+        handle->frozen_arena = args->caller_arena;
     } else if (args->is_private) {
         /* Private mode: create isolated arena with no parent */
         args->thread_arena = rt_arena_create(NULL);
@@ -446,14 +441,25 @@ RtThreadHandle *rt_thread_spawn(RtArena *arena, void *(*wrapper)(void *),
         return NULL;
     }
 
-    /* For shared mode, set the frozen arena owner to the spawned thread
-     * This allows the spawned thread to allocate while blocking the main thread */
-    if (args->is_shared && handle->frozen_arena != NULL) {
-        handle->frozen_arena->frozen_owner = handle->thread;
-    }
+    /* Note: For shared mode, frozen_owner is set by the thread wrapper itself
+     * using pthread_self() to avoid a race condition where the thread starts
+     * before we can set frozen_owner here. */
 
     /* Track in global pool */
     rt_thread_pool_add(handle);
+
+    /* Track in caller's arena so arena destruction auto-joins the thread */
+    if (args->caller_arena != NULL) {
+        rt_arena_track_thread(args->caller_arena, handle);
+    }
+
+    /* For shared mode, set frozen_owner to the spawned thread BEFORE freezing.
+     * This ensures the spawned thread can allocate even if it starts immediately.
+     * Order is critical: set owner first, then freeze. */
+    if (args->is_shared && handle->frozen_arena != NULL) {
+        handle->frozen_arena->frozen_owner = handle->thread;
+        rt_arena_freeze(handle->frozen_arena);
+    }
 
     return handle;
 }

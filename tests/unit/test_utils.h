@@ -87,6 +87,7 @@ static const char *CODE_GEN_RUNTIME_HEADER =
     "#include <stdbool.h>\n"
     "#include <limits.h>\n"
     "#include <setjmp.h>\n"  /* For thread panic handling */
+    "#include <pthread.h>\n" /* For thread operations (pthread_self) */
     "#include \"runtime.h\"\n\n"
     "/* Runtime arena operations */\n"
     "typedef struct RtArena RtArena;\n"
