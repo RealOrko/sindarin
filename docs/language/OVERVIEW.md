@@ -275,3 +275,4 @@ bin/sn source.sn -g -o program
 - [DATE.md](DATE.md) - Calendar date operations
 - [TIME.md](TIME.md) - Date and time operations
 - [MEMORY.md](MEMORY.md) - Arena memory management
+- [THREADING.md](THREADING.md) - Threading with `&` spawn and `!` sync
