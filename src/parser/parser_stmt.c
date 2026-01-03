@@ -90,6 +90,13 @@ Stmt *parser_indented_block(Parser *parser)
         }
 
         Stmt *stmt = parser_declaration(parser);
+
+        /* Synchronize on error to prevent infinite loops */
+        if (parser->panic_mode)
+        {
+            synchronize(parser);
+        }
+
         if (stmt == NULL)
         {
             continue;
@@ -908,6 +915,43 @@ Stmt *parser_expression_statement(Parser *parser)
     return ast_create_expr_stmt(parser->arena, expr, &parser->previous);
 }
 
+/* Helper to check if a token type is a reserved keyword */
+static bool parser_is_keyword_token(TokenType type)
+{
+    switch (type)
+    {
+        case TOKEN_FN:
+        case TOKEN_VAR:
+        case TOKEN_RETURN:
+        case TOKEN_IF:
+        case TOKEN_ELSE:
+        case TOKEN_FOR:
+        case TOKEN_WHILE:
+        case TOKEN_BREAK:
+        case TOKEN_CONTINUE:
+        case TOKEN_IN:
+        case TOKEN_IMPORT:
+        case TOKEN_NIL:
+        case TOKEN_INT:
+        case TOKEN_LONG:
+        case TOKEN_DOUBLE:
+        case TOKEN_CHAR:
+        case TOKEN_STR:
+        case TOKEN_BOOL:
+        case TOKEN_BYTE:
+        case TOKEN_VOID:
+        case TOKEN_SHARED:
+        case TOKEN_PRIVATE:
+        case TOKEN_AS:
+        case TOKEN_VAL:
+        case TOKEN_REF:
+        case TOKEN_BOOL_LITERAL:  /* true/false */
+            return true;
+        default:
+            return false;
+    }
+}
+
 Stmt *parser_import_statement(Parser *parser)
 {
     Token import_token = parser->previous;
@@ -939,6 +983,46 @@ Stmt *parser_import_statement(Parser *parser)
         }
     }
 
+    /* Check for optional 'as namespace' clause */
+    Token *namespace = NULL;
+    if (parser_match(parser, TOKEN_AS))
+    {
+        /* Next token must be an identifier (not a keyword) */
+        if (parser_check(parser, TOKEN_IDENTIFIER))
+        {
+            parser_advance(parser);
+            namespace = arena_alloc(parser->arena, sizeof(Token));
+            if (namespace == NULL)
+            {
+                parser_error_at_current(parser, "Out of memory");
+                return NULL;
+            }
+            *namespace = parser->previous;
+            namespace->start = arena_strndup(parser->arena, parser->previous.start, parser->previous.length);
+            if (namespace->start == NULL)
+            {
+                parser_error_at_current(parser, "Out of memory");
+                return NULL;
+            }
+        }
+        else if (parser_is_keyword_token(parser->current.type))
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Cannot use reserved keyword '%.*s' as namespace name",
+                     parser->current.length, parser->current.start);
+            parser_error_at_current(parser, msg);
+            parser_advance(parser);  /* Skip the keyword to continue parsing */
+        }
+        else
+        {
+            parser_error_at_current(parser, "Expected namespace identifier after 'as'");
+            if (!parser_check(parser, TOKEN_SEMICOLON) && !parser_check(parser, TOKEN_NEWLINE) && !parser_is_at_end(parser))
+            {
+                parser_advance(parser);  /* Skip unexpected token */
+            }
+        }
+    }
+
     if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_check(parser, TOKEN_NEWLINE) && !parser_is_at_end(parser))
     {
         parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after import statement");
@@ -947,5 +1031,5 @@ Stmt *parser_import_statement(Parser *parser)
     {
     }
 
-    return ast_create_import_stmt(parser->arena, module_name, &import_token);
+    return ast_create_import_stmt(parser->arena, module_name, namespace, &import_token);
 }

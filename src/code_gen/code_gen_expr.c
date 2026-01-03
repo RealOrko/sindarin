@@ -376,6 +376,57 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         MemberExpr *member = &call->callee->as.member;
         char *member_name_str = get_var_name(gen->arena, member->member_name);
         Type *object_type = member->object->expr_type;
+
+        /* Check for namespace function call (namespace.function).
+         * If the object has no type (expr_type is NULL) and is a variable,
+         * this is a namespaced function call. Type checker already validated
+         * this, so we can safely emit the function call directly using the
+         * member name as the function name. */
+        if (object_type == NULL && member->object->type == EXPR_VARIABLE)
+        {
+            /* Lookup the function in the namespace to check if it's shared */
+            Token ns_name = member->object->as.variable.name;
+            Symbol *func_sym = symbol_table_lookup_in_namespace(gen->symbol_table, ns_name, member->member_name);
+            bool callee_is_shared = (func_sym != NULL && func_sym->func_mod == FUNC_SHARED);
+
+            /* Generate arguments */
+            char **arg_strs = arena_alloc(gen->arena, call->arg_count * sizeof(char *));
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                arg_strs[i] = code_gen_expression(gen, call->arguments[i]);
+            }
+
+            /* Build args list - prepend arena if shared function */
+            char *args_list;
+            if (callee_is_shared && gen->current_arena_var != NULL)
+            {
+                args_list = arena_strdup(gen->arena, gen->current_arena_var);
+            }
+            else if (callee_is_shared)
+            {
+                args_list = arena_strdup(gen->arena, "NULL");
+            }
+            else
+            {
+                args_list = arena_strdup(gen->arena, "");
+            }
+
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                if (args_list[0] == '\0')
+                {
+                    args_list = arg_strs[i];
+                }
+                else
+                {
+                    args_list = arena_sprintf(gen->arena, "%s, %s", args_list, arg_strs[i]);
+                }
+            }
+
+            /* Emit function call using the member name (e.g., "add" for math.add) */
+            return arena_sprintf(gen->arena, "%s(%s)", member_name_str, args_list);
+        }
+
         char *result = NULL;
 
         /* Dispatch to type-specific handlers (modular code generation)
@@ -1906,6 +1957,17 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
     MemberExpr *member = &expr->as.member;
     char *member_name_str = get_var_name(gen->arena, member->member_name);
     Type *object_type = member->object->expr_type;
+
+    /* Handle namespace member access (namespace.symbol).
+     * If the object has no type (expr_type is NULL) and is a variable,
+     * this is a namespace member reference. Return just the function name
+     * since C functions are referenced by name without namespace prefix. */
+    if (object_type == NULL && member->object->type == EXPR_VARIABLE)
+    {
+        /* Namespace member access - emit just the function name */
+        return member_name_str;
+    }
+
     char *object_str = code_gen_expression(gen, member->object);
 
     // Handle array.length

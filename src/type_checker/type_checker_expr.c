@@ -164,7 +164,23 @@ static Type *type_check_variable(Expr *expr, SymbolTable *table)
     }
     if (sym->type == NULL)
     {
-        type_error(&expr->as.variable.name, "Symbol has no type");
+        /* Check if this is a namespace being used incorrectly as a variable */
+        if (sym->is_namespace)
+        {
+            char name_str[128];
+            int name_len = expr->as.variable.name.length < 127 ? expr->as.variable.name.length : 127;
+            memcpy(name_str, expr->as.variable.name.start, name_len);
+            name_str[name_len] = '\0';
+
+            char msg[256];
+            snprintf(msg, sizeof(msg), "'%s' is a namespace, not a variable", name_str);
+            type_error_with_suggestion(&expr->as.variable.name, msg,
+                "Use namespace.symbol to access symbols in a namespace");
+        }
+        else
+        {
+            type_error(&expr->as.variable.name, "Symbol has no type");
+        }
         return NULL;
     }
 
@@ -193,6 +209,21 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
     if (sym == NULL)
     {
         undefined_variable_error_for_assign(&expr->as.assign.name, table);
+        return NULL;
+    }
+
+    /* Check if trying to assign to a namespace */
+    if (sym->is_namespace)
+    {
+        char name_str[128];
+        int name_len = expr->as.assign.name.length < 127 ? expr->as.assign.name.length : 127;
+        memcpy(name_str, expr->as.assign.name.start, name_len);
+        name_str[name_len] = '\0';
+
+        char msg[256];
+        snprintf(msg, sizeof(msg), "'%s' is a namespace, not a variable", name_str);
+        type_error_with_suggestion(&expr->as.assign.name, msg,
+            "Use namespace.symbol to access symbols in a namespace");
         return NULL;
     }
 
@@ -395,6 +426,56 @@ static Type *type_check_increment_decrement(Expr *expr, SymbolTable *table)
 static Type *type_check_member(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking member access: %s", expr->as.member.member_name.start);
+
+    /* Check if this is a namespace member access (namespace.symbol) */
+    if (expr->as.member.object->type == EXPR_VARIABLE)
+    {
+        Token ns_name = expr->as.member.object->as.variable.name;
+        if (symbol_table_is_namespace(table, ns_name))
+        {
+            /* This is a namespace member access */
+            Token member_name = expr->as.member.member_name;
+            Symbol *sym = symbol_table_lookup_in_namespace(table, ns_name, member_name);
+            if (sym == NULL)
+            {
+                /* Symbol not found in namespace - provide clear error message with suggestions */
+                char ns_str[128], member_str[128];
+                int ns_len = ns_name.length < 127 ? ns_name.length : 127;
+                int member_len = member_name.length < 127 ? member_name.length : 127;
+                memcpy(ns_str, ns_name.start, ns_len);
+                ns_str[ns_len] = '\0';
+                memcpy(member_str, member_name.start, member_len);
+                member_str[member_len] = '\0';
+
+                char msg[512];
+                snprintf(msg, sizeof(msg), "Symbol '%s' not found in namespace '%s'", member_str, ns_str);
+
+                /* Check if the symbol exists in global scope - suggest using it directly */
+                Symbol *global_sym = symbol_table_lookup_symbol(table, member_name);
+                if (global_sym != NULL && global_sym->is_function)
+                {
+                    char suggestion[256];
+                    snprintf(suggestion, sizeof(suggestion),
+                             "Did you mean to access '%s' directly instead of '%s.%s'?",
+                             member_str, ns_str, member_str);
+                    type_error_with_suggestion(&member_name, msg, suggestion);
+                }
+                else
+                {
+                    type_error(&member_name, msg);
+                }
+                return NULL;
+            }
+            if (sym->type == NULL)
+            {
+                type_error(&member_name, "Namespaced symbol has no type");
+                return NULL;
+            }
+            DEBUG_VERBOSE("Found namespaced symbol with type kind: %d", sym->type->kind);
+            return sym->type;
+        }
+    }
+
     Type *object_type = type_check_expr(expr->as.member.object, table);
     if (object_type == NULL)
     {

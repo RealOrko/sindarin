@@ -150,7 +150,9 @@ Module *parser_execute(Parser *parser, const char *filename)
     return module;
 }
 
-Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename, char ***imported, int *imported_count, int *imported_capacity)
+Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename,
+                                  char ***imported, int *imported_count, int *imported_capacity,
+                                  Module ***imported_modules, bool **imported_directly)
 {
     char *source = file_read(arena, filename);
     if (!source)
@@ -216,18 +218,103 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
             strcat(import_path, mod_name.start);
             strcat(import_path, ".sn");
 
-            int already_imported = 0;
+            int already_imported_idx = -1;
             for (int j = 0; j < *imported_count; j++)
             {
                 if (strcmp((*imported)[j], import_path) == 0)
                 {
-                    already_imported = 1;
+                    already_imported_idx = j;
                     break;
                 }
             }
 
-            if (already_imported)
+            if (already_imported_idx >= 0)
             {
+                /* Module already imported. Handle different cases:
+                 * 1. Namespaced import after any import: create namespace, mark if also direct
+                 * 2. Direct import after namespaced: merge functions into main module
+                 * 3. Direct import after direct: skip entirely (true duplicate) */
+
+                bool was_imported_directly = (*imported_directly != NULL) ?
+                    (*imported_directly)[already_imported_idx] : false;
+
+                if (stmt->as.import.namespace != NULL && *imported_modules != NULL)
+                {
+                    /* Namespaced import: keep STMT_IMPORT for type checker to create namespace.
+                     * Mark if module was also imported directly so code gen skips emitting. */
+                    Module *cached_module = (*imported_modules)[already_imported_idx];
+                    if (cached_module != NULL)
+                    {
+                        stmt->as.import.imported_stmts = cached_module->statements;
+                        stmt->as.import.imported_count = cached_module->count;
+                        stmt->as.import.also_imported_directly = was_imported_directly;
+                        i++; /* Keep the STMT_IMPORT and move to next statement */
+                        continue;
+                    }
+                }
+                else if (!was_imported_directly && *imported_modules != NULL)
+                {
+                    /* Direct import after only namespaced imports: need to merge functions
+                     * into main module and update the imported_directly flag. */
+                    Module *cached_module = (*imported_modules)[already_imported_idx];
+                    if (cached_module != NULL)
+                    {
+                        /* Mark that this module is now also imported directly */
+                        if (*imported_directly != NULL)
+                        {
+                            (*imported_directly)[already_imported_idx] = true;
+                        }
+
+                        /* Find and update any existing namespace import for this module.
+                         * This is necessary because the namespace STMT_IMPORT was already processed
+                         * and code gen would otherwise emit the functions twice. */
+                        for (int k = 0; k < i; k++)
+                        {
+                            Stmt *prev_stmt = module->statements[k];
+                            if (prev_stmt != NULL && prev_stmt->type == STMT_IMPORT &&
+                                prev_stmt->as.import.namespace != NULL &&
+                                prev_stmt->as.import.module_name.length == stmt->as.import.module_name.length &&
+                                memcmp(prev_stmt->as.import.module_name.start,
+                                       stmt->as.import.module_name.start,
+                                       stmt->as.import.module_name.length) == 0)
+                            {
+                                prev_stmt->as.import.also_imported_directly = true;
+                            }
+                        }
+
+                        /* Merge the cached module's statements into all_statements */
+                        int new_all_count = all_count + cached_module->count;
+                        int old_capacity = all_capacity;
+                        while (new_all_count > all_capacity)
+                        {
+                            all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+                        }
+                        if (all_capacity > old_capacity || all_statements == NULL)
+                        {
+                            Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
+                            if (!new_statements)
+                            {
+                                DEBUG_ERROR("Failed to allocate memory for statements");
+                                parser_cleanup(&parser);
+                                lexer_cleanup(&lexer);
+                                return NULL;
+                            }
+                            if (all_count > 0 && all_statements != NULL)
+                            {
+                                memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
+                            }
+                            all_statements = new_statements;
+                        }
+                        memmove(all_statements + all_count, cached_module->statements, sizeof(Stmt *) * cached_module->count);
+                        all_count = new_all_count;
+
+                        /* Remove this import statement since we merged */
+                        memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
+                        module->count--;
+                        continue;
+                    }
+                }
+                /* True duplicate non-namespaced import: remove the import statement */
                 memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
                 module->count--;
                 continue;
@@ -235,9 +322,11 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
 
             if (*imported_count >= *imported_capacity)
             {
-                *imported_capacity = *imported_capacity == 0 ? 8 : *imported_capacity * 2;
-                char **new_imported = arena_alloc(arena, sizeof(char *) * *imported_capacity);
-                if (!new_imported)
+                int new_capacity = *imported_capacity == 0 ? 8 : *imported_capacity * 2;
+                char **new_imported = arena_alloc(arena, sizeof(char *) * new_capacity);
+                Module **new_modules = arena_alloc(arena, sizeof(Module *) * new_capacity);
+                bool *new_directly = arena_alloc(arena, sizeof(bool) * new_capacity);
+                if (!new_imported || !new_modules || !new_directly)
                 {
                     DEBUG_ERROR("Failed to allocate memory for imported list");
                     parser_cleanup(&parser);
@@ -247,12 +336,35 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
                 if (*imported_count > 0)
                 {
                     memmove(new_imported, *imported, sizeof(char *) * *imported_count);
+                    if (*imported_modules != NULL)
+                    {
+                        memmove(new_modules, *imported_modules, sizeof(Module *) * *imported_count);
+                    }
+                    if (*imported_directly != NULL)
+                    {
+                        memmove(new_directly, *imported_directly, sizeof(bool) * *imported_count);
+                    }
                 }
                 *imported = new_imported;
+                *imported_modules = new_modules;
+                *imported_directly = new_directly;
+                *imported_capacity = new_capacity;
             }
-            (*imported)[(*imported_count)++] = import_path;
+            /* Store the path and reserve the module slot BEFORE recursive call */
+            int module_idx = *imported_count;
+            (*imported)[module_idx] = import_path;
+            if (*imported_modules != NULL)
+            {
+                (*imported_modules)[module_idx] = NULL; /* Will be filled after parse */
+            }
+            if (*imported_directly != NULL)
+            {
+                /* Mark whether this import is direct (non-namespaced) */
+                (*imported_directly)[module_idx] = (stmt->as.import.namespace == NULL);
+            }
+            (*imported_count)++;
 
-            Module *imported_module = parse_module_with_imports(arena, symbol_table, import_path, imported, imported_count, imported_capacity);
+            Module *imported_module = parse_module_with_imports(arena, symbol_table, import_path, imported, imported_count, imported_capacity, imported_modules, imported_directly);
             if (!imported_module)
             {
                 parser_cleanup(&parser);
@@ -260,33 +372,67 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
                 return NULL;
             }
 
-            int new_all_count = all_count + imported_module->count;
-            int old_capacity = all_capacity;
-            while (new_all_count > all_capacity)
+            /* Store the parsed module in the cache for potential re-use by namespaced imports */
+            if (*imported_modules != NULL)
             {
-                all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+                (*imported_modules)[module_idx] = imported_module;
             }
-            if (all_capacity > old_capacity || all_statements == NULL)
-            {
-                Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
-                if (!new_statements)
-                {
-                    DEBUG_ERROR("Failed to allocate memory for statements");
-                    parser_cleanup(&parser);
-                    lexer_cleanup(&lexer);
-                    return NULL;
-                }
-                if (all_count > 0 && all_statements != NULL)
-                {
-                    memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
-                }
-                all_statements = new_statements;
-            }
-            memmove(all_statements + all_count, imported_module->statements, sizeof(Stmt *) * imported_module->count);
-            all_count = new_all_count;
 
-            memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
-            module->count--;
+            /* For namespaced imports: store statements in ImportStmt for type checker
+             * to register symbols under the namespace. DON'T merge into main module
+             * to prevent adding to global scope. Keep the STMT_IMPORT so type
+             * checker and code generator can process it.
+             *
+             * IMPORTANT: The parser adds all function symbols to the symbol table
+             * during parsing (for forward references). For namespaced imports, we
+             * must REMOVE these symbols from global scope, since they should only
+             * be accessible via the namespace. */
+            if (stmt->as.import.namespace != NULL)
+            {
+                /* Remove imported function symbols from global scope */
+                for (int j = 0; j < imported_module->count; j++)
+                {
+                    Stmt *imported_stmt = imported_module->statements[j];
+                    if (imported_stmt != NULL && imported_stmt->type == STMT_FUNCTION)
+                    {
+                        symbol_table_remove_symbol_from_global(symbol_table, imported_stmt->as.function.name);
+                    }
+                }
+                stmt->as.import.imported_stmts = imported_module->statements;
+                stmt->as.import.imported_count = imported_module->count;
+                i++; /* Keep the STMT_IMPORT and move to next statement */
+            }
+            else
+            {
+                /* For non-namespaced imports: merge statements and remove STMT_IMPORT */
+                int new_all_count = all_count + imported_module->count;
+                int old_capacity = all_capacity;
+                while (new_all_count > all_capacity)
+                {
+                    all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+                }
+                if (all_capacity > old_capacity || all_statements == NULL)
+                {
+                    Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
+                    if (!new_statements)
+                    {
+                        DEBUG_ERROR("Failed to allocate memory for statements");
+                        parser_cleanup(&parser);
+                        lexer_cleanup(&lexer);
+                        return NULL;
+                    }
+                    if (all_count > 0 && all_statements != NULL)
+                    {
+                        memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
+                    }
+                    all_statements = new_statements;
+                }
+                memmove(all_statements + all_count, imported_module->statements, sizeof(Stmt *) * imported_module->count);
+                all_count = new_all_count;
+
+                memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
+                module->count--;
+            }
         }
         else
         {

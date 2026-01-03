@@ -16,6 +16,6 @@ Stmt *ast_create_while_stmt(Arena *arena, Expr *condition, Stmt *body, const Tok
 Stmt *ast_create_for_stmt(Arena *arena, Stmt *initializer, Expr *condition, Expr *increment, Stmt *body, const Token *loc_token);
 Stmt *ast_create_break_stmt(Arena *arena, const Token *loc_token);
 Stmt *ast_create_continue_stmt(Arena *arena, const Token *loc_token);
-Stmt *ast_create_import_stmt(Arena *arena, Token module_name, const Token *loc_token);
+Stmt *ast_create_import_stmt(Arena *arena, Token module_name, Token *namespace, const Token *loc_token);
 
 #endif /* AST_STMT_H */

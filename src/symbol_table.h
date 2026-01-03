@@ -37,7 +37,8 @@ typedef enum
 {
     SYMBOL_GLOBAL,
     SYMBOL_LOCAL,
-    SYMBOL_PARAM
+    SYMBOL_PARAM,
+    SYMBOL_NAMESPACE
 } SymbolKind;
 
 typedef struct Symbol
@@ -56,6 +57,10 @@ typedef struct Symbol
     FrozenState frozen_state;   /* Frozen state for thread capture tracking */
     struct Symbol **frozen_args; /* Symbols frozen by this pending thread handle */
     int frozen_args_count;      /* Number of frozen symbols */
+    /* Namespace support */
+    bool is_namespace;          /* True if this symbol represents a namespace */
+    char *namespace_name;       /* Namespace identifier (for namespaced imports) */
+    struct Symbol *namespace_symbols;  /* Linked list of symbols within this namespace */
 } Symbol;
 
 typedef struct Scope
@@ -92,9 +97,41 @@ void symbol_table_add_symbol(SymbolTable *table, Token name, Type *type);
 void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *type, SymbolKind kind);
 void symbol_table_add_symbol_full(SymbolTable *table, Token name, Type *type, SymbolKind kind, MemoryQualifier mem_qual);
 void symbol_table_add_function(SymbolTable *table, Token name, Type *type, FunctionModifier func_mod, FunctionModifier declared_func_mod);
+/*
+ * Namespace Symbol Storage Design
+ * ================================
+ * Namespaces provide scoped access to imported module symbols via the syntax:
+ *   import "module.sn" as myns
+ *
+ * Storage Approach:
+ * - Namespaces are stored as Symbol entries in the global scope with is_namespace=true
+ * - The Symbol's kind is set to SYMBOL_NAMESPACE to distinguish from regular symbols
+ * - Each namespace Symbol contains a namespace_symbols field: a linked list of symbols
+ *   that belong to that namespace (functions, variables, types from the imported module)
+ *
+ * Lookup Strategy (Two-Phase):
+ * 1. Find the namespace Symbol by name in global scope (checking is_namespace=true)
+ * 2. Search the namespace's namespace_symbols linked list for the target symbol
+ *
+ * This approach keeps namespace symbols separate from the regular scope chain,
+ * ensuring that namespace.symbol syntax is required to access namespaced items
+ * and avoiding name collisions with local symbols.
+ *
+ * Key Functions:
+ * - symbol_table_add_namespace: Creates a namespace Symbol in global scope
+ * - symbol_table_add_symbol_to_namespace: Adds a symbol to a namespace's linked list
+ * - symbol_table_lookup_in_namespace: Two-phase lookup for namespaced symbols
+ * - symbol_table_is_namespace: Checks if a name refers to a namespace
+ */
+void symbol_table_add_namespace(SymbolTable *table, Token name);
+void symbol_table_add_symbol_to_namespace(SymbolTable *table, Token namespace_name, Token symbol_name, Type *type);
+void symbol_table_add_function_to_namespace(SymbolTable *table, Token namespace_name, Token symbol_name, Type *type, FunctionModifier func_mod, FunctionModifier declared_func_mod);
+Symbol *symbol_table_lookup_in_namespace(SymbolTable *table, Token namespace_name, Token symbol_name);
+bool symbol_table_is_namespace(SymbolTable *table, Token name);
 Symbol *symbol_table_lookup_symbol(SymbolTable *table, Token name);
 Symbol *symbol_table_lookup_symbol_current(SymbolTable *table, Token name);
 int symbol_table_get_symbol_offset(SymbolTable *table, Token name);
+bool symbol_table_remove_symbol_from_global(SymbolTable *table, Token name);
 
 /* Arena depth management */
 void symbol_table_enter_arena(SymbolTable *table);

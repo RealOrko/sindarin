@@ -410,6 +410,158 @@ void test_regular_cstyle_for_loop_not_shared_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_import_without_namespace_parsing()
+{
+    printf("Testing parser_execute import without namespace...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "import \"math_utils\"\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_IMPORT);
+    assert(strcmp(stmt->as.import.module_name.start, "math_utils") == 0);
+    assert(stmt->as.import.namespace == NULL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_import_with_namespace_parsing()
+{
+    printf("Testing parser_execute import with namespace...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "import \"math_utils\" as math\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_IMPORT);
+    assert(strcmp(stmt->as.import.module_name.start, "math_utils") == 0);
+    assert(stmt->as.import.namespace != NULL);
+    assert(strncmp(stmt->as.import.namespace->start, "math", stmt->as.import.namespace->length) == 0);
+    assert(stmt->as.import.namespace->length == 4);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_import_with_underscore_namespace_parsing()
+{
+    printf("Testing parser_execute import with underscore namespace...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "import \"http_client\" as _http\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_IMPORT);
+    assert(stmt->as.import.namespace != NULL);
+    assert(strncmp(stmt->as.import.namespace->start, "_http", stmt->as.import.namespace->length) == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_multiple_imports_mixed_parsing()
+{
+    printf("Testing parser_execute multiple imports with mixed styles...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "import \"strings\"\n"
+        "import \"math\" as m\n"
+        "import \"utils\"\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 3);
+
+    /* First import: no namespace */
+    Stmt *stmt1 = module->statements[0];
+    assert(stmt1->type == STMT_IMPORT);
+    assert(strcmp(stmt1->as.import.module_name.start, "strings") == 0);
+    assert(stmt1->as.import.namespace == NULL);
+
+    /* Second import: with namespace */
+    Stmt *stmt2 = module->statements[1];
+    assert(stmt2->type == STMT_IMPORT);
+    assert(strcmp(stmt2->as.import.module_name.start, "math") == 0);
+    assert(stmt2->as.import.namespace != NULL);
+    assert(strncmp(stmt2->as.import.namespace->start, "m", stmt2->as.import.namespace->length) == 0);
+
+    /* Third import: no namespace */
+    Stmt *stmt3 = module->statements[2];
+    assert(stmt3->type == STMT_IMPORT);
+    assert(strcmp(stmt3->as.import.module_name.start, "utils") == 0);
+    assert(stmt3->as.import.namespace == NULL);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_import_keyword_as_namespace_error()
+{
+    printf("Testing parser_execute import with keyword as namespace (should error)...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "import \"math\" as for\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    /* Parser should report error and return NULL */
+    assert(module == NULL);
+    assert(parser.had_error == true);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_import_missing_namespace_after_as_error()
+{
+    printf("Testing parser_execute import with missing namespace after 'as' (should error)...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "import \"math\" as\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    /* Parser should report error and return NULL */
+    assert(module == NULL);
+    assert(parser.had_error == true);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_parser_memory_main()
 {
     test_var_decl_as_val_parsing();
@@ -427,4 +579,10 @@ void test_parser_memory_main()
     test_regular_while_loop_not_shared_parsing();
     test_regular_for_each_loop_not_shared_parsing();
     test_regular_cstyle_for_loop_not_shared_parsing();
+    test_import_without_namespace_parsing();
+    test_import_with_namespace_parsing();
+    test_import_with_underscore_namespace_parsing();
+    test_multiple_imports_mixed_parsing();
+    test_import_keyword_as_namespace_error();
+    test_import_missing_namespace_after_as_error();
 }

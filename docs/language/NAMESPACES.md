@@ -1,7 +1,5 @@
 # Namespaces in Sindarin
 
-> **DRAFT** - This document specifies the namespace extension to Sindarin's import system.
-
 Sindarin extends its import system with optional namespace support. The existing import behavior remains unchanged, but a new `as` clause allows imports to be scoped under a namespace prefix.
 
 ---

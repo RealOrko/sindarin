@@ -266,7 +266,7 @@ Stmt *ast_create_continue_stmt(Arena *arena, const Token *loc_token)
     return stmt;
 }
 
-Stmt *ast_create_import_stmt(Arena *arena, Token module_name, const Token *loc_token)
+Stmt *ast_create_import_stmt(Arena *arena, Token module_name, Token *namespace, const Token *loc_token)
 {
     Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
     if (stmt == NULL)
@@ -287,6 +287,34 @@ Stmt *ast_create_import_stmt(Arena *arena, Token module_name, const Token *loc_t
     stmt->as.import.module_name.line = module_name.line;
     stmt->as.import.module_name.type = module_name.type;
     stmt->as.import.module_name.filename = module_name.filename;
+
+    /* Handle optional namespace */
+    if (namespace != NULL)
+    {
+        Token *ns_copy = arena_alloc(arena, sizeof(Token));
+        if (ns_copy == NULL)
+        {
+            DEBUG_ERROR("Out of memory");
+            exit(1);
+        }
+        char *ns_start = arena_strndup(arena, namespace->start, namespace->length);
+        if (ns_start == NULL)
+        {
+            DEBUG_ERROR("Out of memory");
+            exit(1);
+        }
+        ns_copy->start = ns_start;
+        ns_copy->length = namespace->length;
+        ns_copy->line = namespace->line;
+        ns_copy->type = namespace->type;
+        ns_copy->filename = namespace->filename;
+        stmt->as.import.namespace = ns_copy;
+    }
+    else
+    {
+        stmt->as.import.namespace = NULL;
+    }
+
     stmt->token = ast_dup_token(arena, loc_token);
     return stmt;
 }

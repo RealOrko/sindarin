@@ -227,9 +227,20 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
         break;
 
     case STMT_IMPORT:
-        DEBUG_VERBOSE_INDENT(indent_level, "Import: %.*s",
-                             stmt->as.import.module_name.length,
-                             stmt->as.import.module_name.start);
+        if (stmt->as.import.namespace != NULL)
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "Import: %.*s as %.*s",
+                                 stmt->as.import.module_name.length,
+                                 stmt->as.import.module_name.start,
+                                 stmt->as.import.namespace->length,
+                                 stmt->as.import.namespace->start);
+        }
+        else
+        {
+            DEBUG_VERBOSE_INDENT(indent_level, "Import: %.*s",
+                                 stmt->as.import.module_name.length,
+                                 stmt->as.import.module_name.start);
+        }
         break;
 
     case STMT_BREAK:

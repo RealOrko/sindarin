@@ -103,22 +103,3 @@ Built-in types: `TextFile`, `BinaryFile`, `Date`, `Time`, `Process`
 ## 📖 Documentation
 
 See [docs/README.md](docs/README.md) for the full documentation index.
-
-**Language Reference:**
-- [docs/language/OVERVIEW.md](docs/language/OVERVIEW.md) - Language philosophy and syntax
-- [docs/language/TYPES.md](docs/language/TYPES.md) - Primitive and built-in types
-- [docs/language/STRINGS.md](docs/language/STRINGS.md) - String methods and interpolation
-- [docs/language/ARRAYS.md](docs/language/ARRAYS.md) - Array operations
-- [docs/language/LAMBDAS.md](docs/language/LAMBDAS.md) - Lambda expressions and closures
-- [docs/language/FILE_IO.md](docs/language/FILE_IO.md) - File I/O (TextFile, BinaryFile)
-- [docs/language/DATE.md](docs/language/DATE.md) - Date operations
-- [docs/language/TIME.md](docs/language/TIME.md) - Time operations
-- [docs/language/MEMORY.md](docs/language/MEMORY.md) - Arena memory management
-- [docs/language/THREADING.md](docs/language/THREADING.md) - Threading
-- [docs/language/PROCESSES.md](docs/language/PROCESSES.md) - Process execution
-
-**Draft Specifications:**
-- [docs/drafts/FORMATTING.md](docs/drafts/FORMATTING.md) - Format specifiers (draft)
-- [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
-- [docs/drafts/NAMESPACES.md](docs/drafts/NAMESPACES.md) - Namespaces (draft)
-- [docs/drafts/NETWORK_IO.md](docs/drafts/NETWORK_IO.md) - Network I/O (draft)

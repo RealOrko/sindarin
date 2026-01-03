@@ -371,6 +371,10 @@ typedef struct
 typedef struct
 {
     Token module_name;
+    Token *namespace;          /* Optional namespace identifier (NULL if not namespaced) */
+    struct Stmt **imported_stmts;  /* For namespaced imports: statements from imported module */
+    int imported_count;        /* Number of imported statements */
+    bool also_imported_directly; /* True if this module was also imported without namespace */
 } ImportStmt;
 
 struct Stmt
@@ -450,7 +454,7 @@ Stmt *ast_create_if_stmt(Arena *arena, Expr *condition, Stmt *then_branch, Stmt 
 Stmt *ast_create_while_stmt(Arena *arena, Expr *condition, Stmt *body, const Token *loc_token);
 Stmt *ast_create_for_stmt(Arena *arena, Stmt *initializer, Expr *condition, Expr *increment, Stmt *body, const Token *loc_token);
 Stmt *ast_create_for_each_stmt(Arena *arena, Token var_name, Expr *iterable, Stmt *body, const Token *loc_token);
-Stmt *ast_create_import_stmt(Arena *arena, Token module_name, const Token *loc_token);
+Stmt *ast_create_import_stmt(Arena *arena, Token module_name, Token *namespace, const Token *loc_token);
 
 void ast_init_module(Arena *arena, Module *module, const char *filename);
 void ast_module_add_statement(Arena *arena, Module *module, Stmt *stmt);

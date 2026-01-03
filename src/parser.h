@@ -74,6 +74,8 @@ Stmt *parser_expression_statement(Parser *parser);
 Stmt *parser_import_statement(Parser *parser);
 
 Module *parser_execute(Parser *parser, const char *filename);
-Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename, char ***imported, int *imported_count, int *imported_capacity);
+Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename,
+                                  char ***imported, int *imported_count, int *imported_capacity,
+                                  Module ***imported_modules, bool **imported_directly);
 
 #endif

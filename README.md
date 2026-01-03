@@ -83,6 +83,7 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 | [MEMORY](docs/language/MEMORY.md) | Arena memory management |
 | [THREADING](docs/language/THREADING.md) | Threading with spawn and sync |
 | [PROCESSES](docs/language/PROCESSES.md) | Process execution and output capture |
+| [NAMESPACES](docs/language/NAMESPACES.md) | Namespaced imports for collision resolution |
 
 ## Architecture
 

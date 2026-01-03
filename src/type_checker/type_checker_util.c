@@ -435,3 +435,129 @@ void argument_type_error(Token *token, const char *func_name, int arg_index, Typ
                         arg_index + 1, func_name, type_name(expected), type_name(actual));
     had_type_error = 1;
 }
+
+void get_module_symbols(Module *imported_module, SymbolTable *table,
+                        Token ***symbols_out, Type ***types_out, int *count_out)
+{
+    /* Initialize outputs to empty/NULL */
+    *symbols_out = NULL;
+    *types_out = NULL;
+    *count_out = 0;
+
+    if (imported_module == NULL || imported_module->statements == NULL || table == NULL)
+    {
+        return;
+    }
+
+    Arena *arena = table->arena;
+    int capacity = 8;
+    int count = 0;
+    Token **symbols = arena_alloc(arena, sizeof(Token *) * capacity);
+    Type **types = arena_alloc(arena, sizeof(Type *) * capacity);
+
+    if (symbols == NULL || types == NULL)
+    {
+        DEBUG_ERROR("Failed to allocate memory for module symbols");
+        return;
+    }
+
+    /* Walk through module statements and extract function definitions */
+    for (int i = 0; i < imported_module->count; i++)
+    {
+        Stmt *stmt = imported_module->statements[i];
+        if (stmt == NULL)
+            continue;
+
+        if (stmt->type == STMT_FUNCTION)
+        {
+            FunctionStmt *func = &stmt->as.function;
+
+            /* Grow arrays if needed */
+            if (count >= capacity)
+            {
+                int new_capacity = capacity * 2;
+                Token **new_symbols = arena_alloc(arena, sizeof(Token *) * new_capacity);
+                Type **new_types = arena_alloc(arena, sizeof(Type *) * new_capacity);
+                if (new_symbols == NULL || new_types == NULL)
+                {
+                    DEBUG_ERROR("Failed to grow module symbols arrays");
+                    *symbols_out = symbols;
+                    *types_out = types;
+                    *count_out = count;
+                    return;
+                }
+                memcpy(new_symbols, symbols, sizeof(Token *) * count);
+                memcpy(new_types, types, sizeof(Type *) * count);
+                symbols = new_symbols;
+                types = new_types;
+                capacity = new_capacity;
+            }
+
+            /* Store symbol name token */
+            Token *name_token = arena_alloc(arena, sizeof(Token));
+            if (name_token == NULL)
+            {
+                DEBUG_ERROR("Failed to allocate token for function name");
+                continue;
+            }
+            *name_token = func->name;
+            symbols[count] = name_token;
+
+            /* Build function type */
+            Type **param_types = NULL;
+            if (func->param_count > 0)
+            {
+                param_types = arena_alloc(arena, sizeof(Type *) * func->param_count);
+                if (param_types == NULL)
+                {
+                    DEBUG_ERROR("Failed to allocate param types");
+                    continue;
+                }
+                for (int j = 0; j < func->param_count; j++)
+                {
+                    Type *param_type = func->params[j].type;
+                    if (param_type == NULL)
+                    {
+                        param_type = ast_create_primitive_type(arena, TYPE_NIL);
+                    }
+                    param_types[j] = param_type;
+                }
+            }
+
+            Type *func_type = ast_create_function_type(arena, func->return_type, param_types, func->param_count);
+
+            /* Store parameter memory qualifiers if any non-default exist */
+            if (func->param_count > 0)
+            {
+                bool has_non_default_qual = false;
+                for (int j = 0; j < func->param_count; j++)
+                {
+                    if (func->params[j].mem_qualifier != MEM_DEFAULT)
+                    {
+                        has_non_default_qual = true;
+                        break;
+                    }
+                }
+                if (has_non_default_qual)
+                {
+                    func_type->as.function.param_mem_quals = arena_alloc(arena,
+                        sizeof(MemoryQualifier) * func->param_count);
+                    if (func_type->as.function.param_mem_quals != NULL)
+                    {
+                        for (int j = 0; j < func->param_count; j++)
+                        {
+                            func_type->as.function.param_mem_quals[j] = func->params[j].mem_qualifier;
+                        }
+                    }
+                }
+            }
+
+            types[count] = func_type;
+            count++;
+        }
+    }
+
+    *symbols_out = symbols;
+    *types_out = types;
+    *count_out = count;
+}

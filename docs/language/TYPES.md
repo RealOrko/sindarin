@@ -183,6 +183,179 @@ var now: Time = Time.now()
 var formatted: str = now.format("YYYY-MM-DD HH:mm:ss")
 ```
 
+### Process
+
+Handle for spawning and managing external processes.
+
+```sindarin
+// Run a command
+var result: Process = Process.run("ls")
+print($"Exit code: {result.exitCode}\n")
+print($"Output: {result.stdout}\n")
+
+// Run with arguments
+var p: Process = Process.run("grep", {"pattern", "file.txt"})
+if p.exitCode == 0 =>
+  print(p.stdout)
+else =>
+  print($"Error: {p.stderr}\n")
+```
+
+Properties:
+- `exitCode: int` - Process exit code (0 typically means success, 127 if command not found)
+- `stdout: str` - Captured standard output
+- `stderr: str` - Captured standard error
+
+## Utility Namespaces
+
+Sindarin provides several utility namespaces with static methods for common operations.
+
+### Path
+
+File system path manipulation utilities.
+
+```sindarin
+// Extract path components
+var dir: str = Path.directory("/home/user/file.txt")   // "/home/user"
+var name: str = Path.filename("/home/user/file.txt")   // "file.txt"
+var ext: str = Path.extension("/home/user/file.txt")   // "txt"
+
+// Join paths
+var full: str = Path.join("/home", "user", "file.txt") // "/home/user/file.txt"
+
+// Resolve to absolute path
+var abs: str = Path.absolute("./relative/path")
+
+// Check path properties
+if Path.exists("config.json") =>
+  if Path.isFile("config.json") =>
+    print("Found config file\n")
+
+if Path.isDirectory("./data") =>
+  print("Data directory exists\n")
+```
+
+Methods:
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `directory` | `(path: str): str` | Extract directory portion |
+| `filename` | `(path: str): str` | Extract filename with extension |
+| `extension` | `(path: str): str` | Extract extension (without dot) |
+| `join` | `(path1: str, path2: str, ...): str` | Join 2-3 path components |
+| `absolute` | `(path: str): str` | Resolve to absolute path |
+| `exists` | `(path: str): bool` | Check if path exists |
+| `isFile` | `(path: str): bool` | Check if path is a regular file |
+| `isDirectory` | `(path: str): bool` | Check if path is a directory |
+
+### Directory
+
+Directory manipulation utilities.
+
+```sindarin
+// List directory contents
+var files: str[] = Directory.list("./src")
+for f in files =>
+  print($"{f}\n")
+
+// List recursively (includes subdirectories)
+var allFiles: str[] = Directory.listRecursive("./project")
+
+// Create and delete directories
+Directory.create("./output")
+Directory.delete("./empty_dir")           // Must be empty
+Directory.deleteRecursive("./temp")       // Deletes contents too
+```
+
+Methods:
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `list` | `(path: str): str[]` | List files in directory (non-recursive) |
+| `listRecursive` | `(path: str): str[]` | List all files recursively |
+| `create` | `(path: str): void` | Create a directory |
+| `delete` | `(path: str): void` | Delete an empty directory |
+| `deleteRecursive` | `(path: str): void` | Delete directory and all contents |
+
+### Stdin
+
+Standard input stream utilities.
+
+```sindarin
+// Read input
+var line: str = Stdin.readLine()
+var word: str = Stdin.readWord()
+var ch: int = Stdin.readChar()
+
+// Check input availability
+while Stdin.hasLines() =>
+  var input: str = Stdin.readLine()
+  print($"Got: {input}\n")
+
+if !Stdin.isEof() =>
+  print("More input available\n")
+```
+
+Methods:
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `readLine` | `(): str` | Read a line from stdin |
+| `readWord` | `(): str` | Read a whitespace-delimited word |
+| `readChar` | `(): int` | Read a single character (returns char code) |
+| `hasChars` | `(): bool` | Check if characters are available |
+| `hasLines` | `(): bool` | Check if lines are available |
+| `isEof` | `(): bool` | Check if at end of input |
+
+### Stdout
+
+Standard output stream utilities.
+
+```sindarin
+Stdout.write("Hello ")
+Stdout.writeLine("World!")
+Stdout.flush()
+```
+
+Methods:
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `write` | `(text: str): void` | Write text without newline |
+| `writeLine` | `(text: str): void` | Write text with newline |
+| `flush` | `(): void` | Flush output buffer |
+
+### Stderr
+
+Standard error stream utilities.
+
+```sindarin
+Stderr.write("Warning: ")
+Stderr.writeLine("Something went wrong")
+Stderr.flush()
+```
+
+Methods:
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `write` | `(text: str): void` | Write text without newline |
+| `writeLine` | `(text: str): void` | Write text with newline |
+| `flush` | `(): void` | Flush error buffer |
+
+### Bytes
+
+Byte array conversion utilities.
+
+```sindarin
+// Convert hex string to bytes
+var bytes: byte[] = Bytes.fromHex("48656c6c6f")  // "Hello" in hex
+
+// Convert Base64 string to bytes
+var decoded: byte[] = Bytes.fromBase64("SGVsbG8=")  // "Hello" in Base64
+```
+
+Methods:
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `fromHex` | `(hex: str): byte[]` | Convert hex string to byte array |
+| `fromBase64` | `(b64: str): byte[]` | Convert Base64 string to byte array |
+
 ## Type Summary Table
 
 | Type | Description | Example Literals |
@@ -200,6 +373,18 @@ var formatted: str = now.format("YYYY-MM-DD HH:mm:ss")
 | `BinaryFile` | Binary file handle | (from `BinaryFile.open()`) |
 | `Date` | Calendar date value | (from `Date.today()`) |
 | `Time` | Date/time value | (from `Time.now()`) |
+| `Process` | Process execution result | (from `Process.run()`) |
+
+### Utility Namespaces
+
+| Namespace | Description |
+|-----------|-------------|
+| `Path` | File system path manipulation |
+| `Directory` | Directory listing and management |
+| `Stdin` | Standard input stream |
+| `Stdout` | Standard output stream |
+| `Stderr` | Standard error stream |
+| `Bytes` | Byte array conversions |
 
 ## Type Annotations
 

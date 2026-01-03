@@ -2,6 +2,33 @@
 #include "type_checker/type_checker_util.h"
 #include "type_checker/type_checker_expr.h"
 #include "debug.h"
+#include <string.h>
+#include <stdio.h>
+
+/* Reserved keyword table for namespace validation */
+static const char *reserved_keywords[] = {
+    "fn", "var", "return", "if", "else", "for", "while", "break", "continue",
+    "in", "import", "nil", "int", "long", "double", "char", "str", "bool",
+    "byte", "void", "shared", "private", "as", "val", "ref", "true", "false",
+    NULL
+};
+
+/* Check if a token matches a reserved keyword.
+ * Returns the keyword string if it matches, NULL otherwise. */
+static const char *is_reserved_keyword(Token token)
+{
+    for (int i = 0; reserved_keywords[i] != NULL; i++)
+    {
+        const char *keyword = reserved_keywords[i];
+        int keyword_len = strlen(keyword);
+        if (token.length == keyword_len &&
+            memcmp(token.start, keyword, keyword_len) == 0)
+        {
+            return keyword;
+        }
+    }
+    return NULL;
+}
 
 /* Infer missing lambda types from a function type annotation */
 static void infer_lambda_types(Expr *lambda_expr, Type *func_type)
@@ -243,6 +270,35 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
     }
 }
 
+/* Type-check only the function body, without adding to global scope.
+ * Used for namespaced imports where the function is registered under a namespace. */
+static void type_check_function_body_only(Stmt *stmt, SymbolTable *table)
+{
+    DEBUG_VERBOSE("Type checking function body only: %.*s", stmt->as.function.name.length, stmt->as.function.name.start);
+    Arena *arena = table->arena;
+
+    symbol_table_push_scope(table);
+
+    for (int i = 0; i < stmt->as.function.param_count; i++)
+    {
+        Parameter param = stmt->as.function.params[i];
+        if (param.type == NULL)
+        {
+            param.type = ast_create_primitive_type(arena, TYPE_NIL);
+        }
+        symbol_table_add_symbol_full(table, param.name, param.type, SYMBOL_PARAM, param.mem_qualifier);
+    }
+
+    table->current->next_local_offset = table->current->next_param_offset;
+
+    for (int i = 0; i < stmt->as.function.body_count; i++)
+    {
+        type_check_stmt(stmt->as.function.body[i], table, stmt->as.function.return_type);
+    }
+
+    symbol_table_pop_scope(table);
+}
+
 static void type_check_function(Stmt *stmt, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking function with %d parameters", stmt->as.function.param_count);
@@ -309,6 +365,22 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         modifier != FUNC_PRIVATE)
     {
         effective_modifier = FUNC_SHARED;
+    }
+
+    /* Check for duplicate function definition (collision from imports).
+     * If a function with this name already exists, report a collision error. */
+    Symbol *existing = symbol_table_lookup_symbol(table, stmt->as.function.name);
+    if (existing != NULL && existing->is_function)
+    {
+        char name_str[128];
+        int name_len = stmt->as.function.name.length < 127 ? stmt->as.function.name.length : 127;
+        memcpy(name_str, stmt->as.function.name.start, name_len);
+        name_str[name_len] = '\0';
+
+        char msg[256];
+        snprintf(msg, sizeof(msg), "Function '%s' is already defined (possible import collision)", name_str);
+        type_error(&stmt->as.function.name, msg);
+        return;
     }
 
     /* Add function symbol to current scope (e.g., global) with its modifier.
@@ -536,6 +608,150 @@ static void type_check_for_each(Stmt *stmt, SymbolTable *table, Type *return_typ
     symbol_table_pop_scope(table);
 }
 
+/* Type check an import statement.
+ *
+ * For non-namespaced imports (namespace == NULL):
+ *   - Module symbols are added to global scope when their function definitions
+ *     are type-checked (handled by type_check_function)
+ *   - Collision detection happens in type_check_function
+ *   - This function just logs for debugging purposes
+ *
+ * For namespaced imports (namespace != NULL):
+ *   - Creates a namespace entry in the symbol table
+ *   - Registers all function symbols from imported module under that namespace
+ *   - Namespaced symbols are NOT added to global scope directly
+ *   - They are only accessible via namespace.symbol syntax
+ */
+static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
+{
+    ImportStmt *import = &stmt->as.import;
+
+    char mod_str[128];
+    int mod_len = import->module_name.length < 127 ? import->module_name.length : 127;
+    memcpy(mod_str, import->module_name.start, mod_len);
+    mod_str[mod_len] = '\0';
+
+    if (import->namespace == NULL)
+    {
+        /* Non-namespaced import: symbols are added to global scope when
+         * the imported function definitions are type-checked. The parser
+         * merges imported statements into the main module, and collision
+         * detection is handled by type_check_function when those merged
+         * function statements are processed. */
+        DEBUG_VERBOSE("Type checking non-namespaced import of '%s'", mod_str);
+    }
+    else
+    {
+        /* Namespaced import: create namespace and register symbols */
+        Token ns_token = *import->namespace;
+        char ns_str[128];
+        int ns_len = ns_token.length < 127 ? ns_token.length : 127;
+        memcpy(ns_str, ns_token.start, ns_len);
+        ns_str[ns_len] = '\0';
+        DEBUG_VERBOSE("Type checking namespaced import of '%s' as '%s'", mod_str, ns_str);
+
+        /* Check if namespace identifier is a reserved keyword */
+        const char *reserved = is_reserved_keyword(ns_token);
+        if (reserved != NULL)
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Cannot use reserved keyword '%s' as namespace name", reserved);
+            type_error(&ns_token, msg);
+            return;
+        }
+
+        /* Check if namespace already exists */
+        if (symbol_table_is_namespace(table, ns_token))
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Namespace '%s' is already defined", ns_str);
+            type_error(&ns_token, msg);
+            return;
+        }
+
+        /* Also check if a non-namespace symbol with this name exists */
+        Symbol *existing = symbol_table_lookup_symbol(table, ns_token);
+        if (existing != NULL)
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Cannot use '%s' as namespace: name already in use", ns_str);
+            type_error(&ns_token, msg);
+            return;
+        }
+
+        /* Create the namespace entry in the symbol table */
+        symbol_table_add_namespace(table, ns_token);
+
+        /* Use get_module_symbols to extract symbols and types from imported module.
+         * Create a temporary Module structure to use with the helper function. */
+        Module temp_module;
+        temp_module.statements = import->imported_stmts;
+        temp_module.count = import->imported_count;
+        temp_module.capacity = import->imported_count;
+        temp_module.filename = NULL;
+
+        Token **symbols = NULL;
+        Type **types = NULL;
+        int symbol_count = 0;
+
+        get_module_symbols(&temp_module, table, &symbols, &types, &symbol_count);
+
+        /* Handle empty modules gracefully */
+        if (symbol_count == 0)
+        {
+            DEBUG_VERBOSE("No symbols to import from module '%s'", mod_str);
+            return;
+        }
+
+        /* Register all extracted symbols under the namespace.
+         * We need to iterate through original statements to get function modifiers
+         * since get_module_symbols only extracts names and types. */
+        int sym_idx = 0;
+        for (int i = 0; i < import->imported_count && sym_idx < symbol_count; i++)
+        {
+            Stmt *imported_stmt = import->imported_stmts[i];
+            if (imported_stmt == NULL)
+                continue;
+
+            if (imported_stmt->type == STMT_FUNCTION)
+            {
+                FunctionStmt *func = &imported_stmt->as.function;
+
+                /* Use the type extracted by get_module_symbols */
+                Type *func_type = types[sym_idx];
+                Token *func_name = symbols[sym_idx];
+                sym_idx++;
+
+                /* Determine effective modifier - same logic as type_check_function.
+                 * Functions returning heap-allocated types are implicitly shared. */
+                FunctionModifier modifier = func->modifier;
+                FunctionModifier effective_modifier = modifier;
+                if (func->return_type &&
+                    (func->return_type->kind == TYPE_FUNCTION ||
+                     func->return_type->kind == TYPE_STRING ||
+                     func->return_type->kind == TYPE_ARRAY) &&
+                    modifier != FUNC_PRIVATE)
+                {
+                    effective_modifier = FUNC_SHARED;
+                }
+
+                /* Add function symbol to namespace with proper function modifier */
+                symbol_table_add_function_to_namespace(table, ns_token, *func_name, func_type, effective_modifier, modifier);
+
+                char func_str[128];
+                int func_len = func_name->length < 127 ? func_name->length : 127;
+                memcpy(func_str, func_name->start, func_len);
+                func_str[func_len] = '\0';
+                DEBUG_VERBOSE("Added function '%s' to namespace '%s' (mod=%d)", func_str, ns_str, effective_modifier);
+
+                /* Type-check the function body so expr_type is set for code generation.
+                 * Use the body-only version to avoid adding to global scope. */
+                type_check_function_body_only(imported_stmt, table);
+            }
+        }
+    }
+}
+
 void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
 {
     if (stmt == NULL)
@@ -582,7 +798,7 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
         // TODO: Verify continue is inside a loop
         break;
     case STMT_IMPORT:
-        DEBUG_VERBOSE("Skipping type check for import statement");
+        type_check_import_stmt(stmt, table);
         break;
     }
 }

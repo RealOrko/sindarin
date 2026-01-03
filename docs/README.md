@@ -19,6 +19,7 @@ Core documentation for the Sindarin programming language:
 | [MEMORY.md](language/MEMORY.md) | Arena memory management |
 | [THREADING.md](language/THREADING.md) | Threading with `&` spawn and `!` sync operators |
 | [PROCESSES.md](language/PROCESSES.md) | Process execution and output capture |
+| [NAMESPACES.md](language/NAMESPACES.md) | Namespaced imports for collision resolution |
 
 ## Draft Specifications
 
@@ -28,7 +29,6 @@ These features are planned or partially implemented:
 |----------|--------|-------------|
 | [FORMATTING.md](drafts/FORMATTING.md) | Partial | String formatting and format specifiers |
 | [INTEROP.md](drafts/INTEROP.md) | Draft | C interoperability and native functions |
-| [NAMESPACES.md](drafts/NAMESPACES.md) | Draft | Namespace support |
 | [NETWORK_IO.md](drafts/NETWORK_IO.md) | Draft | Network I/O (TCP, UDP, Unix sockets) |
 
 ## Internal Documentation

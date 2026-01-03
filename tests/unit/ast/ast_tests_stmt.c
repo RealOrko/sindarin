@@ -317,21 +317,35 @@ void test_ast_create_import_stmt()
 
     Token mod = create_dummy_token(&arena, "module");
     Token *loc = ast_clone_token(&arena, &mod);
-    Stmt *imp = ast_create_import_stmt(&arena, mod, loc);
+
+    // Test import without namespace
+    Stmt *imp = ast_create_import_stmt(&arena, mod, NULL, loc);
     assert(imp != NULL);
     assert(imp->type == STMT_IMPORT);
     assert(strcmp(imp->as.import.module_name.start, "module") == 0);
     assert(imp->as.import.module_name.length == 6);
+    assert(imp->as.import.namespace == NULL);
     assert(tokens_equal(imp->token, loc));
+
+    // Test import with namespace
+    Token ns_token = create_dummy_token(&arena, "math");
+    Stmt *imp_ns = ast_create_import_stmt(&arena, mod, &ns_token, loc);
+    assert(imp_ns != NULL);
+    assert(imp_ns->type == STMT_IMPORT);
+    assert(strcmp(imp_ns->as.import.module_name.start, "module") == 0);
+    assert(imp_ns->as.import.namespace != NULL);
+    assert(strcmp(imp_ns->as.import.namespace->start, "math") == 0);
+    assert(imp_ns->as.import.namespace->length == 4);
 
     // Empty module name
     Token empty_mod = create_dummy_token(&arena, "");
-    Stmt *imp_empty = ast_create_import_stmt(&arena, empty_mod, loc);
+    Stmt *imp_empty = ast_create_import_stmt(&arena, empty_mod, NULL, loc);
     assert(imp_empty != NULL);
     assert(imp_empty->as.import.module_name.length == 0);
+    assert(imp_empty->as.import.namespace == NULL);
 
     // NULL loc
-    Stmt *imp_null_loc = ast_create_import_stmt(&arena, mod, NULL);
+    Stmt *imp_null_loc = ast_create_import_stmt(&arena, mod, NULL, NULL);
     assert(imp_null_loc != NULL);
     assert(imp_null_loc->token == NULL);
 

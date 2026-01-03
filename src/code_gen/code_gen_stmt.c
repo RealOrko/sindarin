@@ -1096,6 +1096,21 @@ void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
         }
         break;
     case STMT_IMPORT:
+        /* For namespaced imports, emit the imported module's function definitions.
+         * Non-namespaced imports have their statements merged by the parser,
+         * so they don't need special handling here.
+         *
+         * If the module was ALSO imported directly (without namespace), the functions
+         * are already in the main module and we should NOT emit them again to avoid
+         * duplicate definition errors. */
+        if (stmt->as.import.namespace != NULL && stmt->as.import.imported_stmts != NULL &&
+            !stmt->as.import.also_imported_directly)
+        {
+            for (int i = 0; i < stmt->as.import.imported_count; i++)
+            {
+                code_gen_statement(gen, stmt->as.import.imported_stmts[i], indent);
+            }
+        }
         break;
     }
 }

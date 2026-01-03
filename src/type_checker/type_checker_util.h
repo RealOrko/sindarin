@@ -56,4 +56,20 @@ void memory_context_enter_private(MemoryContext *ctx);
 void memory_context_exit_private(MemoryContext *ctx);
 bool memory_context_is_private(MemoryContext *ctx);
 
+/* Module symbol extraction for namespaced imports.
+ * Walks the imported module AST to find all function definitions
+ * and extracts their names and types.
+ *
+ * @param imported_module The module containing imported statements
+ * @param table Symbol table for type construction (uses arena)
+ * @param symbols_out Output: array of symbol name tokens
+ * @param types_out Output: array of function types
+ * @param count_out Output: number of extracted symbols
+ *
+ * Memory is allocated from the arena in the symbol table.
+ * If no symbols are found, *count_out is 0 and output arrays are NULL.
+ */
+void get_module_symbols(Module *imported_module, SymbolTable *table,
+                        Token ***symbols_out, Type ***types_out, int *count_out);
+
 #endif /* TYPE_CHECKER_UTIL_H */

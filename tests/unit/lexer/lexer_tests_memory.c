@@ -383,6 +383,73 @@ void test_lexer_shared_str_distinction()
     DEBUG_INFO("Finished test_lexer_shared_str_distinction");
 }
 
+void test_lexer_import_as_namespace_syntax()
+{
+    DEBUG_INFO("Starting test_lexer_import_as_namespace_syntax");
+    printf("Testing lexer with 'import \"module\" as ns' namespace syntax\n");
+
+    const char *source = "import \"math_utils\" as math";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_IMPORT);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_STRING_LITERAL);
+    assert(strcmp(t2.literal.string_value, "math_utils") == 0);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_AS);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_IDENTIFIER);
+    assert(t4.length == 4);
+    assert(strncmp(t4.start, "math", 4) == 0);
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_import_as_namespace_syntax");
+}
+
+void test_lexer_as_identifier_prefix()
+{
+    DEBUG_INFO("Starting test_lexer_as_identifier_prefix");
+    printf("Testing lexer distinguishes 'as' from identifiers starting with 'as'\n");
+
+    const char *source = "as assert assign async";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_AS);  // "as" is the keyword
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_IDENTIFIER);  // "assert" is an identifier
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_IDENTIFIER);  // "assign" is an identifier
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_IDENTIFIER);  // "async" is an identifier
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_as_identifier_prefix");
+}
+
 void test_lexer_memory_main()
 {
     test_lexer_keyword_shared();
@@ -398,4 +465,6 @@ void test_lexer_memory_main()
     test_lexer_val_var_distinction();
     test_lexer_ref_return_distinction();
     test_lexer_shared_str_distinction();
+    test_lexer_import_as_namespace_syntax();
+    test_lexer_as_identifier_prefix();
 }
