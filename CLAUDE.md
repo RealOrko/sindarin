@@ -92,6 +92,14 @@ Types: `int`, `long`, `double`, `str`, `char`, `bool`, `byte`, `void`
 
 Built-in types: `TextFile`, `BinaryFile`, `Date`, `Time`
 
+## 🚨 IMPORTANT: 
+ 
+ - This project uses ASAN not valgrind. All memory are detected using `-fsanitize=address`. Do not introduce valgrind into this project!
+
+ - Always execute compiled artifacts (both the compiler and sindarin code files) using a `timeout` prefix to avoid crashing the host machine if there is an accidental/unintended infinite loop.
+
+ - Always debug with output written to the /tmp/ directory, this avoids accidentally comitting generated artifacts which do not form part of the solution. 
+
 ## 📖 Documentation
 
 See [docs/README.md](docs/README.md) for the full documentation index.
@@ -114,4 +122,3 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 - [docs/drafts/NAMESPACES.md](docs/drafts/NAMESPACES.md) - Namespaces (draft)
 - [docs/drafts/NETWORK_IO.md](docs/drafts/NETWORK_IO.md) - Network I/O (draft)
 - [docs/drafts/PROCESSES.md](docs/drafts/PROCESSES.md) - Process management (draft)
-
