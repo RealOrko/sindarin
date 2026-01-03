@@ -1,0 +1,39 @@
+// Test: Spawning many processes concurrently
+// Verifies that many concurrent &Process.run spawns work correctly
+
+fn main(): void =>
+    print("Testing many concurrent processes\n")
+
+    // Spawn 10 processes in parallel
+    var p1: Process = &Process.run("echo", {"1"})
+    var p2: Process = &Process.run("echo", {"2"})
+    var p3: Process = &Process.run("echo", {"3"})
+    var p4: Process = &Process.run("echo", {"4"})
+    var p5: Process = &Process.run("echo", {"5"})
+    var p6: Process = &Process.run("echo", {"6"})
+    var p7: Process = &Process.run("echo", {"7"})
+    var p8: Process = &Process.run("echo", {"8"})
+    var p9: Process = &Process.run("echo", {"9"})
+    var p10: Process = &Process.run("echo", {"10"})
+
+    print("All processes spawned\n")
+
+    // Sync all using array sync
+    ({p1, p2, p3, p4, p5, p6, p7, p8, p9, p10})!
+
+    print("All processes synced\n")
+
+    // Verify all succeeded
+    var total_exit: int = p1.exitCode + p2.exitCode + p3.exitCode + p4.exitCode + p5.exitCode
+    total_exit = total_exit + p6.exitCode + p7.exitCode + p8.exitCode + p9.exitCode + p10.exitCode
+
+    if total_exit == 0 =>
+        print("SUCCESS: All 10 processes exited with code 0\n")
+    else =>
+        print($"FAILURE: Total exit codes = {total_exit}, expected 0\n")
+
+    // Verify output captured from all
+    if p1.stdout.contains("1") && p5.stdout.contains("5") && p10.stdout.contains("10") =>
+        print("SUCCESS: Output captured from all processes\n")
+    else =>
+        print("FAILURE: Some outputs missing\n")

@@ -1,0 +1,18 @@
+// Test basic async Process spawn and wait pattern
+// Verifies that &Process.run spawns in background and ! synchronizes
+
+fn main(): int =>
+    // Spawn process in background
+    var p: Process = &Process.run("echo", {"async test"})
+
+    // Process is running in background
+    print("spawned\n")
+
+    // Wait for completion
+    p!
+
+    // Access result after sync
+    print($"result: {p.stdout}")
+    print($"exit: {p.exitCode}\n")
+
+    return 0

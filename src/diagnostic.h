@@ -7,7 +7,7 @@
 
 /*
  * Diagnostic system for Sn compiler
- * Provides unified, Rust-style error reporting with source context
+ * Provides unified error reporting with source context
  */
 
 /* Diagnostic severity levels */
@@ -70,6 +70,11 @@ void diagnostic_report(DiagnosticLevel level, DiagnosticLoc loc,
  */
 void diagnostic_error(const char *filename, int line, int column, int length,
                       const char *fmt, ...);
+
+/*
+ * Report a simple error without source context (e.g., file not found)
+ */
+void diagnostic_error_simple(const char *fmt, ...);
 
 /*
  * Report an error at a token's location

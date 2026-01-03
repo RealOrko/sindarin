@@ -1,0 +1,6 @@
+true: 0
+false: 1
+exit 42: 42
+exit 255: 255
+not found: 127
+success check: pass

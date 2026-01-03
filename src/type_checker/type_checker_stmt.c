@@ -155,7 +155,13 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
              * This allows unfreezing when the variable is synced. */
             Expr *spawn = stmt->as.var_decl.initializer;
             Expr *call = spawn->as.thread_spawn.call;
-            if (call != NULL && call->type == EXPR_CALL)
+
+            /* Static calls (like Process.run) don't have frozen args to track */
+            if (call != NULL && call->type == EXPR_STATIC_CALL)
+            {
+                /* No frozen args handling needed for static method spawns */
+            }
+            else if (call != NULL && call->type == EXPR_CALL)
             {
                 int arg_count = call->as.call.arg_count;
                 Expr **arguments = call->as.call.arguments;

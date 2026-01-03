@@ -90,13 +90,13 @@ $"Hello {name}"
 
 Types: `int`, `long`, `double`, `str`, `char`, `bool`, `byte`, `void`
 
-Built-in types: `TextFile`, `BinaryFile`, `Date`, `Time`
+Built-in types: `TextFile`, `BinaryFile`, `Date`, `Time`, `Process`
 
 ## 🚨 IMPORTANT: 
  
- - This project uses ASAN not valgrind. All memory are detected using `-fsanitize=address`. Do not introduce valgrind into this project!
+ - This project uses ASAN not valgrind. All memory issues are detected using `-fsanitize=address`. Do not introduce valgrind into this project!
 
- - Always execute compiled artifacts (both the compiler and sindarin code files) using a `timeout` prefix to avoid crashing the host machine if there is an accidental/unintended infinite loop.
+ - Always execute compiled artifacts (both the compiler and sindarin code files) using a `timeout` prefix to avoid crashing the host machine if there is an accidental/unintended infinite loops.
 
  - Always debug with output written to the /tmp/ directory, this avoids accidentally comitting generated artifacts which do not form part of the solution. 
 
@@ -115,10 +115,10 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 - [docs/language/TIME.md](docs/language/TIME.md) - Time operations
 - [docs/language/MEMORY.md](docs/language/MEMORY.md) - Arena memory management
 - [docs/language/THREADING.md](docs/language/THREADING.md) - Threading
+- [docs/language/PROCESSES.md](docs/language/PROCESSES.md) - Process execution
 
 **Draft Specifications:**
 - [docs/drafts/FORMATTING.md](docs/drafts/FORMATTING.md) - Format specifiers (draft)
 - [docs/drafts/INTEROP.md](docs/drafts/INTEROP.md) - C interoperability (draft)
 - [docs/drafts/NAMESPACES.md](docs/drafts/NAMESPACES.md) - Namespaces (draft)
 - [docs/drafts/NETWORK_IO.md](docs/drafts/NETWORK_IO.md) - Network I/O (draft)
-- [docs/drafts/PROCESSES.md](docs/drafts/PROCESSES.md) - Process management (draft)

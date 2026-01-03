@@ -40,6 +40,7 @@ Type *type_check_text_file_method(Expr *expr, Type *object_type, Token member_na
 Type *type_check_binary_file_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 Type *type_check_time_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 Type *type_check_date_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
+Type *type_check_process_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 Type *type_check_array_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 Type *type_check_string_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 

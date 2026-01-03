@@ -18,6 +18,7 @@ Core documentation for the Sindarin programming language:
 | [TIME.md](language/TIME.md) | Date and time operations |
 | [MEMORY.md](language/MEMORY.md) | Arena memory management |
 | [THREADING.md](language/THREADING.md) | Threading with `&` spawn and `!` sync operators |
+| [PROCESSES.md](language/PROCESSES.md) | Process execution and output capture |
 
 ## Draft Specifications
 
@@ -29,7 +30,6 @@ These features are planned or partially implemented:
 | [INTEROP.md](drafts/INTEROP.md) | Draft | C interoperability and native functions |
 | [NAMESPACES.md](drafts/NAMESPACES.md) | Draft | Namespace support |
 | [NETWORK_IO.md](drafts/NETWORK_IO.md) | Draft | Network I/O (TCP, UDP, Unix sockets) |
-| [PROCESSES.md](drafts/PROCESSES.md) | Draft | Process management and execution |
 
 ## Internal Documentation
 

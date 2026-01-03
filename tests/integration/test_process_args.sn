@@ -1,0 +1,21 @@
+// Test Process.run with command arguments
+// Verifies that arguments are passed correctly to commands
+
+fn main(): int =>
+    // Test echo with multiple arguments
+    var p1: Process = Process.run("echo", {"hello", "world"})
+    print($"echo args: {p1.stdout}")
+
+    // Test echo with single argument
+    var p2: Process = Process.run("echo", {"single"})
+    print($"echo single: {p2.stdout}")
+
+    // Test command that uses arguments
+    var p3: Process = Process.run("expr", {"5", "+", "3"})
+    print($"expr result: {p3.stdout}")
+
+    // Test printf with format and args
+    var p4: Process = Process.run("printf", {"%s-%s", "arg1", "arg2"})
+    print($"printf result: {p4.stdout}\n")
+
+    return 0

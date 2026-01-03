@@ -492,6 +492,17 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         /* Fall through to error handling if not a valid Date method */
     }
 
+    /* Try Process property type checking */
+    if (object_type->kind == TYPE_PROCESS)
+    {
+        Type *result = type_check_process_method(expr, object_type, expr->as.member.member_name, table);
+        if (result != NULL)
+        {
+            return result;
+        }
+        /* Fall through to error handling if not a valid Process property */
+    }
+
     /* No valid method found */
     {
         /* Create null-terminated member name for error message */
@@ -515,17 +526,36 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
 
 /* type_check_sized_array_alloc - RELOCATED to type_checker_expr_array.c */
 
-/* Thread spawn expression type checking - &fn() */
+/* Thread spawn expression type checking - &fn() or &Type.method() */
 static Type *type_check_thread_spawn(Expr *expr, SymbolTable *table)
 {
     Expr *call = expr->as.thread_spawn.call;
 
-    /* Validate that the spawn expression is a function call */
-    if (call == NULL || call->type != EXPR_CALL)
+    /* Validate that the spawn expression is a function call or static call */
+    if (call == NULL || (call->type != EXPR_CALL && call->type != EXPR_STATIC_CALL))
     {
         type_error(expr->token, "Thread spawn requires function call");
         return NULL;
     }
+
+    /* Handle static method calls like &Process.run(...) */
+    if (call->type == EXPR_STATIC_CALL)
+    {
+        /* Type check the static call expression */
+        Type *result_type = type_check_expr(call, table);
+        if (result_type == NULL)
+        {
+            return NULL;
+        }
+
+        /* Static methods use default modifier (no shared/private support) */
+        expr->as.thread_spawn.modifier = FUNC_DEFAULT;
+
+        DEBUG_VERBOSE("Thread spawn static call type checked, return type: %d", result_type->kind);
+        return result_type;
+    }
+
+    /* Regular function call handling below */
 
     /* Type check the call expression to get the function type */
     Expr *callee = call->as.call.callee;

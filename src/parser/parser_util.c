@@ -249,6 +249,11 @@ Type *parser_type(Parser *parser)
             parser_advance(parser);
             type = ast_create_primitive_type(parser->arena, TYPE_TIME);
         }
+        else if (id.length == 7 && strncmp(id.start, "Process", 7) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_PROCESS);
+        }
         else
         {
             parser_error_at_current(parser, "Expected type");
@@ -333,6 +338,7 @@ static const char *static_type_names[] = {
     "Stderr",
     "Date",
     "Time",
+    "Process",
     NULL
 };
 

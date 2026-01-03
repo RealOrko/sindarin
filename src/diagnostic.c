@@ -163,15 +163,11 @@ void diagnostic_report(DiagnosticLevel level, DiagnosticLoc loc,
             const char *source_line = get_source_line(loc.line);
             if (source_line)
             {
-                /* Print the separator line */
-                fprintf(stderr, "   %s|%s\n", COLOR_BLUE, COLOR_RESET);
-
-                /* Print line number and source */
-                fprintf(stderr, "%s%3d |%s %s\n",
-                        COLOR_BLUE, loc.line, COLOR_RESET, source_line);
+                /* Print source line with consistent indentation */
+                fprintf(stderr, "      %s\n", source_line);
 
                 /* Print the underline/caret line */
-                fprintf(stderr, "   %s|%s ", COLOR_BLUE, COLOR_RESET);
+                fprintf(stderr, "      ");
 
                 /* Spaces to reach the column */
                 int col = loc.column > 0 ? loc.column : 1;
@@ -253,6 +249,20 @@ void diagnostic_error(const char *filename, int line, int column, int length,
     va_end(args);
 
     diagnostic_report(DIAG_ERROR, loc, "%s", message);
+}
+
+void diagnostic_error_simple(const char *fmt, ...)
+{
+    g_error_count++;
+
+    fprintf(stderr, "%serror%s: ", COLOR_RED, COLOR_RESET);
+
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+
+    fprintf(stderr, "\n\n");
 }
 
 void diagnostic_error_at(Token *token, const char *fmt, ...)

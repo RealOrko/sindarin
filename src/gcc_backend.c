@@ -83,6 +83,7 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     char runtime_date_obj[PATH_MAX];
     char runtime_time_obj[PATH_MAX];
     char runtime_thread_obj[PATH_MAX];
+    char runtime_process_obj[PATH_MAX];
     char command[PATH_MAX * 16];
 
     /* Determine output executable path if not specified */
@@ -120,6 +121,7 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     snprintf(runtime_date_obj, sizeof(runtime_date_obj), "%s/runtime_date.o", compiler_dir);
     snprintf(runtime_time_obj, sizeof(runtime_time_obj), "%s/runtime_time.o", compiler_dir);
     snprintf(runtime_thread_obj, sizeof(runtime_thread_obj), "%s/runtime_thread.o", compiler_dir);
+    snprintf(runtime_process_obj, sizeof(runtime_process_obj), "%s/runtime_process.o", compiler_dir);
 
     /* Check that runtime objects exist */
     if (access(arena_obj, R_OK) != 0)
@@ -193,6 +195,11 @@ bool gcc_compile(const char *c_file, const char *output_exe,
         fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_thread_obj);
         return false;
     }
+    if (access(runtime_process_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_process_obj);
+        return false;
+    }
 
     /* Build GCC command
      * Note: Debug mode uses address sanitizer and debug symbols.
@@ -219,16 +226,16 @@ bool gcc_compile(const char *c_file, const char *output_exe,
         snprintf(command, sizeof(command),
             "gcc -no-pie -fsanitize=address -fno-omit-frame-pointer -g "
             "-w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, exe_path, error_file);
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -o \"%s\" 2>\"%s\"",
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, exe_path, error_file);
     }
     else
     {
         /* Release mode: maximum optimization with -O3 and link-time optimization */
         snprintf(command, sizeof(command),
             "gcc -O3 -flto -w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, exe_path, error_file);
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -o \"%s\" 2>\"%s\"",
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, exe_path, error_file);
     }
 
     if (verbose)

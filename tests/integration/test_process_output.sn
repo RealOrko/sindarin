@@ -1,0 +1,29 @@
+// Test Process stdout and stderr capture
+// Verifies that output streams are captured correctly
+
+fn main(): int =>
+    // Capture stdout
+    var p1: Process = Process.run("echo", {"stdout test"})
+    print($"stdout: {p1.stdout}")
+
+    // Capture stderr
+    var p2: Process = Process.run("sh", {"-c", "echo stderr test >&2"})
+    print($"stderr: {p2.stderr}")
+
+    // Both streams at once
+    var p3: Process = Process.run("sh", {"-c", "echo out; echo err >&2"})
+    print($"both stdout: {p3.stdout}")
+    print($"both stderr: {p3.stderr}")
+
+    // Multiline output
+    var p4: Process = Process.run("sh", {"-c", "echo line1; echo line2; echo line3"})
+    print($"multiline:\n{p4.stdout}")
+
+    // Empty output
+    var p5: Process = Process.run("true")
+    if p5.stdout == "" =>
+        print("empty stdout: true\n")
+    else =>
+        print("empty stdout: false\n")
+
+    return 0

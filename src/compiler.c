@@ -278,7 +278,7 @@ Module* compiler_compile(CompilerOptions *options)
     char *source = file_read(&options->arena, options->source_file);
     if (!source)
     {
-        fprintf(stderr, "error: cannot read file '%s'\n", options->source_file);
+        diagnostic_error_simple("cannot read file '%s'", options->source_file);
         return NULL;
     }
     options->source = source;

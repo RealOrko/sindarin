@@ -32,6 +32,9 @@
 /* Threading module - depends on arena */
 #include "runtime/runtime_thread.h"
 
+/* Process module - depends on arena and string */
+#include "runtime/runtime_process.h"
+
 /* ============================================================================
  * Arithmetic operations
  * ============================================================================ */

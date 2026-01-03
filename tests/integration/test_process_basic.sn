@@ -1,0 +1,30 @@
+// Test basic Process.run functionality
+// Expected output:
+// pwd exit code: 0
+// false exit code: 1
+// command not found exit code: 127
+// echo output: hello world
+// echo with args: arg1 arg2
+
+fn main(): int =>
+    // Test 1: Run true command (exit code 0)
+    var p1: Process = Process.run("true")
+    print($"pwd exit code: {p1.exitCode}\n")
+
+    // Test 2: Run false command (exit code 1)
+    var p2: Process = Process.run("false")
+    print($"false exit code: {p2.exitCode}\n")
+
+    // Test 3: Run non-existent command (exit code 127)
+    var p3: Process = Process.run("nonexistent_command_xyz123")
+    print($"command not found exit code: {p3.exitCode}\n")
+
+    // Test 4: Run echo with shell
+    var p4: Process = Process.run("sh", {"-c", "echo hello world"})
+    print($"echo output: {p4.stdout}")
+
+    // Test 5: Run echo with args
+    var p5: Process = Process.run("sh", {"-c", "echo arg1 arg2"})
+    print($"echo with args: {p5.stdout}")
+
+    return 0

@@ -8,6 +8,7 @@
 #include "runtime_file.h"
 #include "runtime_date.h"
 #include "runtime_time.h"
+#include "runtime_process.h"
 
 /* ============================================================================
  * Thread Implementation
@@ -815,6 +816,19 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
         case RT_TYPE_TIME: {
             RtTime *time = *(RtTime **)value;
             return rt_arena_promote(dest, time, sizeof(RtTime));
+        }
+
+        /* Process type - struct with strings that need promotion */
+        case RT_TYPE_PROCESS: {
+            RtProcess *proc = *(RtProcess **)value;
+            if (proc == NULL) return NULL;
+            RtProcess *promoted = rt_arena_alloc(dest, sizeof(RtProcess));
+            if (promoted != NULL) {
+                promoted->exit_code = proc->exit_code;
+                promoted->stdout_data = rt_arena_promote_string(dest, proc->stdout_data);
+                promoted->stderr_data = rt_arena_promote_string(dest, proc->stderr_data);
+            }
+            return promoted;
         }
 
         default:

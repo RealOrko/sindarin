@@ -1,0 +1,18 @@
+// Test fire-and-forget pattern with Process
+// Process runs in background, arena cleanup joins thread
+
+fn main(): int =>
+    // Fire and forget - spawn but don't sync
+    var p: Process = &Process.run("true")
+
+    // Continue immediately without waiting
+    print("fired\n")
+
+    // Do some other work
+    var x: int = 1 + 2
+    print($"work done: {x}\n")
+
+    // Process will be auto-joined when arena is destroyed
+    print("exiting\n")
+
+    return 0

@@ -1,0 +1,5 @@
+pwd exit code: 0
+false exit code: 1
+command not found exit code: 127
+echo output: hello world
+echo with args: arg1 arg2

@@ -1,0 +1,29 @@
+// Test shell command execution via sh -c
+// Verifies that complex shell commands work correctly
+
+fn main(): int =>
+    // Basic shell command
+    var p1: Process = Process.run("sh", {"-c", "echo hello"})
+    print($"basic: {p1.stdout}")
+
+    // Shell with pipes
+    var p2: Process = Process.run("sh", {"-c", "echo hello | tr h H"})
+    print($"pipe: {p2.stdout}")
+
+    // Shell with variable
+    var p3: Process = Process.run("sh", {"-c", "X=test; echo $X"})
+    print($"variable: {p3.stdout}")
+
+    // Shell with command substitution
+    var p4: Process = Process.run("sh", {"-c", "echo $(echo inner)"})
+    print($"subst: {p4.stdout}")
+
+    // Shell with arithmetic
+    var p5: Process = Process.run("sh", {"-c", "echo $((5 + 3))"})
+    print($"arithmetic: {p5.stdout}")
+
+    // Shell with multiple commands
+    var p6: Process = Process.run("sh", {"-c", "echo one; echo two"})
+    print($"multi: {p6.stdout}")
+
+    return 0

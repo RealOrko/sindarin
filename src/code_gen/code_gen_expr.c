@@ -1953,6 +1953,22 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
         return arena_sprintf(gen->arena, "rt_binary_file_get_size(%s)", object_str);
     }
 
+    /* Process properties - direct struct member access */
+    // Handle Process.exitCode
+    if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "exitCode") == 0) {
+        return arena_sprintf(gen->arena, "(%s)->exit_code", object_str);
+    }
+
+    // Handle Process.stdout
+    if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "stdout") == 0) {
+        return arena_sprintf(gen->arena, "(%s)->stdout_data", object_str);
+    }
+
+    // Handle Process.stderr
+    if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "stderr") == 0) {
+        return arena_sprintf(gen->arena, "(%s)->stderr_data", object_str);
+    }
+
     // Generic struct member access (not currently supported)
     fprintf(stderr, "Error: Unsupported member access on type\n");
     exit(1);
@@ -2048,6 +2064,8 @@ const char *get_rt_result_type(Type *type)
             return "RT_TYPE_DATE";
         case TYPE_TIME:
             return "RT_TYPE_TIME";
+        case TYPE_PROCESS:
+            return "RT_TYPE_PROCESS";
         default:
             return "RT_TYPE_VOID";
     }
@@ -2065,6 +2083,162 @@ static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
 
     /* The call expression being spawned */
     Expr *call_expr = spawn->call;
+
+    /* Handle static method calls like &Process.run(...) */
+    if (call_expr->type == EXPR_STATIC_CALL)
+    {
+        StaticCallExpr *static_call = &call_expr->as.static_call;
+
+        /* Generate unique wrapper function ID */
+        int wrapper_id = gen->thread_wrapper_count++;
+        char *wrapper_name = arena_sprintf(gen->arena, "__thread_wrapper_%d__", wrapper_id);
+        char *args_struct_name = arena_sprintf(gen->arena, "__ThreadArgs_%d__", wrapper_id);
+        char *args_var = arena_sprintf(gen->arena, "__thread_args_%d__", wrapper_id);
+        char *handle_var = arena_sprintf(gen->arena, "__thread_handle_%d__", wrapper_id);
+
+        /* Get return type */
+        Type *return_type = call_expr->expr_type;
+        const char *ret_c_type = get_c_type(gen->arena, return_type);
+        const char *result_type_enum = get_rt_result_type(return_type);
+
+        /* Build argument struct with fields for static call arguments */
+        char *struct_def = arena_sprintf(gen->arena,
+            "typedef struct {\n"
+            "    /* These fields match RtThreadArgs layout */\n"
+            "    void *func_ptr;\n"
+            "    void *args_data;\n"
+            "    size_t args_size;\n"
+            "    RtThreadResult *result;\n"
+            "    RtArena *caller_arena;\n"
+            "    RtArena *thread_arena;\n"
+            "    bool is_shared;\n"
+            "    bool is_private;\n"
+            "    /* Static call arguments follow */\n");
+
+        for (int i = 0; i < static_call->arg_count; i++)
+        {
+            const char *arg_c_type = get_c_type(gen->arena, static_call->arguments[i]->expr_type);
+            struct_def = arena_sprintf(gen->arena, "%s    %s arg%d;\n", struct_def, arg_c_type, i);
+        }
+        struct_def = arena_sprintf(gen->arena, "%s} %s;\n\n", struct_def, args_struct_name);
+
+        /* Generate wrapper function for static call */
+        char *wrapper_def = arena_sprintf(gen->arena,
+            "static void *%s(void *args_ptr) {\n"
+            "    %s *args = (%s *)args_ptr;\n"
+            "    RtArena *__arena__ = args->thread_arena;\n"
+            "\n"
+            "    /* Set up panic context */\n"
+            "    RtThreadPanicContext __panic_ctx__;\n"
+            "    rt_thread_panic_context_init(&__panic_ctx__, args->result, __arena__);\n"
+            "    if (setjmp(__panic_ctx__.jump_buffer) != 0) {\n"
+            "        rt_thread_panic_context_clear();\n"
+            "        return NULL;\n"
+            "    }\n"
+            "\n",
+            wrapper_name, args_struct_name, args_struct_name);
+
+        /* Generate the static call with args from struct */
+        char *call_args = arena_strdup(gen->arena, "");
+        for (int i = 0; i < static_call->arg_count; i++)
+        {
+            if (i > 0)
+            {
+                call_args = arena_sprintf(gen->arena, "%s, ", call_args);
+            }
+            call_args = arena_sprintf(gen->arena, "%sargs->arg%d", call_args, i);
+        }
+
+        /* Generate the actual static method call - need to map to runtime function */
+        char *static_call_code;
+
+        /* Check if this is Process.run */
+        bool is_process_type = (static_call->type_name.length == 7 &&
+                                strncmp(static_call->type_name.start, "Process", 7) == 0);
+        bool is_run_method = (static_call->method_name.length == 3 &&
+                              strncmp(static_call->method_name.start, "run", 3) == 0);
+
+        if (is_process_type && is_run_method)
+        {
+            if (static_call->arg_count == 1)
+            {
+                static_call_code = arena_sprintf(gen->arena, "rt_process_run(__arena__, args->arg0)");
+            }
+            else if (static_call->arg_count == 2)
+            {
+                static_call_code = arena_sprintf(gen->arena, "rt_process_run_with_args(__arena__, args->arg0, args->arg1)");
+            }
+            else
+            {
+                fprintf(stderr, "Error: Process.run requires 1 or 2 arguments\n");
+                exit(1);
+            }
+        }
+        else
+        {
+            fprintf(stderr, "Error: Unsupported static method for thread spawn: %.*s.%.*s\n",
+                    static_call->type_name.length, static_call->type_name.start,
+                    static_call->method_name.length, static_call->method_name.start);
+            exit(1);
+        }
+
+        /* Generate result handling */
+        wrapper_def = arena_sprintf(gen->arena,
+            "%s    /* Execute static call and store result */\n"
+            "    %s __result__ = %s;\n"
+            "    rt_thread_result_set_value(args->result, &__result__, sizeof(%s), __arena__);\n"
+            "    rt_thread_panic_context_clear();\n"
+            "    return NULL;\n"
+            "}\n\n",
+            wrapper_def, ret_c_type, static_call_code, ret_c_type);
+
+        /* Add struct and wrapper to forward declarations */
+        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s%s",
+                                                  gen->lambda_forward_decls,
+                                                  struct_def,
+                                                  wrapper_def);
+
+        /* Generate argument assignments */
+        char *arg_assignments = arena_strdup(gen->arena, "");
+        for (int i = 0; i < static_call->arg_count; i++)
+        {
+            char *arg_code = code_gen_expression(gen, static_call->arguments[i]);
+            arg_assignments = arena_sprintf(gen->arena, "%s%s->arg%d = %s; ",
+                                            arg_assignments, args_var, i, arg_code);
+        }
+
+        /* Generate the thread spawn expression */
+        char *result = arena_sprintf(gen->arena,
+            "({\n"
+            "    /* Allocate thread arguments structure */\n"
+            "    %s *%s = (%s *)rt_arena_alloc(%s, sizeof(%s));\n"
+            "    %s->caller_arena = %s;\n"
+            "    %s->thread_arena = NULL;\n"
+            "    %s->result = rt_thread_result_create(%s);\n"
+            "    %s->is_shared = false;\n"
+            "    %s->is_private = false;\n"
+            "    %s"
+            "\n"
+            "    /* Spawn the thread */\n"
+            "    RtThreadHandle *%s = rt_thread_spawn(%s, %s, %s);\n"
+            "    %s->result_type = %s;\n"
+            "    %s;\n"
+            "})",
+            args_struct_name, args_var, args_struct_name, caller_arena, args_struct_name,
+            args_var, caller_arena,
+            args_var,
+            args_var, caller_arena,
+            args_var,
+            args_var,
+            arg_assignments,
+            handle_var, caller_arena, wrapper_name, args_var,
+            handle_var, result_type_enum,
+            handle_var);
+
+        return result;
+    }
+
+    /* Regular function call handling */
     if (call_expr->type != EXPR_CALL)
     {
         fprintf(stderr, "Error: Thread spawn expression must be a function call\n");

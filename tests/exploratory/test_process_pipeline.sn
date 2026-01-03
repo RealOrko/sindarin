@@ -1,0 +1,49 @@
+// Test: Complex shell pipelines
+// Verifies that complex shell commands with pipes work correctly
+
+fn main(): void =>
+    print("Testing complex shell pipelines\n")
+
+    // Simple pipe
+    var p1: Process = Process.run("sh", {"-c", "echo hello world | wc -w"})
+    if p1.stdout.trim() == "2" =>
+        print("SUCCESS: Simple pipe works\n")
+    else =>
+        print($"FAILURE: Expected '2', got '{p1.stdout.trim()}'\n")
+
+    // Multiple pipes
+    var p2: Process = Process.run("sh", {"-c", "echo -e 'a\\nb\\nc' | sort | head -1"})
+    if p2.stdout.trim() == "a" =>
+        print("SUCCESS: Multiple pipes work\n")
+    else =>
+        print($"FAILURE: Expected 'a', got '{p2.stdout.trim()}'\n")
+
+    // Pipe with grep
+    var p3: Process = Process.run("sh", {"-c", "echo -e 'foo\\nbar\\nbaz' | grep ba"})
+    if p3.stdout.contains("bar") && p3.stdout.contains("baz") =>
+        print("SUCCESS: Pipe with grep works\n")
+    else =>
+        print("FAILURE: grep pipe failed\n")
+
+    // Command substitution
+    var p4: Process = Process.run("sh", {"-c", "echo $(echo nested)"})
+    if p4.stdout.trim() == "nested" =>
+        print("SUCCESS: Command substitution works\n")
+    else =>
+        print($"FAILURE: Expected 'nested', got '{p4.stdout.trim()}'\n")
+
+    // Pipeline with exit code from last command
+    var p5: Process = Process.run("sh", {"-c", "echo test | grep test"})
+    if p5.exitCode == 0 =>
+        print("SUCCESS: Pipeline exit code correct\n")
+    else =>
+        print($"FAILURE: Expected exit 0, got {p5.exitCode}\n")
+
+    // Pipeline failure (grep no match)
+    var p6: Process = Process.run("sh", {"-c", "echo test | grep nomatch"})
+    if p6.exitCode != 0 =>
+        print("SUCCESS: Pipeline failure detected\n")
+    else =>
+        print("FAILURE: Expected non-zero exit\n")
+
+    print("Pipeline tests complete\n")

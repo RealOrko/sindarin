@@ -236,7 +236,8 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
                             stmt->initializer->type == EXPR_THREAD_SPAWN);
     bool is_reference_type = (stmt->type->kind == TYPE_ARRAY ||
                               stmt->type->kind == TYPE_STRING ||
-                              stmt->type->kind == TYPE_FUNCTION);
+                              stmt->type->kind == TYPE_FUNCTION ||
+                              stmt->type->kind == TYPE_PROCESS);
 
     const char *type_c;
     if (is_thread_spawn && !is_reference_type)

@@ -1476,6 +1476,54 @@ Type *type_check_date_method(Expr *expr, Type *object_type, Token member_name, S
 }
 
 /* ============================================================================
+ * Process Property Type Checking
+ * ============================================================================
+ * Handles type checking for Process property access (not calls).
+ * Process has three properties: exitCode (int), stdout (str), stderr (str).
+ * Returns the property type, or NULL if not a Process property.
+ * ============================================================================ */
+
+Type *type_check_process_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table)
+{
+    (void)expr; /* Reserved for future use (e.g., error location) */
+
+    /* Only handle Process types */
+    if (object_type->kind != TYPE_PROCESS)
+    {
+        return NULL;
+    }
+
+    /* Process properties (accessed as member, return value directly) */
+
+    /* process.exitCode -> int */
+    if (token_equals(member_name, "exitCode"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning int type for Process exitCode property");
+        return int_type;
+    }
+
+    /* process.stdout -> str */
+    if (token_equals(member_name, "stdout"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning string type for Process stdout property");
+        return string_type;
+    }
+
+    /* process.stderr -> str */
+    if (token_equals(member_name, "stderr"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning string type for Process stderr property");
+        return string_type;
+    }
+
+    /* Not a Process property */
+    return NULL;
+}
+
+/* ============================================================================
  * Static Method Call Type Checking
  * ============================================================================
  * Handles type checking for static method calls like TextFile.open(),
@@ -2439,6 +2487,49 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         {
             char msg[128];
             snprintf(msg, sizeof(msg), "Unknown Directory static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Process static methods - process execution */
+    if (token_equals(type_name, "Process"))
+    {
+        if (token_equals(method_name, "run"))
+        {
+            /* Process.run(cmd: str): Process
+             * Process.run(cmd: str, args: str[]): Process */
+            if (call->arg_count == 0 || call->arg_count > 2)
+            {
+                type_error(&method_name, "Process.run requires 1 or 2 arguments (cmd, optional args)");
+                return NULL;
+            }
+            /* First argument must be a string (command) */
+            Type *cmd_type = call->arguments[0]->expr_type;
+            if (cmd_type == NULL || cmd_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Process.run requires a string command as first argument");
+                return NULL;
+            }
+            /* Second argument (if present) must be a string array (args) */
+            if (call->arg_count == 2)
+            {
+                Type *args_type = call->arguments[1]->expr_type;
+                if (args_type == NULL || args_type->kind != TYPE_ARRAY ||
+                    args_type->as.array.element_type == NULL ||
+                    args_type->as.array.element_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Process.run requires a str[] as second argument");
+                    return NULL;
+                }
+            }
+            return ast_create_primitive_type(table->arena, TYPE_PROCESS);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Process static method '%.*s'",
                      method_name.length, method_name.start);
             type_error(&method_name, msg);
             return NULL;

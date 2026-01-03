@@ -1,0 +1,7 @@
+basic: hello
+pipe: Hello
+variable: test
+subst: inner
+arithmetic: 8
+multi: one
+two

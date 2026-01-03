@@ -1,0 +1,24 @@
+// Test Process stderr capture
+// Expected output:
+// stdout is empty: true
+// stderr captured: error_message
+// exit code: 0
+
+fn main(): int =>
+    // Run command that writes to stderr
+    var p: Process = Process.run("sh", {"-c", "echo error_message >&2"})
+
+    // stdout should be empty
+    var empty: str = ""
+    if p.stdout == empty =>
+        print("stdout is empty: true\n")
+    else =>
+        print("stdout is empty: false\n")
+
+    // stderr should contain our message
+    print($"stderr captured: {p.stderr.trim()}\n")
+
+    // Exit code should be 0
+    print($"exit code: {p.exitCode}\n")
+
+    return 0

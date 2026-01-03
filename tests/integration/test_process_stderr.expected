@@ -1,0 +1,3 @@
+stdout is empty: true
+stderr captured: error_message
+exit code: 0

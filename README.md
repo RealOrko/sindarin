@@ -82,6 +82,7 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 | [TIME](docs/language/TIME.md) | Date and time operations |
 | [MEMORY](docs/language/MEMORY.md) | Arena memory management |
 | [THREADING](docs/language/THREADING.md) | Threading with spawn and sync |
+| [PROCESSES](docs/language/PROCESSES.md) | Process execution and output capture |
 
 ## Architecture
 
