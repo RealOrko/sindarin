@@ -62,6 +62,13 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
             symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, fallback, SYMBOL_LOCAL);
             return;
         }
+        // Void thread spawns cannot be assigned to variables (fire-and-forget only)
+        if (stmt->as.var_decl.initializer->type == EXPR_THREAD_SPAWN &&
+            init_type->kind == TYPE_VOID)
+        {
+            type_error(&stmt->as.var_decl.name, "Cannot assign void thread spawn to variable");
+            return;
+        }
         // For empty array literals, adopt the declared type for code generation
         if (decl_type && init_type->kind == TYPE_ARRAY &&
             init_type->as.array.element_type->kind == TYPE_NIL &&
@@ -122,7 +129,111 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
     symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
     if (init_type && !ast_type_equals(init_type, decl_type))
     {
-        type_error(&stmt->as.var_decl.name, "Initializer type does not match variable type");
+        if (stmt->as.var_decl.initializer &&
+            stmt->as.var_decl.initializer->type == EXPR_THREAD_SPAWN)
+        {
+            type_error(&stmt->as.var_decl.name,
+                       "Thread spawn return type does not match variable type");
+        }
+        else
+        {
+            type_error(&stmt->as.var_decl.name, "Initializer type does not match variable type");
+        }
+    }
+
+    // Mark variable as pending if initialized with a thread spawn (non-void)
+    if (stmt->as.var_decl.initializer &&
+        stmt->as.var_decl.initializer->type == EXPR_THREAD_SPAWN &&
+        init_type && init_type->kind != TYPE_VOID)
+    {
+        Symbol *sym = symbol_table_lookup_symbol(table, stmt->as.var_decl.name);
+        if (sym != NULL)
+        {
+            symbol_table_mark_pending(sym);
+
+            /* Collect frozen arguments from the spawn call and store on pending symbol.
+             * This allows unfreezing when the variable is synced. */
+            Expr *spawn = stmt->as.var_decl.initializer;
+            Expr *call = spawn->as.thread_spawn.call;
+            if (call != NULL && call->type == EXPR_CALL)
+            {
+                int arg_count = call->as.call.arg_count;
+                Expr **arguments = call->as.call.arguments;
+
+                /* Get function type to access param_mem_quals for 'as ref' detection */
+                Expr *callee = call->as.call.callee;
+                Type *func_type = NULL;
+                if (callee != NULL && callee->type == EXPR_VARIABLE)
+                {
+                    Symbol *func_sym = symbol_table_lookup_symbol(table, callee->as.variable.name);
+                    if (func_sym != NULL && func_sym->type != NULL &&
+                        func_sym->type->kind == TYPE_FUNCTION)
+                    {
+                        func_type = func_sym->type;
+                    }
+                }
+                MemoryQualifier *param_quals = (func_type != NULL) ?
+                    func_type->as.function.param_mem_quals : NULL;
+                int param_count = (func_type != NULL) ?
+                    func_type->as.function.param_count : 0;
+
+                /* Count frozen args first (arrays, strings, and 'as ref' primitives) */
+                int frozen_count = 0;
+                for (int i = 0; i < arg_count; i++)
+                {
+                    Expr *arg = arguments[i];
+                    if (arg != NULL && arg->type == EXPR_VARIABLE)
+                    {
+                        Symbol *arg_sym = symbol_table_lookup_symbol(table, arg->as.variable.name);
+                        if (arg_sym != NULL && arg_sym->type != NULL)
+                        {
+                            /* Arrays and strings are always frozen */
+                            if (arg_sym->type->kind == TYPE_ARRAY || arg_sym->type->kind == TYPE_STRING)
+                            {
+                                frozen_count++;
+                            }
+                            /* Primitives with 'as ref' are also frozen */
+                            else if (param_quals != NULL && i < param_count &&
+                                     param_quals[i] == MEM_AS_REF)
+                            {
+                                frozen_count++;
+                            }
+                        }
+                    }
+                }
+
+                /* Allocate and fill frozen_args array */
+                if (frozen_count > 0)
+                {
+                    Symbol **frozen_args = (Symbol **)arena_alloc(table->arena,
+                                                                   sizeof(Symbol *) * frozen_count);
+                    int idx = 0;
+                    for (int i = 0; i < arg_count; i++)
+                    {
+                        Expr *arg = arguments[i];
+                        if (arg != NULL && arg->type == EXPR_VARIABLE)
+                        {
+                            Symbol *arg_sym = symbol_table_lookup_symbol(table, arg->as.variable.name);
+                            if (arg_sym != NULL && arg_sym->type != NULL)
+                            {
+                                /* Arrays and strings are always frozen */
+                                if (arg_sym->type->kind == TYPE_ARRAY || arg_sym->type->kind == TYPE_STRING)
+                                {
+                                    frozen_args[idx++] = arg_sym;
+                                }
+                                /* Primitives with 'as ref' are also frozen */
+                                else if (param_quals != NULL && i < param_count &&
+                                         param_quals[i] == MEM_AS_REF)
+                                {
+                                    frozen_args[idx++] = arg_sym;
+                                }
+                            }
+                        }
+                    }
+                    symbol_table_set_frozen_args(sym, frozen_args, frozen_count);
+                }
+            }
+        }
     }
 }
 
@@ -142,6 +253,31 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         param_types[i] = param_type;
     }
     Type *func_type = ast_create_function_type(arena, stmt->as.function.return_type, param_types, stmt->as.function.param_count);
+
+    /* Store parameter memory qualifiers in the function type for thread safety analysis.
+     * This allows detecting 'as ref' primitives when checking thread spawn arguments. */
+    if (stmt->as.function.param_count > 0)
+    {
+        bool has_non_default_qual = false;
+        for (int i = 0; i < stmt->as.function.param_count; i++)
+        {
+            if (stmt->as.function.params[i].mem_qualifier != MEM_DEFAULT)
+            {
+                has_non_default_qual = true;
+                break;
+            }
+        }
+
+        if (has_non_default_qual)
+        {
+            func_type->as.function.param_mem_quals = (MemoryQualifier *)arena_alloc(arena,
+                sizeof(MemoryQualifier) * stmt->as.function.param_count);
+            for (int i = 0; i < stmt->as.function.param_count; i++)
+            {
+                func_type->as.function.param_mem_quals[i] = stmt->as.function.params[i].mem_qualifier;
+            }
+        }
+    }
 
     /* Validate private function return type */
     FunctionModifier modifier = stmt->as.function.modifier;
@@ -169,8 +305,10 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         effective_modifier = FUNC_SHARED;
     }
 
-    /* Add function symbol to current scope (e.g., global) with its modifier */
-    symbol_table_add_function(table, stmt->as.function.name, func_type, effective_modifier);
+    /* Add function symbol to current scope (e.g., global) with its modifier.
+     * We pass both the effective modifier (for code gen arena passing) and
+     * the declared modifier (for thread spawn mode selection). */
+    symbol_table_add_function(table, stmt->as.function.name, func_type, effective_modifier, modifier);
 
     symbol_table_push_scope(table);
 
@@ -197,11 +335,17 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         }
         else if (param.mem_qualifier == MEM_AS_REF)
         {
-            /* 'as ref' doesn't make sense for parameters - they're already references by default */
-            type_error(&param.name, "'as ref' cannot be used on function parameters");
+            /* 'as ref' on primitive parameters allows caller to pass a reference
+             * that the function can modify. This enables shared mutable state. */
+            if (!is_primitive_type(param.type))
+            {
+                /* 'as ref' only makes sense for primitives - arrays are already references */
+                type_error(&param.name, "'as ref' only applies to primitive parameters");
+            }
         }
 
-        symbol_table_add_symbol_with_kind(table, param.name, param.type, SYMBOL_PARAM);
+        /* Add symbol with the memory qualifier so code gen can handle dereferencing */
+        symbol_table_add_symbol_full(table, param.name, param.type, SYMBOL_PARAM, param.mem_qualifier);
     }
 
     table->current->next_local_offset = table->current->next_param_offset;

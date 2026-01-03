@@ -1,0 +1,1 @@
+Private function can only return primitive types (int, double, bool, char)

@@ -57,10 +57,30 @@ Type *ast_clone_type(Arena *arena, Type *type)
             {
                 clone->as.function.param_types[i] = ast_clone_type(arena, type->as.function.param_types[i]);
             }
+
+            /* Clone param_mem_quals if present */
+            if (type->as.function.param_mem_quals != NULL)
+            {
+                clone->as.function.param_mem_quals = arena_alloc(arena, sizeof(MemoryQualifier) * type->as.function.param_count);
+                if (clone->as.function.param_mem_quals == NULL)
+                {
+                    DEBUG_ERROR("Out of memory when cloning function param qualifiers");
+                    exit(1);
+                }
+                for (int i = 0; i < type->as.function.param_count; i++)
+                {
+                    clone->as.function.param_mem_quals[i] = type->as.function.param_mem_quals[i];
+                }
+            }
+            else
+            {
+                clone->as.function.param_mem_quals = NULL;
+            }
         }
         else
         {
             clone->as.function.param_types = NULL;
+            clone->as.function.param_mem_quals = NULL;
         }
         break;
     }
@@ -131,6 +151,9 @@ Type *ast_create_function_type(Arena *arena, Type *return_type, Type **param_typ
     {
         type->as.function.param_types = NULL;
     }
+
+    /* Initialize param_mem_quals to NULL - set separately if needed */
+    type->as.function.param_mem_quals = NULL;
 
     return type;
 }

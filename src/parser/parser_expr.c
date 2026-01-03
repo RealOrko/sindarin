@@ -165,6 +165,63 @@ Expr *parser_unary(Parser *parser)
         Expr *right = parser_unary(parser);
         return ast_create_unary_expr(parser->arena, operator, right, &op);
     }
+    /* Thread spawn: &fn() or &fn()!
+     * We need to parse only the call expression without postfix operators,
+     * because parser_postfix() would consume the ! and turn it into a sync
+     * before we can create the spawn expression. */
+    if (parser_match(parser, TOKEN_AMPERSAND))
+    {
+        Token ampersand = parser->previous;
+        /* Parse primary expression (function name or Type for static call) */
+        Expr *call_expr = parser_primary(parser);
+        if (call_expr == NULL)
+        {
+            parser_error(parser, "Expected function call after '&'");
+            return NULL;
+        }
+        /* Now handle only call-related postfix operations (not !) */
+        for (;;)
+        {
+            if (parser_match(parser, TOKEN_LEFT_PAREN))
+            {
+                call_expr = parser_call(parser, call_expr);
+            }
+            else if (parser_match(parser, TOKEN_LEFT_BRACKET))
+            {
+                call_expr = parser_array_access(parser, call_expr);
+            }
+            else if (parser_match(parser, TOKEN_DOT))
+            {
+                Token dot = parser->previous;
+                if (!parser_check(parser, TOKEN_IDENTIFIER))
+                {
+                    parser_error_at_current(parser, "Expected identifier after '.'");
+                }
+                Token member_name = parser->current;
+                parser_advance(parser);
+                call_expr = ast_create_member_expr(parser->arena, call_expr, member_name, &dot);
+            }
+            else
+            {
+                break;
+            }
+        }
+        /* Verify it's a call expression */
+        if (call_expr->type != EXPR_CALL && call_expr->type != EXPR_STATIC_CALL)
+        {
+            parser_error(parser, "Thread spawn '&' requires a function call");
+            return NULL;
+        }
+        /* Create spawn with FUNC_DEFAULT; actual modifier determined during type checking */
+        Expr *spawn = ast_create_thread_spawn_expr(parser->arena, call_expr, FUNC_DEFAULT, &ampersand);
+        /* Check for immediate sync: &fn()! */
+        if (parser_match(parser, TOKEN_BANG))
+        {
+            Token bang = parser->previous;
+            return ast_create_thread_sync_expr(parser->arena, spawn, false, &bang);
+        }
+        return spawn;
+    }
     return parser_postfix(parser);
 }
 
@@ -199,6 +256,14 @@ Expr *parser_postfix(Parser *parser)
         else if (parser_match(parser, TOKEN_MINUS_MINUS))
         {
             expr = ast_create_decrement_expr(parser->arena, expr, &parser->previous);
+        }
+        else if (parser_match(parser, TOKEN_BANG))
+        {
+            /* Thread sync: r! or [r1, r2]!
+             * Determine if this is an array sync based on expression type */
+            Token bang = parser->previous;
+            bool is_array = (expr->type == EXPR_ARRAY);
+            expr = ast_create_thread_sync_expr(parser->arena, expr, is_array, &bang);
         }
         else
         {

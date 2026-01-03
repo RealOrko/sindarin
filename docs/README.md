@@ -17,6 +17,7 @@ Core documentation for the Sindarin programming language:
 | [DATE.md](language/DATE.md) | Calendar date operations |
 | [TIME.md](language/TIME.md) | Date and time operations |
 | [MEMORY.md](language/MEMORY.md) | Arena memory management |
+| [THREADING.md](language/THREADING.md) | Threading with `&` spawn and `!` sync operators |
 
 ## Draft Specifications
 
@@ -27,7 +28,6 @@ These features are planned or partially implemented:
 | [FORMATTING.md](drafts/FORMATTING.md) | Partial | String formatting and format specifiers |
 | [INTEROP.md](drafts/INTEROP.md) | Draft | C interoperability and native functions |
 | [NETWORK_IO.md](drafts/NETWORK_IO.md) | Draft | Network I/O (TCP, UDP, Unix sockets) |
-| [THREADING.md](drafts/THREADING.md) | Draft | Threading with `&` and `!` operators |
 
 ## Internal Documentation
 

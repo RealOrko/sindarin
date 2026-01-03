@@ -167,6 +167,19 @@ static Type *type_check_variable(Expr *expr, SymbolTable *table)
         type_error(&expr->as.variable.name, "Symbol has no type");
         return NULL;
     }
+
+    /* Check if variable is a pending thread (not yet synchronized) */
+    if (symbol_table_is_pending(sym))
+    {
+        char msg[256];
+        snprintf(msg, sizeof(msg),
+                 "Cannot access pending thread variable '%.*s' before synchronization (use %.*s! to sync)",
+                 expr->as.variable.name.length, expr->as.variable.name.start,
+                 expr->as.variable.name.length, expr->as.variable.name.start);
+        type_error(&expr->as.variable.name, msg);
+        return NULL;
+    }
+
     DEBUG_VERBOSE("Variable type found: %d", sym->type->kind);
     return sym->type;
 }
@@ -180,6 +193,28 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
     if (sym == NULL)
     {
         undefined_variable_error_for_assign(&expr->as.assign.name, table);
+        return NULL;
+    }
+
+    /* Check if variable is a pending thread (cannot reassign before sync) */
+    if (symbol_table_is_pending(sym))
+    {
+        char msg[256];
+        snprintf(msg, sizeof(msg),
+                 "Cannot reassign pending thread variable '%.*s' (use %.*s! to sync first)",
+                 expr->as.assign.name.length, expr->as.assign.name.start,
+                 expr->as.assign.name.length, expr->as.assign.name.start);
+        type_error(&expr->as.assign.name, msg);
+        return NULL;
+    }
+
+    /* Check if variable is frozen (captured by pending thread) */
+    if (symbol_table_is_frozen(sym))
+    {
+        char msg[256];
+        snprintf(msg, sizeof(msg), "Cannot modify frozen variable '%.*s' (captured by pending thread)",
+                 expr->as.assign.name.length, expr->as.assign.name.start);
+        type_error(&expr->as.assign.name, msg);
         return NULL;
     }
 
@@ -219,6 +254,12 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
         type_error(expr->token, "Invalid value in assignment");
         return NULL;
     }
+    // Void thread spawns cannot be assigned to variables (fire-and-forget only)
+    if (value_expr->type == EXPR_THREAD_SPAWN && value_type->kind == TYPE_VOID)
+    {
+        type_error(&expr->as.assign.name, "Cannot assign void thread spawn to variable");
+        return NULL;
+    }
     if (!ast_type_equals(sym->type, value_type))
     {
         type_error(&expr->as.assign.name, "Type mismatch in assignment");
@@ -236,6 +277,12 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
         return NULL;
     }
 
+    // Mark variable as pending if assigned a thread spawn (non-void)
+    if (value_expr->type == EXPR_THREAD_SPAWN && value_type->kind != TYPE_VOID)
+    {
+        symbol_table_mark_pending(sym);
+    }
+
     DEBUG_VERBOSE("Assignment type matches: %d", sym->type->kind);
     return sym->type;
 }
@@ -244,8 +291,23 @@ static Type *type_check_index_assign(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking index assignment");
 
+    /* Check if array is a frozen variable (captured by pending thread) */
+    Expr *array_expr = expr->as.index_assign.array;
+    if (array_expr->type == EXPR_VARIABLE)
+    {
+        Symbol *sym = symbol_table_lookup_symbol(table, array_expr->as.variable.name);
+        if (sym != NULL && symbol_table_is_frozen(sym))
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Cannot modify frozen variable '%.*s' (captured by pending thread)",
+                     array_expr->as.variable.name.length, array_expr->as.variable.name.start);
+            type_error(expr->token, msg);
+            return NULL;
+        }
+    }
+
     /* Type check the array expression */
-    Type *array_type = type_check_expr(expr->as.index_assign.array, table);
+    Type *array_type = type_check_expr(array_expr, table);
     if (array_type == NULL)
     {
         type_error(expr->token, "Invalid array in index assignment");
@@ -302,6 +364,21 @@ static Type *type_check_index_assign(Expr *expr, SymbolTable *table)
 static Type *type_check_increment_decrement(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking %s expression", expr->type == EXPR_INCREMENT ? "increment" : "decrement");
+
+    /* Check if operand is a frozen variable (captured by pending thread) */
+    if (expr->as.operand->type == EXPR_VARIABLE)
+    {
+        Symbol *sym = symbol_table_lookup_symbol(table, expr->as.operand->as.variable.name);
+        if (sym != NULL && symbol_table_is_frozen(sym))
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Cannot modify frozen variable '%.*s' (captured by pending thread)",
+                     expr->as.operand->as.variable.name.length, expr->as.operand->as.variable.name.start);
+            type_error(expr->token, msg);
+            return NULL;
+        }
+    }
+
     Type *operand_type = type_check_expr(expr->as.operand, table);
     if (operand_type == NULL || !is_numeric_type(operand_type))
     {
@@ -327,6 +404,31 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
     /* Array methods - DELEGATED to type_checker_expr_call.c */
     if (object_type->kind == TYPE_ARRAY)
     {
+        /* Check for mutating methods on frozen arrays */
+        const char *method_name = expr->as.member.member_name.start;
+        bool is_mutating = (strcmp(method_name, "push") == 0 ||
+                           strcmp(method_name, "pop") == 0 ||
+                           strcmp(method_name, "clear") == 0 ||
+                           strcmp(method_name, "reverse") == 0 ||
+                           strcmp(method_name, "insert") == 0 ||
+                           strcmp(method_name, "remove") == 0);
+
+        if (is_mutating && expr->as.member.object->type == EXPR_VARIABLE)
+        {
+            Symbol *sym = symbol_table_lookup_symbol(table, expr->as.member.object->as.variable.name);
+            if (sym != NULL && symbol_table_is_frozen(sym))
+            {
+                char msg[256];
+                snprintf(msg, sizeof(msg),
+                         "Cannot call mutating method '%s' on frozen array '%.*s' (captured by pending thread)",
+                         method_name,
+                         expr->as.member.object->as.variable.name.length,
+                         expr->as.member.object->as.variable.name.start);
+                type_error(&expr->as.member.member_name, msg);
+                return NULL;
+            }
+        }
+
         Type *result = type_check_array_method(expr, object_type, expr->as.member.member_name, table);
         if (result != NULL)
         {
@@ -413,6 +515,272 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
 
 /* type_check_sized_array_alloc - RELOCATED to type_checker_expr_array.c */
 
+/* Thread spawn expression type checking - &fn() */
+static Type *type_check_thread_spawn(Expr *expr, SymbolTable *table)
+{
+    Expr *call = expr->as.thread_spawn.call;
+
+    /* Validate that the spawn expression is a function call */
+    if (call == NULL || call->type != EXPR_CALL)
+    {
+        type_error(expr->token, "Thread spawn requires function call");
+        return NULL;
+    }
+
+    /* Type check the call expression to get the function type */
+    Expr *callee = call->as.call.callee;
+    Type *func_type = type_check_expr(callee, table);
+    if (func_type == NULL)
+    {
+        type_error(expr->token, "Cannot resolve function in thread spawn");
+        return NULL;
+    }
+
+    /* Validate that the callee is a function type */
+    if (func_type->kind != TYPE_FUNCTION)
+    {
+        type_error(expr->token, "Thread spawn requires function call");
+        return NULL;
+    }
+
+    /* Look up the function symbol to get its DECLARED modifier (shared/private/default).
+     * The symbol stores both func_mod (effective modifier for code gen) and
+     * declared_func_mod (what the user wrote). For thread spawning, we need the
+     * declared modifier because:
+     * - Default mode: thread gets own arena, results are promoted to caller's arena
+     * - Shared mode: thread uses caller's frozen arena, no promotion needed
+     * Functions that are "implicitly shared" (return heap types) use declared=default
+     * but effective=shared, so they spawn in default mode with result promotion. */
+    FunctionModifier func_modifier = FUNC_DEFAULT;
+    if (callee->type == EXPR_VARIABLE)
+    {
+        Symbol *func_sym = symbol_table_lookup_symbol(table, callee->as.variable.name);
+        if (func_sym != NULL && func_sym->is_function)
+        {
+            /* Use declared modifier for thread spawn mode, not effective modifier */
+            func_modifier = func_sym->declared_func_mod;
+            DEBUG_VERBOSE("Thread spawn function '%.*s' has declared modifier: %d (effective: %d)",
+                          callee->as.variable.name.length,
+                          callee->as.variable.name.start,
+                          func_modifier, func_sym->func_mod);
+        }
+    }
+    /* Store the function modifier in the spawn expression for code generation */
+    expr->as.thread_spawn.modifier = func_modifier;
+
+    /* Also type check the full call expression to validate arguments */
+    Type *result_type = type_check_expr(call, table);
+    if (result_type == NULL)
+    {
+        return NULL;
+    }
+
+    /* Extract return type from function type */
+    Type *return_type = func_type->as.function.return_type;
+
+    /* Private functions can only return primitive types.
+     * This is enforced because private functions have isolated arenas that
+     * are freed immediately after execution - only primitives can escape. */
+    if (func_modifier == FUNC_PRIVATE && return_type != NULL)
+    {
+        bool is_primitive = (return_type->kind == TYPE_INT ||
+                             return_type->kind == TYPE_LONG ||
+                             return_type->kind == TYPE_DOUBLE ||
+                             return_type->kind == TYPE_BOOL ||
+                             return_type->kind == TYPE_BYTE ||
+                             return_type->kind == TYPE_CHAR ||
+                             return_type->kind == TYPE_VOID);
+        if (!is_primitive)
+        {
+            type_error(expr->token, "Private function can only return primitive types");
+            return NULL;
+        }
+    }
+
+    /* Freeze variables passed as arguments that are captured by reference.
+     * Arrays and strings are always passed by reference.
+     * Primitives with 'as ref' are also passed by reference.
+     * Frozen variables cannot be modified while thread is running. */
+    int arg_count = call->as.call.arg_count;
+    Expr **arguments = call->as.call.arguments;
+    MemoryQualifier *param_quals = func_type->as.function.param_mem_quals;
+    int param_count = func_type->as.function.param_count;
+
+    for (int i = 0; i < arg_count; i++)
+    {
+        Expr *arg = arguments[i];
+        if (arg == NULL) continue;
+
+        /* Only freeze variable references that are passed by reference */
+        if (arg->type == EXPR_VARIABLE)
+        {
+            Symbol *sym = symbol_table_lookup_symbol(table, arg->as.variable.name);
+            if (sym != NULL && sym->type != NULL)
+            {
+                bool should_freeze = false;
+
+                /* Arrays and strings are always passed by reference - freeze them */
+                if (sym->type->kind == TYPE_ARRAY || sym->type->kind == TYPE_STRING)
+                {
+                    should_freeze = true;
+                }
+                /* Check if parameter has 'as ref' qualifier (primitives by reference) */
+                else if (param_quals != NULL && i < param_count)
+                {
+                    if (param_quals[i] == MEM_AS_REF)
+                    {
+                        should_freeze = true;
+                        DEBUG_VERBOSE("Detected 'as ref' parameter at position %d", i);
+                    }
+                }
+
+                if (should_freeze)
+                {
+                    symbol_table_freeze_symbol(sym);
+                    DEBUG_VERBOSE("Froze variable '%.*s' for thread spawn",
+                                  arg->as.variable.name.length,
+                                  arg->as.variable.name.start);
+                }
+            }
+        }
+    }
+
+    DEBUG_VERBOSE("Thread spawn type checked, return type: %d", return_type->kind);
+
+    return return_type;
+}
+
+/* Thread sync expression type checking - var! or &fn()! or [r1,r2,r3]! */
+static Type *type_check_thread_sync(Expr *expr, SymbolTable *table)
+{
+    Expr *handle = expr->as.thread_sync.handle;
+    bool is_array = expr->as.thread_sync.is_array;
+
+    if (handle == NULL)
+    {
+        type_error(expr->token, "Thread sync requires handle expression");
+        return NULL;
+    }
+
+    /* Check for array sync pattern: [r1, r2, r3]! */
+    if (is_array)
+    {
+        /* Validate handle is an array expression */
+        if (handle->type != EXPR_ARRAY)
+        {
+            type_error(expr->token, "Array sync requires array literal of thread handles");
+            return NULL;
+        }
+
+        ArrayExpr *arr = &handle->as.array;
+
+        /* First pass: validate all elements are valid thread variables.
+         * We validate all before syncing any to ensure atomic-like behavior. */
+        for (int i = 0; i < arr->element_count; i++)
+        {
+            Expr *elem = arr->elements[i];
+            if (elem == NULL)
+            {
+                type_error(expr->token, "Array sync element cannot be null");
+                return NULL;
+            }
+
+            if (elem->type != EXPR_VARIABLE)
+            {
+                type_error(expr->token, "Array sync elements must be thread handle variables");
+                return NULL;
+            }
+
+            Symbol *sym = symbol_table_lookup_symbol(table, elem->as.variable.name);
+            if (sym == NULL)
+            {
+                type_error(expr->token, "Cannot sync unknown variable in array");
+                return NULL;
+            }
+
+            /* Check thread state - must be either pending or already synchronized.
+             * Normal state (never spawned) is an error. */
+            if (sym->thread_state == THREAD_STATE_NORMAL)
+            {
+                type_error(expr->token, "Array sync element is not a thread variable");
+                return NULL;
+            }
+        }
+
+        /* Second pass: sync all pending variables.
+         * Skip already synchronized ones (handles mixed states gracefully). */
+        int synced_count = 0;
+        for (int i = 0; i < arr->element_count; i++)
+        {
+            Expr *elem = arr->elements[i];
+            Symbol *sym = symbol_table_lookup_symbol(table, elem->as.variable.name);
+
+            /* Only sync if still pending - already synchronized is OK */
+            if (symbol_table_is_pending(sym))
+            {
+                /* Sync the variable - transitions from pending to synchronized
+                 * and unfreezes captured arguments */
+                symbol_table_sync_variable(table, elem->as.variable.name,
+                                           sym->frozen_args, sym->frozen_args_count);
+                synced_count++;
+            }
+            /* Already synchronized variables are silently accepted */
+        }
+
+        DEBUG_VERBOSE("Array sync type checked with %d elements, %d newly synced, returning void",
+                      arr->element_count, synced_count);
+
+        /* Array sync returns void - no single return value */
+        return ast_create_primitive_type(table->arena, TYPE_VOID);
+    }
+
+    /* Check for inline spawn-sync pattern: &fn()! */
+    if (handle->type == EXPR_THREAD_SPAWN)
+    {
+        /* Type check the spawn expression - this validates the call */
+        Type *spawn_type = type_check_thread_spawn(handle, table);
+        if (spawn_type == NULL)
+        {
+            return NULL;
+        }
+
+        /* For inline spawn-sync, we don't mark anything as pending.
+         * The thread is spawned and immediately joined, so no variable
+         * is left in pending state. Just return the synchronized type. */
+        DEBUG_VERBOSE("Inline spawn-sync type checked, return type: %d", spawn_type->kind);
+        return spawn_type;
+    }
+
+    /* Regular sync on a variable: var! */
+    if (handle->type == EXPR_VARIABLE)
+    {
+        Symbol *sym = symbol_table_lookup_symbol(table, handle->as.variable.name);
+        if (sym == NULL)
+        {
+            type_error(expr->token, "Cannot sync unknown variable");
+            return NULL;
+        }
+
+        /* Validate the variable is pending (was assigned a thread spawn) */
+        if (!symbol_table_is_pending(sym))
+        {
+            type_error(expr->token, "Cannot sync variable that is not a pending thread");
+            return NULL;
+        }
+
+        /* Sync the variable - transitions from pending to synchronized.
+         * Pass frozen_args from the symbol to unfreeze captured arguments. */
+        symbol_table_sync_variable(table, handle->as.variable.name,
+                                   sym->frozen_args, sym->frozen_args_count);
+
+        DEBUG_VERBOSE("Variable sync type checked, return type: %d", sym->type->kind);
+        return sym->type;
+    }
+
+    type_error(expr->token, "Sync requires thread handle variable");
+    return NULL;
+}
+
 Type *type_check_expr(Expr *expr, SymbolTable *table)
 {
     if (expr == NULL)
@@ -483,6 +851,12 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_SIZED_ARRAY_ALLOC:
         t = type_check_sized_array_alloc(expr, table);
+        break;
+    case EXPR_THREAD_SPAWN:
+        t = type_check_thread_spawn(expr, table);
+        break;
+    case EXPR_THREAD_SYNC:
+        t = type_check_thread_sync(expr, table);
         break;
     }
     expr->expr_type = t;

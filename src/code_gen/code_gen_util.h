@@ -20,6 +20,7 @@ char *escape_c_string(Arena *arena, const char *str);
 const char *get_c_type(Arena *arena, Type *type);
 const char *get_rt_to_string_func(TypeKind kind);
 const char *get_default_value(Type *type);
+const char *get_rt_result_type(Type *type);
 
 /* Name helpers */
 char *get_var_name(Arena *arena, Token name);

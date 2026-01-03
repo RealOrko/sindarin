@@ -71,6 +71,7 @@ struct Type
         {
             Type *return_type;
             Type **param_types;
+            MemoryQualifier *param_mem_quals; /* Memory qualifiers for each parameter (NULL if all default) */
             int param_count;
         } function;
     } as;
@@ -96,7 +97,9 @@ typedef enum
     EXPR_SPREAD,
     EXPR_LAMBDA,
     EXPR_STATIC_CALL,
-    EXPR_SIZED_ARRAY_ALLOC
+    EXPR_SIZED_ARRAY_ALLOC,
+    EXPR_THREAD_SPAWN,
+    EXPR_THREAD_SYNC
 } ExprType;
 
 typedef struct
@@ -206,6 +209,18 @@ typedef struct
 
 typedef struct
 {
+    Expr *call;              // The function call expression to spawn as thread
+    FunctionModifier modifier; // Function modifier: shared/private/default
+} ThreadSpawnExpr;
+
+typedef struct
+{
+    Expr *handle;        // Thread handle or array of handles to sync
+    bool is_array;       // True if syncing an array of thread handles
+} ThreadSyncExpr;
+
+typedef struct
+{
     Parameter *params;
     int param_count;
     Type *return_type;
@@ -246,6 +261,8 @@ struct Expr
         LambdaExpr lambda;
         StaticCallExpr static_call;
         SizedArrayAllocExpr sized_array_alloc;
+        ThreadSpawnExpr thread_spawn;
+        ThreadSyncExpr thread_sync;
     } as;
 
     Type *expr_type;
@@ -410,6 +427,8 @@ Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
 Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_count,
                                   Type *return_type, struct Stmt **body_stmts, int body_stmt_count,
                                   FunctionModifier modifier, const Token *loc_token);
+Expr *ast_create_thread_spawn_expr(Arena *arena, Expr *call, FunctionModifier modifier, const Token *loc_token);
+Expr *ast_create_thread_sync_expr(Arena *arena, Expr *handle, bool is_array, const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token);

@@ -1,0 +1,25 @@
+// Test: 'as ref' primitive should be frozen after spawn when passed to as ref param
+// STATUS: BLOCKED - Parameter-level 'as ref' (fn foo(x: int as ref)) not yet implemented
+// This test documents the expected behavior per THREADING.md spec:
+//
+// When implemented, the following should compile fail:
+//
+// fn increment(counter: int as ref): void =>
+//     counter = counter + 1
+//
+// fn main(): void =>
+//     var count: int as ref = 0
+//     var r1: void = &increment(count)
+//     count = 5                   // ERROR: count frozen by r1
+//     r1!
+//     count = 5                   // OK: unfrozen
+//
+// For now, test that arrays (which ARE frozen) work correctly
+fn process(data: int[]): int =>
+    return data[0] * 2
+
+fn main(): void =>
+    var arr: int[] = {5}
+    var r: int = &process(arr)     // arr is frozen
+    arr[0] = 10                     // ERROR: Cannot modify frozen variable
+    print("Should not reach here\n")

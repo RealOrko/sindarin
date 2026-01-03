@@ -29,6 +29,9 @@
 #include "runtime/runtime_date.h"
 #include "runtime/runtime_time.h"
 
+/* Threading module - depends on arena */
+#include "runtime/runtime_thread.h"
+
 /* ============================================================================
  * Arithmetic operations
  * ============================================================================ */

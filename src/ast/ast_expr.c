@@ -510,3 +510,47 @@ Expr *ast_create_static_call_expr(Arena *arena, Token type_name, Token method_na
     expr->token = ast_clone_token(arena, loc_token);
     return expr;
 }
+
+Expr *ast_create_thread_spawn_expr(Arena *arena, Expr *call, FunctionModifier modifier, const Token *loc_token)
+{
+    if (call == NULL)
+    {
+        DEBUG_ERROR("Cannot create thread spawn with NULL call expression");
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_THREAD_SPAWN;
+    expr->as.thread_spawn.call = call;
+    expr->as.thread_spawn.modifier = modifier;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}
+
+Expr *ast_create_thread_sync_expr(Arena *arena, Expr *handle, bool is_array, const Token *loc_token)
+{
+    if (handle == NULL)
+    {
+        DEBUG_ERROR("Cannot create thread sync with NULL handle expression");
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_THREAD_SYNC;
+    expr->as.thread_sync.handle = handle;
+    expr->as.thread_sync.is_array = is_array;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}

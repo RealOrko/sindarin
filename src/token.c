@@ -154,6 +154,8 @@ const char *token_type_to_string(TokenType type)
         return "AND";
     case TOKEN_OR:
         return "OR";
+    case TOKEN_AMPERSAND:
+        return "AMPERSAND";
     case TOKEN_PLUS_PLUS:
         return "PLUS_PLUS";
     case TOKEN_MINUS_MINUS:

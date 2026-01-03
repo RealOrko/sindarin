@@ -450,7 +450,7 @@ int remove_unused_variables(Optimizer *opt, Stmt **stmts, int *count)
 
                 if (init != NULL)
                 {
-                    /* Conservative: assume function calls have side effects */
+                    /* Conservative: assume function calls and thread operations have side effects */
                     switch (init->type)
                     {
                     case EXPR_CALL:
@@ -458,6 +458,8 @@ int remove_unused_variables(Optimizer *opt, Stmt **stmts, int *count)
                     case EXPR_DECREMENT:
                     case EXPR_ASSIGN:
                     case EXPR_INDEX_ASSIGN:
+                    case EXPR_THREAD_SPAWN:
+                    case EXPR_THREAD_SYNC:
                         has_side_effects = true;
                         break;
                     default:

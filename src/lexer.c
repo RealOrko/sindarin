@@ -169,8 +169,8 @@ skip_indent_processing:
             DEBUG_VERBOSE("Line %d: Emitting AND", lexer->line);
             return lexer_make_token(lexer, TOKEN_AND);
         }
-        DEBUG_VERBOSE("Line %d: Emitting AND (single)", lexer->line);
-        return lexer_make_token(lexer, TOKEN_AND);
+        DEBUG_VERBOSE("Line %d: Emitting AMPERSAND", lexer->line);
+        return lexer_make_token(lexer, TOKEN_AMPERSAND);
     case '%':
         DEBUG_VERBOSE("Line %d: Emitting MODULO", lexer->line);
         return lexer_make_token(lexer, TOKEN_MODULO);

@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include "runtime_arena.h"
 
+/* Forward declaration for thread join function to avoid circular include */
+extern void rt_thread_sync(RtThreadHandle *handle);
+
 /* ============================================================================
  * Arena Memory Management Implementation
  * ============================================================================ */
@@ -37,7 +40,9 @@ RtArena *rt_arena_create_sized(RtArena *parent, size_t block_size)
     arena->parent = parent;
     arena->default_block_size = block_size;
     arena->total_allocated = 0;
-    arena->open_files = NULL;  /* Initialize file handle list to empty */
+    arena->open_files = NULL;       /* Initialize file handle list to empty */
+    arena->active_threads = NULL;   /* Initialize thread handle list to empty */
+    arena->frozen = false;          /* Initialize frozen flag to false */
 
     /* Create initial block */
     arena->first = rt_arena_new_block(block_size);
@@ -64,6 +69,16 @@ void *rt_arena_alloc_aligned(RtArena *arena, size_t size, size_t alignment)
 {
     if (arena == NULL || size == 0) {
         return NULL;
+    }
+
+    /* Check if arena is frozen (shared thread mode)
+     * Only block allocations from non-owner threads */
+    if (arena->frozen) {
+        pthread_t current_thread = pthread_self();
+        if (!pthread_equal(current_thread, arena->frozen_owner)) {
+            fprintf(stderr, "panic: cannot allocate from frozen arena (shared thread executing)\n");
+            exit(1);
+        }
     }
 
     /* Ensure alignment is at least sizeof(void*) and a power of 2 */
@@ -175,7 +190,20 @@ void rt_arena_destroy(RtArena *arena)
         return;
     }
 
-    /* Close all tracked file handles first */
+    /* Join all tracked threads first to prevent orphaned threads
+     * Panics are silently discarded since arena destruction implies
+     * fire-and-forget semantics for unsynced threads */
+    RtThreadTrackingNode *tn = arena->active_threads;
+    while (tn != NULL) {
+        if (tn->handle != NULL) {
+            /* Sync the thread - this will join and propagate panics */
+            rt_thread_sync(tn->handle);
+        }
+        tn = tn->next;
+    }
+    arena->active_threads = NULL;
+
+    /* Close all tracked file handles */
     RtFileHandle *fh = arena->open_files;
     while (fh != NULL) {
         if (fh->is_open && fh->fp != NULL) {
@@ -203,7 +231,17 @@ void rt_arena_reset(RtArena *arena)
         return;
     }
 
-    /* Close all tracked file handles first */
+    /* Join all tracked threads first */
+    RtThreadTrackingNode *tn = arena->active_threads;
+    while (tn != NULL) {
+        if (tn->handle != NULL) {
+            rt_thread_sync(tn->handle);
+        }
+        tn = tn->next;
+    }
+    arena->active_threads = NULL;
+
+    /* Close all tracked file handles */
     RtFileHandle *fh = arena->open_files;
     while (fh != NULL) {
         if (fh->is_open && fh->fp != NULL) {
@@ -303,4 +341,82 @@ void rt_arena_untrack_file(RtArena *arena, RtFileHandle *handle)
         }
         curr = &(*curr)->next;
     }
+}
+
+/* ============================================================================
+ * Thread Handle Tracking Implementation
+ * ============================================================================ */
+
+/* Track a thread handle in an arena */
+RtThreadTrackingNode *rt_arena_track_thread(RtArena *arena, RtThreadHandle *handle)
+{
+    if (arena == NULL || handle == NULL) {
+        return NULL;
+    }
+
+    /* Allocate tracking node from arena */
+    RtThreadTrackingNode *node = rt_arena_alloc(arena, sizeof(RtThreadTrackingNode));
+    if (node == NULL) {
+        return NULL;
+    }
+
+    node->handle = handle;
+
+    /* Add to front of arena's thread list */
+    node->next = arena->active_threads;
+    arena->active_threads = node;
+
+    return node;
+}
+
+/* Untrack a thread handle from an arena (removes from list but doesn't join) */
+void rt_arena_untrack_thread(RtArena *arena, RtThreadHandle *handle)
+{
+    if (arena == NULL || handle == NULL) {
+        return;
+    }
+
+    /* Find and remove from list */
+    RtThreadTrackingNode **curr = &arena->active_threads;
+    while (*curr != NULL) {
+        if ((*curr)->handle == handle) {
+            RtThreadTrackingNode *to_remove = *curr;
+            *curr = to_remove->next;
+            to_remove->next = NULL;
+            to_remove->handle = NULL;
+            return;
+        }
+        curr = &(*curr)->next;
+    }
+}
+
+/* ============================================================================
+ * Arena Freezing Implementation (for shared thread mode)
+ * ============================================================================ */
+
+/* Freeze an arena to prevent allocations (used during shared thread execution) */
+void rt_arena_freeze(RtArena *arena)
+{
+    if (arena == NULL) {
+        return;
+    }
+    arena->frozen = true;
+}
+
+/* Unfreeze an arena to allow allocations again (called after thread sync) */
+void rt_arena_unfreeze(RtArena *arena)
+{
+    if (arena == NULL) {
+        return;
+    }
+    arena->frozen = false;
+}
+
+/* Check if an arena is frozen */
+bool rt_arena_is_frozen(RtArena *arena)
+{
+    if (arena == NULL) {
+        return false;
+    }
+    return arena->frozen;
 }

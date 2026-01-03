@@ -434,5 +434,18 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
             ast_print_expr(arena, expr->as.sized_array_alloc.default_value, indent_level + 2);
         }
         break;
+
+    case EXPR_THREAD_SPAWN:
+        DEBUG_VERBOSE_INDENT(indent_level, "ThreadSpawn:");
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Call:");
+        ast_print_expr(arena, expr->as.thread_spawn.call, indent_level + 2);
+        break;
+
+    case EXPR_THREAD_SYNC:
+        DEBUG_VERBOSE_INDENT(indent_level, "ThreadSync%s:",
+                             expr->as.thread_sync.is_array ? " (array)" : "");
+        DEBUG_VERBOSE_INDENT(indent_level + 1, "Handle:");
+        ast_print_expr(arena, expr->as.thread_sync.handle, indent_level + 2);
+        break;
     }
 }

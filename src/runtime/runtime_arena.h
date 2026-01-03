@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include <pthread.h>
 
 /* ============================================================================
  * Arena Memory Management
@@ -35,14 +36,26 @@ struct RtFileHandle {
     RtFileHandle *next;         /* Next handle in chain */
 };
 
+/* Forward declaration for thread handle types */
+typedef struct RtThreadHandle RtThreadHandle;
+
+/* Thread tracking node - linked list node for tracking spawned threads in arena */
+typedef struct RtThreadTrackingNode {
+    RtThreadHandle *handle;               /* Pointer to the thread handle */
+    struct RtThreadTrackingNode *next;    /* Next node in chain */
+} RtThreadTrackingNode;
+
 /* Arena - manages a collection of memory blocks */
 typedef struct RtArena {
-    struct RtArena *parent;     /* Parent arena for hierarchy */
-    RtArenaBlock *first;        /* First block in chain */
-    RtArenaBlock *current;      /* Current block for allocations */
-    size_t default_block_size;  /* Size for new blocks */
-    size_t total_allocated;     /* Total bytes allocated (for stats) */
-    RtFileHandle *open_files;   /* Head of file handle list for auto-close */
+    struct RtArena *parent;         /* Parent arena for hierarchy */
+    RtArenaBlock *first;            /* First block in chain */
+    RtArenaBlock *current;          /* Current block for allocations */
+    size_t default_block_size;      /* Size for new blocks */
+    size_t total_allocated;         /* Total bytes allocated (for stats) */
+    RtFileHandle *open_files;       /* Head of file handle list for auto-close */
+    RtThreadTrackingNode *active_threads;  /* Head of thread handle list for auto-join */
+    bool frozen;                    /* True if arena is frozen (shared thread executing) */
+    pthread_t frozen_owner;         /* Thread ID that owns frozen arena (can still allocate) */
 } RtArena;
 
 /* ============================================================================
@@ -97,5 +110,35 @@ RtFileHandle *rt_arena_track_file(RtArena *arena, void *fp, const char *path, bo
 
 /* Untrack a file handle from an arena (called when promoting to another arena) */
 void rt_arena_untrack_file(RtArena *arena, RtFileHandle *handle);
+
+/* ============================================================================
+ * Thread Handle Tracking
+ * ============================================================================
+ * Functions for managing thread handles within arenas. Threads are automatically
+ * joined when the arena is destroyed to prevent orphaned threads.
+ * ============================================================================ */
+
+/* Track a thread handle in an arena (called when spawning threads in arena scope) */
+RtThreadTrackingNode *rt_arena_track_thread(RtArena *arena, RtThreadHandle *handle);
+
+/* Untrack a thread handle from an arena (called when thread is manually synced) */
+void rt_arena_untrack_thread(RtArena *arena, RtThreadHandle *handle);
+
+/* ============================================================================
+ * Arena Freezing (for shared thread mode)
+ * ============================================================================
+ * When a shared thread is spawned, the caller's arena is frozen to prevent
+ * allocations from the main thread while the shared thread is executing.
+ * This prevents data races on arena state.
+ * ============================================================================ */
+
+/* Freeze an arena to prevent allocations (used during shared thread execution) */
+void rt_arena_freeze(RtArena *arena);
+
+/* Unfreeze an arena to allow allocations again (called after thread sync) */
+void rt_arena_unfreeze(RtArena *arena);
+
+/* Check if an arena is frozen */
+bool rt_arena_is_frozen(RtArena *arena);
 
 #endif /* RUNTIME_ARENA_H */

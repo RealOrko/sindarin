@@ -231,7 +231,45 @@ void test_type_check_shared_function()
 
 void test_type_check_param_as_ref_error()
 {
-    printf("Testing type check for parameter with 'as ref' (should error)...\n");
+    printf("Testing type check for parameter with 'as ref' on array (should error)...\n");
+
+    Arena arena;
+    arena_init(&arena, 4096);
+
+    SymbolTable table;
+    symbol_table_init(&arena, &table);
+
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+    Type *arr_type = ast_create_array_type(&arena, int_type);  // 'as ref' on arrays is invalid (they are already references)
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+
+    Parameter *params = (Parameter *)arena_alloc(&arena, sizeof(Parameter));
+    Token param_name_tok;
+    setup_token(&param_name_tok, TOKEN_IDENTIFIER, "x", 1, "test.sn", &arena);
+    params[0].name = param_name_tok;
+    params[0].type = arr_type;
+    params[0].mem_qualifier = MEM_AS_REF;  // Invalid for array parameters - arrays are already references
+
+    Stmt *body[0];
+    Token func_name_tok;
+    setup_token(&func_name_tok, TOKEN_IDENTIFIER, "process", 1, "test.sn", &arena);
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, params, 1, void_type, body, 0, &func_name_tok);
+
+    ast_module_add_statement(&arena, &module, func_decl);
+
+    int no_error = type_check_module(&module, &table);
+    assert(no_error == 0); // Should have error
+
+    symbol_table_cleanup(&table);
+    arena_free(&arena);
+}
+
+void test_type_check_param_as_ref_primitive()
+{
+    printf("Testing type check for parameter with 'as ref' on primitive (should pass)...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -247,20 +285,20 @@ void test_type_check_param_as_ref_error()
 
     Parameter *params = (Parameter *)arena_alloc(&arena, sizeof(Parameter));
     Token param_name_tok;
-    setup_token(&param_name_tok, TOKEN_IDENTIFIER, "x", 1, "test.sn", &arena);
+    setup_token(&param_name_tok, TOKEN_IDENTIFIER, "counter", 1, "test.sn", &arena);
     params[0].name = param_name_tok;
     params[0].type = int_type;
-    params[0].mem_qualifier = MEM_AS_REF;  // Invalid for parameters
+    params[0].mem_qualifier = MEM_AS_REF;  // Valid for primitive parameters - enables pass-by-reference
 
     Stmt *body[0];
     Token func_name_tok;
-    setup_token(&func_name_tok, TOKEN_IDENTIFIER, "process", 1, "test.sn", &arena);
+    setup_token(&func_name_tok, TOKEN_IDENTIFIER, "increment", 1, "test.sn", &arena);
     Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, params, 1, void_type, body, 0, &func_name_tok);
 
     ast_module_add_statement(&arena, &module, func_decl);
 
     int no_error = type_check_module(&module, &table);
-    assert(no_error == 0); // Should have error
+    assert(no_error == 1);  // Should pass - 'as ref' is valid on primitives
 
     symbol_table_cleanup(&table);
     arena_free(&arena);
@@ -391,6 +429,7 @@ void test_type_checker_memory_main()
     test_type_check_private_function_array_return_error();
     test_type_check_shared_function();
     test_type_check_param_as_ref_error();
+    test_type_check_param_as_ref_primitive();
     test_type_check_param_as_val();
     test_type_check_null_stmt_handling();
     test_type_check_function_with_null_param_type();

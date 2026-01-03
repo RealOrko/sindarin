@@ -1,7 +1,7 @@
 # Sn Compiler - Root Makefile
 # Consolidates all build and test operations
 
-.PHONY: all build clean run test test-unit test-integration test-explore assembly measure-optimization benchmark help
+.PHONY: all build clean run test test-unit test-integration test-integration-errors test-threading test-explore assembly measure-optimization benchmark help
 
 # Default optimization level for GCC when compiling generated C
 OPT_LEVEL ?= -O2
@@ -11,6 +11,7 @@ BIN_DIR := bin
 LOG_DIR := log
 SRC_DIR := src
 TEST_DIR := tests/integration
+ERROR_TEST_DIR := tests/integration/errors
 TEMP_DIR := /tmp/sn_integration_tests
 EXPLORE_DIR := tests/exploratory
 EXPLORE_OUT := $(EXPLORE_DIR)/output
@@ -38,7 +39,7 @@ build: clean
 	@cat $(LOG_DIR)/build-output.log
 	@# Clean up intermediate files, keeping only required runtime objects
 	@find $(BIN_DIR) -name "*.d" -delete
-	@find $(BIN_DIR) -name "*.o" ! -name "arena.o" ! -name "debug.o" ! -name "runtime.o" ! -name "runtime_arena.o" ! -name "runtime_string.o" ! -name "runtime_array.o" ! -name "runtime_text_file.o" ! -name "runtime_binary_file.o" ! -name "runtime_io.o" ! -name "runtime_byte.o" ! -name "runtime_path.o" ! -name "runtime_date.o" ! -name "runtime_time.o" -delete
+	@find $(BIN_DIR) -name "*.o" ! -name "arena.o" ! -name "debug.o" ! -name "runtime.o" ! -name "runtime_arena.o" ! -name "runtime_string.o" ! -name "runtime_array.o" ! -name "runtime_text_file.o" ! -name "runtime_binary_file.o" ! -name "runtime_io.o" ! -name "runtime_byte.o" ! -name "runtime_path.o" ! -name "runtime_date.o" ! -name "runtime_time.o" ! -name "runtime_thread.o" -delete
 
 #------------------------------------------------------------------------------
 # clean - Remove build artifacts
@@ -60,7 +61,7 @@ run:
 #------------------------------------------------------------------------------
 # test - Run all tests (unit, integration, exploratory)
 #------------------------------------------------------------------------------
-test: test-unit test-integration test-explore
+test: test-unit test-integration test-integration-errors test-explore
 
 #------------------------------------------------------------------------------
 # test-unit - Run unit tests
@@ -83,6 +84,7 @@ test-integration:
 		[ -f "$$test_file" ] || continue; \
 		test_name=$$(basename "$$test_file" .sn); \
 		expected_file="$${test_file%.sn}.expected"; \
+		panic_file="$${test_file%.sn}.panic"; \
 		exe_file="$(TEMP_DIR)/$$test_name"; \
 		output_file="$(TEMP_DIR)/$$test_name.out"; \
 		printf "  %-40s " "$$test_name"; \
@@ -97,11 +99,21 @@ test-integration:
 			failed=$$((failed + 1)); \
 			continue; \
 		fi; \
-		if ! ASAN_OPTIONS=detect_leaks=0 timeout 5s "$$exe_file" > "$$output_file" 2>&1; then \
-			printf "$(RED)FAIL$(NC) (runtime error or timeout)\n"; \
-			head -5 "$$output_file"; \
-			failed=$$((failed + 1)); \
-			continue; \
+		ASAN_OPTIONS=detect_leaks=0 timeout 5s "$$exe_file" > "$$output_file" 2>&1; \
+		run_exit_code=$$?; \
+		if [ -f "$$panic_file" ]; then \
+			if [ $$run_exit_code -eq 0 ]; then \
+				printf "$(RED)FAIL$(NC) (expected panic but succeeded)\n"; \
+				failed=$$((failed + 1)); \
+				continue; \
+			fi; \
+		else \
+			if [ $$run_exit_code -ne 0 ]; then \
+				printf "$(RED)FAIL$(NC) (runtime error or timeout)\n"; \
+				head -5 "$$output_file"; \
+				failed=$$((failed + 1)); \
+				continue; \
+			fi; \
 		fi; \
 		if diff -q "$$output_file" "$$expected_file" > /dev/null 2>&1; then \
 			printf "$(GREEN)PASS$(NC)\n"; \
@@ -120,6 +132,55 @@ test-integration:
 	printf "Results: $(GREEN)%d passed$(NC), $(RED)%d failed$(NC), $(YELLOW)%d skipped$(NC)\n" $$passed $$failed $$skipped; \
 	rm -rf $(TEMP_DIR); \
 	if [ $$failed -gt 0 ]; then exit 1; fi
+
+#------------------------------------------------------------------------------
+# test-integration-errors - Run compile error tests (tests that should fail)
+#------------------------------------------------------------------------------
+test-integration-errors:
+	@mkdir -p $(TEMP_DIR)
+	@echo "Running Sn Integration Error Tests (compile failures)"
+	@echo "======================================================="
+	@echo ""
+	@passed=0; failed=0; skipped=0; \
+	for test_file in $(ERROR_TEST_DIR)/*.sn; do \
+		[ -f "$$test_file" ] || continue; \
+		test_name=$$(basename "$$test_file" .sn); \
+		expected_file="$${test_file%.sn}.expected"; \
+		compile_err="$(TEMP_DIR)/$$test_name.compile_err"; \
+		printf "  %-40s " "$$test_name"; \
+		if [ ! -f "$$expected_file" ]; then \
+			printf "$(YELLOW)SKIP$(NC) (no .expected file)\n"; \
+			skipped=$$((skipped + 1)); \
+			continue; \
+		fi; \
+		if $(BIN_DIR)/sn "$$test_file" -o "$(TEMP_DIR)/$$test_name" -l 1 2>"$$compile_err"; then \
+			printf "$(RED)FAIL$(NC) (expected compile error but succeeded)\n"; \
+			failed=$$((failed + 1)); \
+			continue; \
+		fi; \
+		if grep -qF "$$(cat "$$expected_file" | head -1)" "$$compile_err"; then \
+			printf "$(GREEN)PASS$(NC)\n"; \
+			passed=$$((passed + 1)); \
+		else \
+			printf "$(RED)FAIL$(NC) (error message mismatch)\n"; \
+			echo "  Expected:"; \
+			head -1 "$$expected_file" | sed 's/^/    /'; \
+			echo "  Got:"; \
+			head -3 "$$compile_err" | sed 's/^/    /'; \
+			failed=$$((failed + 1)); \
+		fi; \
+	done; \
+	echo ""; \
+	echo "============================"; \
+	printf "Results: $(GREEN)%d passed$(NC), $(RED)%d failed$(NC), $(YELLOW)%d skipped$(NC)\n" $$passed $$failed $$skipped; \
+	rm -rf $(TEMP_DIR); \
+	if [ $$failed -gt 0 ]; then exit 1; fi
+
+#------------------------------------------------------------------------------
+# test-threading - Run all threading tests (positive and negative)
+#------------------------------------------------------------------------------
+test-threading:
+	@./scripts/test_threading.sh
 
 #------------------------------------------------------------------------------
 # test-explore - Run exploratory tests from testing/*.sn

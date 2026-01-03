@@ -15,6 +15,8 @@
 
 /* Forward declarations */
 char *code_gen_range_expression(CodeGen *gen, Expr *expr);
+static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr);
+static char *code_gen_thread_sync_expression(CodeGen *gen, Expr *expr);
 /* code_gen_lambda_expression is now in code_gen_expr_lambda.h */
 
 /* CapturedVars structure, captured_vars_init, captured_vars_add -
@@ -1762,6 +1764,15 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         args_list = arena_strdup(gen->arena, "");
     }
 
+    /* Get parameter memory qualifiers from callee's function type */
+    MemoryQualifier *param_quals = NULL;
+    int param_count = 0;
+    if (call->callee->expr_type && call->callee->expr_type->kind == TYPE_FUNCTION)
+    {
+        param_quals = call->callee->expr_type->as.function.param_mem_quals;
+        param_count = call->callee->expr_type->as.function.param_count;
+    }
+
     for (int i = 0; i < call->arg_count; i++)
     {
         if (arg_is_temp[i])
@@ -1772,6 +1783,22 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         {
             arg_names[i] = arg_strs[i];
         }
+
+        /* For 'as ref' primitive parameters, pass address of the argument */
+        bool is_ref_param = false;
+        if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+            call->arguments[i]->expr_type != NULL)
+        {
+            TypeKind kind = call->arguments[i]->expr_type->kind;
+            bool is_prim = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                           kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+            is_ref_param = is_prim;
+        }
+        if (is_ref_param)
+        {
+            arg_names[i] = arena_sprintf(gen->arena, "&%s", arg_names[i]);
+        }
+
         bool need_comma = (i > 0) || callee_is_shared;
         char *new_args = arena_sprintf(gen->arena, "%s%s%s", args_list, need_comma ? ", " : "", arg_names[i]);
         args_list = new_args;
@@ -1960,6 +1987,526 @@ char *code_gen_spread_expression(CodeGen *gen, Expr *expr)
 
 /* code_gen_static_call_expression - RELOCATED to code_gen_expr_static.c */
 
+/* ============================================================================
+ * Thread Spawn Expression Code Generation
+ * ============================================================================
+ * Generates code for &fn() thread spawn expressions.
+ * Sets is_shared and is_private flags based on function modifier.
+ * ============================================================================ */
+
+/* Helper function to generate RtResultType constant from Type */
+const char *get_rt_result_type(Type *type)
+{
+    if (type == NULL || type->kind == TYPE_VOID)
+    {
+        return "RT_TYPE_VOID";
+    }
+
+    switch (type->kind)
+    {
+        case TYPE_INT:
+            return "RT_TYPE_INT";
+        case TYPE_LONG:
+            return "RT_TYPE_LONG";
+        case TYPE_DOUBLE:
+            return "RT_TYPE_DOUBLE";
+        case TYPE_BOOL:
+            return "RT_TYPE_BOOL";
+        case TYPE_BYTE:
+            return "RT_TYPE_BYTE";
+        case TYPE_CHAR:
+            return "RT_TYPE_CHAR";
+        case TYPE_STRING:
+            return "RT_TYPE_STRING";
+        case TYPE_ARRAY:
+        {
+            Type *elem = type->as.array.element_type;
+            switch (elem->kind)
+            {
+                case TYPE_INT:
+                case TYPE_LONG:
+                    return "RT_TYPE_ARRAY_LONG";
+                case TYPE_DOUBLE:
+                    return "RT_TYPE_ARRAY_DOUBLE";
+                case TYPE_BOOL:
+                    return "RT_TYPE_ARRAY_BOOL";
+                case TYPE_BYTE:
+                    return "RT_TYPE_ARRAY_BYTE";
+                case TYPE_CHAR:
+                    return "RT_TYPE_ARRAY_CHAR";
+                case TYPE_STRING:
+                    return "RT_TYPE_ARRAY_STRING";
+                default:
+                    return "RT_TYPE_VOID";
+            }
+        }
+        case TYPE_TEXT_FILE:
+            return "RT_TYPE_TEXT_FILE";
+        case TYPE_BINARY_FILE:
+            return "RT_TYPE_BINARY_FILE";
+        case TYPE_DATE:
+            return "RT_TYPE_DATE";
+        case TYPE_TIME:
+            return "RT_TYPE_TIME";
+        default:
+            return "RT_TYPE_VOID";
+    }
+}
+
+static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_thread_spawn_expression");
+
+    ThreadSpawnExpr *spawn = &expr->as.thread_spawn;
+    FunctionModifier modifier = spawn->modifier;
+
+    /* Get caller arena for passing to thread args */
+    const char *caller_arena = gen->current_arena_var ? gen->current_arena_var : "NULL";
+
+    /* The call expression being spawned */
+    Expr *call_expr = spawn->call;
+    if (call_expr->type != EXPR_CALL)
+    {
+        fprintf(stderr, "Error: Thread spawn expression must be a function call\n");
+        exit(1);
+    }
+
+    CallExpr *call = &call_expr->as.call;
+
+    /* Get parameter memory qualifiers from callee's function type */
+    MemoryQualifier *param_quals = NULL;
+    int param_count = 0;
+    if (call->callee->expr_type && call->callee->expr_type->kind == TYPE_FUNCTION)
+    {
+        param_quals = call->callee->expr_type->as.function.param_mem_quals;
+        param_count = call->callee->expr_type->as.function.param_count;
+    }
+
+    /* Generate unique wrapper function ID */
+    int wrapper_id = gen->thread_wrapper_count++;
+    char *wrapper_name = arena_sprintf(gen->arena, "__thread_wrapper_%d__", wrapper_id);
+
+    /* Get return type of the function being called */
+    Type *return_type = call_expr->expr_type;
+
+    /* Check if function returns a heap-allocated type (string, array, closure).
+     * Such functions are implicitly shared in regular calls because the returned
+     * value must survive the function's arena. For thread spawns, we need to
+     * match this behavior so the wrapper correctly passes the arena parameter.
+     * However, for thread spawning purposes, we want to treat it as the declared
+     * modifier for arena mode (default mode spawns can return strings with promotion). */
+    bool returns_heap_type = return_type != NULL && (
+        return_type->kind == TYPE_FUNCTION ||
+        return_type->kind == TYPE_STRING ||
+        return_type->kind == TYPE_ARRAY);
+
+    /* For is_shared flag: use the declared modifier, NOT the implicit conversion.
+     * This allows default mode threads to return strings/arrays with promotion.
+     * The wrapper will still pass __arena__ as first arg if function is implicitly shared,
+     * but the thread arena mode will be based on the declared modifier. */
+    const char *is_shared_str = (modifier == FUNC_SHARED) ? "true" : "false";
+    const char *is_private_str = (modifier == FUNC_PRIVATE) ? "true" : "false";
+
+    /* Track if function is implicitly shared for wrapper generation */
+    bool is_implicitly_shared = returns_heap_type && modifier != FUNC_SHARED && modifier != FUNC_PRIVATE;
+
+    DEBUG_VERBOSE("Thread spawn: is_shared=%s, is_private=%s, implicit_shared=%d",
+                  is_shared_str, is_private_str, is_implicitly_shared);
+    const char *ret_c_type = get_c_type(gen->arena, return_type);
+    const char *result_type_enum = get_rt_result_type(return_type);
+    bool is_void_return = (return_type == NULL || return_type->kind == TYPE_VOID);
+
+    /* Generate the argument structure type name */
+    char *args_struct_name = arena_sprintf(gen->arena, "__ThreadArgs_%d__", wrapper_id);
+
+    /* Build argument struct definition
+     * IMPORTANT: The first fields must match RtThreadArgs layout exactly
+     * so that rt_thread_spawn can cast to RtThreadArgs* and access fields.
+     * Additional function arguments are appended after the common fields.
+     */
+    char *struct_def = arena_sprintf(gen->arena,
+        "typedef struct {\n"
+        "    /* These fields match RtThreadArgs layout */\n"
+        "    void *func_ptr;\n"
+        "    void *args_data;\n"
+        "    size_t args_size;\n"
+        "    RtThreadResult *result;\n"
+        "    RtArena *caller_arena;\n"
+        "    RtArena *thread_arena;\n"
+        "    bool is_shared;\n"
+        "    bool is_private;\n"
+        "    /* Function-specific arguments follow */\n");
+
+    /* Add fields for each argument.
+     * For 'as ref' primitive parameters, store pointer type so thread
+     * can modify the caller's variable. */
+    for (int i = 0; i < call->arg_count; i++)
+    {
+        const char *arg_c_type = get_c_type(gen->arena, call->arguments[i]->expr_type);
+
+        /* Check if this is an 'as ref' primitive parameter */
+        bool is_ref_primitive = false;
+        if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+            call->arguments[i]->expr_type != NULL)
+        {
+            TypeKind kind = call->arguments[i]->expr_type->kind;
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+        }
+
+        if (is_ref_primitive)
+        {
+            struct_def = arena_sprintf(gen->arena, "%s    %s *arg%d;\n",
+                                       struct_def, arg_c_type, i);
+        }
+        else
+        {
+            struct_def = arena_sprintf(gen->arena, "%s    %s arg%d;\n",
+                                       struct_def, arg_c_type, i);
+        }
+    }
+
+    struct_def = arena_sprintf(gen->arena, "%s} %s;\n\n",
+                               struct_def, args_struct_name);
+
+    /* Generate wrapper function definition with panic handling.
+     * We set up a panic context with setjmp so that panics in the thread
+     * are captured and can be propagated to the caller on sync. */
+    char *wrapper_def = arena_sprintf(gen->arena,
+        "static void *%s(void *args_ptr) {\n"
+        "    %s *args = (%s *)args_ptr;\n"
+        "    RtArena *__arena__;\n"
+        "\n"
+        "    /* Set up arena based on mode flags */\n"
+        "    if (args->is_shared) {\n"
+        "        /* Shared mode: use caller's arena (already frozen) */\n"
+        "        __arena__ = args->caller_arena;\n"
+        "    } else if (args->is_private) {\n"
+        "        /* Private mode: create isolated arena */\n"
+        "        __arena__ = rt_arena_create(NULL);\n"
+        "        args->thread_arena = __arena__;\n"
+        "    } else {\n"
+        "        /* Default mode: create arena with parent */\n"
+        "        __arena__ = rt_arena_create(args->caller_arena);\n"
+        "        args->thread_arena = __arena__;\n"
+        "    }\n"
+        "\n"
+        "    /* Set up panic context to catch panics in this thread */\n"
+        "    RtThreadPanicContext __panic_ctx__;\n"
+        "    rt_thread_panic_context_init(&__panic_ctx__, args->result, __arena__);\n"
+        "    if (setjmp(__panic_ctx__.jump_buffer) != 0) {\n"
+        "        /* Panic occurred - cleanup and return */\n"
+        "        rt_thread_panic_context_clear();\n"
+        "        return NULL;\n"
+        "    }\n"
+        "\n",
+        wrapper_name, args_struct_name, args_struct_name);
+
+    /* Generate the function call with arguments extracted from struct */
+    char *callee_str = code_gen_expression(gen, call->callee);
+
+    /* Check if target function needs arena as first arg.
+     * This includes explicitly shared functions AND implicitly shared functions
+     * (those that return heap types like strings/arrays). */
+    bool target_needs_arena_arg = (modifier == FUNC_SHARED) || is_implicitly_shared;
+
+    /* Build argument list - prepend __arena__ for functions that need it */
+    char *call_args;
+    if (target_needs_arena_arg)
+    {
+        call_args = arena_strdup(gen->arena, "__arena__");
+    }
+    else
+    {
+        call_args = arena_strdup(gen->arena, "");
+    }
+
+    for (int i = 0; i < call->arg_count; i++)
+    {
+        bool need_comma = (i > 0) || target_needs_arena_arg;
+        if (need_comma)
+        {
+            call_args = arena_sprintf(gen->arena, "%s, ", call_args);
+        }
+        call_args = arena_sprintf(gen->arena, "%sargs->arg%d", call_args, i);
+    }
+
+    if (is_void_return)
+    {
+        /* Void function - just call it */
+        wrapper_def = arena_sprintf(gen->arena,
+            "%s"
+            "    /* Call the function */\n"
+            "    %s(%s);\n"
+            "\n"
+            "    /* Clear panic context on successful completion */\n"
+            "    rt_thread_panic_context_clear();\n"
+            "    return NULL;\n"
+            "}\n\n",
+            wrapper_def, callee_str, call_args);
+    }
+    else
+    {
+        /* Non-void function - store result using rt_thread_result_set_value */
+        wrapper_def = arena_sprintf(gen->arena,
+            "%s"
+            "    /* Call the function and store result */\n"
+            "    %s __result__ = %s(%s);\n"
+            "\n"
+            "    /* Store result in thread result structure using runtime function */\n"
+            "    RtArena *__result_arena__ = args->thread_arena ? args->thread_arena : args->caller_arena;\n"
+            "    rt_thread_result_set_value(args->result, &__result__, sizeof(%s), __result_arena__);\n"
+            "\n"
+            "    /* Clear panic context on successful completion */\n"
+            "    rt_thread_panic_context_clear();\n"
+            "    return NULL;\n"
+            "}\n\n",
+            wrapper_def, ret_c_type, callee_str, call_args, ret_c_type);
+    }
+
+    /* Add struct and wrapper to forward declarations */
+    gen->lambda_forward_decls = arena_sprintf(gen->arena, "%s%s%s",
+                                              gen->lambda_forward_decls,
+                                              struct_def,
+                                              wrapper_def);
+
+    /* Generate unique temp variable name for spawning */
+    int temp_id = gen->temp_count++;
+    char *args_var = arena_sprintf(gen->arena, "__spawn_args_%d__", temp_id);
+    char *handle_var = arena_sprintf(gen->arena, "__spawn_handle_%d__", temp_id);
+
+    /* Generate arguments code.
+     * For 'as ref' primitive parameters, pass address instead of value. */
+    char *arg_assignments = arena_strdup(gen->arena, "");
+    for (int i = 0; i < call->arg_count; i++)
+    {
+        char *arg_code = code_gen_expression(gen, call->arguments[i]);
+
+        /* Check if this is an 'as ref' primitive parameter */
+        bool is_ref_primitive = false;
+        if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+            call->arguments[i]->expr_type != NULL)
+        {
+            TypeKind kind = call->arguments[i]->expr_type->kind;
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+        }
+
+        if (is_ref_primitive)
+        {
+            /* For 'as ref' params, store address of the argument */
+            arg_assignments = arena_sprintf(gen->arena, "%s%s->arg%d = &%s; ",
+                                            arg_assignments, args_var, i, arg_code);
+        }
+        else
+        {
+            arg_assignments = arena_sprintf(gen->arena, "%s%s->arg%d = %s; ",
+                                            arg_assignments, args_var, i, arg_code);
+        }
+    }
+
+    /* Generate the thread spawn expression */
+    char *result = arena_sprintf(gen->arena,
+        "({\n"
+        "    /* Allocate thread arguments structure */\n"
+        "    %s *%s = (%s *)rt_arena_alloc(%s, sizeof(%s));\n"
+        "    %s->caller_arena = %s;\n"
+        "    %s->thread_arena = NULL;\n"
+        "    %s->result = rt_thread_result_create(%s);\n"
+        "    %s->is_shared = %s;\n"
+        "    %s->is_private = %s;\n"
+        "    %s"
+        "\n"
+        "    /* Spawn the thread */\n"
+        "    RtThreadHandle *%s = rt_thread_spawn(%s, %s, %s);\n"
+        "    %s->result_type = %s;\n"
+        "    %s;\n"
+        "})",
+        args_struct_name, args_var, args_struct_name, caller_arena, args_struct_name,
+        args_var, caller_arena,
+        args_var,
+        args_var, caller_arena,
+        args_var, is_shared_str,
+        args_var, is_private_str,
+        arg_assignments,
+        handle_var, caller_arena, wrapper_name, args_var,
+        handle_var, result_type_enum,
+        handle_var
+    );
+
+    return result;
+}
+
+/* ============================================================================
+ * Thread Sync Expression Code Generation
+ * ============================================================================
+ * Generates code for var! sync expressions.
+ * ============================================================================ */
+
+static char *code_gen_thread_sync_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Entering code_gen_thread_sync_expression");
+
+    ThreadSyncExpr *sync = &expr->as.thread_sync;
+
+    if (sync->is_array)
+    {
+        /* Array sync: [r1, r2, r3]!
+         * This generates code to:
+         * 1. Build an array of RtThreadHandle* pointers
+         * 2. Call rt_thread_sync_all to sync all handles
+         * 3. Return void
+         */
+        DEBUG_VERBOSE("Thread sync: array sync");
+
+        /* The handle expression should be an array expression */
+        Expr *array_expr = sync->handle;
+        if (array_expr->type != EXPR_ARRAY)
+        {
+            fprintf(stderr, "Error: Array sync requires array expression\n");
+            exit(1);
+        }
+
+        ArrayExpr *arr = &array_expr->as.array;
+        int count = arr->element_count;
+
+        if (count == 0)
+        {
+            /* Empty array sync - no-op */
+            return arena_strdup(gen->arena, "((void)0)");
+        }
+
+        /* Generate a unique temp ID for the handles array */
+        int temp_id = gen->temp_count++;
+
+        /* Build the array initializer with handle expressions */
+        char *handles_init = arena_strdup(gen->arena, "");
+        for (int i = 0; i < count; i++)
+        {
+            char *handle_code = code_gen_expression(gen, arr->elements[i]);
+            if (i > 0)
+            {
+                handles_init = arena_sprintf(gen->arena, "%s, ", handles_init);
+            }
+            handles_init = arena_sprintf(gen->arena, "%s%s", handles_init, handle_code);
+        }
+
+        /* Generate the sync_all call with inline array
+         * Result:
+         * ({
+         *     RtThreadHandle *__sync_handles_N__[] = {r1, r2, r3};
+         *     rt_thread_sync_all(__sync_handles_N__, count);
+         *     (void)0;
+         * })
+         */
+        return arena_sprintf(gen->arena,
+            "({\n"
+            "    RtThreadHandle *__sync_handles_%d__[] = {%s};\n"
+            "    rt_thread_sync_all(__sync_handles_%d__, %d);\n"
+            "    (void)0;\n"
+            "})",
+            temp_id, handles_init,
+            temp_id, count);
+    }
+    else
+    {
+        /* Single variable sync: r!
+         * This generates code to:
+         * 1. Call rt_thread_join to wait for thread and get result pointer
+         * 2. Cast the result to the correct type
+         * 3. Dereference for primitives, return pointer for reference types
+         */
+        DEBUG_VERBOSE("Thread sync: single variable sync");
+
+        /* Generate the handle expression */
+        char *handle_code = code_gen_expression(gen, sync->handle);
+
+        /* Get the result type from the sync expression */
+        Type *result_type = expr->expr_type;
+
+        /* Check if the result is void - no value to retrieve */
+        if (result_type == NULL || result_type->kind == TYPE_VOID)
+        {
+            /* Void sync - call rt_thread_sync for synchronization with panic propagation */
+            return arena_sprintf(gen->arena,
+                "({\n"
+                "    rt_thread_sync(%s);\n"
+                "    (void)0;\n"
+                "})",
+                handle_code);
+        }
+
+        /* Get the C type for casting */
+        const char *c_type = get_c_type(gen->arena, result_type);
+
+        /* Get the RtResultType for proper result promotion */
+        const char *rt_type = get_rt_result_type(result_type);
+
+        /* Determine if this is a primitive type (needs dereferencing) or reference type */
+        bool is_primitive = (result_type->kind == TYPE_INT ||
+                             result_type->kind == TYPE_LONG ||
+                             result_type->kind == TYPE_DOUBLE ||
+                             result_type->kind == TYPE_BOOL ||
+                             result_type->kind == TYPE_BYTE ||
+                             result_type->kind == TYPE_CHAR);
+
+        /* Check if the handle is a variable - if so, we need to update it after sync
+         * This ensures that after x! is used, subsequent uses of x return the synced value */
+        bool is_variable_handle = (sync->handle->type == EXPR_VARIABLE);
+
+        if (is_primitive)
+        {
+            /* Primitive type: cast pointer and dereference
+             * Uses rt_thread_sync_with_result for panic propagation + result promotion
+             * For variable handles, we use a compound expression that stores the result
+             * in the variable via a union cast. This works for all primitive sizes. */
+            if (is_variable_handle)
+            {
+                /* Generate code that syncs and stores the result back in the variable.
+                 * We use a union to safely convert between RtThreadHandle* and the primitive type.
+                 * The pattern is: ({ type _tmp = *(type*)sync(var, ...); *(type*)&var = _tmp; _tmp; })
+                 * This allows subsequent uses of var to get the synced value. */
+                int temp_id = gen->temp_count++;
+                return arena_sprintf(gen->arena,
+                    "({\n"
+                    "    %s __sync_result_%d__ = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n"
+                    "    *(%s *)&%s = __sync_result_%d__;\n"
+                    "    __sync_result_%d__;\n"
+                    "})",
+                    c_type, temp_id, c_type, handle_code, ARENA_VAR(gen), rt_type,
+                    c_type, handle_code, temp_id,
+                    temp_id);
+            }
+            else
+            {
+                /* Non-variable (e.g., inline spawn): just return the value */
+                return arena_sprintf(gen->arena,
+                    "(*(%s *)rt_thread_sync_with_result(%s, %s, %s))",
+                    c_type, handle_code, ARENA_VAR(gen), rt_type);
+            }
+        }
+        else
+        {
+            /* Reference type (string, array, etc.): cast pointer directly
+             * Uses rt_thread_sync_with_result for panic propagation + result promotion */
+            if (is_variable_handle)
+            {
+                /* Update variable and return value */
+                return arena_sprintf(gen->arena,
+                    "(%s = (%s)rt_thread_sync_with_result(%s, %s, %s))",
+                    handle_code, c_type, handle_code, ARENA_VAR(gen), rt_type);
+            }
+            else
+            {
+                /* Non-variable: just return the value */
+                return arena_sprintf(gen->arena,
+                    "((%s)rt_thread_sync_with_result(%s, %s, %s))",
+                    c_type, handle_code, ARENA_VAR(gen), rt_type);
+            }
+        }
+    }
+}
+
 static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_sized_array_alloc_expression");
@@ -2056,6 +2603,10 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_static_call_expression(gen, expr);
     case EXPR_SIZED_ARRAY_ALLOC:
         return code_gen_sized_array_alloc_expression(gen, expr);
+    case EXPR_THREAD_SPAWN:
+        return code_gen_thread_spawn_expression(gen, expr);
+    case EXPR_THREAD_SYNC:
+        return code_gen_thread_sync_expression(gen, expr);
     default:
         exit(1);
     }

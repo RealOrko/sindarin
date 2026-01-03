@@ -55,6 +55,9 @@ typedef struct {
     char *lambda_forward_decls; // Buffer for lambda forward declarations
     char *lambda_definitions;   // Buffer for lambda function bodies
 
+    /* Thread wrapper support */
+    int thread_wrapper_count;   // Counter for unique thread wrapper IDs
+
     /* Enclosing lambda tracking for nested lambda capture */
     LambdaExpr **enclosing_lambdas;
     int enclosing_lambda_count;

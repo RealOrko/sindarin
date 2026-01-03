@@ -56,6 +56,9 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->enclosing_lambda_count = 0;
     gen->enclosing_lambda_capacity = 0;
 
+    /* Initialize thread wrapper support */
+    gen->thread_wrapper_count = 0;
+
     /* Initialize buffering fields */
     gen->function_definitions = arena_strdup(arena, "");
     gen->buffering_functions = false;
@@ -103,6 +106,7 @@ static void code_gen_headers(CodeGen *gen)
     indented_fprintf(gen, 0, "#include <stdio.h>\n");
     indented_fprintf(gen, 0, "#include <stdbool.h>\n");
     indented_fprintf(gen, 0, "#include <limits.h>\n");
+    indented_fprintf(gen, 0, "#include <setjmp.h>\n");  /* For thread panic handling */
     /* Include runtime.h for inline function definitions (comparisons, array_length, etc.) */
     indented_fprintf(gen, 0, "#include \"runtime.h\"\n\n");
 }
@@ -518,7 +522,22 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         {
             fprintf(gen->output, ", ");
         }
-        fprintf(gen->output, "%s", param_type);
+        /* 'as ref' primitive parameters become pointer types */
+        bool is_ref_primitive = false;
+        if (fn->params[i].mem_qualifier == MEM_AS_REF && fn->params[i].type != NULL)
+        {
+            TypeKind kind = fn->params[i].type->kind;
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+        }
+        if (is_ref_primitive)
+        {
+            fprintf(gen->output, "%s *", param_type);
+        }
+        else
+        {
+            fprintf(gen->output, "%s", param_type);
+        }
     }
 
     if (fn->param_count == 0 && !is_shared)

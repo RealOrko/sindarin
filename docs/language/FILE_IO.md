@@ -1032,6 +1032,6 @@ RtTextFile *rt_text_file_promote(RtArena *dest, RtTextFile *src) {
 
 ## See Also
 
-- [THREADING.md](../drafts/THREADING.md) - Threading model (`&` spawn, `!` sync)
+- [THREADING.md](THREADING.md) - Threading model (`&` spawn, `!` sync)
 - [MEMORY.md](MEMORY.md) - Arena memory management details
 - [ARRAYS.md](ARRAYS.md) - Array operations including byte arrays

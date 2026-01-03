@@ -13,6 +13,7 @@
 #include "runtime/runtime_time_tests.c"
 #include "runtime/runtime_date_tests.c"
 #include "runtime/runtime_path_tests.c"
+#include "runtime/runtime_thread_tests.c"
 #include "standalone/symbol_table_tests.c"
 #include "standalone/token_tests.c"
 #include "type_checker/type_checker_tests.c"
@@ -59,6 +60,10 @@ int main()
     // *** Runtime Path ***
 
     test_rt_path_main();
+
+    // *** Runtime Thread ***
+
+    test_rt_thread_main();
 
     // *** AST ***
     

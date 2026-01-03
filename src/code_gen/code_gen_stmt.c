@@ -54,9 +54,147 @@ static void pop_loop_arena(CodeGen *gen)
     }
 }
 
+/* Generate thread sync as a statement - assigns results back to variables
+ * For single sync (r!): r = sync_result
+ * For array sync ({r1, r2, r3}!): r1 = sync_result1; r2 = sync_result2; ... */
+static void code_gen_thread_sync_statement(CodeGen *gen, Expr *expr, int indent)
+{
+    ThreadSyncExpr *sync = &expr->as.thread_sync;
+
+    if (sync->is_array)
+    {
+        /* Array sync: {r1, r2, r3}!
+         * Generate sync and assignment for each variable */
+        Expr *array_expr = sync->handle;
+        if (array_expr->type != EXPR_ARRAY)
+        {
+            fprintf(stderr, "Error: Array sync requires array expression\n");
+            exit(1);
+        }
+
+        ArrayExpr *arr = &array_expr->as.array;
+
+        if (arr->element_count == 0)
+        {
+            /* Empty array sync - no-op */
+            return;
+        }
+
+        /* Sync each variable and assign result back */
+        for (int i = 0; i < arr->element_count; i++)
+        {
+            Expr *elem = arr->elements[i];
+            if (elem->type != EXPR_VARIABLE)
+            {
+                fprintf(stderr, "Error: Array sync elements must be variables\n");
+                exit(1);
+            }
+
+            char *var_name = get_var_name(gen->arena, elem->as.variable.name);
+
+            /* Look up the variable's type from the symbol table
+             * The elem->expr_type may not be set for array elements */
+            Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, elem->as.variable.name);
+            Type *result_type = (sym != NULL) ? sym->type : elem->expr_type;
+
+            /* Check if void - just sync, no assignment */
+            if (result_type == NULL || result_type->kind == TYPE_VOID)
+            {
+                indented_fprintf(gen, indent, "rt_thread_sync(%s);\n", var_name);
+                continue;
+            }
+
+            const char *c_type = get_c_type(gen->arena, result_type);
+            const char *rt_type = get_rt_result_type(result_type);
+
+            bool is_primitive = (result_type->kind == TYPE_INT ||
+                                result_type->kind == TYPE_LONG ||
+                                result_type->kind == TYPE_DOUBLE ||
+                                result_type->kind == TYPE_BOOL ||
+                                result_type->kind == TYPE_BYTE ||
+                                result_type->kind == TYPE_CHAR);
+
+            if (is_primitive)
+            {
+                /* For primitives, we need to store through a pointer cast because
+                 * the variable is RtThreadHandle* but we're storing a primitive value.
+                 * Pattern: *((type *)&var) = *(type *)sync(...) */
+                indented_fprintf(gen, indent, "*(%s *)&%s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n",
+                    c_type, var_name, c_type, var_name, ARENA_VAR(gen), rt_type);
+            }
+            else
+            {
+                /* For reference types (arrays, strings), direct assignment works
+                 * because both are pointer types */
+                indented_fprintf(gen, indent, "%s = (%s)rt_thread_sync_with_result(%s, %s, %s);\n",
+                    var_name, c_type, var_name, ARENA_VAR(gen), rt_type);
+            }
+        }
+    }
+    else
+    {
+        /* Single sync: r!
+         * Only assign back if the handle is a variable */
+        Expr *handle = sync->handle;
+
+        if (handle->type == EXPR_VARIABLE)
+        {
+            char *var_name = get_var_name(gen->arena, handle->as.variable.name);
+            Type *result_type = expr->expr_type;
+
+            /* Check if void - just sync, no assignment */
+            if (result_type == NULL || result_type->kind == TYPE_VOID)
+            {
+                indented_fprintf(gen, indent, "rt_thread_sync(%s);\n", var_name);
+                return;
+            }
+
+            const char *c_type = get_c_type(gen->arena, result_type);
+            const char *rt_type = get_rt_result_type(result_type);
+
+            bool is_primitive = (result_type->kind == TYPE_INT ||
+                                result_type->kind == TYPE_LONG ||
+                                result_type->kind == TYPE_DOUBLE ||
+                                result_type->kind == TYPE_BOOL ||
+                                result_type->kind == TYPE_BYTE ||
+                                result_type->kind == TYPE_CHAR);
+
+            if (is_primitive)
+            {
+                /* For primitives, we need to store through a pointer cast because
+                 * the variable is RtThreadHandle* but we're storing a primitive value.
+                 * Pattern: *((type *)&var) = *(type *)sync(...) */
+                indented_fprintf(gen, indent, "*(%s *)&%s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n",
+                    c_type, var_name, c_type, var_name, ARENA_VAR(gen), rt_type);
+            }
+            else
+            {
+                /* For reference types (arrays, strings), direct assignment works
+                 * because both are pointer types */
+                indented_fprintf(gen, indent, "%s = (%s)rt_thread_sync_with_result(%s, %s, %s);\n",
+                    var_name, c_type, var_name, ARENA_VAR(gen), rt_type);
+            }
+        }
+        else
+        {
+            /* Non-variable sync (e.g., &fn()!) - just execute the sync expression */
+            char *expr_str = code_gen_expression(gen, expr);
+            indented_fprintf(gen, indent, "%s;\n", expr_str);
+        }
+    }
+}
+
 void code_gen_expression_statement(CodeGen *gen, ExprStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_expression_statement");
+
+    /* Special handling for thread sync statements - need to assign results back to variables */
+    if (stmt->expression->type == EXPR_THREAD_SYNC)
+    {
+        code_gen_thread_sync_statement(gen, stmt->expression, indent);
+        return;
+    }
+
     char *expr_str = code_gen_expression(gen, stmt->expression);
     if (stmt->expression->expr_type->kind == TYPE_STRING && expression_produces_temp(stmt->expression))
     {
@@ -88,8 +226,28 @@ void code_gen_expression_statement(CodeGen *gen, ExprStmt *stmt, int indent)
 void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
 {
     DEBUG_VERBOSE("Entering code_gen_var_declaration");
-    const char *type_c = get_c_type(gen->arena, stmt->type);
     char *var_name = get_var_name(gen->arena, stmt->name);
+
+    // Check if this is a thread spawn assignment.
+    // For thread spawns with primitive types, we use RtThreadHandle* as the variable type.
+    // For reference types (arrays, strings), we use the actual type directly.
+    // The sync expression handles type conversion when retrieving the result.
+    bool is_thread_spawn = (stmt->initializer != NULL &&
+                            stmt->initializer->type == EXPR_THREAD_SPAWN);
+    bool is_reference_type = (stmt->type->kind == TYPE_ARRAY ||
+                              stmt->type->kind == TYPE_STRING ||
+                              stmt->type->kind == TYPE_FUNCTION);
+
+    const char *type_c;
+    if (is_thread_spawn && !is_reference_type)
+    {
+        // Primitives: use RtThreadHandle* since sync stores the result through a pointer cast
+        type_c = "RtThreadHandle *";
+    }
+    else
+    {
+        type_c = get_c_type(gen->arena, stmt->type);
+    }
 
     // Check if this primitive is captured by a closure - if so, treat it like 'as ref'
     // This ensures mutations inside closures are visible to the outer scope
@@ -341,7 +499,9 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
 
     for (int i = 0; i < stmt->param_count; i++)
     {
-        symbol_table_add_symbol_with_kind(gen->symbol_table, stmt->params[i].name, stmt->params[i].type, SYMBOL_PARAM);
+        /* Pass memory qualifier so code gen knows about 'as ref' parameters */
+        symbol_table_add_symbol_full(gen->symbol_table, stmt->params[i].name, stmt->params[i].type,
+                                     SYMBOL_PARAM, stmt->params[i].mem_qualifier);
     }
 
     // Pre-pass: scan function body for primitives captured by closures
@@ -364,7 +524,24 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     {
         const char *param_type_c = get_c_type(gen->arena, stmt->params[i].type);
         char *param_name = get_var_name(gen->arena, stmt->params[i].name);
-        fprintf(gen->output, "%s %s", param_type_c, param_name);
+
+        /* 'as ref' primitive parameters become pointer types */
+        bool is_ref_primitive = false;
+        if (stmt->params[i].mem_qualifier == MEM_AS_REF && stmt->params[i].type != NULL)
+        {
+            TypeKind kind = stmt->params[i].type->kind;
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+        }
+        if (is_ref_primitive)
+        {
+            fprintf(gen->output, "%s *%s", param_type_c, param_name);
+        }
+        else
+        {
+            fprintf(gen->output, "%s %s", param_type_c, param_name);
+        }
+
         if (i < stmt->param_count - 1)
         {
             fprintf(gen->output, ", ");
