@@ -1,0 +1,322 @@
+# Integration test for file reading with operations and boundary validation
+# Tests reading values from files, performing operations, and validating boundaries
+
+fn test_array_bounds_after_split(): bool =>
+    # Create test file with known content
+    TextFile.writeAll("/tmp/bounds_test.txt", "alpha\nbeta\ngamma\ndelta\nepsilon")
+
+    var f: TextFile = TextFile.open("/tmp/bounds_test.txt")
+    var content: str = f.readAll()
+    f.close()
+
+    var lines: str[] = content.split("\n")
+
+    # Validate length
+    if lines.length != 5 =>
+        print($"FAIL: Expected 5 lines, got {lines.length}\n")
+        return false
+
+    # Validate first element (lower bound)
+    if lines[0] != "alpha" =>
+        print($"FAIL: lines[0] expected 'alpha', got '{lines[0]}'\n")
+        return false
+
+    # Validate last element (upper bound)
+    if lines[4] != "epsilon" =>
+        print($"FAIL: lines[4] expected 'epsilon', got '{lines[4]}'\n")
+        return false
+
+    # Validate middle element
+    if lines[2] != "gamma" =>
+        print($"FAIL: lines[2] expected 'gamma', got '{lines[2]}'\n")
+        return false
+
+    TextFile.delete("/tmp/bounds_test.txt")
+    print("  array_bounds_after_split: PASS\n")
+    return true
+
+fn test_operations_on_file_content(): bool =>
+    TextFile.writeAll("/tmp/ops_test.txt", "  Hello, World!  \nFOO BAR BAZ\n123,456,789")
+
+    var f: TextFile = TextFile.open("/tmp/ops_test.txt")
+    var lines: str[] = f.readLines()
+    f.close()
+
+    if lines.length != 3 =>
+        print($"FAIL: Expected 3 lines, got {lines.length}\n")
+        return false
+
+    # Test trim on first line
+    var trimmed: str = lines[0].trim()
+    if trimmed != "Hello, World!" =>
+        print($"FAIL: trim expected 'Hello, World!', got '{trimmed}'\n")
+        return false
+
+    # Test toLower on second line
+    var lower: str = lines[1].toLower()
+    if lower != "foo bar baz" =>
+        print($"FAIL: toLower expected 'foo bar baz', got '{lower}'\n")
+        return false
+
+    # Test split on third line (CSV parsing)
+    var nums: str[] = lines[2].split(",")
+    if nums.length != 3 =>
+        print($"FAIL: CSV split expected 3 parts, got {nums.length}\n")
+        return false
+
+    if nums[0] != "123" =>
+        print($"FAIL: nums[0] expected '123', got '{nums[0]}'\n")
+        return false
+
+    if nums[2] != "789" =>
+        print($"FAIL: nums[2] expected '789', got '{nums[2]}'\n")
+        return false
+
+    TextFile.delete("/tmp/ops_test.txt")
+    print("  operations_on_file_content: PASS\n")
+    return true
+
+fn test_empty_file_handling(): bool =>
+    TextFile.writeAll("/tmp/empty_test.txt", "")
+
+    var content: str = TextFile.readAll("/tmp/empty_test.txt")
+
+    if content.length != 0 =>
+        print($"FAIL: Empty file content.length expected 0, got {content.length}\n")
+        return false
+
+    # Split empty content should give empty array or single empty element
+    var parts: str[] = content.split("\n")
+    if parts.length != 1 =>
+        print($"FAIL: Split empty expected 1 part, got {parts.length}\n")
+        return false
+
+    if parts[0] != "" =>
+        print($"FAIL: parts[0] expected '', got '{parts[0]}'\n")
+        return false
+
+    TextFile.delete("/tmp/empty_test.txt")
+    print("  empty_file_handling: PASS\n")
+    return true
+
+fn test_single_line_file(): bool =>
+    TextFile.writeAll("/tmp/single_line.txt", "just one line")
+
+    var content: str = TextFile.readAll("/tmp/single_line.txt")
+    var lines: str[] = content.split("\n")
+
+    if lines.length != 1 =>
+        print($"FAIL: Single line file expected 1 line, got {lines.length}\n")
+        return false
+
+    if lines[0] != "just one line" =>
+        print($"FAIL: lines[0] expected 'just one line', got '{lines[0]}'\n")
+        return false
+
+    # Verify operations on single element
+    if lines[0].length != 13 =>
+        print($"FAIL: lines[0].length expected 13, got {lines[0].length}\n")
+        return false
+
+    var words: str[] = lines[0].splitWhitespace()
+    if words.length != 3 =>
+        print($"FAIL: words.length expected 3, got {words.length}\n")
+        return false
+
+    TextFile.delete("/tmp/single_line.txt")
+    print("  single_line_file: PASS\n")
+    return true
+
+fn test_iteration_bounds(): bool =>
+    TextFile.writeAll("/tmp/iter_test.txt", "a\nb\nc\nd\ne")
+
+    var f: TextFile = TextFile.open("/tmp/iter_test.txt")
+    var lines: str[] = f.readLines()
+    f.close()
+
+    # Iterate and validate each element
+    var expected: str[] = {"a", "b", "c", "d", "e"}
+
+    if lines.length != expected.length =>
+        print($"FAIL: lines.length {lines.length} != expected.length {expected.length}\n")
+        return false
+
+    var i: int = 0
+    for i in 0..lines.length =>
+        if lines[i] != expected[i] =>
+            print($"FAIL: lines[{i}] '{lines[i]}' != expected[{i}] '{expected[i]}'\n")
+            return false
+
+    TextFile.delete("/tmp/iter_test.txt")
+    print("  iteration_bounds: PASS\n")
+    return true
+
+fn test_substring_from_file(): bool =>
+    TextFile.writeAll("/tmp/substr_test.txt", "0123456789")
+
+    var content: str = TextFile.readAll("/tmp/substr_test.txt")
+
+    # Test substring boundaries
+    var first3: str = content.substring(0, 3)
+    if first3 != "012" =>
+        print($"FAIL: substring(0,3) expected '012', got '{first3}'\n")
+        return false
+
+    var last3: str = content.substring(7, 10)
+    if last3 != "789" =>
+        print($"FAIL: substring(7,10) expected '789', got '{last3}'\n")
+        return false
+
+    var middle: str = content.substring(3, 7)
+    if middle != "3456" =>
+        print($"FAIL: substring(3,7) expected '3456', got '{middle}'\n")
+        return false
+
+    # Full string
+    var full: str = content.substring(0, content.length)
+    if full != content =>
+        print($"FAIL: substring(0, len) should equal content\n")
+        return false
+
+    TextFile.delete("/tmp/substr_test.txt")
+    print("  substring_from_file: PASS\n")
+    return true
+
+fn test_indexOf_from_file(): bool =>
+    TextFile.writeAll("/tmp/index_test.txt", "find the needle in the haystack")
+
+    var content: str = TextFile.readAll("/tmp/index_test.txt")
+
+    # Test indexOf at various positions
+    var idx1: int = content.indexOf("find")
+    if idx1 != 0 =>
+        print($"FAIL: indexOf('find') expected 0, got {idx1}\n")
+        return false
+
+    var idx2: int = content.indexOf("needle")
+    if idx2 != 9 =>
+        print($"FAIL: indexOf('needle') expected 9, got {idx2}\n")
+        return false
+
+    var idx3: int = content.indexOf("haystack")
+    if idx3 != 23 =>
+        print($"FAIL: indexOf('haystack') expected 23, got {idx3}\n")
+        return false
+
+    # Not found case
+    var idx4: int = content.indexOf("missing")
+    if idx4 != -1 =>
+        print($"FAIL: indexOf('missing') expected -1, got {idx4}\n")
+        return false
+
+    TextFile.delete("/tmp/index_test.txt")
+    print("  indexOf_from_file: PASS\n")
+    return true
+
+fn test_nested_array_operations(): bool =>
+    # Create file with CSV-like data
+    TextFile.writeAll("/tmp/nested_test.txt", "a,b,c\n1,2,3\nx,y,z")
+
+    var f: TextFile = TextFile.open("/tmp/nested_test.txt")
+    var lines: str[] = f.readLines()
+    f.close()
+
+    if lines.length != 3 =>
+        print($"FAIL: Expected 3 lines, got {lines.length}\n")
+        return false
+
+    # Parse each line into columns
+    var row0: str[] = lines[0].split(",")
+    var row1: str[] = lines[1].split(",")
+    var row2: str[] = lines[2].split(",")
+
+    # Validate dimensions
+    if row0.length != 3 =>
+        print($"FAIL: row0.length expected 3, got {row0.length}\n")
+        return false
+
+    # Validate corners
+    if row0[0] != "a" =>
+        print($"FAIL: row0[0] expected 'a', got '{row0[0]}'\n")
+        return false
+
+    if row0[2] != "c" =>
+        print($"FAIL: row0[2] expected 'c', got '{row0[2]}'\n")
+        return false
+
+    if row2[0] != "x" =>
+        print($"FAIL: row2[0] expected 'x', got '{row2[0]}'\n")
+        return false
+
+    if row2[2] != "z" =>
+        print($"FAIL: row2[2] expected 'z', got '{row2[2]}'\n")
+        return false
+
+    # Validate center
+    if row1[1] != "2" =>
+        print($"FAIL: row1[1] expected '2', got '{row1[1]}'\n")
+        return false
+
+    TextFile.delete("/tmp/nested_test.txt")
+    print("  nested_array_operations: PASS\n")
+    return true
+
+fn test_length_validation_chain(): bool =>
+    TextFile.writeAll("/tmp/chain_test.txt", "one two three four five")
+
+    var content: str = TextFile.readAll("/tmp/chain_test.txt")
+    var words: str[] = content.splitWhitespace()
+
+    # Validate we can safely iterate based on length
+    var totalLen: int = 0
+    var i: int = 0
+    for i in 0..words.length =>
+        totalLen = totalLen + words[i].length
+
+    # "one" + "two" + "three" + "four" + "five" = 3 + 3 + 5 + 4 + 4 = 19
+    if totalLen != 19 =>
+        print($"FAIL: Total word lengths expected 19, got {totalLen}\n")
+        return false
+
+    TextFile.delete("/tmp/chain_test.txt")
+    print("  length_validation_chain: PASS\n")
+    return true
+
+fn main(): int =>
+    print("=== File Operations Boundary Tests ===\n")
+
+    var allPassed: bool = true
+
+    if !test_array_bounds_after_split() =>
+        allPassed = false
+
+    if !test_operations_on_file_content() =>
+        allPassed = false
+
+    if !test_empty_file_handling() =>
+        allPassed = false
+
+    if !test_single_line_file() =>
+        allPassed = false
+
+    if !test_iteration_bounds() =>
+        allPassed = false
+
+    if !test_substring_from_file() =>
+        allPassed = false
+
+    if !test_indexOf_from_file() =>
+        allPassed = false
+
+    if !test_nested_array_operations() =>
+        allPassed = false
+
+    if !test_length_validation_chain() =>
+        allPassed = false
+
+    if allPassed =>
+        print("\nAll file operations boundary tests passed!\n")
+        return 0
+    else =>
+        print("\nSome tests failed!\n")
+        return 1
