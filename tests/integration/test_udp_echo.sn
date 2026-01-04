@@ -1,0 +1,69 @@
+// Test: UDP sendTo and receiveFrom operations
+// Uses Python as UDP echo server to test datagram exchange
+// Python server verifies and reports sender address
+
+fn main(): void =>
+    // Start a Python UDP server that echoes data and reports sender
+    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.bind(('127.0.0.1',45687));open('/tmp/udp_ready','w').write('1');data,addr=s.recvfrom(1024);print(f'From:{addr[0]}:{addr[1]}');s.sendto(b'ECHO:'+data,addr);s.close()"})
+
+    // Wait for server to be ready
+    var attempts: int = 0
+    while attempts < 50 =>
+        var check: Process = Process.run("test", {"-f", "/tmp/udp_ready"})
+        if check.exitCode == 0 =>
+            attempts = 100
+        else =>
+            var wait: Process = Process.run("sleep", {"0.05"})
+            attempts = attempts + 1
+
+    if attempts < 100 =>
+        print("Timeout waiting for server\n")
+        return
+
+    // Create client socket with OS-assigned port
+    var client: UdpSocket = UdpSocket.bind("127.0.0.1:0")
+    var clientPort: int = client.port
+    print("Client bound\n")
+
+    // Test 1: Send datagram to server
+    var message: byte[] = "Hello UDP".toBytes()
+    client.sendTo(message, "127.0.0.1:45687")
+    print("Test 1 PASS: Datagram sent\n")
+
+    // Test 2: Receive echo response
+    var response: byte[] = client.receiveFrom(1024)
+    var respStr: str = response.toString()
+
+    if respStr.startsWith("ECHO:") =>
+        print("Test 2 PASS: Received echo prefix\n")
+    else =>
+        print($"Test 2 FAIL: Response was {respStr}\n")
+
+    // Test 3: Check echoed content
+    if respStr == "ECHO:Hello UDP" =>
+        print("Test 3 PASS: Echo content correct\n")
+    else =>
+        print($"Test 3 FAIL: Expected ECHO:Hello UDP got {respStr}\n")
+
+    client.close()
+
+    // Wait for Python server and check its output
+    server!
+    var serverOut: str = server.stdout
+
+    // Test 4: Server saw sender address (verifies sender info)
+    if serverOut.contains("127.0.0.1") =>
+        print("Test 4 PASS: Server saw sender IP\n")
+    else =>
+        print($"Test 4 FAIL: Server output {serverOut}\n")
+
+    // Test 5: Server saw client port
+    if serverOut.contains($"{clientPort}") =>
+        print("Test 5 PASS: Server saw sender port\n")
+    else =>
+        print("Test 5 FAIL: Server did not see correct port\n")
+
+    // Clean up
+    var cleanup: Process = Process.run("rm", {"-f", "/tmp/udp_ready"})
+
+    print("All UDP echo tests complete\n")

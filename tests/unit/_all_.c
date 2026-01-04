@@ -15,6 +15,7 @@
 #include "runtime/runtime_path_tests.c"
 #include "runtime/runtime_thread_tests.c"
 #include "runtime/runtime_process_tests.c"
+#include "runtime/runtime_net_tests.c"
 #include "standalone/symbol_table_tests.c"
 #include "standalone/token_tests.c"
 #include "type_checker/type_checker_tests.c"
@@ -69,6 +70,10 @@ int main()
     // *** Runtime Process ***
 
     test_rt_process_main();
+
+    // *** Runtime Network ***
+
+    test_rt_net_main();
 
     // *** AST ***
     

@@ -2133,6 +2133,10 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
     if (object_type->kind == TYPE_UDP_SOCKET && strcmp(member_name_str, "port") == 0) {
         return arena_sprintf(gen->arena, "(%s)->port", object_str);
     }
+    // Handle UdpSocket.lastSender
+    if (object_type->kind == TYPE_UDP_SOCKET && strcmp(member_name_str, "lastSender") == 0) {
+        return arena_sprintf(gen->arena, "rt_udp_socket_get_last_sender(%s)", object_str);
+    }
 
     // Generic struct member access (not currently supported)
     fprintf(stderr, "Error: Unsupported member access on type\n");

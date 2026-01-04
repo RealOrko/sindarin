@@ -1,0 +1,36 @@
+// Test: TCP bind operations
+// Tests TcpListener.bind and port property
+
+fn main(): void =>
+    // Test 1: Bind to localhost with OS-assigned port
+    var server1: TcpListener = TcpListener.bind("127.0.0.1:0")
+    var port1: int = server1.port
+
+    if port1 > 0 =>
+        print("Test 1 PASS: Bound with valid port\n")
+    else =>
+        print("Test 1 FAIL: Invalid port\n")
+
+    // Test 2: Port should be in valid range
+    if port1 >= 1024 =>
+        if port1 <= 65535 =>
+            print("Test 2 PASS: Port in valid range\n")
+        else =>
+            print("Test 2 FAIL: Port too high\n")
+    else =>
+        print("Test 2 FAIL: Port too low\n")
+
+    // Clean up first server
+    server1.close()
+
+    // Test 3: Can bind another server after close
+    var server2: TcpListener = TcpListener.bind("127.0.0.1:0")
+    var port2: int = server2.port
+
+    if port2 > 0 =>
+        print("Test 3 PASS: Second bind successful\n")
+    else =>
+        print("Test 3 FAIL: Second bind failed\n")
+
+    server2.close()
+    print("All bind tests complete\n")

@@ -782,6 +782,7 @@ RtUdpSocket *rt_udp_socket_bind(RtArena *arena, const char *address)
 
     sock->fd = fd;
     sock->port = actual_port;
+    sock->last_sender = NULL;
     return sock;
 }
 
@@ -837,11 +838,6 @@ unsigned char *rt_udp_socket_receive_from(RtArena *arena, RtUdpSocket *socket, l
         fprintf(stderr, "UdpSocket.receiveFrom: max_bytes must be positive: %ld\n", max_bytes);
         exit(1);
     }
-    if (sender == NULL) {
-        fprintf(stderr, "UdpSocket.receiveFrom: sender pointer is NULL\n");
-        exit(1);
-    }
-
     /* Allocate receive buffer */
     unsigned char *buffer = rt_arena_alloc(arena, (size_t)max_bytes);
     if (buffer == NULL) {
@@ -859,8 +855,14 @@ unsigned char *rt_udp_socket_receive_from(RtArena *arena, RtUdpSocket *socket, l
         exit(1);
     }
 
-    /* Format sender address */
-    *sender = format_address(arena, &src_addr, src_len);
+    /* Format sender address - always store in socket for lastSender property */
+    char *sender_addr = format_address(arena, &src_addr, src_len);
+    socket->last_sender = sender_addr;
+
+    /* Also return via out parameter if provided */
+    if (sender != NULL) {
+        *sender = sender_addr;
+    }
 
     /* Create byte array result */
     return rt_array_create_byte(arena, (size_t)bytes_received, buffer);
@@ -889,6 +891,16 @@ RtUdpSocket *rt_udp_socket_promote(RtArena *dest, RtArena *src_arena, RtUdpSocke
 
     promoted->fd = src->fd;
     promoted->port = src->port;
+    /* Copy last_sender if present */
+    if (src->last_sender != NULL) {
+        size_t len = strlen(src->last_sender) + 1;
+        promoted->last_sender = rt_arena_alloc(dest, len);
+        if (promoted->last_sender != NULL) {
+            memcpy(promoted->last_sender, src->last_sender, len);
+        }
+    } else {
+        promoted->last_sender = NULL;
+    }
 
     /* Mark source as invalid to prevent double-close */
     src->fd = -1;

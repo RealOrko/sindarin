@@ -1,7 +1,5 @@
 # Network I/O in Sindarin
 
-> **DRAFT** - This specification is not yet implemented.
-
 Sindarin provides built-in types for network communication: `TcpListener` and `TcpStream` for TCP connections, and `UdpSocket` for UDP datagrams. All network types integrate with Sindarin's arena-based memory management and threading model.
 
 ## TCP
@@ -352,58 +350,7 @@ var conn: TcpStream = TcpStream.connect("example.com:80")
 
 ---
 
-## Implementation Notes
-
-### C Runtime
-
-```c
-typedef struct RtTcpListener {
-    int fd;
-    int port;
-} RtTcpListener;
-
-typedef struct RtTcpStream {
-    int fd;
-    char* remote_address;
-} RtTcpStream;
-
-typedef struct RtUdpSocket {
-    int fd;
-    int port;
-} RtUdpSocket;
-
-RtTcpListener* rt_tcp_listener_bind(RtArena* arena, const char* address);
-RtTcpStream* rt_tcp_listener_accept(RtArena* arena, RtTcpListener* listener);
-RtTcpStream* rt_tcp_stream_connect(RtArena* arena, const char* address);
-RtArray* rt_tcp_stream_read(RtArena* arena, RtTcpStream* stream, int max_bytes);
-int rt_tcp_stream_write(RtTcpStream* stream, RtArray* data);
-void rt_tcp_stream_close(RtTcpStream* stream);
-
-RtUdpSocket* rt_udp_socket_bind(RtArena* arena, const char* address);
-int rt_udp_socket_send_to(RtUdpSocket* socket, RtArray* data, const char* address);
-RtArray* rt_udp_socket_receive_from(RtArena* arena, RtUdpSocket* socket, int max_bytes, char** sender);
-void rt_udp_socket_close(RtUdpSocket* socket);
-```
-
----
-
-## Future Extensions
-
-The following features are intentionally deferred:
-
-- **Unix sockets** - `UnixListener`, `UnixStream` for local IPC
-- **Timeouts** - `connectWithTimeout`, `setReadTimeout`
-- **Socket options** - `setNoDelay`, `setKeepAlive`
-- **Shutdown** - Half-close operations
-- **Multicast** - `joinMulticast`, `leaveMulticast`
-- **Broadcast** - `setBroadcast`
-- **DNS utilities** - `Dns.lookup()`, `Dns.reverse()`
-- **Polling** - `Net.poll()` (threading handles most use cases)
-- **TLS/SSL** - Encrypted connections
-
----
-
 ## See Also
 
-- [THREADING.md](../language/THREADING.md) - Threading model (`&` spawn, `!` sync)
-- [MEMORY.md](../language/MEMORY.md) - Arena memory management
+- [THREADING.md](THREADING.md) - Threading model (`&` spawn, `!` sync)
+- [MEMORY.md](MEMORY.md) - Arena memory management

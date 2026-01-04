@@ -51,6 +51,7 @@ typedef struct RtTcpStream {
 typedef struct RtUdpSocket {
     int fd;                     /* Socket file descriptor */
     int port;                   /* Bound port number */
+    char *last_sender;          /* Address of last received datagram sender */
 } RtUdpSocket;
 
 /* ============================================================================
@@ -253,6 +254,14 @@ void rt_udp_socket_close(RtUdpSocket *socket);
  */
 static inline int rt_udp_socket_get_port(RtUdpSocket *socket) {
     return socket->port;
+}
+
+/* Get the address of the last datagram sender.
+ * Returns the sender address from the most recent receiveFrom call.
+ * Returns empty string if no datagram has been received yet.
+ */
+static inline const char *rt_udp_socket_get_last_sender(RtUdpSocket *socket) {
+    return socket->last_sender ? socket->last_sender : "";
 }
 
 /* ============================================================================

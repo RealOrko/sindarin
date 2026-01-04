@@ -1,0 +1,67 @@
+// Test: TCP line-based protocol (readLine, writeLine)
+// Uses Python as a server for line-based communication
+
+fn main(): void =>
+    // Clean up temp file if it exists
+    var preclean: Process = Process.run("rm", {"-f", "/tmp/tcp_lines_ready"})
+
+    // Start a Python server that:
+    // 1. Sends "GREETING\n"
+    // 2. Receives a line
+    // 3. Sends back "ECHO:<received>\n"
+    // 4. Waits for client to close, then closes
+    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open('/tmp/tcp_lines_ready','w').write(str(p));c,a=s.accept();c.send(b'GREETING\\n');d=c.recv(1024).decode().strip();c.send(f'ECHO:{d}\\n'.encode());c.recv(1);c.close();s.close()"})
+
+    // Wait for server to be ready
+    var attempts: int = 0
+    while attempts < 100 =>
+        var check: Process = Process.run("test", {"-f", "/tmp/tcp_lines_ready"})
+        if check.exitCode == 0 =>
+            attempts = 200
+        else =>
+            var wait: Process = Process.run("sleep", {"0.05"})
+            attempts = attempts + 1
+
+    if attempts < 200 =>
+        print("Timeout waiting for server\n")
+        return
+
+    // Read the port number from the temp file
+    var portReader: Process = Process.run("cat", {"/tmp/tcp_lines_ready"})
+    var port: str = portReader.stdout.trim()
+
+    // Connect to the Python server
+    var client: TcpStream = TcpStream.connect($"127.0.0.1:{port}")
+    print("Connected\n")
+
+    // Read the greeting line
+    var greeting: str = client.readLine()
+    print($"Received line: {greeting}\n")
+
+    if greeting == "GREETING" =>
+        print("Greeting correct\n")
+    else =>
+        print("Greeting incorrect\n")
+
+    // Send a line using writeLine
+    client.writeLine("HELLO WORLD")
+    print("Sent line\n")
+
+    // Read the echo response
+    var echo: str = client.readLine()
+    print($"Echo received: {echo}\n")
+
+    if echo == "ECHO:HELLO WORLD" =>
+        print("Echo correct\n")
+    else =>
+        print("Echo incorrect\n")
+
+    client.close()
+    print("Closed\n")
+
+    // Wait for server to finish
+    server!
+
+    // Clean up
+    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_lines_ready"})
+    print("Test complete\n")

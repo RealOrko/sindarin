@@ -1670,9 +1670,9 @@ Type *type_check_tcp_stream_method(Expr *expr, Type *object_type, Token member_n
  * ============================================================================
  * Handles type checking for UdpSocket method/property access.
  * UdpSocket has:
- * - Properties: port (int)
+ * - Properties: port (int), lastSender (str)
  * - Methods: sendTo(data: byte[], address: str) -> void,
- *            receiveFrom(maxBytes: int) -> (byte[], str),
+ *            receiveFrom(maxBytes: int) -> byte[],
  *            close() -> void
  * ============================================================================ */
 
@@ -1692,6 +1692,14 @@ Type *type_check_udp_socket_method(Expr *expr, Type *object_type, Token member_n
         Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
         DEBUG_VERBOSE("Returning int type for UdpSocket port property");
         return int_type;
+    }
+
+    /* socket.lastSender -> str */
+    if (token_equals(member_name, "lastSender"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning str type for UdpSocket lastSender property");
+        return str_type;
     }
 
     /* socket.sendTo(data: byte[], address: str) -> void */

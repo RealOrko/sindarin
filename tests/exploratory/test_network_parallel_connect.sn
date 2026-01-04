@@ -1,0 +1,70 @@
+// Test: Parallel TCP connections using & operator
+// Demonstrates making concurrent requests and getting string results
+// Uses wrapper functions that connect, read, and close internally
+
+fn fetchData(addr: str): str =>
+    var conn: TcpStream = TcpStream.connect(addr)
+    var data: byte[] = conn.read(1024)
+    conn.close()
+    return data.toString()
+
+fn main(): void =>
+    print("Testing parallel TCP connections\n")
+
+    // Clean up temp file if it exists
+    var preclean: Process = Process.run("rm", {"-f", "/tmp/tcp_par2"})
+
+    // Start a Python server that accepts 3 connections (OS-assigned port)
+    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));p=s.getsockname()[1];s.listen(5);open('/tmp/tcp_par2','w').write(str(p));c1,a1=s.accept();c1.send(b'DATA1');c1.close();c2,a2=s.accept();c2.send(b'DATA2');c2.close();c3,a3=s.accept();c3.send(b'DATA3');c3.close();s.close()"})
+
+    // Wait for server to be ready
+    var attempts: int = 0
+    while attempts < 100 =>
+        var check: Process = Process.run("test", {"-f", "/tmp/tcp_par2"})
+        if check.exitCode == 0 =>
+            attempts = 200
+        else =>
+            var wait: Process = Process.run("sleep", {"0.05"})
+            attempts = attempts + 1
+
+    if attempts < 200 =>
+        print("Server not ready\n")
+        return
+
+    // Read the port number from the temp file
+    var portReader: Process = Process.run("cat", {"/tmp/tcp_par2"})
+    var port: str = portReader.stdout.trim()
+
+    print("Server ready\n")
+
+    // Fetch data from server 3 times in parallel
+    // Each call creates connection, reads data, closes, and returns string
+    var addr: str = $"127.0.0.1:{port}"
+    var result1: str = &fetchData(addr)
+    var result2: str = &fetchData(addr)
+    var result3: str = &fetchData(addr)
+
+    // Sync all requests
+    result1!
+    result2!
+    result3!
+    print("All requests completed in parallel\n")
+
+    // Verify we got data from each (order may vary due to parallel execution)
+    var count: int = 0
+    if result1.length > 0 =>
+        count = count + 1
+    if result2.length > 0 =>
+        count = count + 1
+    if result3.length > 0 =>
+        count = count + 1
+
+    if count == 3 =>
+        print("SUCCESS: All parallel requests returned data\n")
+    else =>
+        print("FAILURE: Some requests returned no data\n")
+
+    server!
+
+    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_par2"})
+    print("Test complete\n")

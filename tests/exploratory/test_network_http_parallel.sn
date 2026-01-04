@@ -1,0 +1,66 @@
+// Test: Parallel HTTP-like requests
+// Demonstrates making multiple HTTP-style requests concurrently
+// Uses wrapper functions that return string responses
+
+fn httpGet(addr: str, path: str): str =>
+    var conn: TcpStream = TcpStream.connect(addr)
+    conn.writeLine($"GET {path} HTTP/1.0")
+    conn.writeLine("Host: localhost")
+    conn.writeLine("")
+    var response: byte[] = conn.read(4096)
+    conn.close()
+    return response.toString()
+
+fn main(): void =>
+    print("Testing parallel HTTP-like requests\n")
+
+    // Start a simple Python server that echoes back the path
+    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',46040));s.listen(5);open('/tmp/tcp_http','w').write('1');c1,a1=s.accept();r1=c1.recv(1024);c1.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page1');c1.close();c2,a2=s.accept();r2=c2.recv(1024);c2.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page2');c2.close();c3,a3=s.accept();r3=c3.recv(1024);c3.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page3');c3.close();s.close()"})
+
+    // Wait for server to be ready
+    var attempts: int = 0
+    while attempts < 50 =>
+        var check: Process = Process.run("test", {"-f", "/tmp/tcp_http"})
+        if check.exitCode == 0 =>
+            attempts = 100
+        else =>
+            var wait: Process = Process.run("sleep", {"0.05"})
+            attempts = attempts + 1
+
+    if attempts < 100 =>
+        print("Server not ready\n")
+        return
+
+    print("Server ready\n")
+
+    // Make 3 parallel HTTP GET requests to different paths
+    var resp1: str = &httpGet("127.0.0.1:46040", "/page1")
+    var resp2: str = &httpGet("127.0.0.1:46040", "/page2")
+    var resp3: str = &httpGet("127.0.0.1:46040", "/page3")
+
+    // Sync all requests
+    resp1!
+    resp2!
+    resp3!
+    print("All HTTP requests completed in parallel\n")
+
+    // Verify responses contain expected paths
+    var count: int = 0
+    if resp1.contains("/page") =>
+        count = count + 1
+    if resp2.contains("/page") =>
+        count = count + 1
+    if resp3.contains("/page") =>
+        count = count + 1
+
+    print($"Valid responses: {count}\n")
+
+    if count == 3 =>
+        print("SUCCESS: All parallel HTTP requests returned valid responses\n")
+    else =>
+        print("FAILURE: Some HTTP requests failed\n")
+
+    server!
+
+    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_http"})
+    print("Test complete\n")

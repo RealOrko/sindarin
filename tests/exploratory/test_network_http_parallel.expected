@@ -1,0 +1,6 @@
+Testing parallel HTTP-like requests
+Server ready
+All HTTP requests completed in parallel
+Valid responses: 3
+SUCCESS: All parallel HTTP requests returned valid responses
+Test complete
