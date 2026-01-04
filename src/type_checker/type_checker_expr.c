@@ -584,6 +584,39 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         /* Fall through to error handling if not a valid Process property */
     }
 
+    /* Try TcpListener method/property type checking */
+    if (object_type->kind == TYPE_TCP_LISTENER)
+    {
+        Type *result = type_check_tcp_listener_method(expr, object_type, expr->as.member.member_name, table);
+        if (result != NULL)
+        {
+            return result;
+        }
+        /* Fall through to error handling if not a valid TcpListener method/property */
+    }
+
+    /* Try TcpStream method/property type checking */
+    if (object_type->kind == TYPE_TCP_STREAM)
+    {
+        Type *result = type_check_tcp_stream_method(expr, object_type, expr->as.member.member_name, table);
+        if (result != NULL)
+        {
+            return result;
+        }
+        /* Fall through to error handling if not a valid TcpStream method/property */
+    }
+
+    /* Try UdpSocket method/property type checking */
+    if (object_type->kind == TYPE_UDP_SOCKET)
+    {
+        Type *result = type_check_udp_socket_method(expr, object_type, expr->as.member.member_name, table);
+        if (result != NULL)
+        {
+            return result;
+        }
+        /* Fall through to error handling if not a valid UdpSocket method/property */
+    }
+
     /* No valid method found */
     {
         /* Create null-terminated member name for error message */

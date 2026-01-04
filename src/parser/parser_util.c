@@ -254,6 +254,21 @@ Type *parser_type(Parser *parser)
             parser_advance(parser);
             type = ast_create_primitive_type(parser->arena, TYPE_PROCESS);
         }
+        else if (id.length == 11 && strncmp(id.start, "TcpListener", 11) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_TCP_LISTENER);
+        }
+        else if (id.length == 9 && strncmp(id.start, "TcpStream", 9) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_TCP_STREAM);
+        }
+        else if (id.length == 9 && strncmp(id.start, "UdpSocket", 9) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_UDP_SOCKET);
+        }
         else
         {
             parser_error_at_current(parser, "Expected type");
@@ -339,6 +354,9 @@ static const char *static_type_names[] = {
     "Date",
     "Time",
     "Process",
+    "TcpListener",
+    "TcpStream",
+    "UdpSocket",
     NULL
 };
 

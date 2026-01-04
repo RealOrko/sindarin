@@ -42,7 +42,7 @@ build: clean
 	@cat $(LOG_DIR)/build-output.log
 	@# Clean up intermediate files, keeping only required runtime objects
 	@find $(BIN_DIR) -name "*.d" -delete
-	@find $(BIN_DIR) -name "*.o" ! -name "arena.o" ! -name "debug.o" ! -name "runtime.o" ! -name "runtime_arena.o" ! -name "runtime_string.o" ! -name "runtime_array.o" ! -name "runtime_text_file.o" ! -name "runtime_binary_file.o" ! -name "runtime_io.o" ! -name "runtime_byte.o" ! -name "runtime_path.o" ! -name "runtime_date.o" ! -name "runtime_time.o" ! -name "runtime_thread.o" ! -name "runtime_process.o" -delete
+	@find $(BIN_DIR) -name "*.o" ! -name "arena.o" ! -name "debug.o" ! -name "runtime.o" ! -name "runtime_arena.o" ! -name "runtime_string.o" ! -name "runtime_array.o" ! -name "runtime_text_file.o" ! -name "runtime_binary_file.o" ! -name "runtime_io.o" ! -name "runtime_byte.o" ! -name "runtime_path.o" ! -name "runtime_date.o" ! -name "runtime_time.o" ! -name "runtime_thread.o" ! -name "runtime_process.o" ! -name "runtime_net.o" -delete
 
 #------------------------------------------------------------------------------
 # clean - Remove build artifacts

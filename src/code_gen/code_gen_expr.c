@@ -1577,6 +1577,91 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     ARENA_VAR(gen), object_str);
             }
         }
+
+        /* TcpListener instance methods */
+        if (object_type->kind == TYPE_TCP_LISTENER) {
+            char *object_str = code_gen_expression(gen, member->object);
+
+            /* accept() -> rt_tcp_listener_accept(arena, listener) */
+            if (strcmp(member_name_str, "accept") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_tcp_listener_accept(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* close() -> rt_tcp_listener_close(listener) */
+            if (strcmp(member_name_str, "close") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_tcp_listener_close(%s)", object_str);
+            }
+        }
+
+        /* TcpStream instance methods */
+        if (object_type->kind == TYPE_TCP_STREAM) {
+            char *object_str = code_gen_expression(gen, member->object);
+
+            /* read(maxBytes) -> rt_tcp_stream_read(arena, stream, maxBytes) */
+            if (strcmp(member_name_str, "read") == 0 && call->arg_count == 1) {
+                char *max_bytes_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_tcp_stream_read(%s, %s, %s)",
+                    ARENA_VAR(gen), object_str, max_bytes_str);
+            }
+
+            /* readAll() -> rt_tcp_stream_read_all(arena, stream) */
+            if (strcmp(member_name_str, "readAll") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_tcp_stream_read_all(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* readLine() -> rt_tcp_stream_read_line(arena, stream) */
+            if (strcmp(member_name_str, "readLine") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_tcp_stream_read_line(%s, %s)",
+                    ARENA_VAR(gen), object_str);
+            }
+
+            /* write(data) -> rt_tcp_stream_write(stream, data) */
+            if (strcmp(member_name_str, "write") == 0 && call->arg_count == 1) {
+                char *data_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_tcp_stream_write(%s, %s)",
+                    object_str, data_str);
+            }
+
+            /* writeLine(line) -> rt_tcp_stream_write_line(stream, line) */
+            if (strcmp(member_name_str, "writeLine") == 0 && call->arg_count == 1) {
+                char *line_str = code_gen_expression(gen, call->arguments[0]);
+                return arena_sprintf(gen->arena, "rt_tcp_stream_write_line(%s, %s)",
+                    object_str, line_str);
+            }
+
+            /* close() -> rt_tcp_stream_close(stream) */
+            if (strcmp(member_name_str, "close") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_tcp_stream_close(%s)", object_str);
+            }
+        }
+
+        /* UdpSocket instance methods */
+        if (object_type->kind == TYPE_UDP_SOCKET) {
+            char *object_str = code_gen_expression(gen, member->object);
+
+            /* sendTo(data, address) -> rt_udp_socket_send_to(socket, data, address) */
+            if (strcmp(member_name_str, "sendTo") == 0 && call->arg_count == 2) {
+                char *data_str = code_gen_expression(gen, call->arguments[0]);
+                char *address_str = code_gen_expression(gen, call->arguments[1]);
+                return arena_sprintf(gen->arena, "rt_udp_socket_send_to(%s, %s, %s)",
+                    object_str, data_str, address_str);
+            }
+
+            /* receiveFrom(maxBytes) -> rt_udp_socket_receive_from(arena, socket, maxBytes, &sender) */
+            if (strcmp(member_name_str, "receiveFrom") == 0 && call->arg_count == 1) {
+                char *max_bytes_str = code_gen_expression(gen, call->arguments[0]);
+                /* Note: sender address handling is complex - for now return byte[] only */
+                return arena_sprintf(gen->arena, "rt_udp_socket_receive_from(%s, %s, %s, NULL)",
+                    ARENA_VAR(gen), object_str, max_bytes_str);
+            }
+
+            /* close() -> rt_udp_socket_close(socket) */
+            if (strcmp(member_name_str, "close") == 0 && call->arg_count == 0) {
+                return arena_sprintf(gen->arena, "rt_udp_socket_close(%s)", object_str);
+            }
+        }
     }
 
     /* Check if the callee is a closure (function type variable) */
@@ -2029,6 +2114,24 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
     // Handle Process.stderr
     if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "stderr") == 0) {
         return arena_sprintf(gen->arena, "(%s)->stderr_data", object_str);
+    }
+
+    /* TcpListener properties */
+    // Handle TcpListener.port
+    if (object_type->kind == TYPE_TCP_LISTENER && strcmp(member_name_str, "port") == 0) {
+        return arena_sprintf(gen->arena, "(%s)->port", object_str);
+    }
+
+    /* TcpStream properties */
+    // Handle TcpStream.remoteAddress
+    if (object_type->kind == TYPE_TCP_STREAM && strcmp(member_name_str, "remoteAddress") == 0) {
+        return arena_sprintf(gen->arena, "(%s)->remote_address", object_str);
+    }
+
+    /* UdpSocket properties */
+    // Handle UdpSocket.port
+    if (object_type->kind == TYPE_UDP_SOCKET && strcmp(member_name_str, "port") == 0) {
+        return arena_sprintf(gen->arena, "(%s)->port", object_str);
     }
 
     // Generic struct member access (not currently supported)

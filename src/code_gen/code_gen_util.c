@@ -147,6 +147,12 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtDate *");
     case TYPE_PROCESS:
         return arena_strdup(arena, "RtProcess *");
+    case TYPE_TCP_LISTENER:
+        return arena_strdup(arena, "RtTcpListener *");
+    case TYPE_TCP_STREAM:
+        return arena_strdup(arena, "RtTcpStream *");
+    case TYPE_UDP_SOCKET:
+        return arena_strdup(arena, "RtUdpSocket *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally

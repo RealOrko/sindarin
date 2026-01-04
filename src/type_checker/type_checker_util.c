@@ -40,9 +40,13 @@ const char *type_name(Type *type)
         case TYPE_FUNCTION:    return "function";
         case TYPE_TEXT_FILE:   return "TextFile";
         case TYPE_BINARY_FILE: return "BinaryFile";
-        case TYPE_DATE:        return "Date";
-        case TYPE_TIME:        return "Time";
-        default:               return "unknown";
+        case TYPE_DATE:         return "Date";
+        case TYPE_TIME:         return "Time";
+        case TYPE_PROCESS:      return "Process";
+        case TYPE_TCP_LISTENER: return "TcpListener";
+        case TYPE_TCP_STREAM:   return "TcpStream";
+        case TYPE_UDP_SOCKET:   return "UdpSocket";
+        default:                return "unknown";
     }
 }
 
@@ -119,7 +123,10 @@ bool is_reference_type(Type *type)
                   type->kind == TYPE_FUNCTION ||
                   type->kind == TYPE_TEXT_FILE ||
                   type->kind == TYPE_BINARY_FILE ||
-                  type->kind == TYPE_DATE;
+                  type->kind == TYPE_DATE ||
+                  type->kind == TYPE_TCP_LISTENER ||
+                  type->kind == TYPE_TCP_STREAM ||
+                  type->kind == TYPE_UDP_SOCKET;
     DEBUG_VERBOSE("Checking if type is reference: %s", result ? "true" : "false");
     return result;
 }

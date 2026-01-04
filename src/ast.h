@@ -30,7 +30,10 @@ typedef enum
     TYPE_BINARY_FILE,
     TYPE_DATE,
     TYPE_TIME,
-    TYPE_PROCESS
+    TYPE_PROCESS,
+    TYPE_TCP_LISTENER,
+    TYPE_TCP_STREAM,
+    TYPE_UDP_SOCKET
 } TypeKind;
 
 /* Memory qualifier for variables and parameters */

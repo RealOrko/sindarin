@@ -382,6 +382,39 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         }
     }
 
+    /* TcpListener static methods */
+    if (codegen_token_equals(type_name, "TcpListener"))
+    {
+        if (codegen_token_equals(method_name, "bind"))
+        {
+            /* TcpListener.bind(address) -> rt_tcp_listener_bind(arena, address) */
+            return arena_sprintf(gen->arena, "rt_tcp_listener_bind(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+    }
+
+    /* TcpStream static methods */
+    if (codegen_token_equals(type_name, "TcpStream"))
+    {
+        if (codegen_token_equals(method_name, "connect"))
+        {
+            /* TcpStream.connect(address) -> rt_tcp_stream_connect(arena, address) */
+            return arena_sprintf(gen->arena, "rt_tcp_stream_connect(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+    }
+
+    /* UdpSocket static methods */
+    if (codegen_token_equals(type_name, "UdpSocket"))
+    {
+        if (codegen_token_equals(method_name, "bind"))
+        {
+            /* UdpSocket.bind(address) -> rt_udp_socket_bind(arena, address) */
+            return arena_sprintf(gen->arena, "rt_udp_socket_bind(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+    }
+
     /* Fallback for unimplemented static methods */
     return arena_sprintf(gen->arena,
         "(fprintf(stderr, \"Static method call not yet implemented: %.*s.%.*s\\n\"), exit(1), (void *)0)",

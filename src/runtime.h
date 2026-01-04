@@ -35,6 +35,9 @@
 /* Process module - depends on arena and string */
 #include "runtime/runtime_process.h"
 
+/* Network module - depends on arena */
+#include "runtime/runtime_net.h"
+
 /* ============================================================================
  * Arithmetic operations
  * ============================================================================ */
