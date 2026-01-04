@@ -1,0 +1,5 @@
+fn main =>
+  var t1:TextFile = TextFile.open("tests/integration/string_fromfile_to_array.sn")
+  var a1:str[] t1.readAll().split("\n")
+  print($"a1 length: {a1.length}")
+  t1.close()
