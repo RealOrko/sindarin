@@ -102,4 +102,4 @@ Built-in types: `TextFile`, `BinaryFile`, `Date`, `Time`, `Process`
 
 ## 📖 Documentation
 
-See [docs/README.md](docs/README.md) for the full documentation index.
+Is available at 'docs/language/'
