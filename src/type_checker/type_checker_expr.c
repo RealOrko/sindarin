@@ -18,6 +18,18 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
         return NULL;
     }
     TokenType op = expr->as.binary.operator;
+
+    /* Reject pointer arithmetic - pointers cannot be used with arithmetic operators.
+     * This includes +, -, *, /, %. Pointer comparison (==, !=) with nil is still allowed. */
+    if (is_arithmetic_operator(op) || op == TOKEN_PLUS)
+    {
+        if (left->kind == TYPE_POINTER || right->kind == TYPE_POINTER)
+        {
+            type_error(expr->token, "Pointer arithmetic is not allowed");
+            return NULL;
+        }
+    }
+
     if (is_comparison_operator(op))
     {
         /* Allow numeric type promotion for comparisons (int vs double) */
@@ -1007,6 +1019,67 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
          * A standalone sync list is a type error */
         type_error(expr->token, "Sync list [r1, r2, ...] must be followed by '!' for synchronization");
         t = NULL;
+        break;
+    case EXPR_AS_VAL:
+        /* 'as val' dereferences a pointer to get the underlying value type.
+         * For *int: result is int. For *double: result is double. etc.
+         * Special case: *char => str (null-terminated C string conversion).
+         * Special case: ptr[0..len] as val => byte[] (pointer slice to array).
+         * Arrays are also accepted (no-op, returns same type) to support
+         * pointer slices which already produce array types. */
+        {
+            /* Enter as_val context so pointer slices know they're wrapped */
+            as_val_context_enter();
+            Type *operand_type = type_check_expr(expr->as.as_val.operand, table);
+            as_val_context_exit();
+            if (operand_type == NULL)
+            {
+                type_error(expr->token, "Invalid operand in 'as val' expression");
+                t = NULL;
+            }
+            else if (operand_type->kind == TYPE_ARRAY)
+            {
+                /* Array type: 'as val' is a no-op, returns same type.
+                 * This supports ptr[0..len] as val where the slice already
+                 * produces an array type. */
+                t = operand_type;
+                expr->as.as_val.is_cstr_to_str = false;
+                expr->as.as_val.is_noop = true;
+                DEBUG_VERBOSE("'as val' on array type (no-op): returns same array type");
+            }
+            else if (operand_type->kind != TYPE_POINTER)
+            {
+                type_error(expr->token, "'as val' requires a pointer or array type operand");
+                t = NULL;
+            }
+            else if (operand_type->as.pointer.base_type != NULL &&
+                     operand_type->as.pointer.base_type->kind == TYPE_OPAQUE)
+            {
+                /* Opaque types cannot be dereferenced */
+                type_error(expr->token, "Cannot dereference pointer to opaque type");
+                t = NULL;
+            }
+            else
+            {
+                Type *base_type = operand_type->as.pointer.base_type;
+                /* Special case: *char => str (null-terminated string conversion) */
+                if (base_type->kind == TYPE_CHAR)
+                {
+                    t = ast_create_primitive_type(table->arena, TYPE_STRING);
+                    expr->as.as_val.is_cstr_to_str = true;
+                    expr->as.as_val.is_noop = false;
+                    DEBUG_VERBOSE("'as val' converts *char to str (null-terminated string)");
+                }
+                else
+                {
+                    /* Result type is the base type of the pointer */
+                    t = base_type;
+                    expr->as.as_val.is_cstr_to_str = false;
+                    expr->as.as_val.is_noop = false;
+                    DEBUG_VERBOSE("'as val' unwraps pointer to type: %d", t->kind);
+                }
+            }
+        }
         break;
     }
     expr->expr_type = t;

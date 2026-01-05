@@ -96,6 +96,48 @@ var sum: int = b1 + b2      // 150
 var product: int = b1 * b2  // 5000 (exceeds byte range, int handles it)
 ```
 
+### int32
+
+32-bit signed integer. Used primarily for C interoperability.
+
+```sindarin
+var small: int32 = 42
+var negative: int32 = -100
+```
+
+Range: -2,147,483,648 to 2,147,483,647
+
+### uint
+
+64-bit unsigned integer. Used for sizes and C interoperability.
+
+```sindarin
+var size: uint = 18446744073709551615  // Max uint64
+var count: uint = 0
+```
+
+Range: 0 to 18,446,744,073,709,551,615
+
+### uint32
+
+32-bit unsigned integer. Used primarily for C interoperability.
+
+```sindarin
+var flags: uint32 = 255
+var mask: uint32 = 0
+```
+
+Range: 0 to 4,294,967,295
+
+### float
+
+32-bit floating-point number (IEEE 754 single precision). Used for C interoperability when `double` precision is not needed.
+
+```sindarin
+var precise: float = 3.14
+var small: float = 0.001
+```
+
 ### str
 
 String type for text data. See [STRINGS.md](STRINGS.md) for full documentation.
@@ -126,6 +168,44 @@ var empty: int[] = {}
 ```
 
 See [ARRAYS.md](ARRAYS.md) for full documentation on array operations.
+
+## Pointer Types
+
+Pointer types are used for C interoperability. They can only be used in `native` functions.
+
+### Syntax
+
+```sindarin
+*T       // pointer to T
+**T      // pointer to pointer to T
+*void    // void pointer (opaque data)
+```
+
+### Null Pointers
+
+The `nil` constant represents a null pointer:
+
+```sindarin
+var p: *int = nil
+
+if p != nil =>
+    // use pointer
+```
+
+`nil` is only valid for pointer types.
+
+### Opaque Types
+
+Opaque types represent C structures that cannot be inspected from Sindarin:
+
+```sindarin
+type FILE = opaque
+
+native fn fopen(path: str, mode: str): *FILE
+native fn fclose(f: *FILE): int
+```
+
+See [INTEROP.md](INTEROP.md) for full documentation on pointer types and C interoperability.
 
 ## Built-in Types
 
@@ -362,13 +442,18 @@ Methods:
 |------|-------------|------------------|
 | `int` | 64-bit signed integer | `42`, `-7`, `0` |
 | `long` | 64-bit signed integer | `42L`, `1000L` |
+| `int32` | 32-bit signed integer | `42`, `-7` |
+| `uint` | 64-bit unsigned integer | `42`, `0` |
+| `uint32` | 32-bit unsigned integer | `42`, `255` |
 | `double` | 64-bit floating-point | `3.14`, `-2.5`, `1.5e10` |
+| `float` | 32-bit floating-point | `3.14`, `0.001` |
 | `bool` | Boolean | `true`, `false` |
 | `char` | Single character | `'A'`, `'\n'`, `'\t'` |
 | `byte` | Unsigned 8-bit (0-255) | `255`, `0` |
 | `str` | String | `"hello"`, `$"Hi {name}"` |
 | `void` | No return value | (function returns only) |
 | `type[]` | Array of type | `{1, 2, 3}`, `{"a", "b"}` |
+| `*T` | Pointer to T | `nil` (native functions only) |
 | `TextFile` | Text file handle | (from `TextFile.open()`) |
 | `BinaryFile` | Binary file handle | (from `BinaryFile.open()`) |
 | `Date` | Calendar date value | (from `Date.today()`) |
@@ -457,3 +542,4 @@ var text: str = bytes.toString()
 - [DATE.md](DATE.md) - Date type operations
 - [TIME.md](TIME.md) - Time type operations
 - [MEMORY.md](MEMORY.md) - Memory management and type lifetimes
+- [INTEROP.md](INTEROP.md) - C interoperability and pointer types

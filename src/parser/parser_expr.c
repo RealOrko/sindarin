@@ -264,6 +264,19 @@ Expr *parser_postfix(Parser *parser)
             bool is_sync_list = (expr->type == EXPR_SYNC_LIST);
             expr = ast_create_thread_sync_expr(parser->arena, expr, is_sync_list, &bang);
         }
+        else if (parser_match(parser, TOKEN_AS))
+        {
+            /* "as val" postfix operator: expr as val - dereferences pointer to value */
+            Token as_token = parser->previous;
+            if (parser_match(parser, TOKEN_VAL))
+            {
+                expr = ast_create_as_val_expr(parser->arena, expr, &as_token);
+            }
+            else
+            {
+                parser_error_at_current(parser, "Expected 'val' after 'as' in expression");
+            }
+        }
         else
         {
             break;
@@ -405,8 +418,10 @@ Expr *parser_primary(Parser *parser)
                 }
                 Stmt **stmts = block->as.block.statements;
                 int stmt_count = block->as.block.count;
+                bool is_native_lambda = parser->in_native_function != 0;
                 return ast_create_lambda_stmt_expr(parser->arena, params, param_count,
-                                                   return_type, stmts, stmt_count, modifier, &fn_token);
+                                                   return_type, stmts, stmt_count, modifier,
+                                                   is_native_lambda, &fn_token);
             }
             /* Newline but no indent - single expression on next line is not valid */
             parser_error(parser, "Expected expression or indented block after '=>'");
@@ -415,7 +430,9 @@ Expr *parser_primary(Parser *parser)
 
         /* Single-line lambda with expression body */
         Expr *body = parser_expression(parser);
-        return ast_create_lambda_expr(parser->arena, params, param_count, return_type, body, modifier, &fn_token);
+        bool is_native_lambda = parser->in_native_function != 0;
+        return ast_create_lambda_expr(parser->arena, params, param_count, return_type, body,
+                                      modifier, is_native_lambda, &fn_token);
     }
     if (parser_match(parser, TOKEN_IDENTIFIER))
     {

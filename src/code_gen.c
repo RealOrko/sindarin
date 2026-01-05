@@ -76,6 +76,14 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->captured_prim_count = 0;
     gen->captured_prim_capacity = 0;
 
+    /* Initialize pragma tracking */
+    gen->pragma_includes = NULL;
+    gen->pragma_include_count = 0;
+    gen->pragma_include_capacity = 0;
+    gen->pragma_links = NULL;
+    gen->pragma_link_count = 0;
+    gen->pragma_link_capacity = 0;
+
     if (gen->output == NULL)
     {
         exit(1);
@@ -105,6 +113,7 @@ static void code_gen_headers(CodeGen *gen)
     indented_fprintf(gen, 0, "#include <string.h>\n");
     indented_fprintf(gen, 0, "#include <stdio.h>\n");
     indented_fprintf(gen, 0, "#include <stdbool.h>\n");
+    indented_fprintf(gen, 0, "#include <stdint.h>\n");  /* For int32_t, uint32_t, uint64_t */
     indented_fprintf(gen, 0, "#include <limits.h>\n");
     indented_fprintf(gen, 0, "#include <setjmp.h>\n");  /* For thread panic handling */
     indented_fprintf(gen, 0, "#include <pthread.h>\n"); /* For thread operations (pthread_self) */
@@ -479,12 +488,63 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_time_equals(RtTime *, RtTime *);\n\n");
 }
 
+/* Generate C typedef for a native callback type declaration.
+ * For type X = native fn(a: int, b: double): void
+ * Generates: typedef void (*X)(long, double);
+ */
+static void code_gen_native_callback_typedef(CodeGen *gen, TypeDeclStmt *type_decl)
+{
+    Type *type = type_decl->type;
+
+    /* Only handle native function types */
+    if (type->kind != TYPE_FUNCTION || !type->as.function.is_native)
+    {
+        return;
+    }
+
+    /* Get the type alias name */
+    char *type_name = get_var_name(gen->arena, type_decl->name);
+
+    /* Get the C return type */
+    const char *ret_c = get_c_type(gen->arena, type->as.function.return_type);
+
+    /* Generate: typedef ret_type (*TypeName)(param_types); */
+    indented_fprintf(gen, 0, "typedef %s (*%s)(", ret_c, type_name);
+
+    /* Generate parameter types */
+    for (int i = 0; i < type->as.function.param_count; i++)
+    {
+        if (i > 0)
+        {
+            fprintf(gen->output, ", ");
+        }
+        const char *param_c = get_c_type(gen->arena, type->as.function.param_types[i]);
+        fprintf(gen->output, "%s", param_c);
+    }
+
+    /* Handle empty parameter list */
+    if (type->as.function.param_count == 0)
+    {
+        fprintf(gen->output, "void");
+    }
+
+    fprintf(gen->output, ");\n");
+}
+
 static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
 {
     char *fn_name = get_var_name(gen->arena, fn->name);
 
     // Skip main - it doesn't need a forward declaration
     if (strcmp(fn_name, "main") == 0)
+    {
+        return;
+    }
+
+    /* Native functions without a body are external C declarations.
+     * We don't generate any forward declaration - they must be provided via
+     * #pragma include or linked via #pragma link. */
+    if (fn->is_native && fn->body_count == 0)
     {
         return;
     }
@@ -528,8 +588,10 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         if (fn->params[i].mem_qualifier == MEM_AS_REF && fn->params[i].type != NULL)
         {
             TypeKind kind = fn->params[i].type->kind;
-            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                               kind == TYPE_BYTE);
         }
         if (is_ref_primitive)
         {
@@ -549,13 +611,219 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
     fprintf(gen->output, ");\n");
 }
 
+/* Generate extern declaration for native function without body */
+static void code_gen_native_extern_declaration(CodeGen *gen, FunctionStmt *fn)
+{
+    char *fn_name = get_var_name(gen->arena, fn->name);
+    const char *ret_c = get_c_type(gen->arena, fn->return_type);
+
+    indented_fprintf(gen, 0, "extern %s %s(", ret_c, fn_name);
+
+    for (int i = 0; i < fn->param_count; i++)
+    {
+        const char *param_type = get_c_type(gen->arena, fn->params[i].type);
+        if (i > 0)
+        {
+            fprintf(gen->output, ", ");
+        }
+        /* 'as ref' primitive parameters become pointer types */
+        bool is_ref_primitive = false;
+        if (fn->params[i].mem_qualifier == MEM_AS_REF && fn->params[i].type != NULL)
+        {
+            TypeKind kind = fn->params[i].type->kind;
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                               kind == TYPE_BYTE);
+        }
+        if (is_ref_primitive)
+        {
+            fprintf(gen->output, "%s *", param_type);
+        }
+        else
+        {
+            fprintf(gen->output, "%s", param_type);
+        }
+    }
+
+    /* Add variadic marker if function is variadic */
+    if (fn->is_variadic)
+    {
+        if (fn->param_count > 0)
+        {
+            fprintf(gen->output, ", ...");
+        }
+        else
+        {
+            fprintf(gen->output, "...");
+        }
+    }
+    else if (fn->param_count == 0)
+    {
+        fprintf(gen->output, "void");
+    }
+
+    fprintf(gen->output, ");\n");
+}
+
+/* Helper to add a pragma include */
+static void code_gen_add_pragma_include(CodeGen *gen, const char *include)
+{
+    if (gen->pragma_include_count >= gen->pragma_include_capacity)
+    {
+        int new_capacity = gen->pragma_include_capacity == 0 ? 8 : gen->pragma_include_capacity * 2;
+        char **new_includes = arena_alloc(gen->arena, new_capacity * sizeof(char *));
+        for (int i = 0; i < gen->pragma_include_count; i++)
+        {
+            new_includes[i] = gen->pragma_includes[i];
+        }
+        gen->pragma_includes = new_includes;
+        gen->pragma_include_capacity = new_capacity;
+    }
+    gen->pragma_includes[gen->pragma_include_count++] = arena_strdup(gen->arena, include);
+}
+
+/* Helper to add a pragma link */
+static void code_gen_add_pragma_link(CodeGen *gen, const char *link)
+{
+    if (gen->pragma_link_count >= gen->pragma_link_capacity)
+    {
+        int new_capacity = gen->pragma_link_capacity == 0 ? 8 : gen->pragma_link_capacity * 2;
+        char **new_links = arena_alloc(gen->arena, new_capacity * sizeof(char *));
+        for (int i = 0; i < gen->pragma_link_count; i++)
+        {
+            new_links[i] = gen->pragma_links[i];
+        }
+        gen->pragma_links = new_links;
+        gen->pragma_link_capacity = new_capacity;
+    }
+    gen->pragma_links[gen->pragma_link_count++] = arena_strdup(gen->arena, link);
+}
+
+/* Collect pragma directives from a list of statements */
+static void code_gen_collect_pragmas(CodeGen *gen, Stmt **statements, int count)
+{
+    for (int i = 0; i < count; i++)
+    {
+        Stmt *stmt = statements[i];
+        if (stmt->type == STMT_PRAGMA)
+        {
+            if (stmt->as.pragma.pragma_type == PRAGMA_INCLUDE)
+            {
+                code_gen_add_pragma_include(gen, stmt->as.pragma.value);
+            }
+            else if (stmt->as.pragma.pragma_type == PRAGMA_LINK)
+            {
+                code_gen_add_pragma_link(gen, stmt->as.pragma.value);
+            }
+        }
+    }
+}
+
 void code_gen_module(CodeGen *gen, Module *module)
 {
     DEBUG_VERBOSE("Entering code_gen_module");
+
+    // First collect pragma directives
+    code_gen_collect_pragmas(gen, module->statements, module->count);
+
     code_gen_headers(gen);
+
+    // Emit pragma includes after standard headers
+    if (gen->pragma_include_count > 0)
+    {
+        indented_fprintf(gen, 0, "/* User-specified includes */\n");
+        for (int i = 0; i < gen->pragma_include_count; i++)
+        {
+            indented_fprintf(gen, 0, "#include %s\n", gen->pragma_includes[i]);
+        }
+        indented_fprintf(gen, 0, "\n");
+    }
+
     code_gen_externs(gen);
 
-    // First pass: emit forward declarations for all user-defined functions
+    // Emit opaque type forward struct declarations
+    // Skip standard C library types that are already defined (e.g., FILE from stdio.h)
+    int opaque_count = 0;
+    for (int i = 0; i < module->count; i++)
+    {
+        Stmt *stmt = module->statements[i];
+        if (stmt->type == STMT_TYPE_DECL)
+        {
+            TypeDeclStmt *type_decl = &stmt->as.type_decl;
+            if (type_decl->type->kind == TYPE_OPAQUE && type_decl->type->as.opaque.name != NULL)
+            {
+                const char *name = type_decl->type->as.opaque.name;
+                /* Skip standard C library types that are typically provided by headers */
+                if (strcmp(name, "FILE") == 0 ||
+                    strcmp(name, "DIR") == 0 ||
+                    strcmp(name, "dirent") == 0)
+                {
+                    continue;
+                }
+                if (opaque_count == 0)
+                {
+                    indented_fprintf(gen, 0, "/* Opaque type forward declarations */\n");
+                }
+                indented_fprintf(gen, 0, "typedef struct %s %s;\n", name, name);
+                opaque_count++;
+            }
+        }
+    }
+    if (opaque_count > 0)
+    {
+        indented_fprintf(gen, 0, "\n");
+    }
+
+    // Emit type declarations (native callback typedefs) before forward declarations
+    int typedef_count = 0;
+    for (int i = 0; i < module->count; i++)
+    {
+        Stmt *stmt = module->statements[i];
+        if (stmt->type == STMT_TYPE_DECL)
+        {
+            TypeDeclStmt *type_decl = &stmt->as.type_decl;
+            if (type_decl->type->kind == TYPE_FUNCTION && type_decl->type->as.function.is_native)
+            {
+                if (typedef_count == 0)
+                {
+                    indented_fprintf(gen, 0, "/* Native callback type definitions */\n");
+                }
+                code_gen_native_callback_typedef(gen, type_decl);
+                typedef_count++;
+            }
+        }
+    }
+    if (typedef_count > 0)
+    {
+        indented_fprintf(gen, 0, "\n");
+    }
+
+    // Emit extern declarations for native functions without body
+    int native_extern_count = 0;
+    for (int i = 0; i < module->count; i++)
+    {
+        Stmt *stmt = module->statements[i];
+        if (stmt->type == STMT_FUNCTION)
+        {
+            FunctionStmt *fn = &stmt->as.function;
+            if (fn->is_native && fn->body_count == 0)
+            {
+                if (native_extern_count == 0)
+                {
+                    indented_fprintf(gen, 0, "/* Native function extern declarations */\n");
+                }
+                code_gen_native_extern_declaration(gen, fn);
+                native_extern_count++;
+            }
+        }
+    }
+    if (native_extern_count > 0)
+    {
+        indented_fprintf(gen, 0, "\n");
+    }
+
+    // Second pass: emit forward declarations for all user-defined functions
     indented_fprintf(gen, 0, "/* Forward declarations */\n");
     int forward_decl_count = 0;
     for (int i = 0; i < module->count; i++)

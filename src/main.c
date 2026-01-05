@@ -43,6 +43,11 @@ int main(int argc, char **argv)
     code_gen_init(&options.arena, &gen, &options.symbol_table, options.output_file);
     gen.arithmetic_mode = options.arithmetic_mode;
     code_gen_module(&gen, module);
+
+    /* Copy link libraries from CodeGen to options for GCC backend */
+    options.link_libs = gen.pragma_links;
+    options.link_lib_count = gen.pragma_link_count;
+
     code_gen_cleanup(&gen);
 
     diagnostic_phase_done(PHASE_CODE_GEN, 0);
@@ -66,7 +71,8 @@ int main(int argc, char **argv)
     diagnostic_phase_start(PHASE_LINKING);
 
     if (!gcc_compile(options.output_file, options.executable_file,
-                     options.compiler_dir, options.verbose, options.debug_build))
+                     options.compiler_dir, options.verbose, options.debug_build,
+                     options.link_libs, options.link_lib_count))
     {
         diagnostic_phase_failed(PHASE_LINKING);
         diagnostic_compile_failed();

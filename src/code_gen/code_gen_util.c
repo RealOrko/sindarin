@@ -121,8 +121,16 @@ const char *get_c_type(Arena *arena, Type *type)
     case TYPE_INT:
     case TYPE_LONG:
         return arena_strdup(arena, "long");
+    case TYPE_INT32:
+        return arena_strdup(arena, "int32_t");
+    case TYPE_UINT:
+        return arena_strdup(arena, "uint64_t");
+    case TYPE_UINT32:
+        return arena_strdup(arena, "uint32_t");
     case TYPE_DOUBLE:
         return arena_strdup(arena, "double");
+    case TYPE_FLOAT:
+        return arena_strdup(arena, "float");
     case TYPE_CHAR:
         return arena_strdup(arena, "char");
     case TYPE_STRING:
@@ -180,10 +188,33 @@ const char *get_c_type(Arena *arena, Type *type)
             return result;
         }
     }
+    case TYPE_POINTER:
+    {
+        /* For pointer types: *T becomes T* in C */
+        const char *base_c_type = get_c_type(arena, type->as.pointer.base_type);
+        size_t len = strlen(base_c_type) + 2;  /* base_type + "*" + '\0' */
+        char *result = arena_alloc(arena, len);
+        snprintf(result, len, "%s*", base_c_type);
+        return result;
+    }
     case TYPE_FUNCTION:
     {
-        /* Function values are represented as closures */
+        /* Native callback types with a typedef name use that name */
+        if (type->as.function.is_native && type->as.function.typedef_name != NULL)
+        {
+            return arena_strdup(arena, type->as.function.typedef_name);
+        }
+        /* Regular function values are represented as closures */
         return arena_strdup(arena, "__Closure__ *");
+    }
+    case TYPE_OPAQUE:
+    {
+        /* Opaque types use their name directly (e.g., FILE) */
+        if (type->as.opaque.name != NULL)
+        {
+            return arena_strdup(arena, type->as.opaque.name);
+        }
+        return arena_strdup(arena, "void");  /* Fallback for unnamed opaque types */
     }
     default:
         fprintf(stderr, "Error: Unknown type kind %d\n", type->kind);
@@ -199,9 +230,13 @@ const char *get_rt_to_string_func(TypeKind kind)
     switch (kind)
     {
     case TYPE_INT:
+    case TYPE_INT32:
+    case TYPE_UINT:
+    case TYPE_UINT32:
     case TYPE_LONG:
         return "rt_to_string_long";
     case TYPE_DOUBLE:
+    case TYPE_FLOAT:
         return "rt_to_string_double";
     case TYPE_CHAR:
         return "rt_to_string_char";
@@ -219,6 +254,7 @@ const char *get_rt_to_string_func(TypeKind kind)
     case TYPE_FUNCTION:
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
+    case TYPE_POINTER:
         return "rt_to_string_pointer";
     default:
         exit(1);
@@ -307,11 +343,15 @@ char *code_gen_type_suffix(Type *type)
     switch (type->kind)
     {
     case TYPE_INT:
+    case TYPE_INT32:
+    case TYPE_UINT:
+    case TYPE_UINT32:
     case TYPE_LONG:
     case TYPE_CHAR:
     case TYPE_BYTE:
         return "long";
     case TYPE_DOUBLE:
+    case TYPE_FLOAT:
         return "double";
     case TYPE_STRING:
         return "string";
@@ -345,8 +385,12 @@ bool is_constant_expr(Expr *expr)
         Type *type = expr->as.literal.type;
         if (type == NULL) return false;
         return type->kind == TYPE_INT ||
+               type->kind == TYPE_INT32 ||
+               type->kind == TYPE_UINT ||
+               type->kind == TYPE_UINT32 ||
                type->kind == TYPE_LONG ||
                type->kind == TYPE_DOUBLE ||
+               type->kind == TYPE_FLOAT ||
                type->kind == TYPE_BOOL;
     }
     case EXPR_BINARY:
@@ -400,11 +444,15 @@ bool try_fold_constant(Expr *expr, int64_t *out_int_value, double *out_double_va
         switch (type->kind)
         {
         case TYPE_INT:
+        case TYPE_INT32:
+        case TYPE_UINT:
+        case TYPE_UINT32:
         case TYPE_LONG:
             *out_int_value = expr->as.literal.value.int_value;
             *out_is_double = false;
             return true;
         case TYPE_DOUBLE:
+        case TYPE_FLOAT:
             *out_double_value = expr->as.literal.value.double_value;
             *out_is_double = true;
             return true;
@@ -742,12 +790,14 @@ char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *righ
     }
 
     /* Generate native C expression */
-    if (type->kind == TYPE_DOUBLE)
+    if (type->kind == TYPE_DOUBLE || type->kind == TYPE_FLOAT)
     {
-        /* For doubles, no suffix needed */
+        /* For doubles/floats, no suffix needed */
         return arena_sprintf(gen->arena, "((%s) %s (%s))", left_str, c_op, right_str);
     }
-    else if (type->kind == TYPE_INT || type->kind == TYPE_LONG)
+    else if (type->kind == TYPE_INT || type->kind == TYPE_LONG ||
+             type->kind == TYPE_INT32 || type->kind == TYPE_UINT ||
+             type->kind == TYPE_UINT32)
     {
         /* For integers, result is long */
         return arena_sprintf(gen->arena, "((long)((%s) %s (%s)))", left_str, c_op, right_str);
@@ -771,11 +821,13 @@ char *gen_native_unary(CodeGen *gen, const char *operand_str, TokenType op, Type
     switch (op)
     {
     case TOKEN_MINUS:
-        if (type->kind == TYPE_DOUBLE)
+        if (type->kind == TYPE_DOUBLE || type->kind == TYPE_FLOAT)
         {
             return arena_sprintf(gen->arena, "(-(%s))", operand_str);
         }
-        else if (type->kind == TYPE_INT || type->kind == TYPE_LONG)
+        else if (type->kind == TYPE_INT || type->kind == TYPE_LONG ||
+                 type->kind == TYPE_INT32 || type->kind == TYPE_UINT ||
+                 type->kind == TYPE_UINT32)
         {
             return arena_sprintf(gen->arena, "((long)(-(%s)))", operand_str);
         }
@@ -809,14 +861,20 @@ static bool type_needs_arena(Type *type)
     case TYPE_FUNCTION:  /* Closures need arena */
         return true;
     case TYPE_INT:
+    case TYPE_INT32:
+    case TYPE_UINT:
+    case TYPE_UINT32:
     case TYPE_LONG:
     case TYPE_DOUBLE:
+    case TYPE_FLOAT:
     case TYPE_CHAR:
     case TYPE_BOOL:
     case TYPE_BYTE:
     case TYPE_VOID:
     case TYPE_NIL:
     case TYPE_ANY:
+    case TYPE_POINTER:  /* Pointers are raw C pointers, no arena needed */
+    case TYPE_OPAQUE:   /* Opaque types are always pointers to external structs */
     default:
         return false;
     }

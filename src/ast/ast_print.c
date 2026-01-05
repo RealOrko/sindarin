@@ -250,6 +250,19 @@ void ast_print_stmt(Arena *arena, Stmt *stmt, int indent_level)
     case STMT_CONTINUE:
         DEBUG_VERBOSE_INDENT(indent_level, "Continue");
         break;
+
+    case STMT_PRAGMA:
+        DEBUG_VERBOSE_INDENT(indent_level, "Pragma: %s \"%s\"",
+                             stmt->as.pragma.pragma_type == PRAGMA_INCLUDE ? "include" : "link",
+                             stmt->as.pragma.value);
+        break;
+
+    case STMT_TYPE_DECL:
+        DEBUG_VERBOSE_INDENT(indent_level, "TypeDecl: %.*s = %s",
+                             stmt->as.type_decl.name.length,
+                             stmt->as.type_decl.name.start,
+                             ast_type_to_string(arena, stmt->as.type_decl.type));
+        break;
     }
 }
 
@@ -467,6 +480,11 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
             DEBUG_VERBOSE_INDENT(indent_level + 1, "[%d]:", i);
             ast_print_expr(arena, expr->as.sync_list.elements[i], indent_level + 2);
         }
+        break;
+
+    case EXPR_AS_VAL:
+        DEBUG_VERBOSE_INDENT(indent_level, "AsVal:");
+        ast_print_expr(arena, expr->as.as_val.operand, indent_level + 1);
         break;
     }
 }

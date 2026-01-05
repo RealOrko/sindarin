@@ -124,6 +124,70 @@ void test_lexer_keywords()
     DEBUG_INFO("Finished test_lexer_keywords");
 }
 
+void test_lexer_interop_type_keywords()
+{
+    DEBUG_INFO("Starting test_lexer_interop_type_keywords");
+    printf("Testing lexer with interop type keywords: int32 uint uint32 float\n");
+
+    const char *source = "int32 uint uint32 float";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_INT32);
+    assert(t1.length == 5);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_UINT);
+    assert(t2.length == 4);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_UINT32);
+    assert(t3.length == 6);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_FLOAT);
+    assert(t4.length == 5);
+
+    Token t5 = lexer_scan_token(&lexer);
+    assert(t5.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_interop_type_keywords");
+}
+
+void test_lexer_opaque_type_keywords()
+{
+    DEBUG_INFO("Starting test_lexer_opaque_type_keywords");
+    printf("Testing lexer with opaque type keywords: type opaque\n");
+
+    const char *source = "type opaque";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_TYPE);
+    assert(t1.length == 4);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_OPAQUE);
+    assert(t2.length == 6);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_opaque_type_keywords");
+}
+
 void test_lexer_bool_literals()
 {
     DEBUG_INFO("Starting test_lexer_bool_literals");
@@ -413,6 +477,178 @@ void test_lexer_unterminated_char()
     DEBUG_INFO("Finished test_lexer_unterminated_char");
 }
 
+void test_lexer_native_keyword()
+{
+    DEBUG_INFO("Starting test_lexer_native_keyword");
+    printf("Testing lexer with native keyword\n");
+
+    const char *source = "native fn nil";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_NATIVE);
+    assert(t1.length == 6);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_FN);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_NIL);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_native_keyword");
+}
+
+void test_lexer_pragma_include()
+{
+    DEBUG_INFO("Starting test_lexer_pragma_include");
+    printf("Testing lexer with #pragma include directive\n");
+
+    const char *source = "#pragma include <stdio.h>\n";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_PRAGMA_INCLUDE);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_pragma_include");
+}
+
+void test_lexer_pragma_link()
+{
+    DEBUG_INFO("Starting test_lexer_pragma_link");
+    printf("Testing lexer with #pragma link directive\n");
+
+    const char *source = "#pragma link m\n";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_PRAGMA_LINK);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_pragma_link");
+}
+
+void test_lexer_val_ref_keywords()
+{
+    DEBUG_INFO("Starting test_lexer_val_ref_keywords");
+    printf("Testing lexer with 'as val' and 'as ref' keywords\n");
+
+    const char *source = "as val ref";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_AS);
+    assert(t1.length == 2);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_VAL);
+    assert(t2.length == 3);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_REF);
+    assert(t3.length == 3);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_val_ref_keywords");
+}
+
+void test_lexer_ampersand_operator()
+{
+    DEBUG_INFO("Starting test_lexer_ampersand_operator");
+    printf("Testing lexer with ampersand operator\n");
+
+    const char *source = "&x";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_AMPERSAND);
+    assert(t1.length == 1);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_IDENTIFIER);
+    assert(t2.length == 1);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_ampersand_operator");
+}
+
+void test_lexer_pointer_type_syntax()
+{
+    DEBUG_INFO("Starting test_lexer_pointer_type_syntax");
+    printf("Testing lexer with pointer type syntax *int\n");
+
+    const char *source = "*int";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_STAR);
+    assert(t1.length == 1);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_INT);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_pointer_type_syntax");
+}
+
+void test_lexer_spread_operator()
+{
+    DEBUG_INFO("Starting test_lexer_spread_operator");
+    printf("Testing lexer with spread operator ...\n");
+
+    const char *source = "...";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_SPREAD);
+    assert(t1.length == 3);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_spread_operator");
+}
+
 
 void test_lexer_literal_main()
 {
@@ -420,6 +656,9 @@ void test_lexer_literal_main()
     test_lexer_only_whitespace();
     test_lexer_single_identifier();
     test_lexer_keywords();
+    test_lexer_interop_type_keywords();
+    test_lexer_opaque_type_keywords();
+    test_lexer_native_keyword();
     test_lexer_bool_literals();
     test_lexer_int_literal();
     test_lexer_long_literal();
@@ -432,4 +671,12 @@ void test_lexer_literal_main()
     test_lexer_char_literal();
     test_lexer_char_escape();
     test_lexer_unterminated_char();
+    // Pragma tests
+    test_lexer_pragma_include();
+    test_lexer_pragma_link();
+    // Interop keyword tests
+    test_lexer_val_ref_keywords();
+    test_lexer_ampersand_operator();
+    test_lexer_pointer_type_syntax();
+    test_lexer_spread_operator();
 }

@@ -38,7 +38,8 @@ typedef enum
     SYMBOL_GLOBAL,
     SYMBOL_LOCAL,
     SYMBOL_PARAM,
-    SYMBOL_NAMESPACE
+    SYMBOL_NAMESPACE,
+    SYMBOL_TYPE       /* Type alias (opaque types) */
 } SymbolKind;
 
 typedef struct Symbol
@@ -53,6 +54,7 @@ typedef struct Symbol
     FunctionModifier func_mod;  /* For function symbols: effective modifier (shared for heap-returning) */
     FunctionModifier declared_func_mod;  /* For function symbols: original declared modifier */
     bool is_function;           /* True if this is a named function definition */
+    bool is_native;             /* True if this is a native function (external C or Sindarin-implemented native) */
     ThreadState thread_state;   /* Thread handle state for synchronization tracking */
     FrozenState frozen_state;   /* Frozen state for thread capture tracking */
     struct Symbol **frozen_args; /* Symbols frozen by this pending thread handle */
@@ -97,6 +99,7 @@ void symbol_table_add_symbol(SymbolTable *table, Token name, Type *type);
 void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *type, SymbolKind kind);
 void symbol_table_add_symbol_full(SymbolTable *table, Token name, Type *type, SymbolKind kind, MemoryQualifier mem_qual);
 void symbol_table_add_function(SymbolTable *table, Token name, Type *type, FunctionModifier func_mod, FunctionModifier declared_func_mod);
+void symbol_table_add_native_function(SymbolTable *table, Token name, Type *type, FunctionModifier func_mod, FunctionModifier declared_func_mod);
 /*
  * Namespace Symbol Storage Design
  * ================================
@@ -132,6 +135,10 @@ Symbol *symbol_table_lookup_symbol(SymbolTable *table, Token name);
 Symbol *symbol_table_lookup_symbol_current(SymbolTable *table, Token name);
 int symbol_table_get_symbol_offset(SymbolTable *table, Token name);
 bool symbol_table_remove_symbol_from_global(SymbolTable *table, Token name);
+
+/* Type declaration support (opaque types) */
+void symbol_table_add_type(SymbolTable *table, Token name, Type *type);
+Symbol *symbol_table_lookup_type(SymbolTable *table, Token name);
 
 /* Arena depth management */
 void symbol_table_enter_arena(SymbolTable *table);

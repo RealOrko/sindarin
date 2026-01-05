@@ -33,6 +33,7 @@ bool is_numeric_type(Type *type);
 bool is_comparison_operator(TokenType op);
 bool is_arithmetic_operator(TokenType op);
 bool is_printable_type(Type *type);
+bool is_variadic_compatible_type(Type *type);
 
 /* Type promotion for numeric operations (int -> double) */
 bool can_promote_numeric(Type *from, Type *to);
@@ -71,5 +72,30 @@ bool memory_context_is_private(MemoryContext *ctx);
  */
 void get_module_symbols(Module *imported_module, SymbolTable *table,
                         Token ***symbols_out, Type ***types_out, int *count_out);
+
+/* Native function context tracking.
+ * Used to enforce restrictions on pointer types in non-native functions.
+ * Native functions can declare pointer variables and work with raw pointers,
+ * while regular functions must immediately unwrap pointers with 'as val'.
+ */
+void native_context_enter(void);
+void native_context_exit(void);
+bool native_context_is_active(void);
+
+/* 'as val' operand context tracking.
+ * Used to allow pointer slices inside 'as val' expressions in non-native functions.
+ * ptr[0..len] as val is OK even in regular functions because as val wraps the slice.
+ */
+void as_val_context_enter(void);
+void as_val_context_exit(void);
+bool as_val_context_is_active(void);
+
+/* C-compatible type checking.
+ * Native callback types can only use C-compatible types in their signatures.
+ * C-compatible types are: primitives (int, long, double, float, char, byte, bool, void),
+ * interop types (int32, uint32, uint, float), pointers, and opaque types.
+ * Non-C-compatible types are: str (Sindarin strings), arrays, function types (closures).
+ */
+bool is_c_compatible_type(Type *type);
 
 #endif /* TYPE_CHECKER_UTIL_H */

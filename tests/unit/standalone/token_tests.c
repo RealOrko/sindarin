@@ -344,12 +344,17 @@ void test_token_type_to_string_keywords()
     assert(strcmp(token_type_to_string(TOKEN_IMPORT), "IMPORT") == 0);
     assert(strcmp(token_type_to_string(TOKEN_NIL), "NIL") == 0);
     assert(strcmp(token_type_to_string(TOKEN_INT), "INT") == 0);
+    assert(strcmp(token_type_to_string(TOKEN_INT32), "INT32") == 0);
+    assert(strcmp(token_type_to_string(TOKEN_UINT), "UINT") == 0);
+    assert(strcmp(token_type_to_string(TOKEN_UINT32), "UINT32") == 0);
     assert(strcmp(token_type_to_string(TOKEN_LONG), "LONG") == 0);
     assert(strcmp(token_type_to_string(TOKEN_DOUBLE), "DOUBLE") == 0);
+    assert(strcmp(token_type_to_string(TOKEN_FLOAT), "FLOAT") == 0);
     assert(strcmp(token_type_to_string(TOKEN_CHAR), "CHAR") == 0);
     assert(strcmp(token_type_to_string(TOKEN_STR), "STR") == 0);
     assert(strcmp(token_type_to_string(TOKEN_BOOL), "BOOL") == 0);
     assert(strcmp(token_type_to_string(TOKEN_VOID), "VOID") == 0);
+    assert(strcmp(token_type_to_string(TOKEN_NATIVE), "NATIVE") == 0);
 
     DEBUG_INFO("Finished test_token_type_to_string_keywords");
 }

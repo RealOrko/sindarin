@@ -309,6 +309,41 @@ skip_indent_processing:
             return token;
         }
         /* intentional fallthrough */
+    case '#':
+        // Check for #pragma directive
+        if (strncmp(lexer->current, "pragma", 6) == 0)
+        {
+            lexer->current += 6; // Skip "pragma"
+            // Skip whitespace
+            while (*lexer->current == ' ' || *lexer->current == '\t')
+            {
+                lexer->current++;
+            }
+            // Mark that we're not at line start anymore
+            lexer->at_line_start = 0;
+            // Check for "include" or "link"
+            if (strncmp(lexer->current, "include", 7) == 0)
+            {
+                lexer->current += 7;
+                DEBUG_VERBOSE("Line %d: Emitting PRAGMA_INCLUDE", lexer->line);
+                return lexer_make_token(lexer, TOKEN_PRAGMA_INCLUDE);
+            }
+            else if (strncmp(lexer->current, "link", 4) == 0)
+            {
+                lexer->current += 4;
+                DEBUG_VERBOSE("Line %d: Emitting PRAGMA_LINK", lexer->line);
+                return lexer_make_token(lexer, TOKEN_PRAGMA_LINK);
+            }
+            else
+            {
+                snprintf(error_buffer, sizeof(error_buffer), "Unknown pragma directive");
+                return lexer_error_token(lexer, error_buffer);
+            }
+        }
+        /* '#' without 'pragma' following is an error */
+        snprintf(error_buffer, sizeof(error_buffer), "Unexpected character '%c'", c);
+        DEBUG_VERBOSE("Line %d: Error - %s", lexer->line, error_buffer);
+        return lexer_error_token(lexer, error_buffer);
     default:
         snprintf(error_buffer, sizeof(error_buffer), "Unexpected character '%c'", c);
         DEBUG_VERBOSE("Line %d: Error - %s", lexer->line, error_buffer);

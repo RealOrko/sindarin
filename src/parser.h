@@ -20,6 +20,7 @@ typedef struct
     Arena *arena;
     int sized_array_pending;   /* Set when parser_type() detects TYPE[expr] syntax */
     Expr *sized_array_size;    /* Size expression parsed from TYPE[expr] syntax */
+    int in_native_function;    /* True when parsing body of native function, for native lambdas */
 } Parser;
 
 /* Result struct for parser_type_with_size() */

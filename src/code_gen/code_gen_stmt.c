@@ -439,6 +439,16 @@ void code_gen_block(CodeGen *gen, BlockStmt *stmt, int indent)
 void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
 {
     DEBUG_VERBOSE("Entering code_gen_function");
+
+    /* Native functions without a body are external C declarations.
+     * We don't generate any code - they must be provided via #pragma include
+     * or linked via #pragma link. */
+    if (stmt->is_native && stmt->body_count == 0)
+    {
+        DEBUG_VERBOSE("Skipping native function without body: %.*s", stmt->name.length, stmt->name.start);
+        return;
+    }
+
     char *old_function = gen->current_function;
     Type *old_return_type = gen->current_return_type;
     FunctionModifier old_func_modifier = gen->current_func_modifier;
@@ -531,8 +541,10 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
         if (stmt->params[i].mem_qualifier == MEM_AS_REF && stmt->params[i].type != NULL)
         {
             TypeKind kind = stmt->params[i].type->kind;
-            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                               kind == TYPE_BYTE);
         }
         if (is_ref_primitive)
         {
@@ -1111,6 +1123,14 @@ void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
                 code_gen_statement(gen, stmt->as.import.imported_stmts[i], indent);
             }
         }
+        break;
+    case STMT_PRAGMA:
+        /* Pragmas are collected in code_gen_module and emitted at the top of the file.
+         * No action needed here during statement code generation. */
+        break;
+    case STMT_TYPE_DECL:
+        /* Type declarations are handled at the module level where forward declarations
+         * are emitted. No code generation is needed for the statement itself. */
         break;
     }
 }

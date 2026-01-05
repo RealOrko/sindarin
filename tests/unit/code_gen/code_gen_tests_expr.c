@@ -369,6 +369,231 @@ void test_code_gen_assign_expression()
     DEBUG_INFO("Finished test_code_gen_assign_expression");
 }
 
+/**
+ * Test that *int as val generates C dereference: *(ptr)
+ * This tests the primitive pointer unwrapping case in code_gen_as_val_expression.
+ */
+void test_code_gen_as_val_int_pointer()
+{
+    DEBUG_INFO("Starting test_code_gen_as_val_int_pointer");
+    printf("Testing code_gen for *int as val (pointer dereference)...\n");
+
+    Arena arena;
+    arena_init(&arena, 8192);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    /* Create pointer to int type: *int */
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+    Type *ptr_int_type = ast_create_pointer_type(&arena, int_type);
+
+    /* Create variable 'ptr' of type *int */
+    Token ptr_token;
+    setup_basic_token(&ptr_token, TOKEN_IDENTIFIER, "ptr");
+    Expr *ptr_init = NULL;
+    Stmt *ptr_decl = ast_create_var_decl_stmt(&arena, ptr_token, ptr_int_type, ptr_init, &ptr_token);
+
+    /* Create 'ptr as val' expression */
+    Expr *ptr_expr = ast_create_variable_expr(&arena, ptr_token, &ptr_token);
+    ptr_expr->expr_type = ptr_int_type;
+
+    Token as_val_token;
+    setup_basic_token(&as_val_token, TOKEN_AS, "as");
+    Expr *as_val_expr = ast_create_as_val_expr(&arena, ptr_expr, &as_val_token);
+    as_val_expr->expr_type = int_type;
+    as_val_expr->as.as_val.is_noop = false;
+    as_val_expr->as.as_val.is_cstr_to_str = false;
+
+    Stmt *expr_stmt = ast_create_expr_stmt(&arena, as_val_expr, &as_val_token);
+
+    ast_module_add_statement(&arena, &module, ptr_decl);
+    ast_module_add_statement(&arena, &module, expr_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    /* The key assertion: *int as val should generate *(ptr) */
+    const char *expected = get_expected(&arena,
+                                  "long* ptr = 0;\n"
+                                  "(*(ptr));\n"
+                                  "int main() {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_as_val_int_pointer");
+}
+
+/**
+ * Test that *double as val generates C dereference: *(ptr)
+ * This tests the primitive pointer unwrapping case for double type.
+ */
+void test_code_gen_as_val_double_pointer()
+{
+    DEBUG_INFO("Starting test_code_gen_as_val_double_pointer");
+    printf("Testing code_gen for *double as val (pointer dereference)...\n");
+
+    Arena arena;
+    arena_init(&arena, 8192);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    /* Create pointer to double type: *double */
+    Type *double_type = ast_create_primitive_type(&arena, TYPE_DOUBLE);
+    Type *ptr_double_type = ast_create_pointer_type(&arena, double_type);
+
+    /* Create variable 'dptr' of type *double */
+    Token dptr_token;
+    setup_basic_token(&dptr_token, TOKEN_IDENTIFIER, "dptr");
+    Expr *dptr_init = NULL;
+    Stmt *dptr_decl = ast_create_var_decl_stmt(&arena, dptr_token, ptr_double_type, dptr_init, &dptr_token);
+
+    /* Create 'dptr as val' expression */
+    Expr *dptr_expr = ast_create_variable_expr(&arena, dptr_token, &dptr_token);
+    dptr_expr->expr_type = ptr_double_type;
+
+    Token as_val_token;
+    setup_basic_token(&as_val_token, TOKEN_AS, "as");
+    Expr *as_val_expr = ast_create_as_val_expr(&arena, dptr_expr, &as_val_token);
+    as_val_expr->expr_type = double_type;
+    as_val_expr->as.as_val.is_noop = false;
+    as_val_expr->as.as_val.is_cstr_to_str = false;
+
+    Stmt *expr_stmt = ast_create_expr_stmt(&arena, as_val_expr, &as_val_token);
+
+    ast_module_add_statement(&arena, &module, dptr_decl);
+    ast_module_add_statement(&arena, &module, expr_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    /* The key assertion: *double as val should generate *(dptr) */
+    const char *expected = get_expected(&arena,
+                                  "double* dptr = 0;\n"
+                                  "(*(dptr));\n"
+                                  "int main() {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_as_val_double_pointer");
+}
+
+/**
+ * Test that *char as val generates rt_arena_strdup call with NULL pointer fallback.
+ * This tests the C string conversion case in code_gen_as_val_expression.
+ * The generated code should:
+ * 1. Check if the pointer is NULL
+ * 2. If not NULL, call rt_arena_strdup with the pointer
+ * 3. If NULL, return empty string via rt_arena_strdup(arena, "")
+ */
+void test_code_gen_as_val_char_pointer()
+{
+    DEBUG_INFO("Starting test_code_gen_as_val_char_pointer");
+    printf("Testing code_gen for *char as val (C string conversion)...\n");
+
+    Arena arena;
+    arena_init(&arena, 8192);
+    SymbolTable sym_table;
+    symbol_table_init(&arena, &sym_table);
+    CodeGen gen;
+    code_gen_init(&arena, &gen, &sym_table, test_output_path);
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    /* Create pointer to char type: *char */
+    Type *char_type = ast_create_primitive_type(&arena, TYPE_CHAR);
+    Type *ptr_char_type = ast_create_pointer_type(&arena, char_type);
+
+    /* Create variable 'cptr' of type *char */
+    Token cptr_token;
+    setup_basic_token(&cptr_token, TOKEN_IDENTIFIER, "cptr");
+    Expr *cptr_init = NULL;
+    Stmt *cptr_decl = ast_create_var_decl_stmt(&arena, cptr_token, ptr_char_type, cptr_init, &cptr_token);
+
+    /* Create 'cptr as val' expression */
+    Expr *cptr_expr = ast_create_variable_expr(&arena, cptr_token, &cptr_token);
+    cptr_expr->expr_type = ptr_char_type;
+
+    Token as_val_token;
+    setup_basic_token(&as_val_token, TOKEN_AS, "as");
+    Expr *as_val_expr = ast_create_as_val_expr(&arena, cptr_expr, &as_val_token);
+    /* Result type is str (TYPE_STRING), not char */
+    as_val_expr->expr_type = ast_create_primitive_type(&arena, TYPE_STRING);
+    as_val_expr->as.as_val.is_noop = false;
+    as_val_expr->as.as_val.is_cstr_to_str = true;  /* This is the key flag for C string conversion */
+
+    Stmt *expr_stmt = ast_create_expr_stmt(&arena, as_val_expr, &as_val_token);
+
+    ast_module_add_statement(&arena, &module, cptr_decl);
+    ast_module_add_statement(&arena, &module, expr_stmt);
+
+    code_gen_module(&gen, &module);
+
+    code_gen_cleanup(&gen);
+    symbol_table_cleanup(&sym_table);
+
+    /* The key assertions:
+     * 1. *char as val emits rt_arena_strdup call
+     * 2. NULL pointer is handled with empty string fallback
+     * Generated pattern: ((cptr) ? rt_arena_strdup(arena, cptr) : rt_arena_strdup(arena, ""))
+     * At global scope, arena is NULL */
+    const char *expected = get_expected(&arena,
+                                  "char* cptr = 0;\n"
+                                  "((cptr) ? rt_arena_strdup(NULL, cptr) : rt_arena_strdup(NULL, \"\"));\n"
+                                  "int main() {\n"
+                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    int _return_value = 0;\n"
+                                  "    goto main_return;\n"
+                                  "main_return:\n"
+                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    return _return_value;\n"
+                                  "}\n");
+
+    create_expected_file(expected_output_path, expected);
+    compare_output_files(test_output_path, expected_output_path);
+    remove_test_file(test_output_path);
+    remove_test_file(expected_output_path);
+
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_code_gen_as_val_char_pointer");
+}
+
 void test_code_gen_expr_main()
 {
     test_code_gen_literal_expression();
@@ -377,4 +602,7 @@ void test_code_gen_expr_main()
     test_code_gen_binary_expression_string_concat();
     test_code_gen_unary_expression_negate();
     test_code_gen_assign_expression();
+    test_code_gen_as_val_int_pointer();
+    test_code_gen_as_val_double_pointer();
+    test_code_gen_as_val_char_pointer();
 }

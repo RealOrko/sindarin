@@ -190,9 +190,53 @@ char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
     char *step_str = slice->step ? code_gen_expression(gen, slice->step) : "LONG_MIN";
 
     // Determine element type for the correct slice function
-    Type *array_type = slice->array->expr_type;
-    Type *elem_type = array_type->as.array.element_type;
+    // Can be either array type or pointer type (for pointer slicing)
+    Type *operand_type = slice->array->expr_type;
+    Type *elem_type = NULL;
+    if (operand_type->kind == TYPE_ARRAY)
+    {
+        elem_type = operand_type->as.array.element_type;
+    }
+    else if (operand_type->kind == TYPE_POINTER)
+    {
+        elem_type = operand_type->as.pointer.base_type;
+    }
+    else
+    {
+        fprintf(stderr, "Error: Cannot slice non-array, non-pointer type\n");
+        exit(1);
+    }
 
+    /* For pointer slicing, we need to create an array from the pointer.
+     * Use rt_array_create_<type>(arena, length, ptr + start) instead of
+     * the array slice functions which require runtime array metadata. */
+    if (operand_type->kind == TYPE_POINTER)
+    {
+        const char *create_func = NULL;
+        switch (elem_type->kind) {
+            case TYPE_LONG:
+            case TYPE_INT:
+                create_func = "rt_array_create_long";
+                break;
+            case TYPE_DOUBLE:
+                create_func = "rt_array_create_double";
+                break;
+            case TYPE_CHAR:
+                create_func = "rt_array_create_char";
+                break;
+            case TYPE_BYTE:
+                create_func = "rt_array_create_byte";
+                break;
+            default:
+                fprintf(stderr, "Error: Unsupported pointer element type for slice\n");
+                exit(1);
+        }
+        /* Generate: rt_array_create_<type>(arena, (size_t)(end - start), ptr + start) */
+        return arena_sprintf(gen->arena, "%s(%s, (size_t)((%s) - (%s)), (%s) + (%s))",
+                             create_func, ARENA_VAR(gen), end_str, start_str, array_str, start_str);
+    }
+
+    /* For array slicing, use the regular slice functions */
     const char *slice_func = NULL;
     switch (elem_type->kind) {
         case TYPE_LONG:

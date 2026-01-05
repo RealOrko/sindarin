@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 static int had_type_error = 0;
+static int native_context_depth = 0;
 
 void type_checker_reset_error(void)
 {
@@ -27,8 +28,12 @@ const char *type_name(Type *type)
     if (type == NULL) return "unknown";
     switch (type->kind) {
         case TYPE_INT:         return "int";
+        case TYPE_INT32:       return "int32";
+        case TYPE_UINT:        return "uint";
+        case TYPE_UINT32:      return "uint32";
         case TYPE_LONG:        return "long";
         case TYPE_DOUBLE:      return "double";
+        case TYPE_FLOAT:       return "float";
         case TYPE_CHAR:        return "char";
         case TYPE_STRING:      return "str";
         case TYPE_BOOL:        return "bool";
@@ -46,6 +51,7 @@ const char *type_name(Type *type)
         case TYPE_TCP_LISTENER: return "TcpListener";
         case TYPE_TCP_STREAM:   return "TcpStream";
         case TYPE_UDP_SOCKET:   return "UdpSocket";
+        case TYPE_POINTER:      return "pointer";
         default:                return "unknown";
     }
 }
@@ -71,7 +77,10 @@ void type_mismatch_error(Token *token, Type *expected, Type *actual, const char 
 
 bool is_numeric_type(Type *type)
 {
-    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG || type->kind == TYPE_DOUBLE);
+    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_INT32 ||
+                           type->kind == TYPE_UINT || type->kind == TYPE_UINT32 ||
+                           type->kind == TYPE_LONG || type->kind == TYPE_DOUBLE ||
+                           type->kind == TYPE_FLOAT);
     DEBUG_VERBOSE("Checking if type is numeric: %s", result ? "true" : "false");
     return result;
 }
@@ -93,11 +102,35 @@ bool is_arithmetic_operator(TokenType op)
 
 bool is_printable_type(Type *type)
 {
-    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_LONG ||
-                           type->kind == TYPE_DOUBLE || type->kind == TYPE_CHAR ||
+    bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_INT32 ||
+                           type->kind == TYPE_UINT || type->kind == TYPE_UINT32 ||
+                           type->kind == TYPE_LONG || type->kind == TYPE_DOUBLE ||
+                           type->kind == TYPE_FLOAT || type->kind == TYPE_CHAR ||
                            type->kind == TYPE_STRING || type->kind == TYPE_BOOL ||
                            type->kind == TYPE_BYTE || type->kind == TYPE_ARRAY);
     DEBUG_VERBOSE("Checking if type is printable: %s", result ? "true" : "false");
+    return result;
+}
+
+/* Check if a type can be passed as a variadic argument.
+ * Per spec: primitives, str, and pointer types are allowed.
+ * Arrays cannot be passed as variadic arguments. */
+bool is_variadic_compatible_type(Type *type)
+{
+    if (type == NULL) return false;
+    bool result = type->kind == TYPE_INT ||
+                  type->kind == TYPE_INT32 ||
+                  type->kind == TYPE_UINT ||
+                  type->kind == TYPE_UINT32 ||
+                  type->kind == TYPE_LONG ||
+                  type->kind == TYPE_DOUBLE ||
+                  type->kind == TYPE_FLOAT ||
+                  type->kind == TYPE_CHAR ||
+                  type->kind == TYPE_BOOL ||
+                  type->kind == TYPE_BYTE ||
+                  type->kind == TYPE_STRING ||
+                  type->kind == TYPE_POINTER;
+    DEBUG_VERBOSE("Checking if type is variadic-compatible: %s", result ? "true" : "false");
     return result;
 }
 
@@ -105,8 +138,12 @@ bool is_primitive_type(Type *type)
 {
     if (type == NULL) return false;
     bool result = type->kind == TYPE_INT ||
+                  type->kind == TYPE_INT32 ||
+                  type->kind == TYPE_UINT ||
+                  type->kind == TYPE_UINT32 ||
                   type->kind == TYPE_LONG ||
                   type->kind == TYPE_DOUBLE ||
+                  type->kind == TYPE_FLOAT ||
                   type->kind == TYPE_CHAR ||
                   type->kind == TYPE_BOOL ||
                   type->kind == TYPE_BYTE ||
@@ -174,6 +211,18 @@ bool can_promote_numeric(Type *from, Type *to)
     /* long can promote to double */
     if (from->kind == TYPE_LONG && to->kind == TYPE_DOUBLE)
         return true;
+    /* float can promote to double */
+    if (from->kind == TYPE_FLOAT && to->kind == TYPE_DOUBLE)
+        return true;
+    /* int32 can promote to float or double */
+    if (from->kind == TYPE_INT32 && (to->kind == TYPE_FLOAT || to->kind == TYPE_DOUBLE))
+        return true;
+    /* uint32 can promote to float or double */
+    if (from->kind == TYPE_UINT32 && (to->kind == TYPE_FLOAT || to->kind == TYPE_DOUBLE))
+        return true;
+    /* uint can promote to double or long */
+    if (from->kind == TYPE_UINT && (to->kind == TYPE_DOUBLE || to->kind == TYPE_LONG))
+        return true;
     return false;
 }
 
@@ -181,22 +230,37 @@ Type *get_promoted_type(Arena *arena, Type *left, Type *right)
 {
     if (left == NULL || right == NULL) return NULL;
 
-    /* If both are the same type, return it */
-    if (ast_type_equals(left, right))
-        return left;
-
-    /* Check for numeric type promotion */
+    /* Check for numeric type promotion FIRST (before ast_type_equals check) */
+    /* because ast_type_equals treats compatible types as equal */
     if (is_numeric_type(left) && is_numeric_type(right))
     {
         /* double is the widest numeric type */
         if (left->kind == TYPE_DOUBLE || right->kind == TYPE_DOUBLE)
             return ast_create_primitive_type(arena, TYPE_DOUBLE);
-        /* long is wider than int */
+        /* float is wider than integer types */
+        if (left->kind == TYPE_FLOAT || right->kind == TYPE_FLOAT)
+            return ast_create_primitive_type(arena, TYPE_FLOAT);
+        /* long is wider than int/uint */
         if (left->kind == TYPE_LONG || right->kind == TYPE_LONG)
             return ast_create_primitive_type(arena, TYPE_LONG);
-        /* both are int */
-        return left;
+        /* If both are the exact same type, return it */
+        if (left->kind == right->kind)
+            return left;
+        /* int32 and uint32 stay as their own types (fixed-width) */
+        if ((left->kind == TYPE_INT32 && right->kind == TYPE_INT32) ||
+            (left->kind == TYPE_UINT32 && right->kind == TYPE_UINT32))
+            return left;
+        /* int and uint stay as their own types */
+        if ((left->kind == TYPE_INT && right->kind == TYPE_INT) ||
+            (left->kind == TYPE_UINT && right->kind == TYPE_UINT))
+            return left;
+        /* Mixed int/uint - no automatic promotion, types must match */
+        return NULL;
     }
+
+    /* If both are the same type, return it */
+    if (ast_type_equals(left, right))
+        return left;
 
     /* No valid promotion */
     return NULL;
@@ -441,6 +505,111 @@ void argument_type_error(Token *token, const char *func_name, int arg_index, Typ
     diagnostic_error_at(token, "argument %d of '%s': expected '%s', got '%s'",
                         arg_index + 1, func_name, type_name(expected), type_name(actual));
     had_type_error = 1;
+}
+
+/* ============================================================================
+ * Native Function Context Tracking
+ * ============================================================================ */
+
+void native_context_enter(void)
+{
+    native_context_depth++;
+    DEBUG_VERBOSE("Entering native function context (depth: %d)", native_context_depth);
+}
+
+void native_context_exit(void)
+{
+    if (native_context_depth > 0)
+    {
+        native_context_depth--;
+        DEBUG_VERBOSE("Exiting native function context (depth: %d)", native_context_depth);
+    }
+}
+
+bool native_context_is_active(void)
+{
+    return native_context_depth > 0;
+}
+
+/* ============================================================================
+ * 'as val' Operand Context Tracking
+ * ============================================================================ */
+
+static int as_val_context_depth = 0;
+
+void as_val_context_enter(void)
+{
+    as_val_context_depth++;
+    DEBUG_VERBOSE("Entering 'as val' context (depth: %d)", as_val_context_depth);
+}
+
+void as_val_context_exit(void)
+{
+    if (as_val_context_depth > 0)
+    {
+        as_val_context_depth--;
+        DEBUG_VERBOSE("Exiting 'as val' context (depth: %d)", as_val_context_depth);
+    }
+}
+
+bool as_val_context_is_active(void)
+{
+    return as_val_context_depth > 0;
+}
+
+/* ============================================================================
+ * C-Compatible Type Checking
+ * ============================================================================ */
+
+bool is_c_compatible_type(Type *type)
+{
+    if (type == NULL) return false;
+
+    switch (type->kind)
+    {
+        /* Primitive types - all C compatible */
+        case TYPE_INT:
+        case TYPE_LONG:
+        case TYPE_DOUBLE:
+        case TYPE_FLOAT:
+        case TYPE_CHAR:
+        case TYPE_BYTE:
+        case TYPE_BOOL:
+        case TYPE_VOID:
+        /* Interop types - explicitly C compatible */
+        case TYPE_INT32:
+        case TYPE_UINT32:
+        case TYPE_UINT:
+            return true;
+
+        /* Pointer types - C compatible */
+        case TYPE_POINTER:
+            return true;
+
+        /* Opaque types - represent C types like FILE* */
+        case TYPE_OPAQUE:
+            return true;
+
+        /* Native function types (callback types) - C compatible function pointers */
+        case TYPE_FUNCTION:
+            return type->as.function.is_native;
+
+        /* Non-C-compatible Sindarin types */
+        case TYPE_STRING:  /* Sindarin strings are managed */
+        case TYPE_ARRAY:   /* Sindarin arrays have metadata (length, etc.) */
+        case TYPE_NIL:
+        case TYPE_ANY:
+        case TYPE_TEXT_FILE:
+        case TYPE_BINARY_FILE:
+        case TYPE_DATE:
+        case TYPE_TIME:
+        case TYPE_PROCESS:
+        case TYPE_TCP_LISTENER:
+        case TYPE_TCP_STREAM:
+        case TYPE_UDP_SOCKET:
+        default:
+            return false;
+    }
 }
 
 void get_module_symbols(Module *imported_module, SymbolTable *table,

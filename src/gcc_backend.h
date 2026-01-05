@@ -17,11 +17,14 @@ bool gcc_check_available(bool verbose);
  *   compiler_dir  - Directory containing runtime objects (arena.o, debug.o, runtime.o)
  *   verbose       - If true, print the GCC command being executed
  *   debug_mode    - If true, include debug symbols and sanitizers
+ *   link_libs     - Array of library names to link (e.g., "m", "pthread") or NULL
+ *   link_lib_count - Number of libraries in link_libs
  *
  * Returns true on success, false on failure.
  */
 bool gcc_compile(const char *c_file, const char *output_exe,
-                 const char *compiler_dir, bool verbose, bool debug_mode);
+                 const char *compiler_dir, bool verbose, bool debug_mode,
+                 char **link_libs, int link_lib_count);
 
 /* Get the directory containing the compiler executable.
  * This is used to locate the runtime object files.

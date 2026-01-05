@@ -164,6 +164,16 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
         }
     }
 
+    // Handle pointer comparison (== and !=) with native C operators
+    if ((type->kind == TYPE_POINTER || type->kind == TYPE_NIL ||
+         left_type->kind == TYPE_POINTER || right_type->kind == TYPE_POINTER ||
+         left_type->kind == TYPE_NIL || right_type->kind == TYPE_NIL) &&
+        (op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL))
+    {
+        const char *c_op = (op == TOKEN_EQUAL_EQUAL) ? "==" : "!=";
+        return arena_sprintf(gen->arena, "((%s) %s (%s))", left_str, c_op, right_str);
+    }
+
     char *op_str = code_gen_binary_op_str(op);
     char *suffix = code_gen_type_suffix(type);
     if (op == TOKEN_PLUS && type->kind == TYPE_STRING)
@@ -266,7 +276,7 @@ char *code_gen_literal_expression(CodeGen *gen, LiteralExpr *expr)
     case TYPE_BOOL:
         return arena_sprintf(gen->arena, "%ldL", expr->value.bool_value ? 1L : 0L);
     case TYPE_NIL:
-        return arena_strdup(gen->arena, "0L");
+        return arena_strdup(gen->arena, "NULL");
     default:
         exit(1);
     }
@@ -1671,25 +1681,33 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
 
     if (callee_type && callee_type->kind == TYPE_FUNCTION && call->callee->type == EXPR_VARIABLE)
     {
-        char *name = get_var_name(gen->arena, call->callee->as.variable.name);
-        /* Skip builtins */
-        if (strcmp(name, "print") != 0 && strcmp(name, "len") != 0 &&
-            strcmp(name, "readLine") != 0 && strcmp(name, "println") != 0 &&
-            strcmp(name, "printErr") != 0 && strcmp(name, "printErrLn") != 0)
+        /* Native callbacks are called directly as function pointers, not closures */
+        if (!callee_type->as.function.is_native)
         {
-            /* Check if this is a named function or a closure variable */
-            Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
-            if (sym != NULL && !sym->is_function)
+            char *name = get_var_name(gen->arena, call->callee->as.variable.name);
+            /* Skip builtins */
+            if (strcmp(name, "print") != 0 && strcmp(name, "len") != 0 &&
+                strcmp(name, "readLine") != 0 && strcmp(name, "println") != 0 &&
+                strcmp(name, "printErr") != 0 && strcmp(name, "printErrLn") != 0)
             {
-                /* This is a closure variable (not a named function) */
-                is_closure_call = true;
+                /* Check if this is a named function or a closure variable */
+                Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
+                if (sym != NULL && !sym->is_function)
+                {
+                    /* This is a closure variable (not a named function) */
+                    is_closure_call = true;
+                }
             }
         }
     }
     /* Also handle array access where element is a function type (e.g., callbacks[0]()) */
     else if (callee_type && callee_type->kind == TYPE_FUNCTION && call->callee->type == EXPR_ARRAY_ACCESS)
     {
-        is_closure_call = true;
+        /* Native callback arrays are not closures */
+        if (!callee_type->as.function.is_native)
+        {
+            is_closure_call = true;
+        }
     }
 
     if (is_closure_call)
@@ -1926,8 +1944,10 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             call->arguments[i]->expr_type != NULL)
         {
             TypeKind kind = call->arguments[i]->expr_type->kind;
-            bool is_prim = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                           kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+            bool is_prim = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                           kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                           kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                           kind == TYPE_BYTE);
             is_ref_param = is_prim;
         }
         if (is_ref_param)
@@ -2493,8 +2513,10 @@ static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
             call->arguments[i]->expr_type != NULL)
         {
             TypeKind kind = call->arguments[i]->expr_type->kind;
-            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                               kind == TYPE_BYTE);
         }
 
         if (is_ref_primitive)
@@ -2632,8 +2654,10 @@ static char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
             arg_expr->expr_type != NULL)
         {
             TypeKind kind = arg_expr->expr_type->kind;
-            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                               kind == TYPE_CHAR || kind == TYPE_BOOL || kind == TYPE_BYTE);
+            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                               kind == TYPE_BYTE);
         }
 
         /* Check if this is a function type argument that needs closure wrapping.
@@ -2968,6 +2992,38 @@ static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
                          suffix, ARENA_VAR(gen), size_str, default_str);
 }
 
+/**
+ * Generate code for 'as val' expression - pointer dereference/value extraction.
+ * For *int, *double, etc. - dereferences pointer to get value
+ * For *char - converts null-terminated C string to Sn str
+ */
+static char *code_gen_as_val_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating as_val expression");
+
+    AsValExpr *as_val = &expr->as.as_val;
+    char *operand_code = code_gen_expression(gen, as_val->operand);
+
+    if (as_val->is_noop)
+    {
+        /* Operand is already an array type (e.g., from ptr[0..len] slice).
+         * Just pass through without any transformation. */
+        return operand_code;
+    }
+    else if (as_val->is_cstr_to_str)
+    {
+        /* *char => str: use rt_arena_strdup to copy null-terminated C string to arena.
+         * Handle NULL pointer by returning empty string. */
+        return arena_sprintf(gen->arena, "((%s) ? rt_arena_strdup(%s, %s) : rt_arena_strdup(%s, \"\"))",
+                            operand_code, ARENA_VAR(gen), operand_code, ARENA_VAR(gen));
+    }
+    else
+    {
+        /* Primitive pointer dereference: *int, *double, *float, etc. */
+        return arena_sprintf(gen->arena, "(*(%s))", operand_code);
+    }
+}
+
 char *code_gen_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_expression");
@@ -3023,6 +3079,8 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         /* Sync lists are only valid as part of thread sync [r1, r2]! */
         fprintf(stderr, "Error: Sync list without sync operator\n");
         exit(1);
+    case EXPR_AS_VAL:
+        return code_gen_as_val_expression(gen, expr);
     default:
         exit(1);
     }

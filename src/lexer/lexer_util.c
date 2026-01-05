@@ -120,6 +120,13 @@ void lexer_skip_whitespace(Lexer *lexer)
             }
             break;
         case '#':
+            // Check if this is a pragma directive (not a comment)
+            // lexer->current points to '#', check if next chars are "pragma"
+            if (strncmp(lexer->current + 1, "pragma", 6) == 0)
+            {
+                // This is a pragma directive, don't skip it
+                return;
+            }
             // Single-line comment starting with #
             while (lexer_peek(lexer) != '\n' && !lexer_is_at_end(lexer))
             {

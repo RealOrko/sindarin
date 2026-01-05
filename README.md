@@ -17,6 +17,7 @@
 - **Control flow** with for, for-each, while, break, continue
 - **Module imports** for code organization
 - **Arena memory** with shared/private scopes and copy semantics
+- **C interoperability** with native functions, pointers, and callbacks
 
 ## Quick Start
 
@@ -84,6 +85,7 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 | [THREADING](docs/language/THREADING.md) | Threading with spawn and sync |
 | [PROCESSES](docs/language/PROCESSES.md) | Process execution and output capture |
 | [NAMESPACES](docs/language/NAMESPACES.md) | Namespaced imports for collision resolution |
+| [INTEROP](docs/language/INTEROP.md) | C interoperability and native functions |
 
 ## Architecture
 

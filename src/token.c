@@ -100,10 +100,18 @@ const char *token_type_to_string(TokenType type)
         return "NIL";
     case TOKEN_INT:
         return "INT";
+    case TOKEN_INT32:
+        return "INT32";
+    case TOKEN_UINT:
+        return "UINT";
+    case TOKEN_UINT32:
+        return "UINT32";
     case TOKEN_LONG:
         return "LONG";
     case TOKEN_DOUBLE:
         return "DOUBLE";
+    case TOKEN_FLOAT:
+        return "FLOAT";
     case TOKEN_CHAR:
         return "CHAR";
     case TOKEN_STR:
@@ -124,6 +132,12 @@ const char *token_type_to_string(TokenType type)
         return "VAL";
     case TOKEN_REF:
         return "REF";
+    case TOKEN_NATIVE:
+        return "NATIVE";
+    case TOKEN_TYPE:
+        return "TYPE";
+    case TOKEN_OPAQUE:
+        return "OPAQUE";
     case TOKEN_PLUS:
         return "PLUS";
     case TOKEN_MINUS:
@@ -186,6 +200,12 @@ const char *token_type_to_string(TokenType type)
         return "SPREAD";
     case TOKEN_ARROW:
         return "ARROW";
+    case TOKEN_PRAGMA:
+        return "PRAGMA";
+    case TOKEN_PRAGMA_INCLUDE:
+        return "PRAGMA_INCLUDE";
+    case TOKEN_PRAGMA_LINK:
+        return "PRAGMA_LINK";
     case TOKEN_INDENT:
         return "INDENT";
     case TOKEN_DEDENT:

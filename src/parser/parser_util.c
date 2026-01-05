@@ -181,6 +181,14 @@ Type *parser_type(Parser *parser)
 {
     Type *type = NULL;
 
+    /* Handle pointer types: *T, **T, *void */
+    if (parser_match(parser, TOKEN_STAR))
+    {
+        /* Parse the base type recursively (handles **T) */
+        Type *base_type = parser_type(parser);
+        return ast_create_pointer_type(parser->arena, base_type);
+    }
+
     /* Handle parenthesized types for grouping, e.g., (fn(int): int)[] */
     if (parser_match(parser, TOKEN_LEFT_PAREN))
     {
@@ -197,6 +205,18 @@ Type *parser_type(Parser *parser)
     {
         type = ast_create_primitive_type(parser->arena, TYPE_INT);
     }
+    else if (parser_match(parser, TOKEN_INT32))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_INT32);
+    }
+    else if (parser_match(parser, TOKEN_UINT))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_UINT);
+    }
+    else if (parser_match(parser, TOKEN_UINT32))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_UINT32);
+    }
     else if (parser_match(parser, TOKEN_LONG))
     {
         type = ast_create_primitive_type(parser->arena, TYPE_LONG);
@@ -204,6 +224,10 @@ Type *parser_type(Parser *parser)
     else if (parser_match(parser, TOKEN_DOUBLE))
     {
         type = ast_create_primitive_type(parser->arena, TYPE_DOUBLE);
+    }
+    else if (parser_match(parser, TOKEN_FLOAT))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_FLOAT);
     }
     else if (parser_match(parser, TOKEN_CHAR))
     {
@@ -271,8 +295,19 @@ Type *parser_type(Parser *parser)
         }
         else
         {
-            parser_error_at_current(parser, "Expected type");
-            return ast_create_primitive_type(parser->arena, TYPE_NIL);
+            /* Check if this is a type alias (opaque type) */
+            Symbol *type_symbol = symbol_table_lookup_type(parser->symbol_table, id);
+            if (type_symbol != NULL && type_symbol->type != NULL)
+            {
+                parser_advance(parser);
+                /* Return a clone of the type to avoid aliasing issues */
+                type = ast_clone_type(parser->arena, type_symbol->type);
+            }
+            else
+            {
+                parser_error_at_current(parser, "Expected type");
+                return ast_create_primitive_type(parser->arena, TYPE_NIL);
+            }
         }
     }
     else

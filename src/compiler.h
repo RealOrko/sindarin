@@ -34,6 +34,8 @@ typedef struct
     int emit_c_only;                 /* --emit-c: Only output C code, don't invoke GCC */
     int keep_c;                      /* --keep-c: Keep intermediate C file after compilation */
     int debug_build;                 /* -g: Include debug symbols and sanitizers in GCC output */
+    char **link_libs;                /* Libraries to link from #pragma link directives */
+    int link_lib_count;              /* Number of link libraries */
 } CompilerOptions;
 
 void compiler_init(CompilerOptions *options, int argc, char **argv);

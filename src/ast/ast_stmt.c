@@ -318,3 +318,51 @@ Stmt *ast_create_import_stmt(Arena *arena, Token module_name, Token *namespace, 
     stmt->token = ast_dup_token(arena, loc_token);
     return stmt;
 }
+
+Stmt *ast_create_pragma_stmt(Arena *arena, PragmaType pragma_type, const char *value, const Token *loc_token)
+{
+    Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
+    if (stmt == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(stmt, 0, sizeof(Stmt));
+    stmt->type = STMT_PRAGMA;
+    stmt->as.pragma.pragma_type = pragma_type;
+    char *new_value = arena_strdup(arena, value);
+    if (new_value == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    stmt->as.pragma.value = new_value;
+    stmt->token = ast_dup_token(arena, loc_token);
+    return stmt;
+}
+
+Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Token *loc_token)
+{
+    Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
+    if (stmt == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(stmt, 0, sizeof(Stmt));
+    stmt->type = STMT_TYPE_DECL;
+    char *new_start = arena_strndup(arena, name.start, name.length);
+    if (new_start == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    stmt->as.type_decl.name.start = new_start;
+    stmt->as.type_decl.name.length = name.length;
+    stmt->as.type_decl.name.line = name.line;
+    stmt->as.type_decl.name.type = name.type;
+    stmt->as.type_decl.name.filename = name.filename;
+    stmt->as.type_decl.type = type;
+    stmt->token = ast_dup_token(arena, loc_token);
+    return stmt;
+}

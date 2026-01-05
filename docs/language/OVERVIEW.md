@@ -276,3 +276,4 @@ bin/sn source.sn -g -o program
 - [TIME.md](TIME.md) - Date and time operations
 - [MEMORY.md](MEMORY.md) - Arena memory management
 - [THREADING.md](THREADING.md) - Threading with `&` spawn and `!` sync
+- [INTEROP.md](INTEROP.md) - C interoperability and native functions

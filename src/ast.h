@@ -15,8 +15,12 @@ typedef struct Parameter Parameter;
 typedef enum
 {
     TYPE_INT,
+    TYPE_INT32,
+    TYPE_UINT,
+    TYPE_UINT32,
     TYPE_LONG,
     TYPE_DOUBLE,
+    TYPE_FLOAT,
     TYPE_CHAR,
     TYPE_STRING,
     TYPE_BOOL,
@@ -33,7 +37,9 @@ typedef enum
     TYPE_PROCESS,
     TYPE_TCP_LISTENER,
     TYPE_TCP_STREAM,
-    TYPE_UDP_SOCKET
+    TYPE_UDP_SOCKET,
+    TYPE_POINTER,
+    TYPE_OPAQUE
 } TypeKind;
 
 /* Memory qualifier for variables and parameters */
@@ -77,7 +83,20 @@ struct Type
             Type **param_types;
             MemoryQualifier *param_mem_quals; /* Memory qualifiers for each parameter (NULL if all default) */
             int param_count;
+            bool is_variadic;                 /* true if function accepts variadic arguments */
+            bool is_native;                   /* true if this is a native callback type (C-compatible function pointer) */
+            const char *typedef_name;         /* Name of the typedef for native callback types (NULL if anonymous) */
         } function;
+
+        struct
+        {
+            Type *base_type;  /* The type being pointed to (e.g., int for *int, *int for **int) */
+        } pointer;
+
+        struct
+        {
+            const char *name;  /* Name of the opaque type (e.g., "FILE") */
+        } opaque;
     } as;
 };
 
@@ -104,7 +123,8 @@ typedef enum
     EXPR_SIZED_ARRAY_ALLOC,
     EXPR_THREAD_SPAWN,
     EXPR_THREAD_SYNC,
-    EXPR_SYNC_LIST
+    EXPR_SYNC_LIST,
+    EXPR_AS_VAL
 } ExprType;
 
 typedef struct
@@ -171,6 +191,7 @@ typedef struct
     Expr *start;  // NULL means from beginning
     Expr *end;    // NULL means to end
     Expr *step;   // NULL means step of 1
+    bool is_from_pointer;  // True if slicing a pointer type (set by type checker)
 } ArraySliceExpr;
 
 typedef struct
@@ -232,6 +253,13 @@ typedef struct
 
 typedef struct
 {
+    Expr *operand;       // The expression to copy/pass by value
+    bool is_cstr_to_str; // True if this is *char => str (null-terminated string conversion)
+    bool is_noop;        // True if operand is already array type (ptr[0..len] produces array)
+} AsValExpr;
+
+typedef struct
+{
     Parameter *params;
     int param_count;
     Type *return_type;
@@ -240,6 +268,7 @@ typedef struct
     int body_stmt_count;      /* Number of statements in body_stmts */
     int has_stmt_body;        /* True if lambda has statement body instead of expression body */
     FunctionModifier modifier;  /* shared, private, or default */
+    bool is_native;           /* True if this is a native callback lambda (no closures, C-compatible) */
     /* Capture info (filled during type checking) */
     Token *captured_vars;
     Type **captured_types;
@@ -275,6 +304,7 @@ struct Expr
         ThreadSpawnExpr thread_spawn;
         ThreadSyncExpr thread_sync;
         SyncListExpr sync_list;
+        AsValExpr as_val;
     } as;
 
     Type *expr_type;
@@ -293,8 +323,17 @@ typedef enum
     STMT_FOR_EACH,
     STMT_BREAK,
     STMT_CONTINUE,
-    STMT_IMPORT
+    STMT_IMPORT,
+    STMT_PRAGMA,
+    STMT_TYPE_DECL
 } StmtType;
+
+/* Pragma directive types */
+typedef enum
+{
+    PRAGMA_INCLUDE,
+    PRAGMA_LINK
+} PragmaType;
 
 typedef struct
 {
@@ -325,6 +364,8 @@ typedef struct
     Stmt **body;
     int body_count;
     FunctionModifier modifier;  /* shared or private modifier */
+    bool is_native;             /* true if declared with 'native' keyword */
+    bool is_variadic;           /* true if function has variadic parameters (...) */
 } FunctionStmt;
 
 typedef struct
@@ -380,6 +421,18 @@ typedef struct
     bool also_imported_directly; /* True if this module was also imported without namespace */
 } ImportStmt;
 
+typedef struct
+{
+    PragmaType pragma_type;    /* PRAGMA_INCLUDE or PRAGMA_LINK */
+    const char *value;         /* The value (e.g., "<math.h>" or "m") */
+} PragmaStmt;
+
+typedef struct
+{
+    Token name;                /* The type alias name (e.g., "FILE") */
+    Type *type;                /* The underlying type (for opaque: TYPE_OPAQUE with name) */
+} TypeDeclStmt;
+
 struct Stmt
 {
     StmtType type;
@@ -397,6 +450,8 @@ struct Stmt
         ForStmt for_stmt;
         ForEachStmt for_each_stmt;
         ImportStmt import;
+        PragmaStmt pragma;
+        TypeDeclStmt type_decl;
     } as;
 };
 
@@ -416,8 +471,12 @@ Token *ast_clone_token(Arena *arena, const Token *src);
 Type *ast_clone_type(Arena *arena, Type *type);
 Type *ast_create_primitive_type(Arena *arena, TypeKind kind);
 Type *ast_create_array_type(Arena *arena, Type *element_type);
+Type *ast_create_pointer_type(Arena *arena, Type *base_type);
+Type *ast_create_opaque_type(Arena *arena, const char *name);
 Type *ast_create_function_type(Arena *arena, Type *return_type, Type **param_types, int param_count);
 int ast_type_equals(Type *a, Type *b);
+int ast_type_is_pointer(Type *type);
+int ast_type_is_opaque(Type *type);
 const char *ast_type_to_string(Arena *arena, Type *type);
 
 Expr *ast_create_binary_expr(Arena *arena, Expr *left, TokenType operator, Expr *right, const Token *loc_token);
@@ -439,13 +498,14 @@ Expr *ast_create_range_expr(Arena *arena, Expr *start, Expr *end, const Token *l
 Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token);
 Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
                              Type *return_type, Expr *body, FunctionModifier modifier,
-                             const Token *loc_token);
+                             bool is_native, const Token *loc_token);
 Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_count,
                                   Type *return_type, struct Stmt **body_stmts, int body_stmt_count,
-                                  FunctionModifier modifier, const Token *loc_token);
+                                  FunctionModifier modifier, bool is_native, const Token *loc_token);
 Expr *ast_create_thread_spawn_expr(Arena *arena, Expr *call, FunctionModifier modifier, const Token *loc_token);
 Expr *ast_create_thread_sync_expr(Arena *arena, Expr *handle, bool is_array, const Token *loc_token);
 Expr *ast_create_sync_list_expr(Arena *arena, Expr **elements, int element_count, const Token *loc_token);
+Expr *ast_create_as_val_expr(Arena *arena, Expr *operand, const Token *loc_token);
 
 Stmt *ast_create_expr_stmt(Arena *arena, Expr *expression, const Token *loc_token);
 Stmt *ast_create_var_decl_stmt(Arena *arena, Token name, Type *type, Expr *initializer, const Token *loc_token);
@@ -458,6 +518,8 @@ Stmt *ast_create_while_stmt(Arena *arena, Expr *condition, Stmt *body, const Tok
 Stmt *ast_create_for_stmt(Arena *arena, Stmt *initializer, Expr *condition, Expr *increment, Stmt *body, const Token *loc_token);
 Stmt *ast_create_for_each_stmt(Arena *arena, Token var_name, Expr *iterable, Stmt *body, const Token *loc_token);
 Stmt *ast_create_import_stmt(Arena *arena, Token module_name, Token *namespace, const Token *loc_token);
+Stmt *ast_create_pragma_stmt(Arena *arena, PragmaType pragma_type, const char *value, const Token *loc_token);
+Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Token *loc_token);
 
 void ast_init_module(Arena *arena, Module *module, const char *filename);
 void ast_module_add_statement(Arena *arena, Module *module, Stmt *stmt);

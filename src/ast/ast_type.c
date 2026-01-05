@@ -22,8 +22,12 @@ Type *ast_clone_type(Arena *arena, Type *type)
     switch (type->kind)
     {
     case TYPE_INT:
+    case TYPE_INT32:
+    case TYPE_UINT:
+    case TYPE_UINT32:
     case TYPE_LONG:
     case TYPE_DOUBLE:
+    case TYPE_FLOAT:
     case TYPE_CHAR:
     case TYPE_STRING:
     case TYPE_BOOL:
@@ -41,13 +45,30 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_UDP_SOCKET:
         break;
 
+    case TYPE_OPAQUE:
+        if (type->as.opaque.name != NULL)
+        {
+            clone->as.opaque.name = arena_strdup(arena, type->as.opaque.name);
+        }
+        else
+        {
+            clone->as.opaque.name = NULL;
+        }
+        break;
+
     case TYPE_ARRAY:
         clone->as.array.element_type = ast_clone_type(arena, type->as.array.element_type);
+        break;
+
+    case TYPE_POINTER:
+        clone->as.pointer.base_type = ast_clone_type(arena, type->as.pointer.base_type);
         break;
 
     case TYPE_FUNCTION:
         clone->as.function.return_type = ast_clone_type(arena, type->as.function.return_type);
         clone->as.function.param_count = type->as.function.param_count;
+        clone->as.function.is_variadic = type->as.function.is_variadic;
+        clone->as.function.is_native = type->as.function.is_native;
 
         if (type->as.function.param_count > 0)
         {
@@ -86,6 +107,15 @@ Type *ast_clone_type(Arena *arena, Type *type)
             clone->as.function.param_types = NULL;
             clone->as.function.param_mem_quals = NULL;
         }
+        /* Copy typedef_name for native callback types */
+        if (type->as.function.typedef_name != NULL)
+        {
+            clone->as.function.typedef_name = arena_strdup(arena, type->as.function.typedef_name);
+        }
+        else
+        {
+            clone->as.function.typedef_name = NULL;
+        }
         break;
     }
 
@@ -116,6 +146,34 @@ Type *ast_create_array_type(Arena *arena, Type *element_type)
     memset(type, 0, sizeof(Type));
     type->kind = TYPE_ARRAY;
     type->as.array.element_type = element_type;
+    return type;
+}
+
+Type *ast_create_pointer_type(Arena *arena, Type *base_type)
+{
+    Type *type = arena_alloc(arena, sizeof(Type));
+    if (type == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(type, 0, sizeof(Type));
+    type->kind = TYPE_POINTER;
+    type->as.pointer.base_type = base_type;
+    return type;
+}
+
+Type *ast_create_opaque_type(Arena *arena, const char *name)
+{
+    Type *type = arena_alloc(arena, sizeof(Type));
+    if (type == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(type, 0, sizeof(Type));
+    type->kind = TYPE_OPAQUE;
+    type->as.opaque.name = name ? arena_strdup(arena, name) : NULL;
     return type;
 }
 
@@ -168,12 +226,35 @@ int ast_type_equals(Type *a, Type *b)
         return 1;
     if (a == NULL || b == NULL)
         return 0;
-    // TYPE_NIL is compatible with any type (used for empty arrays)
+    // TYPE_NIL compatibility:
+    // - As top-level type (nil literal): only compatible with pointer types
+    // - As array element type (empty array literal): compatible with any element type
+    // To distinguish: if comparing element types (during recursive array comparison),
+    // we want TYPE_NIL to match any type. If comparing top-level types, we restrict nil to pointers.
+    // Since this function is recursive, we can't easily distinguish. Instead, handle this:
+    // - If comparing primitive vs nil at top level, reject (caught in type_checker_stmt)
+    // - For array element type comparison, TYPE_NIL should match any element type
+    // Solution: Allow TYPE_NIL to match any type here; the specific check for
+    // "nil can only be assigned to pointer types" is done in type_checker_stmt.c
     if (a->kind == TYPE_NIL || b->kind == TYPE_NIL)
         return 1;
     // Allow int literals to be assigned to byte variables (implicit narrowing)
     if ((a->kind == TYPE_BYTE && b->kind == TYPE_INT) ||
         (a->kind == TYPE_INT && b->kind == TYPE_BYTE))
+        return 1;
+    // Allow int literals to be assigned to interop integer types
+    if ((a->kind == TYPE_INT32 && b->kind == TYPE_INT) ||
+        (a->kind == TYPE_INT && b->kind == TYPE_INT32))
+        return 1;
+    if ((a->kind == TYPE_UINT && b->kind == TYPE_INT) ||
+        (a->kind == TYPE_INT && b->kind == TYPE_UINT))
+        return 1;
+    if ((a->kind == TYPE_UINT32 && b->kind == TYPE_INT) ||
+        (a->kind == TYPE_INT && b->kind == TYPE_UINT32))
+        return 1;
+    // Allow double literals to be assigned to float variables (implicit narrowing)
+    if ((a->kind == TYPE_FLOAT && b->kind == TYPE_DOUBLE) ||
+        (a->kind == TYPE_DOUBLE && b->kind == TYPE_FLOAT))
         return 1;
     if (a->kind != b->kind)
         return 0;
@@ -182,6 +263,8 @@ int ast_type_equals(Type *a, Type *b)
     {
     case TYPE_ARRAY:
         return ast_type_equals(a->as.array.element_type, b->as.array.element_type);
+    case TYPE_POINTER:
+        return ast_type_equals(a->as.pointer.base_type, b->as.pointer.base_type);
     case TYPE_FUNCTION:
         if (!ast_type_equals(a->as.function.return_type, b->as.function.return_type))
             return 0;
@@ -193,6 +276,13 @@ int ast_type_equals(Type *a, Type *b)
                 return 0;
         }
         return 1;
+    case TYPE_OPAQUE:
+        /* Opaque types are equal if their names match */
+        if (a->as.opaque.name == NULL && b->as.opaque.name == NULL)
+            return 1;
+        if (a->as.opaque.name == NULL || b->as.opaque.name == NULL)
+            return 0;
+        return strcmp(a->as.opaque.name, b->as.opaque.name) == 0;
     default:
         return 1;
     }
@@ -209,10 +299,18 @@ const char *ast_type_to_string(Arena *arena, Type *type)
     {
     case TYPE_INT:
         return arena_strdup(arena, "int");
+    case TYPE_INT32:
+        return arena_strdup(arena, "int32");
+    case TYPE_UINT:
+        return arena_strdup(arena, "uint");
+    case TYPE_UINT32:
+        return arena_strdup(arena, "uint32");
     case TYPE_LONG:
         return arena_strdup(arena, "long");
     case TYPE_DOUBLE:
         return arena_strdup(arena, "double");
+    case TYPE_FLOAT:
+        return arena_strdup(arena, "float");
     case TYPE_CHAR:
         return arena_strdup(arena, "char");
     case TYPE_STRING:
@@ -255,6 +353,20 @@ const char *ast_type_to_string(Arena *arena, Type *type)
             exit(1);
         }
         snprintf(str, len, "array of %s", elem_str);
+        return str;
+    }
+
+    case TYPE_POINTER:
+    {
+        const char *base_str = ast_type_to_string(arena, type->as.pointer.base_type);
+        size_t len = 1 + strlen(base_str) + 1;  /* "*" + base_str + '\0' */
+        char *str = arena_alloc(arena, len);
+        if (str == NULL)
+        {
+            DEBUG_ERROR("Out of memory");
+            exit(1);
+        }
+        snprintf(str, len, "*%s", base_str);
         return str;
     }
 
@@ -310,7 +422,26 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return str;
     }
 
+    case TYPE_OPAQUE:
+    {
+        if (type->as.opaque.name != NULL)
+        {
+            return arena_strdup(arena, type->as.opaque.name);
+        }
+        return arena_strdup(arena, "opaque");
+    }
+
     default:
         return arena_strdup(arena, "unknown");
     }
+}
+
+int ast_type_is_pointer(Type *type)
+{
+    return type != NULL && type->kind == TYPE_POINTER;
+}
+
+int ast_type_is_opaque(Type *type)
+{
+    return type != NULL && type->kind == TYPE_OPAQUE;
 }

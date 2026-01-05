@@ -88,14 +88,35 @@ Type *type_check_call_expression(Expr *expr, SymbolTable *table)
         type_error(expr->token, msg);
         return NULL;
     }
-    if (callee_type->as.function.param_count != expr->as.call.arg_count)
+    int expected_params = callee_type->as.function.param_count;
+    bool is_variadic = callee_type->as.function.is_variadic;
+
+    /* For variadic functions, we need at least the fixed parameters.
+     * For non-variadic functions, exact count is required. */
+    if (is_variadic)
     {
-        argument_count_error(expr->token, func_name,
-                            callee_type->as.function.param_count,
-                            expr->as.call.arg_count);
-        return NULL;
+        if (expr->as.call.arg_count < expected_params)
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Function '%s' requires at least %d argument(s), got %d",
+                     func_name, expected_params, expr->as.call.arg_count);
+            type_error(expr->token, msg);
+            return NULL;
+        }
     }
-    for (int i = 0; i < expr->as.call.arg_count; i++)
+    else
+    {
+        if (expected_params != expr->as.call.arg_count)
+        {
+            argument_count_error(expr->token, func_name,
+                                expected_params,
+                                expr->as.call.arg_count);
+            return NULL;
+        }
+    }
+
+    /* Type check the fixed parameters */
+    for (int i = 0; i < expected_params; i++)
     {
         Expr *arg_expr = expr->as.call.arguments[i];
         Type *param_type = callee_type->as.function.param_types[i];
@@ -152,6 +173,31 @@ Type *type_check_call_expression(Expr *expr, SymbolTable *table)
             }
         }
     }
+
+    /* Type check variadic arguments - must be primitives, str, or pointers (not arrays) */
+    if (is_variadic)
+    {
+        for (int i = expected_params; i < expr->as.call.arg_count; i++)
+        {
+            Expr *arg_expr = expr->as.call.arguments[i];
+            Type *arg_type = type_check_expr(arg_expr, table);
+            if (arg_type == NULL)
+            {
+                type_error(expr->token, "Invalid argument in function call");
+                return NULL;
+            }
+            if (!is_variadic_compatible_type(arg_type))
+            {
+                char msg[256];
+                snprintf(msg, sizeof(msg),
+                         "Variadic argument %d has type '%s', but only primitives, str, and pointers are allowed",
+                         i + 1, type_name(arg_type));
+                type_error(expr->token, msg);
+                return NULL;
+            }
+        }
+    }
+
     DEBUG_VERBOSE("Returning function return type: %d", callee_type->as.function.return_type->kind);
     return callee_type->as.function.return_type;
 }

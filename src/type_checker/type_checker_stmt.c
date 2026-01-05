@@ -10,6 +10,7 @@ static const char *reserved_keywords[] = {
     "fn", "var", "return", "if", "else", "for", "while", "break", "continue",
     "in", "import", "nil", "int", "long", "double", "char", "str", "bool",
     "byte", "void", "shared", "private", "as", "val", "ref", "true", "false",
+    "native",
     NULL
 };
 
@@ -39,6 +40,15 @@ static void infer_lambda_types(Expr *lambda_expr, Type *func_type)
         return;
 
     LambdaExpr *lambda = &lambda_expr->as.lambda;
+
+    /* Infer is_native from the function type FIRST, before checking parameter count.
+     * This ensures the lambda is marked as native even if signatures don't match,
+     * which enables better error messages for native lambda signature mismatches. */
+    if (func_type->as.function.is_native && !lambda->is_native)
+    {
+        lambda->is_native = true;
+        DEBUG_VERBOSE("Inferred is_native from function type");
+    }
 
     /* Check parameter count matches */
     if (lambda->param_count != func_type->as.function.param_count)
@@ -133,6 +143,23 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         }
     }
 
+    // Reject pointer variable declarations in non-native functions.
+    // Pointer types can only be stored in variables within native functions.
+    // Regular functions must use 'as val' to unwrap pointer returns immediately.
+    if (decl_type && decl_type->kind == TYPE_POINTER && !native_context_is_active())
+    {
+        type_error(&stmt->as.var_decl.name,
+                   "Pointer variables can only be declared in native functions");
+    }
+
+    // Reject pointer return values from native functions in non-native context.
+    // If a native function returns a pointer, it must be unwrapped with 'as val'.
+    if (init_type && init_type->kind == TYPE_POINTER && !native_context_is_active())
+    {
+        type_error(&stmt->as.var_decl.name,
+                   "Pointer types not allowed in non-native functions, use 'as val'");
+    }
+
     // Validate memory qualifier usage
     MemoryQualifier mem_qual = stmt->as.var_decl.mem_qualifier;
     if (mem_qual == MEM_AS_REF)
@@ -154,6 +181,14 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
     }
 
     symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
+
+    // Check: nil can only be assigned to pointer types
+    if (init_type && init_type->kind == TYPE_NIL && decl_type->kind != TYPE_POINTER)
+    {
+        type_error(&stmt->as.var_decl.name, "'nil' can only be assigned to pointer types");
+        return;
+    }
+
     if (init_type && !ast_type_equals(init_type, decl_type))
     {
         if (stmt->as.var_decl.initializer &&
@@ -161,6 +196,32 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         {
             type_error(&stmt->as.var_decl.name,
                        "Thread spawn return type does not match variable type");
+        }
+        else if (stmt->as.var_decl.initializer &&
+                 stmt->as.var_decl.initializer->type == EXPR_LAMBDA &&
+                 stmt->as.var_decl.initializer->as.lambda.is_native &&
+                 decl_type->kind == TYPE_FUNCTION &&
+                 decl_type->as.function.is_native)
+        {
+            /* Native lambda assigned to native callback type with signature mismatch */
+            if (init_type->kind == TYPE_FUNCTION &&
+                init_type->as.function.param_count != decl_type->as.function.param_count)
+            {
+                type_error(&stmt->as.var_decl.name,
+                           "Native lambda parameter count does not match callback type");
+            }
+            else if (init_type->kind == TYPE_FUNCTION &&
+                     !ast_type_equals(init_type->as.function.return_type,
+                                      decl_type->as.function.return_type))
+            {
+                type_error(&stmt->as.var_decl.name,
+                           "Native lambda return type does not match callback type");
+            }
+            else
+            {
+                type_error(&stmt->as.var_decl.name,
+                           "Native lambda signature does not match callback type");
+            }
         }
         else
         {
@@ -291,9 +352,20 @@ static void type_check_function_body_only(Stmt *stmt, SymbolTable *table)
 
     table->current->next_local_offset = table->current->next_param_offset;
 
+    /* Track native function context for pointer type restrictions */
+    if (stmt->as.function.is_native)
+    {
+        native_context_enter();
+    }
+
     for (int i = 0; i < stmt->as.function.body_count; i++)
     {
         type_check_stmt(stmt->as.function.body[i], table, stmt->as.function.return_type);
+    }
+
+    if (stmt->as.function.is_native)
+    {
+        native_context_exit();
     }
 
     symbol_table_pop_scope(table);
@@ -315,6 +387,8 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         param_types[i] = param_type;
     }
     Type *func_type = ast_create_function_type(arena, stmt->as.function.return_type, param_types, stmt->as.function.param_count);
+    /* Carry over variadic flag from function statement */
+    func_type->as.function.is_variadic = stmt->as.function.is_variadic;
 
     /* Store parameter memory qualifiers in the function type for thread safety analysis.
      * This allows detecting 'as ref' primitives when checking thread spawn arguments. */
@@ -386,7 +460,14 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     /* Add function symbol to current scope (e.g., global) with its modifier.
      * We pass both the effective modifier (for code gen arena passing) and
      * the declared modifier (for thread spawn mode selection). */
-    symbol_table_add_function(table, stmt->as.function.name, func_type, effective_modifier, modifier);
+    if (stmt->as.function.is_native)
+    {
+        symbol_table_add_native_function(table, stmt->as.function.name, func_type, effective_modifier, modifier);
+    }
+    else
+    {
+        symbol_table_add_function(table, stmt->as.function.name, func_type, effective_modifier, modifier);
+    }
 
     symbol_table_push_scope(table);
 
@@ -428,10 +509,23 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
 
     table->current->next_local_offset = table->current->next_param_offset;
 
+    /* Track native function context for pointer type restrictions.
+     * Native functions can declare pointer variables, regular functions cannot. */
+    if (stmt->as.function.is_native)
+    {
+        native_context_enter();
+    }
+
     for (int i = 0; i < stmt->as.function.body_count; i++)
     {
         type_check_stmt(stmt->as.function.body[i], table, stmt->as.function.return_type);
     }
+
+    if (stmt->as.function.is_native)
+    {
+        native_context_exit();
+    }
+
     symbol_table_pop_scope(table);
 }
 
@@ -799,6 +893,52 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
         break;
     case STMT_IMPORT:
         type_check_import_stmt(stmt, table);
+        break;
+    case STMT_PRAGMA:
+        /* Pragma statements don't require type checking */
+        DEBUG_VERBOSE("Type checking pragma statement (no-op)");
+        break;
+    case STMT_TYPE_DECL:
+        /* Type declarations are already registered in the symbol table during parsing.
+         * We just validate the type is an opaque type or native function type here. */
+        DEBUG_VERBOSE("Type checking type declaration: %.*s",
+                      stmt->as.type_decl.name.length, stmt->as.type_decl.name.start);
+        /* Validate the type is an opaque type or native function type */
+        if (stmt->as.type_decl.type == NULL)
+        {
+            type_error(&stmt->as.type_decl.name, "Type declaration must have a type");
+        }
+        else if (stmt->as.type_decl.type->kind == TYPE_OPAQUE)
+        {
+            /* Valid opaque type declaration */
+        }
+        else if (stmt->as.type_decl.type->kind == TYPE_FUNCTION &&
+                 stmt->as.type_decl.type->as.function.is_native)
+        {
+            /* Valid native callback type declaration.
+             * Validate that all parameter types and return type are C-compatible. */
+            Type *func_type = stmt->as.type_decl.type;
+            for (int i = 0; i < func_type->as.function.param_count; i++)
+            {
+                Type *param_type = func_type->as.function.param_types[i];
+                if (!is_c_compatible_type(param_type))
+                {
+                    type_error(&stmt->as.type_decl.name,
+                               "Native callback parameter type must be C-compatible (primitives, pointers, or opaque types)");
+                    break;
+                }
+            }
+            if (!is_c_compatible_type(func_type->as.function.return_type))
+            {
+                type_error(&stmt->as.type_decl.name,
+                           "Native callback return type must be C-compatible (primitives, pointers, or opaque types)");
+            }
+        }
+        else
+        {
+            type_error(&stmt->as.type_decl.name,
+                       "Type declaration must be 'opaque' or 'native fn(...)'");
+        }
         break;
     }
 }

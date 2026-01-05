@@ -400,7 +400,7 @@ Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token)
 
 Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
                              Type *return_type, Expr *body, FunctionModifier modifier,
-                             const Token *loc_token)
+                             bool is_native, const Token *loc_token)
 {
     /* body is required, but return_type can be NULL for type inference */
     if (body == NULL)
@@ -423,6 +423,7 @@ Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
     expr->as.lambda.body_stmt_count = 0;
     expr->as.lambda.has_stmt_body = 0;  /* Expression body */
     expr->as.lambda.modifier = modifier;
+    expr->as.lambda.is_native = is_native;
     expr->as.lambda.captured_vars = NULL;
     expr->as.lambda.captured_types = NULL;
     expr->as.lambda.capture_count = 0;
@@ -434,7 +435,7 @@ Expr *ast_create_lambda_expr(Arena *arena, Parameter *params, int param_count,
 
 Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_count,
                                   Type *return_type, Stmt **body_stmts, int body_stmt_count,
-                                  FunctionModifier modifier, const Token *loc_token)
+                                  FunctionModifier modifier, bool is_native, const Token *loc_token)
 {
     /* body_stmts is required for statement-body lambdas */
     if (body_stmts == NULL && body_stmt_count > 0)
@@ -457,6 +458,7 @@ Expr *ast_create_lambda_stmt_expr(Arena *arena, Parameter *params, int param_cou
     expr->as.lambda.body_stmt_count = body_stmt_count;
     expr->as.lambda.has_stmt_body = 1;  /* Statement body */
     expr->as.lambda.modifier = modifier;
+    expr->as.lambda.is_native = is_native;
     expr->as.lambda.captured_vars = NULL;
     expr->as.lambda.captured_types = NULL;
     expr->as.lambda.capture_count = 0;
@@ -567,6 +569,27 @@ Expr *ast_create_sync_list_expr(Arena *arena, Expr **elements, int element_count
     expr->type = EXPR_SYNC_LIST;
     expr->as.sync_list.elements = elements;
     expr->as.sync_list.element_count = element_count;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}
+
+Expr *ast_create_as_val_expr(Arena *arena, Expr *operand, const Token *loc_token)
+{
+    if (operand == NULL)
+    {
+        DEBUG_ERROR("Cannot create as_val expression with NULL operand");
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_AS_VAL;
+    expr->as.as_val.operand = operand;
     expr->expr_type = NULL;
     expr->token = ast_clone_token(arena, loc_token);
     return expr;

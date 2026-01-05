@@ -150,10 +150,1295 @@ void test_if_statement_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
+void test_interop_type_var_decl_parsing()
+{
+    printf("Testing parser_execute interop type variable declarations...\n");
+
+    // Test int32 type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var x: int32 = 42\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *stmt = module->statements[0];
+        assert(stmt->type == STMT_VAR_DECL);
+        assert(stmt->as.var_decl.type->kind == TYPE_INT32);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test uint type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var x: uint = 42\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *stmt = module->statements[0];
+        assert(stmt->type == STMT_VAR_DECL);
+        assert(stmt->as.var_decl.type->kind == TYPE_UINT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test uint32 type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var x: uint32 = 42\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *stmt = module->statements[0];
+        assert(stmt->type == STMT_VAR_DECL);
+        assert(stmt->as.var_decl.type->kind == TYPE_UINT32);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test float type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var x: float = 3.14\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *stmt = module->statements[0];
+        assert(stmt->type == STMT_VAR_DECL);
+        assert(stmt->as.var_decl.type->kind == TYPE_FLOAT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+}
+
+void test_interop_type_function_parsing()
+{
+    printf("Testing parser_execute interop type function params and returns...\n");
+
+    // Test function with int32 param and return
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source =
+            "fn square(x: int32): int32 =>\n"
+            "  return x\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.param_count == 1);
+        assert(fn->as.function.params[0].type->kind == TYPE_INT32);
+        assert(fn->as.function.return_type->kind == TYPE_INT32);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test function with uint param
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source =
+            "fn process(n: uint): void =>\n"
+            "  print(\"done\")\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.param_count == 1);
+        assert(fn->as.function.params[0].type->kind == TYPE_UINT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test function with float return
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source =
+            "fn getVal(): float =>\n"
+            "  return 1.5\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.return_type->kind == TYPE_FLOAT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+}
+
+void test_pointer_type_var_decl_parsing()
+{
+    printf("Testing parser_execute pointer type variable declarations...\n");
+
+    // Test *int pointer type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var p: *int = nil\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *stmt = module->statements[0];
+        assert(stmt->type == STMT_VAR_DECL);
+        assert(stmt->as.var_decl.type->kind == TYPE_POINTER);
+        assert(stmt->as.var_decl.type->as.pointer.base_type->kind == TYPE_INT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test **int (pointer-to-pointer) type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var pp: **int = nil\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *stmt = module->statements[0];
+        assert(stmt->type == STMT_VAR_DECL);
+        assert(stmt->as.var_decl.type->kind == TYPE_POINTER);
+        assert(stmt->as.var_decl.type->as.pointer.base_type->kind == TYPE_POINTER);
+        assert(stmt->as.var_decl.type->as.pointer.base_type->as.pointer.base_type->kind == TYPE_INT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test *void pointer type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "var vp: *void = nil\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *stmt = module->statements[0];
+        assert(stmt->type == STMT_VAR_DECL);
+        assert(stmt->as.var_decl.type->kind == TYPE_POINTER);
+        assert(stmt->as.var_decl.type->as.pointer.base_type->kind == TYPE_VOID);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+}
+
+void test_pointer_type_function_parsing()
+{
+    printf("Testing parser_execute pointer type function params and returns...\n");
+
+    // Test function with pointer param
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source =
+            "fn test(p: *int): void =>\n"
+            "  print(\"done\")\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.param_count == 1);
+        assert(fn->as.function.params[0].type->kind == TYPE_POINTER);
+        assert(fn->as.function.params[0].type->as.pointer.base_type->kind == TYPE_INT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test function with pointer return type
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source =
+            "fn getPtr(): *int =>\n"
+            "  return nil\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.return_type->kind == TYPE_POINTER);
+        assert(fn->as.function.return_type->as.pointer.base_type->kind == TYPE_INT);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test function with double pointer param
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source =
+            "fn test(pp: **int): void =>\n"
+            "  print(\"done\")\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.param_count == 1);
+        assert(fn->as.function.params[0].type->kind == TYPE_POINTER);
+        assert(fn->as.function.params[0].type->as.pointer.base_type->kind == TYPE_POINTER);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+}
+
+void test_native_function_without_body_parsing()
+{
+    printf("Testing parser_execute native function without body...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "native fn sin(x: double): double\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(strcmp(fn->as.function.name.start, "sin") == 0);
+    assert(fn->as.function.param_count == 1);
+    assert(fn->as.function.params[0].type->kind == TYPE_DOUBLE);
+    assert(fn->as.function.return_type->kind == TYPE_DOUBLE);
+    assert(fn->as.function.body_count == 0);
+    assert(fn->as.function.is_native == true);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_native_function_with_body_parsing()
+{
+    printf("Testing parser_execute native function with Sindarin body...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "native fn my_abs(x: int): int =>\n"
+        "  if x < 0 =>\n"
+        "    return -x\n"
+        "  return x\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(strcmp(fn->as.function.name.start, "my_abs") == 0);
+    assert(fn->as.function.param_count == 1);
+    assert(fn->as.function.return_type->kind == TYPE_INT);
+    assert(fn->as.function.body_count > 0);  // Has body
+    assert(fn->as.function.is_native == true);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_native_function_with_pointer_types_parsing()
+{
+    printf("Testing parser_execute native function with pointer types...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "native fn malloc(size: uint): *void\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(strcmp(fn->as.function.name.start, "malloc") == 0);
+    assert(fn->as.function.param_count == 1);
+    assert(fn->as.function.params[0].type->kind == TYPE_UINT);
+    assert(fn->as.function.return_type->kind == TYPE_POINTER);
+    assert(fn->as.function.return_type->as.pointer.base_type->kind == TYPE_VOID);
+    assert(fn->as.function.body_count == 0);
+    assert(fn->as.function.is_native == true);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_regular_function_not_native_parsing()
+{
+    printf("Testing parser_execute regular function is not native...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source =
+        "fn add(a: int, b: int): int =>\n"
+        "  return a + b\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *fn = module->statements[0];
+    assert(fn->type == STMT_FUNCTION);
+    assert(fn->as.function.is_native == false);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_as_val_postfix_with_call_parsing()
+{
+    printf("Testing parser_execute 'get_ptr() as val' expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "var x: int = get_ptr() as val\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be an EXPR_AS_VAL
+    assert(stmt->as.var_decl.initializer->type == EXPR_AS_VAL);
+    // The operand should be a function call
+    assert(stmt->as.var_decl.initializer->as.as_val.operand->type == EXPR_CALL);
+    // The callee should be get_ptr
+    assert(strcmp(stmt->as.var_decl.initializer->as.as_val.operand->as.call.callee->as.variable.name.start, "get_ptr") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_as_val_postfix_with_array_access_parsing()
+{
+    printf("Testing parser_execute 'arr[i] as val' expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "var x: int = arr[i] as val\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be an EXPR_AS_VAL
+    assert(stmt->as.var_decl.initializer->type == EXPR_AS_VAL);
+    // The operand should be an array access
+    assert(stmt->as.var_decl.initializer->as.as_val.operand->type == EXPR_ARRAY_ACCESS);
+    // The array should be 'arr'
+    assert(strcmp(stmt->as.var_decl.initializer->as.as_val.operand->as.array_access.array->as.variable.name.start, "arr") == 0);
+    // The index should be 'i'
+    assert(strcmp(stmt->as.var_decl.initializer->as.as_val.operand->as.array_access.index->as.variable.name.start, "i") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_as_val_postfix_with_variable_parsing()
+{
+    printf("Testing parser_execute 'ptr as val' expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "var x: int = ptr as val\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be an EXPR_AS_VAL
+    assert(stmt->as.var_decl.initializer->type == EXPR_AS_VAL);
+    // The operand should be a variable
+    assert(stmt->as.var_decl.initializer->as.as_val.operand->type == EXPR_VARIABLE);
+    assert(strcmp(stmt->as.var_decl.initializer->as.as_val.operand->as.variable.name.start, "ptr") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_as_val_postfix_precedence_parsing()
+{
+    printf("Testing parser_execute 'as val' precedence (after array access)...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    // This tests that 'as val' binds tighter than '+' (as a postfix after array access)
+    const char *source = "var x: int = arr[0] as val + 1\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be a binary expression (addition)
+    assert(stmt->as.var_decl.initializer->type == EXPR_BINARY);
+    assert(stmt->as.var_decl.initializer->as.binary.operator == TOKEN_PLUS);
+    // The left side should be 'arr[0] as val'
+    assert(stmt->as.var_decl.initializer->as.binary.left->type == EXPR_AS_VAL);
+    assert(stmt->as.var_decl.initializer->as.binary.left->as.as_val.operand->type == EXPR_ARRAY_ACCESS);
+    // The right side should be literal 1
+    assert(stmt->as.var_decl.initializer->as.binary.right->type == EXPR_LITERAL);
+    assert(stmt->as.var_decl.initializer->as.binary.right->as.literal.value.int_value == 1);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_pointer_slice_basic_parsing()
+{
+    printf("Testing parser_execute pointer slice 'ptr[0..10]' expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    // Test that pointer slice syntax is accepted and creates EXPR_ARRAY_SLICE
+    const char *source = "var data: byte[] = ptr[0..10]\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be an EXPR_ARRAY_SLICE
+    assert(stmt->as.var_decl.initializer->type == EXPR_ARRAY_SLICE);
+    // The base should be 'ptr' (a variable)
+    assert(stmt->as.var_decl.initializer->as.array_slice.array->type == EXPR_VARIABLE);
+    assert(strcmp(stmt->as.var_decl.initializer->as.array_slice.array->as.variable.name.start, "ptr") == 0);
+    // Start should be 0
+    assert(stmt->as.var_decl.initializer->as.array_slice.start != NULL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.start->type == EXPR_LITERAL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.start->as.literal.value.int_value == 0);
+    // End should be 10
+    assert(stmt->as.var_decl.initializer->as.array_slice.end != NULL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.end->type == EXPR_LITERAL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.end->as.literal.value.int_value == 10);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_pointer_slice_with_call_parsing()
+{
+    printf("Testing parser_execute pointer slice 'get_ptr()[0..len]' expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    // Test that pointer from function call can be sliced
+    const char *source = "var data: byte[] = get_ptr()[0..len]\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be an EXPR_ARRAY_SLICE
+    assert(stmt->as.var_decl.initializer->type == EXPR_ARRAY_SLICE);
+    // The base should be a function call
+    assert(stmt->as.var_decl.initializer->as.array_slice.array->type == EXPR_CALL);
+    assert(strcmp(stmt->as.var_decl.initializer->as.array_slice.array->as.call.callee->as.variable.name.start, "get_ptr") == 0);
+    // Start should be 0
+    assert(stmt->as.var_decl.initializer->as.array_slice.start != NULL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.start->type == EXPR_LITERAL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.start->as.literal.value.int_value == 0);
+    // End should be 'len' (a variable)
+    assert(stmt->as.var_decl.initializer->as.array_slice.end != NULL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.end->type == EXPR_VARIABLE);
+    assert(strcmp(stmt->as.var_decl.initializer->as.array_slice.end->as.variable.name.start, "len") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_pointer_slice_with_as_val_parsing()
+{
+    printf("Testing parser_execute pointer slice 'ptr[0..len] as val' expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    // Test that pointer slice followed by 'as val' works (for interop buffer copy)
+    const char *source = "var data: byte[] = ptr[0..len] as val\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be an EXPR_AS_VAL
+    assert(stmt->as.var_decl.initializer->type == EXPR_AS_VAL);
+    // The operand should be an EXPR_ARRAY_SLICE
+    Expr *slice = stmt->as.var_decl.initializer->as.as_val.operand;
+    assert(slice->type == EXPR_ARRAY_SLICE);
+    // The base should be 'ptr'
+    assert(slice->as.array_slice.array->type == EXPR_VARIABLE);
+    assert(strcmp(slice->as.array_slice.array->as.variable.name.start, "ptr") == 0);
+    // Start should be 0
+    assert(slice->as.array_slice.start != NULL);
+    assert(slice->as.array_slice.start->type == EXPR_LITERAL);
+    assert(slice->as.array_slice.start->as.literal.value.int_value == 0);
+    // End should be 'len'
+    assert(slice->as.array_slice.end != NULL);
+    assert(slice->as.array_slice.end->type == EXPR_VARIABLE);
+    assert(strcmp(slice->as.array_slice.end->as.variable.name.start, "len") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_pointer_slice_from_start_parsing()
+{
+    printf("Testing parser_execute pointer slice 'ptr[..len]' (from start) expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    // Test that pointer slice from start is accepted
+    const char *source = "var data: byte[] = ptr[..len]\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+    // The initializer should be an EXPR_ARRAY_SLICE
+    assert(stmt->as.var_decl.initializer->type == EXPR_ARRAY_SLICE);
+    // The base should be 'ptr'
+    assert(stmt->as.var_decl.initializer->as.array_slice.array->type == EXPR_VARIABLE);
+    assert(strcmp(stmt->as.var_decl.initializer->as.array_slice.array->as.variable.name.start, "ptr") == 0);
+    // Start should be NULL (from beginning)
+    assert(stmt->as.var_decl.initializer->as.array_slice.start == NULL);
+    // End should be 'len'
+    assert(stmt->as.var_decl.initializer->as.array_slice.end != NULL);
+    assert(stmt->as.var_decl.initializer->as.array_slice.end->type == EXPR_VARIABLE);
+    assert(strcmp(stmt->as.var_decl.initializer->as.array_slice.end->as.variable.name.start, "len") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_inline_pointer_call_slice_as_val_parsing()
+{
+    printf("Testing parser_execute 'get_buffer()[0..len] as val' expression...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    // Test inline pointer usage: function call returning pointer, sliced, then unwrapped
+    // This is the pattern from INTEROP.md: var data: byte[] = get_data()[0..len] as val
+    const char *source = "var data: byte[] = get_buffer()[0..len] as val\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_VAR_DECL);
+
+    // The initializer should be an EXPR_AS_VAL (outermost)
+    Expr *as_val_expr = stmt->as.var_decl.initializer;
+    assert(as_val_expr->type == EXPR_AS_VAL);
+
+    // The operand of as_val should be an EXPR_ARRAY_SLICE
+    Expr *slice = as_val_expr->as.as_val.operand;
+    assert(slice->type == EXPR_ARRAY_SLICE);
+
+    // The base of the slice should be an EXPR_CALL (the function call)
+    Expr *call = slice->as.array_slice.array;
+    assert(call->type == EXPR_CALL);
+    assert(call->as.call.callee->type == EXPR_VARIABLE);
+    assert(strcmp(call->as.call.callee->as.variable.name.start, "get_buffer") == 0);
+    assert(call->as.call.arg_count == 0);
+
+    // Start should be 0
+    assert(slice->as.array_slice.start != NULL);
+    assert(slice->as.array_slice.start->type == EXPR_LITERAL);
+    assert(slice->as.array_slice.start->as.literal.value.int_value == 0);
+
+    // End should be 'len' (a variable)
+    assert(slice->as.array_slice.end != NULL);
+    assert(slice->as.array_slice.end->type == EXPR_VARIABLE);
+    assert(strcmp(slice->as.array_slice.end->as.variable.name.start, "len") == 0);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_variadic_native_function_parsing()
+{
+    printf("Testing parser_execute variadic native function with ...  ...\n");
+
+    // Test basic variadic native function: native fn printf(format: str, ...): int
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "native fn printf(format: str, ...): int\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(strncmp(fn->as.function.name.start, "printf", 6) == 0);
+        assert(fn->as.function.is_native == true);
+        assert(fn->as.function.is_variadic == true);
+        assert(fn->as.function.param_count == 1); // Only the fixed params before ...
+        assert(fn->as.function.params[0].type->kind == TYPE_STRING);
+        assert(fn->as.function.return_type->kind == TYPE_INT);
+        assert(fn->as.function.body_count == 0); // No body
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test variadic with multiple fixed params
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "native fn sprintf(buf: *char, format: str, ...): int\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.is_native == true);
+        assert(fn->as.function.is_variadic == true);
+        assert(fn->as.function.param_count == 2); // Two fixed params before ...
+        assert(fn->as.function.params[0].type->kind == TYPE_POINTER);
+        assert(fn->as.function.params[1].type->kind == TYPE_STRING);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test variadic with no fixed params (just ...)
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "native fn vararg(...): void\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.is_native == true);
+        assert(fn->as.function.is_variadic == true);
+        assert(fn->as.function.param_count == 0); // No fixed params
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+
+    // Test non-variadic function still has is_variadic == false
+    {
+        Arena arena;
+        Lexer lexer;
+        Parser parser;
+        SymbolTable symbol_table;
+        const char *source = "native fn puts(s: str): int\n";
+        setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+        Module *module = parser_execute(&parser, "test.sn");
+        assert(module != NULL);
+        assert(module->count == 1);
+        Stmt *fn = module->statements[0];
+        assert(fn->type == STMT_FUNCTION);
+        assert(fn->as.function.is_native == true);
+        assert(fn->as.function.is_variadic == false);
+        assert(fn->as.function.param_count == 1);
+
+        cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+    }
+}
+
+void test_native_callback_type_alias_basic_parsing()
+{
+    printf("Testing parser_execute native callback type alias basic 'type Comparator = native fn(a: *void, b: *void): int'...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "type Comparator = native fn(a: *void, b: *void): int\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *type_decl = module->statements[0];
+    assert(type_decl->type == STMT_TYPE_DECL);
+    assert(strncmp(type_decl->as.type_decl.name.start, "Comparator", 10) == 0);
+
+    /* The declared type should be a function type with is_native = true */
+    Type *func_type = type_decl->as.type_decl.type;
+    assert(func_type != NULL);
+    assert(func_type->kind == TYPE_FUNCTION);
+    assert(func_type->as.function.is_native == true);
+    assert(func_type->as.function.param_count == 2);
+
+    /* Check parameter types are *void */
+    assert(func_type->as.function.param_types[0]->kind == TYPE_POINTER);
+    assert(func_type->as.function.param_types[0]->as.pointer.base_type->kind == TYPE_VOID);
+    assert(func_type->as.function.param_types[1]->kind == TYPE_POINTER);
+    assert(func_type->as.function.param_types[1]->as.pointer.base_type->kind == TYPE_VOID);
+
+    /* Check return type is int */
+    assert(func_type->as.function.return_type->kind == TYPE_INT);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_native_callback_type_alias_simple_parsing()
+{
+    printf("Testing parser_execute native callback type alias 'type SignalHandler = native fn(sig: int): void'...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "type SignalHandler = native fn(sig: int): void\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *type_decl = module->statements[0];
+    assert(type_decl->type == STMT_TYPE_DECL);
+    assert(strncmp(type_decl->as.type_decl.name.start, "SignalHandler", 13) == 0);
+
+    Type *func_type = type_decl->as.type_decl.type;
+    assert(func_type != NULL);
+    assert(func_type->kind == TYPE_FUNCTION);
+    assert(func_type->as.function.is_native == true);
+    assert(func_type->as.function.param_count == 1);
+
+    /* Check parameter type is int */
+    assert(func_type->as.function.param_types[0]->kind == TYPE_INT);
+
+    /* Check return type is void */
+    assert(func_type->as.function.return_type->kind == TYPE_VOID);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_native_callback_type_alias_no_params_parsing()
+{
+    printf("Testing parser_execute native callback type alias with no params 'type Callback = native fn(): int'...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "type Callback = native fn(): int\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *type_decl = module->statements[0];
+    assert(type_decl->type == STMT_TYPE_DECL);
+
+    Type *func_type = type_decl->as.type_decl.type;
+    assert(func_type != NULL);
+    assert(func_type->kind == TYPE_FUNCTION);
+    assert(func_type->as.function.is_native == true);
+    assert(func_type->as.function.param_count == 0);
+    assert(func_type->as.function.return_type->kind == TYPE_INT);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_native_callback_type_alias_with_userdata_parsing()
+{
+    printf("Testing parser_execute native callback type alias with userdata 'type EventCallback = native fn(event: int, userdata: *void): void'...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "type EventCallback = native fn(event: int, userdata: *void): void\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *type_decl = module->statements[0];
+    assert(type_decl->type == STMT_TYPE_DECL);
+
+    Type *func_type = type_decl->as.type_decl.type;
+    assert(func_type != NULL);
+    assert(func_type->kind == TYPE_FUNCTION);
+    assert(func_type->as.function.is_native == true);
+    assert(func_type->as.function.param_count == 2);
+
+    /* First param is int */
+    assert(func_type->as.function.param_types[0]->kind == TYPE_INT);
+    /* Second param is *void */
+    assert(func_type->as.function.param_types[1]->kind == TYPE_POINTER);
+    assert(func_type->as.function.param_types[1]->as.pointer.base_type->kind == TYPE_VOID);
+
+    assert(func_type->as.function.return_type->kind == TYPE_VOID);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_native_callback_type_alias_parsing()
+{
+    test_native_callback_type_alias_basic_parsing();
+    test_native_callback_type_alias_simple_parsing();
+    test_native_callback_type_alias_no_params_parsing();
+    test_native_callback_type_alias_with_userdata_parsing();
+}
+
+void test_native_lambda_parsing()
+{
+    printf("Testing native lambda expression parsing 'fn(a: *void, b: *void): int => 0' inside native function...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Native function containing a lambda with pointer params */
+    const char *source = "native fn test(): void =>\n"
+                         "    var cmp = fn(a: *void, b: *void): int => 0\n"
+                         "    return\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *func = module->statements[0];
+    assert(func->type == STMT_FUNCTION);
+    assert(func->as.function.is_native == true);
+    assert(func->as.function.body_count > 0);
+
+    /* Find the var declaration with the lambda */
+    Stmt *var_decl = func->as.function.body[0];
+    assert(var_decl->type == STMT_VAR_DECL);
+    Expr *init = var_decl->as.var_decl.initializer;
+    assert(init != NULL);
+    assert(init->type == EXPR_LAMBDA);
+
+    /* Check the lambda is marked as native */
+    assert(init->as.lambda.is_native == true);
+    assert(init->as.lambda.param_count == 2);
+
+    /* Check parameters are *void types */
+    assert(init->as.lambda.params[0].type->kind == TYPE_POINTER);
+    assert(init->as.lambda.params[0].type->as.pointer.base_type->kind == TYPE_VOID);
+    assert(init->as.lambda.params[1].type->kind == TYPE_POINTER);
+    assert(init->as.lambda.params[1].type->as.pointer.base_type->kind == TYPE_VOID);
+
+    /* Check return type is int */
+    assert(init->as.lambda.return_type->kind == TYPE_INT);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_non_native_lambda_is_not_marked_native()
+{
+    printf("Testing non-native lambda is NOT marked as native...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Regular function with a lambda */
+    const char *source = "fn test(): void =>\n"
+                         "    var f = fn(x: int): int => x * 2\n"
+                         "    return\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *func = module->statements[0];
+    assert(func->type == STMT_FUNCTION);
+    assert(func->as.function.is_native == false);
+
+    /* Find the lambda */
+    Stmt *var_decl = func->as.function.body[0];
+    assert(var_decl->type == STMT_VAR_DECL);
+    Expr *init = var_decl->as.var_decl.initializer;
+    assert(init != NULL);
+    assert(init->type == EXPR_LAMBDA);
+
+    /* Check the lambda is NOT marked as native */
+    assert(init->as.lambda.is_native == false);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_native_lambda_with_pointer_params_parsing()
+{
+    test_native_lambda_parsing();
+    test_non_native_lambda_is_not_marked_native();
+}
+
+/* ==========================================================================
+ * Opaque Type Declaration Tests
+ * ========================================================================== */
+
+void test_opaque_type_decl_parsing()
+{
+    printf("Testing parser for opaque type declaration (type FILE = opaque)...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "type FILE = opaque\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *stmt = module->statements[0];
+    assert(stmt->type == STMT_TYPE_DECL);
+    assert(stmt->as.type_decl.type != NULL);
+    assert(stmt->as.type_decl.type->kind == TYPE_OPAQUE);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_opaque_type_in_function_param()
+{
+    printf("Testing parser for opaque type in function parameter...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* First declare the opaque type, then use it */
+    const char *source = "type FILE = opaque\n"
+                         "native fn fclose(f: *FILE): int\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 2);
+
+    /* First statement: type declaration */
+    Stmt *type_stmt = module->statements[0];
+    assert(type_stmt->type == STMT_TYPE_DECL);
+    assert(type_stmt->as.type_decl.type->kind == TYPE_OPAQUE);
+
+    /* Second statement: function declaration using the opaque type */
+    Stmt *func_stmt = module->statements[1];
+    assert(func_stmt->type == STMT_FUNCTION);
+    assert(func_stmt->as.function.is_native == true);
+    assert(func_stmt->as.function.param_count == 1);
+    assert(func_stmt->as.function.params[0].type->kind == TYPE_POINTER);
+    /* The base type should be the opaque FILE type */
+    assert(func_stmt->as.function.params[0].type->as.pointer.base_type->kind == TYPE_OPAQUE);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+/* ==========================================================================
+ * Pragma Parsing Tests
+ * ========================================================================== */
+
+void test_pragma_include_parsing()
+{
+    printf("Testing parser for #pragma include directive...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Note: pragma requires string literal, so we use "<stdio.h>" with quotes */
+    const char *source = "#pragma include \"<stdio.h>\"\nfn main(): void =>\n  return\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    /* The pragma should have been parsed as a statement */
+    assert(module->count >= 2);
+    /* Find the pragma statement */
+    int found_pragma = 0;
+    for (int i = 0; i < module->count; i++) {
+        if (module->statements[i]->type == STMT_PRAGMA) {
+            assert(module->statements[i]->as.pragma.pragma_type == PRAGMA_INCLUDE);
+            assert(strcmp(module->statements[i]->as.pragma.value, "<stdio.h>") == 0);
+            found_pragma = 1;
+            break;
+        }
+    }
+    assert(found_pragma == 1);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_pragma_link_parsing()
+{
+    printf("Testing parser for #pragma link directive...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Note: pragma requires string literal, so we use "m" with quotes */
+    const char *source = "#pragma link \"m\"\nfn main(): void =>\n  return\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    /* The pragma should have been parsed as a statement */
+    assert(module->count >= 2);
+    /* Find the pragma statement */
+    int found_pragma = 0;
+    for (int i = 0; i < module->count; i++) {
+        if (module->statements[i]->type == STMT_PRAGMA) {
+            assert(module->statements[i]->as.pragma.pragma_type == PRAGMA_LINK);
+            assert(strcmp(module->statements[i]->as.pragma.value, "m") == 0);
+            found_pragma = 1;
+            break;
+        }
+    }
+    assert(found_pragma == 1);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+void test_multiple_pragmas_parsing()
+{
+    printf("Testing parser for multiple pragma directives...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    /* Note: pragma requires string literals */
+    const char *source = "#pragma include \"<stdio.h>\"\n"
+                         "#pragma include \"<math.h>\"\n"
+                         "#pragma link \"m\"\n"
+                         "fn main(): void =>\n"
+                         "  return\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    /* Count pragma statements */
+    int include_count = 0;
+    int link_count = 0;
+    for (int i = 0; i < module->count; i++) {
+        if (module->statements[i]->type == STMT_PRAGMA) {
+            if (module->statements[i]->as.pragma.pragma_type == PRAGMA_INCLUDE) {
+                include_count++;
+            } else if (module->statements[i]->as.pragma.pragma_type == PRAGMA_LINK) {
+                link_count++;
+            }
+        }
+    }
+    assert(include_count == 2);
+    assert(link_count == 1);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+/* ==========================================================================
+ * As Ref Parameter Tests
+ * ========================================================================== */
+
+void test_as_ref_parameter_parsing()
+{
+    printf("Testing parser for 'as ref' parameter syntax...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "native fn get_value(out: int as ref): void\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *func = module->statements[0];
+    assert(func->type == STMT_FUNCTION);
+    assert(func->as.function.is_native == true);
+    assert(func->as.function.param_count == 1);
+    assert(func->as.function.params[0].mem_qualifier == MEM_AS_REF);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
+/* ==========================================================================
+ * Variadic Function Tests (Additional)
+ * ========================================================================== */
+
+void test_variadic_with_multiple_fixed_params_parsing()
+{
+    printf("Testing parser for variadic function with multiple fixed params...\n");
+
+    Arena arena;
+    Lexer lexer;
+    Parser parser;
+    SymbolTable symbol_table;
+    const char *source = "native fn snprintf(buf: *char, size: int, format: str, ...): int\n";
+    setup_parser(&arena, &lexer, &parser, &symbol_table, source);
+
+    Module *module = parser_execute(&parser, "test.sn");
+
+    assert(module != NULL);
+    assert(module->count == 1);
+    Stmt *func = module->statements[0];
+    assert(func->type == STMT_FUNCTION);
+    assert(func->as.function.is_native == true);
+    assert(func->as.function.is_variadic == true);
+    assert(func->as.function.param_count == 3);
+
+    cleanup_parser(&arena, &lexer, &parser, &symbol_table);
+}
+
 void test_parser_basic_main()
 {
     test_empty_program_parsing();
     test_var_decl_parsing();
     test_function_no_params_parsing();
     test_if_statement_parsing();
+    test_interop_type_var_decl_parsing();
+    test_interop_type_function_parsing();
+    test_pointer_type_var_decl_parsing();
+    test_pointer_type_function_parsing();
+    test_native_function_without_body_parsing();
+    test_native_function_with_body_parsing();
+    test_native_function_with_pointer_types_parsing();
+    test_regular_function_not_native_parsing();
+    test_as_val_postfix_with_call_parsing();
+    test_as_val_postfix_with_array_access_parsing();
+    test_as_val_postfix_with_variable_parsing();
+    test_as_val_postfix_precedence_parsing();
+    // Pointer slice tests
+    test_pointer_slice_basic_parsing();
+    test_pointer_slice_with_call_parsing();
+    test_pointer_slice_with_as_val_parsing();
+    test_pointer_slice_from_start_parsing();
+    // Inline pointer call + slice + as val test
+    test_inline_pointer_call_slice_as_val_parsing();
+    // Variadic function tests
+    test_variadic_native_function_parsing();
+    // Native callback type alias tests
+    test_native_callback_type_alias_parsing();
+    // Native lambda tests
+    test_native_lambda_with_pointer_params_parsing();
+    // Opaque type declaration tests
+    test_opaque_type_decl_parsing();
+    test_opaque_type_in_function_param();
+    // Pragma parsing tests
+    test_pragma_include_parsing();
+    test_pragma_link_parsing();
+    test_multiple_pragmas_parsing();
+    // Additional interop tests
+    test_as_ref_parameter_parsing();
+    test_variadic_with_multiple_fixed_params_parsing();
 }

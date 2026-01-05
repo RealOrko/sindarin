@@ -66,7 +66,8 @@ const char *gcc_get_compiler_dir(const char *argv0)
 }
 
 bool gcc_compile(const char *c_file, const char *output_exe,
-                 const char *compiler_dir, bool verbose, bool debug_mode)
+                 const char *compiler_dir, bool verbose, bool debug_mode,
+                 char **link_libs, int link_lib_count)
 {
     char exe_path[PATH_MAX];
     char arena_obj[PATH_MAX];
@@ -86,6 +87,7 @@ bool gcc_compile(const char *c_file, const char *output_exe,
     char runtime_process_obj[PATH_MAX];
     char runtime_net_obj[PATH_MAX];
     char command[PATH_MAX * 16];
+    char extra_libs[PATH_MAX];
 
     /* Determine output executable path if not specified */
     if (output_exe == NULL || output_exe[0] == '\0')
@@ -216,6 +218,22 @@ bool gcc_compile(const char *c_file, const char *output_exe,
      * be caught by the Sn type checker, not GCC. We redirect stderr to capture
      * any errors for display only if compilation actually fails.
      */
+
+    /* Build extra library flags from pragma link directives */
+    extra_libs[0] = '\0';
+    if (link_libs != NULL && link_lib_count > 0)
+    {
+        int offset = 0;
+        for (int i = 0; i < link_lib_count && offset < (int)sizeof(extra_libs) - 8; i++)
+        {
+            int written = snprintf(extra_libs + offset, sizeof(extra_libs) - offset, " -l%s", link_libs[i]);
+            if (written > 0)
+            {
+                offset += written;
+            }
+        }
+    }
+
     char error_file[] = "/tmp/sn_gcc_errors_XXXXXX";
     int error_fd = mkstemp(error_file);
     if (error_fd == -1)
@@ -233,16 +251,16 @@ bool gcc_compile(const char *c_file, const char *output_exe,
         snprintf(command, sizeof(command),
             "gcc -no-pie -fsanitize=address -fno-omit-frame-pointer -g "
             "-w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, runtime_net_obj, exe_path, error_file);
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread%s -o \"%s\" 2>\"%s\"",
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, runtime_net_obj, extra_libs, exe_path, error_file);
     }
     else
     {
         /* Release mode: maximum optimization with -O3 and link-time optimization */
         snprintf(command, sizeof(command),
             "gcc -O3 -flto -w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, runtime_net_obj, exe_path, error_file);
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread%s -o \"%s\" 2>\"%s\"",
+            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, runtime_net_obj, extra_libs, exe_path, error_file);
     }
 
     if (verbose)

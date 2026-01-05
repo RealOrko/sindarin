@@ -21,6 +21,7 @@ Core documentation for the Sindarin programming language:
 | [PROCESSES.md](language/PROCESSES.md) | Process execution and output capture |
 | [NAMESPACES.md](language/NAMESPACES.md) | Namespaced imports for collision resolution |
 | [NETWORK_IO.md](language/NETWORK_IO.md) | TCP and UDP network operations |
+| [INTEROP.md](language/INTEROP.md) | C interoperability and native functions |
 
 ## Draft Specifications
 
@@ -29,7 +30,6 @@ These features are planned or partially implemented:
 | Document | Status | Description |
 |----------|--------|-------------|
 | [FORMATTING.md](drafts/FORMATTING.md) | Partial | String formatting and format specifiers |
-| [INTEROP.md](drafts/INTEROP.md) | Draft | C interoperability and native functions |
 
 ## Internal Documentation
 

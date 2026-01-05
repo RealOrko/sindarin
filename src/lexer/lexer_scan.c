@@ -69,6 +69,8 @@ TokenType lexer_identifier_type(Lexer *lexer)
             {
             case 'a':
                 return lexer_check_keyword(lexer, 2, 3, "lse", TOKEN_BOOL_LITERAL);
+            case 'l':
+                return lexer_check_keyword(lexer, 2, 3, "oat", TOKEN_FLOAT);
             case 'n':
                 return lexer_check_keyword(lexer, 2, 0, "", TOKEN_FN);
             case 'o':
@@ -86,10 +88,14 @@ TokenType lexer_identifier_type(Lexer *lexer)
             case 'm':
                 return lexer_check_keyword(lexer, 2, 4, "port", TOKEN_IMPORT);
             case 'n':
-                // Check for "in" (2 chars) vs "int" (3 chars)
+                // Check for "in" (2 chars) vs "int" (3 chars) vs "int32" (5 chars)
                 if (lexer->current - lexer->start == 2)
                 {
                     return TOKEN_IN;
+                }
+                if (lexer->current - lexer->start == 5)
+                {
+                    return lexer_check_keyword(lexer, 2, 3, "t32", TOKEN_INT32);
                 }
                 return lexer_check_keyword(lexer, 2, 1, "t", TOKEN_INT);
             }
@@ -98,7 +104,17 @@ TokenType lexer_identifier_type(Lexer *lexer)
     case 'l':
         return lexer_check_keyword(lexer, 1, 3, "ong", TOKEN_LONG);
     case 'n':
-        return lexer_check_keyword(lexer, 1, 2, "il", TOKEN_NIL);
+        if (lexer->current - lexer->start > 1)
+        {
+            switch (lexer->start[1])
+            {
+            case 'a':
+                return lexer_check_keyword(lexer, 2, 4, "tive", TOKEN_NATIVE);
+            case 'i':
+                return lexer_check_keyword(lexer, 2, 1, "l", TOKEN_NIL);
+            }
+        }
+        break;
     case 'p':
         return lexer_check_keyword(lexer, 1, 6, "rivate", TOKEN_PRIVATE);
     case 'r':
@@ -129,7 +145,34 @@ TokenType lexer_identifier_type(Lexer *lexer)
         }
         break;
     case 't':
-        return lexer_check_keyword(lexer, 1, 3, "rue", TOKEN_BOOL_LITERAL);
+        if (lexer->current - lexer->start > 1)
+        {
+            switch (lexer->start[1])
+            {
+            case 'r':
+                return lexer_check_keyword(lexer, 2, 2, "ue", TOKEN_BOOL_LITERAL);
+            case 'y':
+                return lexer_check_keyword(lexer, 2, 2, "pe", TOKEN_TYPE);
+            }
+        }
+        break;
+    case 'o':
+        return lexer_check_keyword(lexer, 1, 5, "paque", TOKEN_OPAQUE);
+    case 'u':
+        if (lexer->current - lexer->start > 1)
+        {
+            switch (lexer->start[1])
+            {
+            case 'i':
+                // Check for "uint" (4 chars) vs "uint32" (6 chars)
+                if (lexer->current - lexer->start == 6)
+                {
+                    return lexer_check_keyword(lexer, 2, 4, "nt32", TOKEN_UINT32);
+                }
+                return lexer_check_keyword(lexer, 2, 2, "nt", TOKEN_UINT);
+            }
+        }
+        break;
     case 'v':
         if (lexer->current - lexer->start > 1)
         {

@@ -31,8 +31,12 @@ typedef enum
     TOKEN_IMPORT,
     TOKEN_NIL,
     TOKEN_INT,
+    TOKEN_INT32,
+    TOKEN_UINT,
+    TOKEN_UINT32,
     TOKEN_LONG,
     TOKEN_DOUBLE,
+    TOKEN_FLOAT,
     TOKEN_CHAR,
     TOKEN_STR,
     TOKEN_BOOL,
@@ -44,6 +48,11 @@ typedef enum
     TOKEN_AS,
     TOKEN_VAL,
     TOKEN_REF,
+    // Native interop keyword
+    TOKEN_NATIVE,
+    // Type declaration keywords
+    TOKEN_TYPE,
+    TOKEN_OPAQUE,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,
@@ -75,6 +84,9 @@ typedef enum
     TOKEN_RANGE,
     TOKEN_SPREAD,
     TOKEN_ARROW,
+    TOKEN_PRAGMA,
+    TOKEN_PRAGMA_INCLUDE,
+    TOKEN_PRAGMA_LINK,
     TOKEN_ERROR
 } TokenType;
 

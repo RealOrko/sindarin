@@ -122,16 +122,53 @@ Type *type_check_array_access(Expr *expr, SymbolTable *table)
 Type *type_check_array_slice(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking array slice");
-    Type *array_t = type_check_expr(expr->as.array_slice.array, table);
-    if (array_t == NULL)
+    Type *operand_t = type_check_expr(expr->as.array_slice.array, table);
+    if (operand_t == NULL)
     {
         return NULL;
     }
-    if (array_t->kind != TYPE_ARRAY)
+
+    /* Determine element type based on operand:
+     * - For arrays: element type is the array's element type
+     * - For pointers: element type is the pointer's base type (e.g., *byte => byte)
+     */
+    Type *element_type = NULL;
+    bool is_from_pointer = false;
+    if (operand_t->kind == TYPE_ARRAY)
     {
-        type_error(expr->token, "Cannot slice non-array");
+        element_type = operand_t->as.array.element_type;
+        DEBUG_VERBOSE("Slicing array with element type: %d", element_type->kind);
+    }
+    else if (operand_t->kind == TYPE_POINTER)
+    {
+        element_type = operand_t->as.pointer.base_type;
+        is_from_pointer = true;
+        DEBUG_VERBOSE("Slicing pointer with base type: %d", element_type->kind);
+    }
+    else
+    {
+        type_error(expr->token, "Cannot slice non-array, non-pointer type");
         return NULL;
     }
+
+    /* Track if this slice came from a pointer for code generation */
+    expr->as.array_slice.is_from_pointer = is_from_pointer;
+
+    /* In non-native functions, pointer slices must be wrapped in 'as val'.
+     * This enforces safe unwrapping at the call site. */
+    if (is_from_pointer && !native_context_is_active() && !as_val_context_is_active())
+    {
+        type_error(expr->token, "Pointer slice in non-native function requires 'as val' (e.g., ptr[0..len] as val)");
+        return NULL;
+    }
+
+    /* Pointer slicing does not support step parameter - only contiguous memory can be copied */
+    if (is_from_pointer && expr->as.array_slice.step != NULL)
+    {
+        type_error(expr->token, "Pointer slicing does not support step parameter (ptr[start..end:step] invalid)");
+        return NULL;
+    }
+
     // Type check start index if provided
     if (expr->as.array_slice.start != NULL)
     {
@@ -160,9 +197,13 @@ Type *type_check_array_slice(Expr *expr, SymbolTable *table)
             return NULL;
         }
     }
-    DEBUG_VERBOSE("Returning array type for slice: %d", array_t->kind);
-    // Slicing an array returns an array of the same element type
-    return array_t;
+
+    /* Result is always an array of the element type.
+     * For arrays: returns same type (e.g., int[] => int[])
+     * For pointers: converts to array (e.g., *byte => byte[]) */
+    Type *result_type = ast_create_array_type(table->arena, element_type);
+    DEBUG_VERBOSE("Returning array type for slice with element type: %d", element_type->kind);
+    return result_type;
 }
 
 /* ============================================================================

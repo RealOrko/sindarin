@@ -28,6 +28,8 @@ void compiler_init(CompilerOptions *options, int argc, char **argv)
     options->emit_c_only = 0;  /* Default: compile to executable */
     options->keep_c = 0;       /* Default: delete intermediate C file */
     options->debug_build = 0;  /* Default: optimized build */
+    options->link_libs = NULL;
+    options->link_lib_count = 0;
 
     /* Get the compiler directory for locating runtime objects */
     options->compiler_dir = (char *)gcc_get_compiler_dir(argv[0]);

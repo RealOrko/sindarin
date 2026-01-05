@@ -82,6 +82,14 @@ typedef struct {
     long **captured_prim_ptrs;      // Pointers to arena-allocated storage (for redirection)
     int captured_prim_count;
     int captured_prim_capacity;
+
+    /* Pragma tracking for C interop */
+    char **pragma_includes;         // List of include directives (e.g., "<math.h>")
+    int pragma_include_count;
+    int pragma_include_capacity;
+    char **pragma_links;            // List of libraries to link (e.g., "m", "pthread")
+    int pragma_link_count;
+    int pragma_link_capacity;
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);
