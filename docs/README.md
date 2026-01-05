@@ -16,6 +16,7 @@ Core documentation for the Sindarin programming language:
 | [FILE_IO.md](language/FILE_IO.md) | TextFile and BinaryFile operations |
 | [DATE.md](language/DATE.md) | Calendar date operations |
 | [TIME.md](language/TIME.md) | Date and time operations |
+| [RANDOM.md](language/RANDOM.md) | Random number generation |
 | [MEMORY.md](language/MEMORY.md) | Arena memory management |
 | [THREADING.md](language/THREADING.md) | Threading with `&` spawn and `!` sync operators |
 | [PROCESSES.md](language/PROCESSES.md) | Process execution and output capture |

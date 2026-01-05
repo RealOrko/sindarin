@@ -1,0 +1,103 @@
+// Integration test for Random reproducibility with seeds
+// Tests: Random.createWithSeed, determinism across instances
+
+fn main(): int =>
+    print("=== Random Seeded Reproducibility ===\n")
+
+    test_same_seed_same_sequence()
+    test_different_seeds_different_sequences()
+    test_seeded_int_sequence()
+    test_seeded_double_sequence()
+    test_seeded_bool_sequence()
+
+    print("\nPASS\n")
+    return 0
+
+fn test_same_seed_same_sequence(): void =>
+    print("Testing same seed produces same sequence...\n")
+    var rng1: Random = Random.createWithSeed(42l)
+    var rng2: Random = Random.createWithSeed(42l)
+
+    var all_match: bool = true
+    for i in 0..10 =>
+        var a: int = rng1.int(1, 1000)
+        var b: int = rng2.int(1, 1000)
+        if a != b =>
+            all_match = false
+            print($"  ERROR: Values differ at iteration {i}: {a} vs {b}\n")
+
+    if all_match =>
+        print("  PASS: Same seed produces identical sequences\n")
+    else =>
+        print("  FAIL: Same seed produced different sequences\n")
+
+fn test_different_seeds_different_sequences(): void =>
+    print("Testing different seeds produce different sequences...\n")
+    var rng1: Random = Random.createWithSeed(100l)
+    var rng2: Random = Random.createWithSeed(200l)
+
+    var same_count: int = 0
+    for i in 0..10 =>
+        var a: int = rng1.int(1, 1000000)
+        var b: int = rng2.int(1, 1000000)
+        if a == b =>
+            same_count = same_count + 1
+
+    // With 10 samples from 1-1000000, probability of all matching is negligible
+    if same_count < 10 =>
+        print("  PASS: Different seeds produce different sequences\n")
+    else =>
+        print("  FAIL: Different seeds produced identical sequences (unlikely)\n")
+
+fn test_seeded_int_sequence(): void =>
+    print("Testing seeded int sequence is reproducible...\n")
+    // Generate a sequence with seed 12345
+    var rng1: Random = Random.createWithSeed(12345l)
+    var first1: int = rng1.int(0, 100)
+    var second1: int = rng1.int(0, 100)
+    var third1: int = rng1.int(0, 100)
+
+    // Generate again with same seed
+    var rng2: Random = Random.createWithSeed(12345l)
+    var first2: int = rng2.int(0, 100)
+    var second2: int = rng2.int(0, 100)
+    var third2: int = rng2.int(0, 100)
+
+    if first1 == first2 && second1 == second2 && third1 == third2 =>
+        print($"  PASS: Sequence [{first1}, {second1}, {third1}] is reproducible\n")
+    else =>
+        print("  FAIL: Int sequences did not match\n")
+
+fn test_seeded_double_sequence(): void =>
+    print("Testing seeded double sequence is reproducible...\n")
+    var rng1: Random = Random.createWithSeed(99999l)
+    var d1: double = rng1.double(0.0, 1.0)
+    var d2: double = rng1.double(0.0, 1.0)
+
+    var rng2: Random = Random.createWithSeed(99999l)
+    var d3: double = rng2.double(0.0, 1.0)
+    var d4: double = rng2.double(0.0, 1.0)
+
+    if d1 == d3 && d2 == d4 =>
+        print($"  PASS: Double sequence [{d1}, {d2}] is reproducible\n")
+    else =>
+        print("  FAIL: Double sequences did not match\n")
+
+fn test_seeded_bool_sequence(): void =>
+    print("Testing seeded bool sequence is reproducible...\n")
+    var rng1: Random = Random.createWithSeed(77777l)
+    var rng2: Random = Random.createWithSeed(77777l)
+
+    var all_match: bool = true
+    for i in 0..20 =>
+        var b1: bool = rng1.bool()
+        var b2: bool = rng2.bool()
+        // Compare bools by converting to int
+        var match: bool = (b1 && b2) || (!b1 && !b2)
+        if !match =>
+            all_match = false
+
+    if all_match =>
+        print("  PASS: Bool sequences from same seed match\n")
+    else =>
+        print("  FAIL: Bool sequences differ\n")

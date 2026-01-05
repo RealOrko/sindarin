@@ -193,7 +193,7 @@ Expr *parser_unary(Parser *parser)
             else if (parser_match(parser, TOKEN_DOT))
             {
                 Token dot = parser->previous;
-                if (!parser_check(parser, TOKEN_IDENTIFIER))
+                if (!parser_check_method_name(parser))
                 {
                     parser_error_at_current(parser, "Expected identifier after '.'");
                 }
@@ -241,7 +241,7 @@ Expr *parser_postfix(Parser *parser)
         else if (parser_match(parser, TOKEN_DOT))
         {
             Token dot = parser->previous;
-            if (!parser_check(parser, TOKEN_IDENTIFIER))
+            if (!parser_check_method_name(parser))
             {
                 parser_error_at_current(parser, "Expected identifier after '.'");
             }
@@ -449,8 +449,8 @@ Expr *parser_primary(Parser *parser)
             /* Consume the dot */
             parser_advance(parser);
 
-            /* Expect method name */
-            if (!parser_check(parser, TOKEN_IDENTIFIER))
+            /* Expect method name (identifier or type keyword like int, long, double, etc.) */
+            if (!parser_check_method_name(parser))
             {
                 parser_error_at_current(parser, "Expected method name after '.'");
                 return NULL;

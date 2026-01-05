@@ -38,6 +38,9 @@
 /* Network module - depends on arena */
 #include "runtime/runtime_net.h"
 
+/* Random module - depends on arena and array */
+#include "runtime/runtime_random.h"
+
 /* ============================================================================
  * Arithmetic operations
  * ============================================================================ */

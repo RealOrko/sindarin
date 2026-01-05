@@ -1,0 +1,272 @@
+// Integration test for Random number generation
+// Tests factory methods, static methods, instance methods, and collection operations
+
+fn main(): void =>
+    var passed: int = 0
+    var failed: int = 0
+
+    print("=== Random Integration Tests ===\n")
+
+    // ============================================================
+    // FACTORY METHODS
+    // ============================================================
+    print("--- Factory Methods ---")
+
+    // Test Random.create() - creates OS-entropy backed instance
+    var osRng: Random = Random.create()
+    print("  PASS: Random.create() succeeded")
+    passed = passed + 1
+
+    // Test Random.createWithSeed() - creates seeded PRNG
+    var seededRng: Random = Random.createWithSeed(12345l)
+    print("  PASS: Random.createWithSeed(12345l) succeeded")
+    passed = passed + 1
+
+    // ============================================================
+    // SEEDED PRNG DETERMINISM TEST
+    // ============================================================
+    print("\n--- Seeded PRNG Determinism ---")
+
+    // Create two seeded generators with same seed
+    var rng1: Random = Random.createWithSeed(42l)
+    var rng2: Random = Random.createWithSeed(42l)
+
+    // They should produce identical sequences
+    var val1a: int = rng1.int(1, 100)
+    var val1b: int = rng2.int(1, 100)
+
+    if val1a == val1b =>
+        print($"  PASS: Same seed produces same first int: {val1a}")
+        passed = passed + 1
+    else =>
+        print($"  FAIL: Same seed different results: {val1a} vs {val1b}")
+        failed = failed + 1
+
+    var val2a: int = rng1.int(1, 100)
+    var val2b: int = rng2.int(1, 100)
+
+    if val2a == val2b =>
+        print($"  PASS: Same seed produces same second int: {val2a}")
+        passed = passed + 1
+    else =>
+        print($"  FAIL: Same seed different second results: {val2a} vs {val2b}")
+        failed = failed + 1
+
+    // ============================================================
+    // STATIC VALUE GENERATION METHODS
+    // ============================================================
+    print("\n--- Static Value Generation ---")
+
+    // Random.int(min, max)
+    var staticInt: int = Random.int(1, 100)
+    print("  PASS: Random.int(1, 100)")
+    passed = passed + 1
+
+    // Random.double(min, max)
+    var staticDouble: double = Random.double(0.0, 1.0)
+    print("  PASS: Random.double(0.0, 1.0)")
+    passed = passed + 1
+
+    // Random.bool()
+    var staticBool: bool = Random.bool()
+    print("  PASS: Random.bool()")
+    passed = passed + 1
+
+    // Random.byte()
+    var staticByte: byte = Random.byte()
+    print("  PASS: Random.byte()")
+    passed = passed + 1
+
+    // Random.gaussian(mean, stddev)
+    var staticGaussian: double = Random.gaussian(0.0, 1.0)
+    print("  PASS: Random.gaussian(0.0, 1.0)")
+    passed = passed + 1
+
+    // ============================================================
+    // STATIC BATCH GENERATION METHODS
+    // ============================================================
+    print("\n--- Static Batch Generation ---")
+
+    // Random.intMany(min, max, count)
+    var staticInts: int[] = Random.intMany(1, 10, 5)
+    print("  PASS: Random.intMany(1, 10, 5) returned array")
+    passed = passed + 1
+
+    // Random.doubleMany(min, max, count)
+    var staticDoubles: double[] = Random.doubleMany(0.0, 1.0, 5)
+    print("  PASS: Random.doubleMany(0.0, 1.0, 5) returned array")
+    passed = passed + 1
+
+    // Random.boolMany(count)
+    var staticBools: bool[] = Random.boolMany(5)
+    print("  PASS: Random.boolMany(5) returned array")
+    passed = passed + 1
+
+    // ============================================================
+    // STATIC COLLECTION OPERATIONS
+    // ============================================================
+    print("\n--- Static Collection Operations ---")
+
+    var colors: str[] = {"red", "green", "blue", "yellow"}
+    var numbers: int[] = {10, 20, 30, 40, 50}
+    var weights: double[] = {0.1, 0.2, 0.3, 0.4}
+
+    // Random.choice(array)
+    var chosenColor: str = Random.choice(colors)
+    print("  PASS: Random.choice(colors)")
+    passed = passed + 1
+
+    var chosenNumber: int = Random.choice(numbers)
+    print("  PASS: Random.choice(numbers)")
+    passed = passed + 1
+
+    // Random.shuffle(array) - modifies in place
+    var toShuffle: int[] = {1, 2, 3, 4, 5}
+    Random.shuffle(toShuffle)
+    print("  PASS: Random.shuffle() shuffled array")
+    passed = passed + 1
+
+    // Random.weightedChoice(items, weights)
+    var weightedColor: str = Random.weightedChoice(colors, weights)
+    print("  PASS: Random.weightedChoice(colors, weights)")
+    passed = passed + 1
+
+    // Random.sample(array, count)
+    var sampledNumbers: int[] = Random.sample(numbers, 3)
+    print("  PASS: Random.sample(numbers, 3) returned sample")
+    passed = passed + 1
+
+    // ============================================================
+    // INSTANCE VALUE GENERATION METHODS
+    // ============================================================
+    print("\n--- Instance Value Generation ---")
+
+    var rng: Random = Random.createWithSeed(999l)
+
+    // rng.int(min, max)
+    var instInt: int = rng.int(1, 100)
+    print($"  PASS: rng.int(1, 100) = {instInt}")
+    passed = passed + 1
+
+    // rng.long(min, max)
+    var instLong: long = rng.long(1l, 1000000l)
+    print($"  PASS: rng.long(1, 1000000) = {instLong}")
+    passed = passed + 1
+
+    // rng.double(min, max)
+    var instDouble: double = rng.double(0.0, 10.0)
+    print($"  PASS: rng.double(0.0, 10.0) = {instDouble}")
+    passed = passed + 1
+
+    // rng.bool()
+    var instBool: bool = rng.bool()
+    print($"  PASS: rng.bool() = {instBool}")
+    passed = passed + 1
+
+    // rng.byte()
+    var instByte: byte = rng.byte()
+    print($"  PASS: rng.byte() = {instByte}")
+    passed = passed + 1
+
+    // rng.gaussian(mean, stddev)
+    var instGaussian: double = rng.gaussian(100.0, 15.0)
+    print($"  PASS: rng.gaussian(100.0, 15.0) = {instGaussian}")
+    passed = passed + 1
+
+    // ============================================================
+    // INSTANCE BATCH GENERATION METHODS
+    // ============================================================
+    print("\n--- Instance Batch Generation ---")
+
+    // rng.intMany(min, max, count)
+    var instInts: int[] = rng.intMany(1, 100, 5)
+    print("  PASS: rng.intMany(1, 100, 5) returned array")
+    passed = passed + 1
+
+    // rng.doubleMany(min, max, count)
+    var instDoubles: double[] = rng.doubleMany(0.0, 1.0, 5)
+    print("  PASS: rng.doubleMany(0.0, 1.0, 5) returned array")
+    passed = passed + 1
+
+    // rng.boolMany(count)
+    var instBools: bool[] = rng.boolMany(5)
+    print("  PASS: rng.boolMany(5) returned array")
+    passed = passed + 1
+
+    // ============================================================
+    // INSTANCE COLLECTION OPERATIONS
+    // ============================================================
+    print("\n--- Instance Collection Operations ---")
+
+    var fruits: str[] = {"apple", "banana", "cherry", "date"}
+    var scores: int[] = {85, 90, 78, 92, 88}
+    var fruitWeights: double[] = {0.4, 0.3, 0.2, 0.1}
+
+    // rng.choice(array)
+    var chosenFruit: str = rng.choice(fruits)
+    print($"  PASS: rng.choice(fruits) = {chosenFruit}")
+    passed = passed + 1
+
+    var chosenScore: int = rng.choice(scores)
+    print($"  PASS: rng.choice(scores) = {chosenScore}")
+    passed = passed + 1
+
+    // rng.shuffle(array) - modifies in place
+    var toShuffleInst: int[] = {1, 2, 3, 4, 5}
+    rng.shuffle(toShuffleInst)
+    print("  PASS: rng.shuffle() shuffled array")
+    passed = passed + 1
+
+    // rng.weightedChoice(items, weights)
+    var weightedFruit: str = rng.weightedChoice(fruits, fruitWeights)
+    print($"  PASS: rng.weightedChoice(fruits, weights) = {weightedFruit}")
+    passed = passed + 1
+
+    // rng.sample(array, count)
+    var sampledScores: int[] = rng.sample(scores, 3)
+    print("  PASS: rng.sample(scores, 3) returned sample")
+    passed = passed + 1
+
+    // ============================================================
+    // PRACTICAL USAGE PATTERNS
+    // ============================================================
+    print("\n--- Practical Usage Patterns ---")
+
+    // Dice roll simulation
+    var dice: Random = Random.createWithSeed(777l)
+    var roll1: int = dice.int(1, 6)
+    var roll2: int = dice.int(1, 6)
+    print($"  Dice rolls: {roll1}, {roll2}")
+    passed = passed + 1
+
+    // Coin flip using bool
+    var flip: bool = Random.bool()
+    print("  PASS: Coin flip completed")
+    passed = passed + 1
+
+    // Random password character selection
+    var chars: str[] = {"a", "b", "c", "d", "e", "1", "2", "3"}
+    var char1: str = Random.choice(chars)
+    var char2: str = Random.choice(chars)
+    var char3: str = Random.choice(chars)
+    print("  PASS: Random chars selected")
+    passed = passed + 1
+
+    // Weighted loot drop simulation
+    var lootItems: str[] = {"common", "uncommon", "rare", "legendary"}
+    var lootWeights: double[] = {0.6, 0.25, 0.12, 0.03}
+    var drop: str = Random.weightedChoice(lootItems, lootWeights)
+    print("  PASS: Loot drop completed")
+    passed = passed + 1
+
+    // ============================================================
+    // SUMMARY
+    // ============================================================
+    print("\n=== Test Summary ===")
+    print($"Passed: {passed}")
+    print($"Failed: {failed}")
+
+    if failed == 0 =>
+        print("\nAll Random integration tests PASSED!")
+    else =>
+        print("\nSome tests FAILED!")

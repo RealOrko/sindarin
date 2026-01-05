@@ -38,6 +38,7 @@ typedef enum
     TYPE_TCP_LISTENER,
     TYPE_TCP_STREAM,
     TYPE_UDP_SOCKET,
+    TYPE_RANDOM,
     TYPE_POINTER,
     TYPE_OPAQUE
 } TypeKind;

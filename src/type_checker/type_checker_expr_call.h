@@ -49,4 +49,7 @@ Type *type_check_tcp_listener_method(Expr *expr, Type *object_type, Token member
 Type *type_check_tcp_stream_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 Type *type_check_udp_socket_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 
+/* Random type method checker */
+Type *type_check_random_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
+
 #endif /* TYPE_CHECKER_EXPR_CALL_H */

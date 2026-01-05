@@ -14,13 +14,17 @@ fn httpGet(addr: str, path: str): str =>
 fn main(): void =>
     print("Testing parallel HTTP-like requests\n")
 
-    // Start a simple Python server that echoes back the path
-    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',46040));s.listen(5);open('/tmp/tcp_http','w').write('1');c1,a1=s.accept();r1=c1.recv(1024);c1.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page1');c1.close();c2,a2=s.accept();r2=c2.recv(1024);c2.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page2');c2.close();c3,a3=s.accept();r3=c3.recv(1024);c3.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page3');c3.close();s.close()"})
+    // Clean up any leftover port file from previous runs
+    var preclean: Process = Process.run("rm", {"-f", "/tmp/tcp_http_port"})
 
-    // Wait for server to be ready
+    // Start a simple Python server that binds to port 0 (OS assigns free port),
+    // calls listen(), THEN writes the port to a file (to avoid race condition)
+    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));port=s.getsockname()[1];s.listen(5);f=open('/tmp/tcp_http_port','w');f.write(str(port));f.flush();f.close();c1,a1=s.accept();r1=c1.recv(1024);c1.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page1');c1.close();c2,a2=s.accept();r2=c2.recv(1024);c2.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page2');c2.close();c3,a3=s.accept();r3=c3.recv(1024);c3.send(b'HTTP/1.0 200 OK\\r\\n\\r\\n/page3');c3.close();s.close()"})
+
+    // Wait for server to be ready and get the port
     var attempts: int = 0
     while attempts < 50 =>
-        var check: Process = Process.run("test", {"-f", "/tmp/tcp_http"})
+        var check: Process = Process.run("test", {"-f", "/tmp/tcp_http_port"})
         if check.exitCode == 0 =>
             attempts = 100
         else =>
@@ -31,12 +35,18 @@ fn main(): void =>
         print("Server not ready\n")
         return
 
+    // Read the port from the file
+    var portFile: TextFile = TextFile.open("/tmp/tcp_http_port")
+    var portStr: str = portFile.readLine()
+    portFile.close()
+    var addr: str = $"127.0.0.1:{portStr}"
+
     print("Server ready\n")
 
     // Make 3 parallel HTTP GET requests to different paths
-    var resp1: str = &httpGet("127.0.0.1:46040", "/page1")
-    var resp2: str = &httpGet("127.0.0.1:46040", "/page2")
-    var resp3: str = &httpGet("127.0.0.1:46040", "/page3")
+    var resp1: str = &httpGet(addr, "/page1")
+    var resp2: str = &httpGet(addr, "/page2")
+    var resp3: str = &httpGet(addr, "/page3")
 
     // Sync all requests
     resp1!
@@ -62,5 +72,5 @@ fn main(): void =>
 
     server!
 
-    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_http"})
+    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_http_port"})
     print("Test complete\n")

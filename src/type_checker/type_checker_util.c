@@ -51,6 +51,7 @@ const char *type_name(Type *type)
         case TYPE_TCP_LISTENER: return "TcpListener";
         case TYPE_TCP_STREAM:   return "TcpStream";
         case TYPE_UDP_SOCKET:   return "UdpSocket";
+        case TYPE_RANDOM:       return "Random";
         case TYPE_POINTER:      return "pointer";
         default:                return "unknown";
     }
@@ -400,6 +401,17 @@ static const char *string_methods[] = {
     NULL
 };
 
+/* Known Random methods for suggestions */
+static const char *random_methods[] = {
+    /* Value generation */
+    "int", "long", "double", "bool", "byte", "bytes", "gaussian",
+    /* Batch generation */
+    "intMany", "longMany", "doubleMany", "boolMany", "gaussianMany",
+    /* Collection operations */
+    "choice", "shuffle", "weightedChoice", "sample",
+    NULL
+};
+
 /*
  * Find a similar method name for a given type.
  * Returns NULL if no good match found.
@@ -417,6 +429,10 @@ const char *find_similar_method(Type *type, const char *method_name)
     else if (type->kind == TYPE_STRING)
     {
         methods = string_methods;
+    }
+    else if (type->kind == TYPE_RANDOM)
+    {
+        methods = random_methods;
     }
     else
     {

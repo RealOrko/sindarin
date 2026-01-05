@@ -39,6 +39,7 @@ static void setup_literal_token(Token *token, TokenType type, const char *lexeme
 #include "type_checker_tests_thread.c"
 #include "type_checker_tests_namespace.c"
 #include "type_checker_tests_native.c"
+#include "type_checker_tests_random.c"
 
 void test_type_checker_main()
 {
@@ -51,4 +52,5 @@ void test_type_checker_main()
     test_type_checker_thread_main();
     test_type_checker_namespace_main();
     test_type_checker_native_main();
+    test_type_checker_random_main();
 }

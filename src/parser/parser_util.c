@@ -293,6 +293,11 @@ Type *parser_type(Parser *parser)
             parser_advance(parser);
             type = ast_create_primitive_type(parser->arena, TYPE_UDP_SOCKET);
         }
+        else if (id.length == 6 && strncmp(id.start, "Random", 6) == 0)
+        {
+            parser_advance(parser);
+            type = ast_create_primitive_type(parser->arena, TYPE_RANDOM);
+        }
         else
         {
             /* Check if this is a type alias (opaque type) */
@@ -392,6 +397,7 @@ static const char *static_type_names[] = {
     "TcpListener",
     "TcpStream",
     "UdpSocket",
+    "Random",
     NULL
 };
 
@@ -404,6 +410,23 @@ int parser_is_static_type_name(const char *name, int length)
         {
             return 1;
         }
+    }
+    return 0;
+}
+
+int parser_check_method_name(Parser *parser)
+{
+    /* Allow identifiers as method names */
+    if (parser_check(parser, TOKEN_IDENTIFIER))
+    {
+        return 1;
+    }
+    /* Allow type keywords as method names (for Random.int, rng.int, etc.) */
+    TokenType type = parser->current.type;
+    if (type == TOKEN_INT || type == TOKEN_LONG || type == TOKEN_DOUBLE ||
+        type == TOKEN_BOOL || type == TOKEN_BYTE)
+    {
+        return 1;
     }
     return 0;
 }

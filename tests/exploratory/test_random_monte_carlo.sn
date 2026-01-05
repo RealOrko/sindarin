@@ -1,0 +1,207 @@
+// Exploratory test: Monte Carlo estimation with Random
+// Demonstrates using random sampling for mathematical approximations
+// Classic examples: estimating Pi, integration, and probability
+
+fn main(): int =>
+    print("=== Monte Carlo Estimation ===\n\n")
+
+    // Part 1: Estimate Pi using the unit circle method
+    test_estimate_pi()
+
+    // Part 2: Monte Carlo integration (area under a curve)
+    test_monte_carlo_integration()
+
+    // Part 3: Probability estimation (Birthday Problem)
+    test_birthday_problem()
+
+    // Part 4: Random walk simulation
+    test_random_walk()
+
+    // Part 5: Buffon's Needle experiment
+    test_buffons_needle()
+
+    print("\n=== Monte Carlo Estimation Complete ===\n")
+    return 0
+
+// Estimate Pi by throwing darts at a square containing a quarter circle
+// Points inside circle: x^2 + y^2 <= 1
+// Pi/4 = (points in circle) / (total points)
+fn test_estimate_pi(): void =>
+    print("--- Estimating Pi (Unit Circle Method) ---\n")
+    print("  Throwing random points at [0,1] x [0,1] square\n")
+    print("  Counting how many land inside quarter circle\n\n")
+
+    var trials_list: int[] = {100, 1000, 10000}
+
+    for t in 0..trials_list.length =>
+        var trials: int = trials_list[t]
+        var inside_circle: int = 0
+
+        for i in 0..trials =>
+            var x: double = Random.double(0.0, 1.0)
+            var y: double = Random.double(0.0, 1.0)
+            // Check if point is inside quarter circle
+            if (x * x + y * y) <= 1.0 =>
+                inside_circle = inside_circle + 1
+
+        // Pi/4 = inside/total, so Pi = 4 * inside/total
+        var inside_d: double = inside_circle * 1.0
+        var trials_d: double = trials * 1.0
+        var pi_estimate: double = 4.0 * inside_d / trials_d
+        var error: double = pi_estimate - 3.14159265358979
+        if error < 0.0 => error = -error
+
+        print($"  Trials: {trials}, Inside: {inside_circle}, Pi estimate: {pi_estimate}, Error: {error}\n")
+
+    print("\n")
+
+// Monte Carlo integration: Estimate integral of x^2 from 0 to 1
+// True answer: 1/3 = 0.333...
+fn test_monte_carlo_integration(): void =>
+    print("--- Monte Carlo Integration ---\n")
+    print("  Estimating integral of x^2 from 0 to 1 (true value = 0.333...)\n\n")
+
+    var trials: int = 10000
+    var sum: double = 0.0
+
+    for i in 0..trials =>
+        var x: double = Random.double(0.0, 1.0)
+        // f(x) = x^2
+        sum = sum + (x * x)
+
+    // Integral approximation = (b-a) * average(f(x))
+    // Here (b-a) = 1, so just average
+    var trials_d: double = trials * 1.0
+    var integral: double = sum / trials_d
+    var true_value: double = 0.333333333
+    var error: double = integral - true_value
+    if error < 0.0 => error = -error
+
+    print($"  Estimate: {integral}\n")
+    print($"  True value: {true_value}\n")
+    print($"  Error: {error}\n\n")
+
+// Birthday Problem: What's the probability that in a room of N people,
+// at least two share a birthday?
+// Helper function to check if birthday exists in array
+fn has_birthday(birthdays: int[], target: int): bool =>
+    for b in birthdays =>
+        if b == target =>
+            return true
+    return false
+
+// Simulate one birthday group and return collision status
+fn simulate_birthday_group(group_size: int) shared: bool =>
+    var birthdays: int[] = {}
+    var found_collision: bool = false
+    for person in 0..group_size =>
+        var birthday: int = Random.int(0, 364)
+        // Check against previous birthdays
+        if has_birthday(birthdays, birthday) =>
+            found_collision = true
+        birthdays.push(birthday)
+    return found_collision
+
+fn test_birthday_problem(): void =>
+    print("--- Birthday Problem Simulation ---\n")
+    print("  Probability of shared birthday in a group\n\n")
+
+    var group_sizes: int[] = {10, 23, 30, 50}
+    var simulations: int = 1000
+
+    for g in 0..group_sizes.length =>
+        var group_size: int = group_sizes[g]
+        var collision_count: int = 0
+
+        for sim in 0..simulations =>
+            if simulate_birthday_group(group_size) =>
+                collision_count = collision_count + 1
+
+        var count_d: double = collision_count * 1.0
+        var sims_d: double = simulations * 1.0
+        var probability: double = count_d / sims_d * 100.0
+        print($"  Group of {group_size}: {probability}% chance of shared birthday\n")
+
+    print("  (Expected: 10->12%, 23->50%, 30->70%, 50->97%)\n\n")
+
+// Random walk: Start at origin, take N steps in random directions
+// Measure average distance from origin
+fn test_random_walk(): void =>
+    print("--- 1D Random Walk ---\n")
+    print("  Start at 0, each step +1 or -1 randomly\n\n")
+
+    var walks: int = 5
+    var steps: int = 100
+
+    for walk in 0..walks =>
+        var position: int = 0
+
+        for step in 0..steps =>
+            if Random.bool() =>
+                position = position + 1
+            else =>
+                position = position - 1
+
+        var distance: int = position
+        if distance < 0 => distance = -distance
+        print($"  Walk {walk + 1}: Final position = {position}, Distance from origin = {distance}\n")
+
+    print("\n")
+
+    // 2D random walk
+    print("--- 2D Random Walk ---\n")
+    print("  Start at (0,0), each step in random direction\n\n")
+
+    for walk in 0..walks =>
+        var x: int = 0
+        var y: int = 0
+
+        for step in 0..steps =>
+            var direction: int = Random.int(0, 3)
+            if direction == 0 => x = x + 1      // right
+            if direction == 1 => x = x - 1      // left
+            if direction == 2 => y = y + 1      // up
+            if direction == 3 => y = y - 1      // down
+
+        print($"  Walk {walk + 1}: Final position = ({x}, {y})\n")
+
+    print("\n")
+
+// Buffon's Needle: Estimate Pi by dropping needles on lined paper
+// Probability of crossing a line = 2L / (pi * D)
+// where L = needle length, D = line spacing
+// If L = D, probability = 2/pi, so pi = 2/probability
+fn test_buffons_needle(): void =>
+    print("--- Buffon's Needle (Pi Estimation) ---\n")
+    print("  Dropping needles of length 1 on paper with line spacing 1\n\n")
+
+    var trials: int = 10000
+    var crossings: int = 0
+
+    for i in 0..trials =>
+        // Needle center distance from nearest line (0 to 0.5)
+        var center_dist: double = Random.double(0.0, 0.5)
+        // Angle of needle (0 to pi/2)
+        var angle: double = Random.double(0.0, 1.5707963)  // pi/2 approx
+
+        // Needle crosses line if center_dist <= (L/2) * sin(angle)
+        // With L=1, crosses if center_dist <= 0.5 * sin(angle)
+        // Approximate sin with Taylor series: sin(x) ≈ x - x^3/6 for small x
+        // But we need full range, so use approximation
+        var sin_approx: double = angle - (angle * angle * angle / 6.0) + (angle * angle * angle * angle * angle / 120.0)
+        var half_projection: double = 0.5 * sin_approx
+
+        if center_dist <= half_projection =>
+            crossings = crossings + 1
+
+    // pi = 2 * trials / crossings
+    var trials_d: double = trials * 1.0
+    var crossings_d: double = crossings * 1.0
+    var pi_estimate: double = 2.0 * trials_d / crossings_d
+    var error: double = pi_estimate - 3.14159265358979
+    if error < 0.0 => error = -error
+
+    print($"  Needles dropped: {trials}\n")
+    print($"  Crossings: {crossings}\n")
+    print($"  Pi estimate: {pi_estimate}\n")
+    print($"  Error: {error}\n")

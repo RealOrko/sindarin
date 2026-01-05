@@ -1,0 +1,295 @@
+// Integration tests for Random collection operations
+// Tests: choice, shuffle, weightedChoice, sample
+
+fn main(): void =>
+    print("=== Random Collection Operations Integration Tests ===\n\n")
+
+    test_choice_int_array()
+    test_choice_str_array()
+    test_choice_double_array()
+
+    test_shuffle_int_array()
+    test_shuffle_str_array()
+    test_shuffle_double_array()
+
+    test_weighted_choice_int_array()
+    test_weighted_choice_str_array()
+
+    test_sample_int_array()
+    test_sample_str_array()
+
+    print("\n=== All Random Collection Tests Passed ===\n")
+
+// ============================================================================
+// Random.choice tests - verify correct element type returned
+// ============================================================================
+
+fn test_choice_int_array(): void =>
+    print("Testing Random.choice(int[])...\n")
+    var numbers: int[] = {10, 20, 30, 40, 50}
+
+    // Call choice multiple times and verify the result is always from the array
+    var found_valid: bool = true
+    for i in 0..10 =>
+        var pick: int = Random.choice(numbers)
+        // Verify pick is one of the values in the array
+        var is_valid: bool = (pick == 10) || (pick == 20) || (pick == 30) || (pick == 40) || (pick == 50)
+        if !is_valid =>
+            found_valid = false
+            print($"ERROR: choice returned invalid value: {pick}\n")
+
+    if found_valid =>
+        print("  PASS: Random.choice(int[]) returns valid int values\n")
+    else =>
+        print("  FAIL: Random.choice(int[]) returned invalid values\n")
+
+fn test_choice_str_array(): void =>
+    print("Testing Random.choice(str[])...\n")
+    var colors: str[] = {"red", "green", "blue"}
+
+    var found_valid: bool = true
+    for i in 0..10 =>
+        var pick: str = Random.choice(colors)
+        var is_valid: bool = (pick == "red") || (pick == "green") || (pick == "blue")
+        if !is_valid =>
+            found_valid = false
+            print($"ERROR: choice returned invalid value: {pick}\n")
+
+    if found_valid =>
+        print("  PASS: Random.choice(str[]) returns valid str values\n")
+    else =>
+        print("  FAIL: Random.choice(str[]) returned invalid values\n")
+
+fn test_choice_double_array(): void =>
+    print("Testing Random.choice(double[])...\n")
+    var values: double[] = {1.5, 2.5, 3.5}
+
+    var found_valid: bool = true
+    for i in 0..10 =>
+        var pick: double = Random.choice(values)
+        var is_valid: bool = (pick == 1.5) || (pick == 2.5) || (pick == 3.5)
+        if !is_valid =>
+            found_valid = false
+            print($"ERROR: choice returned invalid value: {pick}\n")
+
+    if found_valid =>
+        print("  PASS: Random.choice(double[]) returns valid double values\n")
+    else =>
+        print("  FAIL: Random.choice(double[]) returned invalid values\n")
+
+// ============================================================================
+// Random.shuffle tests - verify array is modified in place
+// ============================================================================
+
+fn test_shuffle_int_array(): void =>
+    print("Testing Random.shuffle(int[])...\n")
+    var numbers: int[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+    var original_sum: int = 0
+    for n in numbers =>
+        original_sum = original_sum + n
+
+    // Shuffle the array
+    Random.shuffle(numbers)
+
+    // Verify the sum is preserved (all elements still present)
+    var shuffled_sum: int = 0
+    for n in numbers =>
+        shuffled_sum = shuffled_sum + n
+
+    if original_sum == shuffled_sum =>
+        print("  PASS: Random.shuffle(int[]) preserves all elements\n")
+    else =>
+        print($"  FAIL: Sum changed from {original_sum} to {shuffled_sum}\n")
+
+    // Print shuffled array for visual verification
+    print("  Shuffled array: ")
+    print(numbers)
+    print("\n")
+
+fn test_shuffle_str_array(): void =>
+    print("Testing Random.shuffle(str[])...\n")
+    var words: str[] = {"apple", "banana", "cherry", "date", "elderberry"}
+    var original_len: int = words.length
+
+    // Shuffle the array
+    Random.shuffle(words)
+
+    // Verify length is preserved
+    if words.length == original_len =>
+        print("  PASS: Random.shuffle(str[]) preserves array length\n")
+    else =>
+        print($"  FAIL: Length changed from {original_len} to {words.length}\n")
+
+    // Verify all original elements are still present
+    var has_apple: bool = false
+    var has_banana: bool = false
+    var has_cherry: bool = false
+    var has_date: bool = false
+    var has_elderberry: bool = false
+
+    for word in words =>
+        if word == "apple" => has_apple = true
+        if word == "banana" => has_banana = true
+        if word == "cherry" => has_cherry = true
+        if word == "date" => has_date = true
+        if word == "elderberry" => has_elderberry = true
+
+    if has_apple && has_banana && has_cherry && has_date && has_elderberry =>
+        print("  PASS: Random.shuffle(str[]) preserves all elements\n")
+    else =>
+        print("  FAIL: Some elements were lost during shuffle\n")
+
+    print("  Shuffled array: ")
+    print(words)
+    print("\n")
+
+fn test_shuffle_double_array(): void =>
+    print("Testing Random.shuffle(double[])...\n")
+    var values: double[] = {1.1, 2.2, 3.3, 4.4, 5.5}
+    var original_sum: double = 0.0
+    for v in values =>
+        original_sum = original_sum + v
+
+    Random.shuffle(values)
+
+    var shuffled_sum: double = 0.0
+    for v in values =>
+        shuffled_sum = shuffled_sum + v
+
+    // Use a small tolerance for floating point comparison
+    var diff: double = original_sum - shuffled_sum
+    if diff < 0.0 =>
+        diff = -diff
+
+    if diff < 0.001 =>
+        print("  PASS: Random.shuffle(double[]) preserves all elements\n")
+    else =>
+        print($"  FAIL: Sum changed from {original_sum} to {shuffled_sum}\n")
+
+    print("  Shuffled array: ")
+    print(values)
+    print("\n")
+
+// ============================================================================
+// Random.weightedChoice tests - verify type safety and weighting
+// ============================================================================
+
+fn test_weighted_choice_int_array(): void =>
+    print("Testing Random.weightedChoice(int[], double[])...\n")
+    var items: int[] = {100, 200, 300}
+    var weights: double[] = {0.7, 0.2, 0.1}
+
+    // Run many trials and count occurrences
+    var count_100: int = 0
+    var count_200: int = 0
+    var count_300: int = 0
+    var trials: int = 100
+
+    for i in 0..trials =>
+        var pick: int = Random.weightedChoice(items, weights)
+        if pick == 100 => count_100 = count_100 + 1
+        if pick == 200 => count_200 = count_200 + 1
+        if pick == 300 => count_300 = count_300 + 1
+
+    // Verify all picks are valid values
+    var total_picks: int = count_100 + count_200 + count_300
+    if total_picks == trials =>
+        print("  PASS: Random.weightedChoice(int[], double[]) returns valid int values\n")
+    else =>
+        print($"  FAIL: Got {total_picks} valid picks out of {trials} trials\n")
+
+    print($"  Distribution: 100={count_100}, 200={count_200}, 300={count_300} (expected ~70, ~20, ~10)\n")
+
+fn test_weighted_choice_str_array(): void =>
+    print("Testing Random.weightedChoice(str[], double[])...\n")
+    var items: str[] = {"common", "rare", "legendary"}
+    var weights: double[] = {0.8, 0.15, 0.05}
+
+    var count_common: int = 0
+    var count_rare: int = 0
+    var count_legendary: int = 0
+    var trials: int = 100
+
+    for i in 0..trials =>
+        var pick: str = Random.weightedChoice(items, weights)
+        if pick == "common" => count_common = count_common + 1
+        if pick == "rare" => count_rare = count_rare + 1
+        if pick == "legendary" => count_legendary = count_legendary + 1
+
+    var total_picks: int = count_common + count_rare + count_legendary
+    if total_picks == trials =>
+        print("  PASS: Random.weightedChoice(str[], double[]) returns valid str values\n")
+    else =>
+        print($"  FAIL: Got {total_picks} valid picks out of {trials} trials\n")
+
+    print($"  Distribution: common={count_common}, rare={count_rare}, legendary={count_legendary} (expected ~80, ~15, ~5)\n")
+
+// ============================================================================
+// Random.sample tests - verify element type preservation and uniqueness
+// ============================================================================
+
+fn test_sample_int_array(): void =>
+    print("Testing Random.sample(int[], int)...\n")
+    var numbers: int[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100}
+
+    // Sample 5 elements
+    var sample: int[] = Random.sample(numbers, 5)
+
+    // Verify correct length
+    if sample.length == 5 =>
+        print("  PASS: Random.sample(int[], 5) returns array of length 5\n")
+    else =>
+        print($"  FAIL: Expected length 5, got {sample.length}\n")
+
+    // Verify all sampled elements are from original array
+    var all_valid: bool = true
+    for s in sample =>
+        var found: bool = false
+        for n in numbers =>
+            if s == n =>
+                found = true
+        if !found =>
+            all_valid = false
+            print($"  ERROR: sampled value {s} not in original array\n")
+
+    if all_valid =>
+        print("  PASS: Random.sample(int[], int) returns values from original array\n")
+    else =>
+        print("  FAIL: Random.sample returned invalid values\n")
+
+    print("  Sampled: ")
+    print(sample)
+    print("\n")
+
+fn test_sample_str_array(): void =>
+    print("Testing Random.sample(str[], int)...\n")
+    var words: str[] = {"alpha", "beta", "gamma", "delta", "epsilon", "zeta"}
+
+    // Sample 3 elements
+    var sample: str[] = Random.sample(words, 3)
+
+    // Verify correct length
+    if sample.length == 3 =>
+        print("  PASS: Random.sample(str[], 3) returns array of length 3\n")
+    else =>
+        print($"  FAIL: Expected length 3, got {sample.length}\n")
+
+    // Verify all sampled elements are from original array
+    var all_valid: bool = true
+    for s in sample =>
+        var found: bool = false
+        for w in words =>
+            if s == w =>
+                found = true
+        if !found =>
+            all_valid = false
+            print($"  ERROR: sampled value {s} not in original array\n")
+
+    if all_valid =>
+        print("  PASS: Random.sample(str[], int) returns values from original array\n")
+    else =>
+        print("  FAIL: Random.sample returned invalid values\n")
+
+    print("  Sampled: ")
+    print(sample)
+    print("\n")

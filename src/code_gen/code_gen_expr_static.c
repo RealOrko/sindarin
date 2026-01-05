@@ -415,6 +415,202 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         }
     }
 
+    /* Random static methods */
+    if (codegen_token_equals(type_name, "Random"))
+    {
+        /* Factory methods */
+        if (codegen_token_equals(method_name, "create"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_create(%s)", ARENA_VAR(gen));
+        }
+        else if (codegen_token_equals(method_name, "createWithSeed"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_create_with_seed(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        /* Value generation methods */
+        else if (codegen_token_equals(method_name, "int"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_int(%s, %s)", arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "long"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_long(%s, %s)", arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "double"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_double(%s, %s)", arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "bool"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_bool()");
+        }
+        else if (codegen_token_equals(method_name, "byte"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_byte()");
+        }
+        else if (codegen_token_equals(method_name, "bytes"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_bytes(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "gaussian"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_gaussian(%s, %s)", arg0, arg1);
+        }
+        /* Batch generation methods */
+        else if (codegen_token_equals(method_name, "intMany"))
+        {
+            char *arg2 = code_gen_expression(gen, call->arguments[2]);
+            return arena_sprintf(gen->arena, "rt_random_static_int_many(%s, %s, %s, %s)",
+                                 ARENA_VAR(gen), arg0, arg1, arg2);
+        }
+        else if (codegen_token_equals(method_name, "longMany"))
+        {
+            char *arg2 = code_gen_expression(gen, call->arguments[2]);
+            return arena_sprintf(gen->arena, "rt_random_static_long_many(%s, %s, %s, %s)",
+                                 ARENA_VAR(gen), arg0, arg1, arg2);
+        }
+        else if (codegen_token_equals(method_name, "doubleMany"))
+        {
+            char *arg2 = code_gen_expression(gen, call->arguments[2]);
+            return arena_sprintf(gen->arena, "rt_random_static_double_many(%s, %s, %s, %s)",
+                                 ARENA_VAR(gen), arg0, arg1, arg2);
+        }
+        else if (codegen_token_equals(method_name, "boolMany"))
+        {
+            return arena_sprintf(gen->arena, "rt_random_static_bool_many(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        else if (codegen_token_equals(method_name, "gaussianMany"))
+        {
+            char *arg2 = code_gen_expression(gen, call->arguments[2]);
+            return arena_sprintf(gen->arena, "rt_random_static_gaussian_many(%s, %s, %s, %s)",
+                                 ARENA_VAR(gen), arg0, arg1, arg2);
+        }
+        /* Collection operations */
+        else if (codegen_token_equals(method_name, "choice"))
+        {
+            /* Determine element type from the array argument to call the correct function */
+            Type *arr_type = call->arguments[0]->expr_type;
+            Type *elem_type = arr_type->as.array.element_type;
+            const char *type_suffix;
+            switch (elem_type->kind)
+            {
+            case TYPE_INT:
+                type_suffix = "long";
+                break;
+            case TYPE_LONG:
+                type_suffix = "long";
+                break;
+            case TYPE_DOUBLE:
+                type_suffix = "double";
+                break;
+            case TYPE_STRING:
+                type_suffix = "string";
+                break;
+            case TYPE_BOOL:
+                type_suffix = "bool";
+                break;
+            case TYPE_BYTE:
+                type_suffix = "byte";
+                break;
+            default:
+                type_suffix = "long";
+                break;
+            }
+            return arena_sprintf(gen->arena, "rt_random_static_choice_%s(%s, rt_array_length(%s))",
+                                 type_suffix, arg0, arg0);
+        }
+        else if (codegen_token_equals(method_name, "shuffle"))
+        {
+            /* Determine element type from the array argument to call the correct function */
+            Type *arr_type = call->arguments[0]->expr_type;
+            Type *elem_type = arr_type->as.array.element_type;
+            const char *type_suffix;
+            switch (elem_type->kind)
+            {
+            case TYPE_INT:
+                type_suffix = "long";
+                break;
+            case TYPE_LONG:
+                type_suffix = "long";
+                break;
+            case TYPE_DOUBLE:
+                type_suffix = "double";
+                break;
+            case TYPE_STRING:
+                type_suffix = "string";
+                break;
+            case TYPE_BOOL:
+                type_suffix = "bool";
+                break;
+            case TYPE_BYTE:
+                type_suffix = "byte";
+                break;
+            default:
+                type_suffix = "long";
+                break;
+            }
+            return arena_sprintf(gen->arena, "rt_random_static_shuffle_%s(%s)",
+                                 type_suffix, arg0);
+        }
+        else if (codegen_token_equals(method_name, "weightedChoice"))
+        {
+            /* Determine element type from the items array argument to call the correct function */
+            Type *arr_type = call->arguments[0]->expr_type;
+            Type *elem_type = arr_type->as.array.element_type;
+            const char *type_suffix;
+            switch (elem_type->kind)
+            {
+            case TYPE_INT:
+                type_suffix = "long";
+                break;
+            case TYPE_LONG:
+                type_suffix = "long";
+                break;
+            case TYPE_DOUBLE:
+                type_suffix = "double";
+                break;
+            case TYPE_STRING:
+                type_suffix = "string";
+                break;
+            default:
+                type_suffix = "long";
+                break;
+            }
+            return arena_sprintf(gen->arena, "rt_random_static_weighted_choice_%s(%s, %s)",
+                                 type_suffix, arg0, arg1);
+        }
+        else if (codegen_token_equals(method_name, "sample"))
+        {
+            /* Determine element type from the array argument to call the correct function */
+            Type *arr_type = call->arguments[0]->expr_type;
+            Type *elem_type = arr_type->as.array.element_type;
+            const char *type_suffix;
+            switch (elem_type->kind)
+            {
+            case TYPE_INT:
+                type_suffix = "long";
+                break;
+            case TYPE_LONG:
+                type_suffix = "long";
+                break;
+            case TYPE_DOUBLE:
+                type_suffix = "double";
+                break;
+            case TYPE_STRING:
+                type_suffix = "string";
+                break;
+            default:
+                type_suffix = "long";
+                break;
+            }
+            return arena_sprintf(gen->arena, "rt_random_static_sample_%s(%s, %s, %s)",
+                                 type_suffix, ARENA_VAR(gen), arg0, arg1);
+        }
+    }
+
     /* Fallback for unimplemented static methods */
     return arena_sprintf(gen->arena,
         "(fprintf(stderr, \"Static method call not yet implemented: %.*s.%.*s\\n\"), exit(1), (void *)0)",

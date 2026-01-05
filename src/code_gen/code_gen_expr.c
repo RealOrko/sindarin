@@ -476,6 +476,12 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 if (result) return result;
                 break;
             }
+            case TYPE_RANDOM: {
+                result = code_gen_random_method_call(gen, expr, member_name_str,
+                    member->object, call->arg_count, call->arguments);
+                if (result) return result;
+                break;
+            }
             default:
                 break;
         }

@@ -286,6 +286,28 @@ Properties:
 - `stdout: str` - Captured standard output
 - `stderr: str` - Captured standard error
 
+### Random
+
+Random number generator with secure defaults. See [RANDOM.md](RANDOM.md) for full documentation.
+
+```sindarin
+// Static methods use OS entropy (no setup required)
+var dice: int = Random.int(1, 6)
+var coin: bool = Random.bool()
+var pick: str = Random.choice({"red", "green", "blue"})
+
+// Instance methods for reproducible sequences
+var rng: Random = Random.createWithSeed(42)
+var value: int = rng.int(1, 100)
+```
+
+Static methods:
+- `int(min, max)`, `long(min, max)`, `double(min, max)` - Random values in range
+- `bool()`, `byte()`, `bytes(count)` - Random boolean, byte, or byte array
+- `gaussian(mean, stddev)` - Sample from normal distribution
+- `choice(array)`, `shuffle(array)`, `sample(array, count)` - Collection operations
+- `create()`, `createWithSeed(seed)` - Create Random instances
+
 ## Utility Namespaces
 
 Sindarin provides several utility namespaces with static methods for common operations.
@@ -459,6 +481,7 @@ Methods:
 | `Date` | Calendar date value | (from `Date.today()`) |
 | `Time` | Date/time value | (from `Time.now()`) |
 | `Process` | Process execution result | (from `Process.run()`) |
+| `Random` | Random number generator | (from `Random.create()`) |
 
 ### Utility Namespaces
 
@@ -541,5 +564,6 @@ var text: str = bytes.toString()
 - [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile types
 - [DATE.md](DATE.md) - Date type operations
 - [TIME.md](TIME.md) - Time type operations
+- [RANDOM.md](RANDOM.md) - Random number generation
 - [MEMORY.md](MEMORY.md) - Memory management and type lifetimes
 - [INTEROP.md](INTEROP.md) - C interoperability and pointer types

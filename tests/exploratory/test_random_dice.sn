@@ -1,0 +1,192 @@
+// Exploratory test: Simulating dice rolls with Random
+// Demonstrates practical usage of Random for dice-based games
+// Tests both static (OS entropy) and seeded (deterministic) approaches
+
+fn main(): int =>
+    print("=== Dice Roll Simulation ===\n\n")
+
+    // Part 1: Simple dice rolling
+    test_single_die()
+
+    // Part 2: Multiple dice with statistics
+    test_multiple_dice()
+
+    // Part 3: Different die types (d4, d6, d8, d12, d20)
+    test_polyhedral_dice()
+
+    // Part 4: Advantage/disadvantage mechanics (roll 2d20, keep best/worst)
+    test_advantage_disadvantage()
+
+    // Part 5: Dice pools (roll Nd6, count successes >= 5)
+    test_dice_pool()
+
+    // Part 6: Reproducible dice rolls for testing
+    test_seeded_dice()
+
+    print("\n=== Dice Simulation Complete ===\n")
+    return 0
+
+// Roll a single d6 multiple times and show results
+fn test_single_die(): void =>
+    print("--- Single D6 Rolls ---\n")
+    print("Rolling 10 d6: ")
+    for i in 0..10 =>
+        var roll: int = Random.int(1, 6)
+        print($"{roll} ")
+    print("\n\n")
+
+// Roll multiple dice and calculate statistics
+fn test_multiple_dice(): void =>
+    print("--- 2d6 Statistics (100 rolls) ---\n")
+    var sum_total: int = 0
+    var min_roll: int = 12
+    var max_roll: int = 2
+    var distribution: int[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}  // indices 0-12, use 2-12
+
+    var trials: int = 100
+    for i in 0..trials =>
+        var die1: int = Random.int(1, 6)
+        var die2: int = Random.int(1, 6)
+        var total: int = die1 + die2
+
+        sum_total = sum_total + total
+        if total < min_roll => min_roll = total
+        if total > max_roll => max_roll = total
+        distribution[total] = distribution[total] + 1
+
+    var sum_d: double = sum_total * 1.0
+    var trials_d: double = trials * 1.0
+    var average: double = sum_d / trials_d
+    print($"  Min: {min_roll}, Max: {max_roll}, Average: {average}\n")
+    print("  Distribution:\n")
+
+    for roll in 2..13 =>
+        var count: int = distribution[roll]
+        print($"    {roll}: ")
+        // Print a simple bar chart
+        for j in 0..count =>
+            print("*")
+        print($" ({count})\n")
+
+    print("\n")
+
+// Roll various polyhedral dice used in tabletop RPGs
+fn test_polyhedral_dice(): void =>
+    print("--- Polyhedral Dice Rolls ---\n")
+
+    // d4 - often used for dagger damage
+    print("  d4 (dagger damage): ")
+    for i in 0..5 =>
+        print($"{Random.int(1, 4)} ")
+    print("\n")
+
+    // d6 - classic die
+    print("  d6 (fireball damage die): ")
+    for i in 0..5 =>
+        print($"{Random.int(1, 6)} ")
+    print("\n")
+
+    // d8 - longsword damage
+    print("  d8 (longsword damage): ")
+    for i in 0..5 =>
+        print($"{Random.int(1, 8)} ")
+    print("\n")
+
+    // d10 - percentile die
+    print("  d10 (heavy crossbow): ")
+    for i in 0..5 =>
+        print($"{Random.int(1, 10)} ")
+    print("\n")
+
+    // d12 - greataxe damage
+    print("  d12 (greataxe damage): ")
+    for i in 0..5 =>
+        print($"{Random.int(1, 12)} ")
+    print("\n")
+
+    // d20 - the iconic RPG die for skill checks
+    print("  d20 (attack/skill rolls): ")
+    for i in 0..5 =>
+        print($"{Random.int(1, 20)} ")
+    print("\n")
+
+    // d100 - percentile roll
+    print("  d100 (percentile): ")
+    for i in 0..3 =>
+        print($"{Random.int(1, 100)} ")
+    print("\n\n")
+
+// Simulate D&D 5e advantage/disadvantage mechanics
+fn test_advantage_disadvantage(): void =>
+    print("--- Advantage/Disadvantage Mechanics ---\n")
+
+    // With advantage: roll 2d20, keep the highest
+    print("  Attack with Advantage (roll 2d20, keep highest):\n")
+    for i in 0..5 =>
+        var roll1: int = Random.int(1, 20)
+        var roll2: int = Random.int(1, 20)
+        var best: int = roll1
+        if roll2 > roll1 => best = roll2
+        print($"    Rolls: {roll1}, {roll2} -> Using {best}\n")
+
+    // With disadvantage: roll 2d20, keep the lowest
+    print("\n  Attack with Disadvantage (roll 2d20, keep lowest):\n")
+    for i in 0..5 =>
+        var roll1: int = Random.int(1, 20)
+        var roll2: int = Random.int(1, 20)
+        var worst: int = roll1
+        if roll2 < roll1 => worst = roll2
+        print($"    Rolls: {roll1}, {roll2} -> Using {worst}\n")
+
+    print("\n")
+
+// Simulate dice pool mechanics (e.g., Shadowrun, World of Darkness)
+fn test_dice_pool(): void =>
+    print("--- Dice Pool: Roll 6d6, count successes (5+) ---\n")
+    var pool_size: int = 6
+    var success_threshold: int = 5
+
+    for trial in 0..5 =>
+        var successes: int = 0
+        print($"  Trial {trial + 1}: Rolls = ")
+        for d in 0..pool_size =>
+            var roll: int = Random.int(1, 6)
+            print($"{roll} ")
+            if roll >= success_threshold =>
+                successes = successes + 1
+        print($"-> {successes} successes\n")
+
+    print("\n")
+
+// Demonstrate seeded dice for reproducible game states
+fn test_seeded_dice(): void =>
+    print("--- Seeded Dice (Reproducible) ---\n")
+
+    // First run with seed 42
+    print("  First run with seed 42:\n")
+    var rng1: Random = Random.createWithSeed(42l)
+    print("    5d20: ")
+    for i in 0..5 =>
+        print($"{rng1.int(1, 20)} ")
+    print("\n")
+
+    // Second run with same seed - should produce identical results
+    print("  Second run with seed 42:\n")
+    var rng2: Random = Random.createWithSeed(42l)
+    print("    5d20: ")
+    for i in 0..5 =>
+        print($"{rng2.int(1, 20)} ")
+    print("\n")
+
+    // Verify they match
+    var rng_check1: Random = Random.createWithSeed(42l)
+    var rng_check2: Random = Random.createWithSeed(42l)
+    var all_match: bool = true
+    for i in 0..10 =>
+        if rng_check1.int(1, 20) != rng_check2.int(1, 20) =>
+            all_match = false
+
+    if all_match =>
+        print("  PASS: Seeded dice produce reproducible results\n")
+    else =>
+        print("  FAIL: Seeded dice did not match\n")

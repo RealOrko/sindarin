@@ -60,6 +60,134 @@ Type *type_check_call_expression(Expr *expr, SymbolTable *table)
     // Note: Other array operations are method-style only:
     //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
 
+    /* ========================================================================
+     * Random instance collection methods: choice, shuffle, weightedChoice, sample
+     * These need special handling because return type depends on argument type
+     * ======================================================================== */
+    if (callee->type == EXPR_MEMBER)
+    {
+        Expr *object = callee->as.member.object;
+        Token method_name = callee->as.member.member_name;
+
+        /* Skip namespace member access - namespaces can't be Random types
+         * and type_check_expr on a namespace variable will emit an error */
+        bool is_namespace_access = (object->type == EXPR_VARIABLE &&
+                                    symbol_table_is_namespace(table, object->as.variable.name));
+
+        /* Type check the object first (if not a namespace) */
+        Type *object_type = is_namespace_access ? NULL : type_check_expr(object, table);
+        if (object_type != NULL && object_type->kind == TYPE_RANDOM)
+        {
+            /* rng.choice(array: T[]): T */
+            if (token_equals(method_name, "choice"))
+            {
+                if (expr->as.call.arg_count != 1)
+                {
+                    type_error(&method_name, "rng.choice requires exactly 1 argument (array)");
+                    return NULL;
+                }
+                Type *arg_type = type_check_expr(expr->as.call.arguments[0], table);
+                if (arg_type == NULL)
+                {
+                    return NULL;
+                }
+                if (arg_type->kind != TYPE_ARRAY)
+                {
+                    type_error(&method_name, "rng.choice requires an array argument");
+                    return NULL;
+                }
+                /* Return the element type of the array */
+                return arg_type->as.array.element_type;
+            }
+
+            /* rng.shuffle(array: T[]): void */
+            if (token_equals(method_name, "shuffle"))
+            {
+                if (expr->as.call.arg_count != 1)
+                {
+                    type_error(&method_name, "rng.shuffle requires exactly 1 argument (array)");
+                    return NULL;
+                }
+                Type *arg_type = type_check_expr(expr->as.call.arguments[0], table);
+                if (arg_type == NULL)
+                {
+                    return NULL;
+                }
+                if (arg_type->kind != TYPE_ARRAY)
+                {
+                    type_error(&method_name, "rng.shuffle requires an array argument");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_VOID);
+            }
+
+            /* rng.weightedChoice(items: T[], weights: double[]): T */
+            if (token_equals(method_name, "weightedChoice"))
+            {
+                if (expr->as.call.arg_count != 2)
+                {
+                    type_error(&method_name, "rng.weightedChoice requires exactly 2 arguments (items, weights)");
+                    return NULL;
+                }
+                Type *items_type = type_check_expr(expr->as.call.arguments[0], table);
+                if (items_type == NULL)
+                {
+                    return NULL;
+                }
+                if (items_type->kind != TYPE_ARRAY)
+                {
+                    type_error(&method_name, "rng.weightedChoice first argument (items) must be an array");
+                    return NULL;
+                }
+                Type *weights_type = type_check_expr(expr->as.call.arguments[1], table);
+                if (weights_type == NULL)
+                {
+                    return NULL;
+                }
+                if (weights_type->kind != TYPE_ARRAY ||
+                    weights_type->as.array.element_type->kind != TYPE_DOUBLE)
+                {
+                    type_error(&method_name, "rng.weightedChoice second argument (weights) must be double[]");
+                    return NULL;
+                }
+                /* Return the element type of the items array */
+                return items_type->as.array.element_type;
+            }
+
+            /* rng.sample(array: T[], count: int): T[] */
+            if (token_equals(method_name, "sample"))
+            {
+                if (expr->as.call.arg_count != 2)
+                {
+                    type_error(&method_name, "rng.sample requires exactly 2 arguments (array, count)");
+                    return NULL;
+                }
+                Type *array_type = type_check_expr(expr->as.call.arguments[0], table);
+                if (array_type == NULL)
+                {
+                    return NULL;
+                }
+                if (array_type->kind != TYPE_ARRAY)
+                {
+                    type_error(&method_name, "rng.sample first argument (array) must be an array");
+                    return NULL;
+                }
+                Type *count_type = type_check_expr(expr->as.call.arguments[1], table);
+                if (count_type == NULL)
+                {
+                    return NULL;
+                }
+                if (count_type->kind != TYPE_INT)
+                {
+                    type_error(&method_name, "rng.sample second argument (count) must be int");
+                    return NULL;
+                }
+                /* Return an array of the same type */
+                return array_type;
+            }
+        }
+    }
+
     // Standard function call handling
     Type *callee_type = type_check_expr(expr->as.call.callee, table);
 
@@ -1789,6 +1917,151 @@ Type *type_check_udp_socket_method(Expr *expr, Type *object_type, Token member_n
 }
 
 /* ============================================================================
+ * Random Type Method Type Checking
+ * ============================================================================
+ * Handles type checking for Random instance method calls like:
+ *   rng.int(min, max), rng.long(min, max), rng.double(min, max),
+ *   rng.bool(), rng.byte(), rng.bytes(count), rng.gaussian(mean, stddev)
+ * ============================================================================ */
+
+Type *type_check_random_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table)
+{
+    (void)expr; /* Reserved for future use (e.g., error location) */
+
+    /* Only handle Random types */
+    if (object_type->kind != TYPE_RANDOM)
+    {
+        return NULL;
+    }
+
+    /* rng.int(min, max) -> int */
+    if (token_equals(member_name, "int"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[2] = {int_type, int_type};
+        DEBUG_VERBOSE("Returning function type for Random int method");
+        return ast_create_function_type(table->arena, int_type, param_types, 2);
+    }
+
+    /* rng.long(min, max) -> long */
+    if (token_equals(member_name, "long"))
+    {
+        Type *long_type = ast_create_primitive_type(table->arena, TYPE_LONG);
+        Type *param_types[2] = {long_type, long_type};
+        DEBUG_VERBOSE("Returning function type for Random long method");
+        return ast_create_function_type(table->arena, long_type, param_types, 2);
+    }
+
+    /* rng.double(min, max) -> double */
+    if (token_equals(member_name, "double"))
+    {
+        Type *double_type = ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+        Type *param_types[2] = {double_type, double_type};
+        DEBUG_VERBOSE("Returning function type for Random double method");
+        return ast_create_function_type(table->arena, double_type, param_types, 2);
+    }
+
+    /* rng.bool() -> bool */
+    if (token_equals(member_name, "bool"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Random bool method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+
+    /* rng.byte() -> byte */
+    if (token_equals(member_name, "byte"))
+    {
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for Random byte method");
+        return ast_create_function_type(table->arena, byte_type, param_types, 0);
+    }
+
+    /* rng.bytes(count) -> byte[] */
+    if (token_equals(member_name, "bytes"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *byte_array_type = ast_create_array_type(table->arena, byte_type);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for Random bytes method");
+        return ast_create_function_type(table->arena, byte_array_type, param_types, 1);
+    }
+
+    /* rng.gaussian(mean, stddev) -> double */
+    if (token_equals(member_name, "gaussian"))
+    {
+        Type *double_type = ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+        Type *param_types[2] = {double_type, double_type};
+        DEBUG_VERBOSE("Returning function type for Random gaussian method");
+        return ast_create_function_type(table->arena, double_type, param_types, 2);
+    }
+
+    /* ========================================================================
+     * Batch Generation Methods
+     * ======================================================================== */
+
+    /* rng.intMany(min, max, count) -> int[] */
+    if (token_equals(member_name, "intMany"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *int_array_type = ast_create_array_type(table->arena, int_type);
+        Type *param_types[3] = {int_type, int_type, int_type};
+        DEBUG_VERBOSE("Returning function type for Random intMany method");
+        return ast_create_function_type(table->arena, int_array_type, param_types, 3);
+    }
+
+    /* rng.longMany(min, max, count) -> long[] */
+    if (token_equals(member_name, "longMany"))
+    {
+        Type *long_type = ast_create_primitive_type(table->arena, TYPE_LONG);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *long_array_type = ast_create_array_type(table->arena, long_type);
+        Type *param_types[3] = {long_type, long_type, int_type};
+        DEBUG_VERBOSE("Returning function type for Random longMany method");
+        return ast_create_function_type(table->arena, long_array_type, param_types, 3);
+    }
+
+    /* rng.doubleMany(min, max, count) -> double[] */
+    if (token_equals(member_name, "doubleMany"))
+    {
+        Type *double_type = ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *double_array_type = ast_create_array_type(table->arena, double_type);
+        Type *param_types[3] = {double_type, double_type, int_type};
+        DEBUG_VERBOSE("Returning function type for Random doubleMany method");
+        return ast_create_function_type(table->arena, double_array_type, param_types, 3);
+    }
+
+    /* rng.boolMany(count) -> bool[] */
+    if (token_equals(member_name, "boolMany"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *bool_array_type = ast_create_array_type(table->arena, bool_type);
+        Type *param_types[1] = {int_type};
+        DEBUG_VERBOSE("Returning function type for Random boolMany method");
+        return ast_create_function_type(table->arena, bool_array_type, param_types, 1);
+    }
+
+    /* rng.gaussianMany(mean, stddev, count) -> double[] */
+    if (token_equals(member_name, "gaussianMany"))
+    {
+        Type *double_type = ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *double_array_type = ast_create_array_type(table->arena, double_type);
+        Type *param_types[3] = {double_type, double_type, int_type};
+        DEBUG_VERBOSE("Returning function type for Random gaussianMany method");
+        return ast_create_function_type(table->arena, double_array_type, param_types, 3);
+    }
+
+    /* Not a Random method */
+    return NULL;
+}
+
+/* ============================================================================
  * Static Method Call Type Checking
  * ============================================================================
  * Handles type checking for static method calls like TextFile.open(),
@@ -2882,6 +3155,384 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         {
             char msg[128];
             snprintf(msg, sizeof(msg), "Unknown UdpSocket static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Random static methods - random number generation */
+    if (token_equals(type_name, "Random"))
+    {
+        if (token_equals(method_name, "create"))
+        {
+            /* Random.create(): Random */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Random.create takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_RANDOM);
+        }
+        else if (token_equals(method_name, "createWithSeed"))
+        {
+            /* Random.createWithSeed(seed: long): Random */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Random.createWithSeed requires exactly 1 argument (seed)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_LONG)
+            {
+                type_error(&method_name, "Random.createWithSeed requires a long argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_RANDOM);
+        }
+        else if (token_equals(method_name, "int"))
+        {
+            /* Random.int(min: int, max: int): int */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Random.int requires exactly 2 arguments (min, max)");
+                return NULL;
+            }
+            Type *min_type = call->arguments[0]->expr_type;
+            Type *max_type = call->arguments[1]->expr_type;
+            if (min_type == NULL || min_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.int first argument (min) must be int");
+                return NULL;
+            }
+            if (max_type == NULL || max_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.int second argument (max) must be int");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_INT);
+        }
+        else if (token_equals(method_name, "long"))
+        {
+            /* Random.long(min: long, max: long): long */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Random.long requires exactly 2 arguments (min, max)");
+                return NULL;
+            }
+            Type *min_type = call->arguments[0]->expr_type;
+            Type *max_type = call->arguments[1]->expr_type;
+            if (min_type == NULL || min_type->kind != TYPE_LONG)
+            {
+                type_error(&method_name, "Random.long first argument (min) must be long");
+                return NULL;
+            }
+            if (max_type == NULL || max_type->kind != TYPE_LONG)
+            {
+                type_error(&method_name, "Random.long second argument (max) must be long");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_LONG);
+        }
+        else if (token_equals(method_name, "double"))
+        {
+            /* Random.double(min: double, max: double): double */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Random.double requires exactly 2 arguments (min, max)");
+                return NULL;
+            }
+            Type *min_type = call->arguments[0]->expr_type;
+            Type *max_type = call->arguments[1]->expr_type;
+            if (min_type == NULL || min_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.double first argument (min) must be double");
+                return NULL;
+            }
+            if (max_type == NULL || max_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.double second argument (max) must be double");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+        }
+        else if (token_equals(method_name, "bool"))
+        {
+            /* Random.bool(): bool */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Random.bool takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "byte"))
+        {
+            /* Random.byte(): byte */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Random.byte takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BYTE);
+        }
+        else if (token_equals(method_name, "bytes"))
+        {
+            /* Random.bytes(count: int): byte[] */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Random.bytes requires exactly 1 argument (count)");
+                return NULL;
+            }
+            Type *count_type = call->arguments[0]->expr_type;
+            if (count_type == NULL || count_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.bytes requires an int argument");
+                return NULL;
+            }
+            Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+            return ast_create_array_type(table->arena, byte_type);
+        }
+        else if (token_equals(method_name, "gaussian"))
+        {
+            /* Random.gaussian(mean: double, stddev: double): double */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Random.gaussian requires exactly 2 arguments (mean, stddev)");
+                return NULL;
+            }
+            Type *mean_type = call->arguments[0]->expr_type;
+            Type *stddev_type = call->arguments[1]->expr_type;
+            if (mean_type == NULL || mean_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.gaussian first argument (mean) must be double");
+                return NULL;
+            }
+            if (stddev_type == NULL || stddev_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.gaussian second argument (stddev) must be double");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+        }
+        else if (token_equals(method_name, "intMany"))
+        {
+            /* Random.intMany(min: int, max: int, count: int): int[] */
+            if (call->arg_count != 3)
+            {
+                type_error(&method_name, "Random.intMany requires exactly 3 arguments (min, max, count)");
+                return NULL;
+            }
+            Type *min_type = call->arguments[0]->expr_type;
+            Type *max_type = call->arguments[1]->expr_type;
+            Type *count_type = call->arguments[2]->expr_type;
+            if (min_type == NULL || min_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.intMany first argument (min) must be int");
+                return NULL;
+            }
+            if (max_type == NULL || max_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.intMany second argument (max) must be int");
+                return NULL;
+            }
+            if (count_type == NULL || count_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.intMany third argument (count) must be int");
+                return NULL;
+            }
+            Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+            return ast_create_array_type(table->arena, int_type);
+        }
+        else if (token_equals(method_name, "longMany"))
+        {
+            /* Random.longMany(min: long, max: long, count: int): long[] */
+            if (call->arg_count != 3)
+            {
+                type_error(&method_name, "Random.longMany requires exactly 3 arguments (min, max, count)");
+                return NULL;
+            }
+            Type *min_type = call->arguments[0]->expr_type;
+            Type *max_type = call->arguments[1]->expr_type;
+            Type *count_type = call->arguments[2]->expr_type;
+            if (min_type == NULL || min_type->kind != TYPE_LONG)
+            {
+                type_error(&method_name, "Random.longMany first argument (min) must be long");
+                return NULL;
+            }
+            if (max_type == NULL || max_type->kind != TYPE_LONG)
+            {
+                type_error(&method_name, "Random.longMany second argument (max) must be long");
+                return NULL;
+            }
+            if (count_type == NULL || count_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.longMany third argument (count) must be int");
+                return NULL;
+            }
+            Type *long_type = ast_create_primitive_type(table->arena, TYPE_LONG);
+            return ast_create_array_type(table->arena, long_type);
+        }
+        else if (token_equals(method_name, "doubleMany"))
+        {
+            /* Random.doubleMany(min: double, max: double, count: int): double[] */
+            if (call->arg_count != 3)
+            {
+                type_error(&method_name, "Random.doubleMany requires exactly 3 arguments (min, max, count)");
+                return NULL;
+            }
+            Type *min_type = call->arguments[0]->expr_type;
+            Type *max_type = call->arguments[1]->expr_type;
+            Type *count_type = call->arguments[2]->expr_type;
+            if (min_type == NULL || min_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.doubleMany first argument (min) must be double");
+                return NULL;
+            }
+            if (max_type == NULL || max_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.doubleMany second argument (max) must be double");
+                return NULL;
+            }
+            if (count_type == NULL || count_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.doubleMany third argument (count) must be int");
+                return NULL;
+            }
+            Type *double_type = ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+            return ast_create_array_type(table->arena, double_type);
+        }
+        else if (token_equals(method_name, "boolMany"))
+        {
+            /* Random.boolMany(count: int): bool[] */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Random.boolMany requires exactly 1 argument (count)");
+                return NULL;
+            }
+            Type *count_type = call->arguments[0]->expr_type;
+            if (count_type == NULL || count_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.boolMany requires an int argument");
+                return NULL;
+            }
+            Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+            return ast_create_array_type(table->arena, bool_type);
+        }
+        else if (token_equals(method_name, "gaussianMany"))
+        {
+            /* Random.gaussianMany(mean: double, stddev: double, count: int): double[] */
+            if (call->arg_count != 3)
+            {
+                type_error(&method_name, "Random.gaussianMany requires exactly 3 arguments (mean, stddev, count)");
+                return NULL;
+            }
+            Type *mean_type = call->arguments[0]->expr_type;
+            Type *stddev_type = call->arguments[1]->expr_type;
+            Type *count_type = call->arguments[2]->expr_type;
+            if (mean_type == NULL || mean_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.gaussianMany first argument (mean) must be double");
+                return NULL;
+            }
+            if (stddev_type == NULL || stddev_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.gaussianMany second argument (stddev) must be double");
+                return NULL;
+            }
+            if (count_type == NULL || count_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.gaussianMany third argument (count) must be int");
+                return NULL;
+            }
+            Type *double_type = ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+            return ast_create_array_type(table->arena, double_type);
+        }
+        else if (token_equals(method_name, "choice"))
+        {
+            /* Random.choice(array: T[]): T - returns element type of array */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Random.choice requires exactly 1 argument (array)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_ARRAY)
+            {
+                type_error(&method_name, "Random.choice requires an array argument");
+                return NULL;
+            }
+            /* Return the element type of the array */
+            return arg_type->as.array.element_type;
+        }
+        else if (token_equals(method_name, "shuffle"))
+        {
+            /* Random.shuffle(array: T[]): void - shuffles array in place */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Random.shuffle requires exactly 1 argument (array)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_ARRAY)
+            {
+                type_error(&method_name, "Random.shuffle requires an array argument");
+                return NULL;
+            }
+            /* Shuffle modifies in place, returns void */
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "weightedChoice"))
+        {
+            /* Random.weightedChoice(items: T[], weights: double[]): T */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Random.weightedChoice requires exactly 2 arguments (items, weights)");
+                return NULL;
+            }
+            Type *items_type = call->arguments[0]->expr_type;
+            if (items_type == NULL || items_type->kind != TYPE_ARRAY)
+            {
+                type_error(&method_name, "Random.weightedChoice first argument (items) must be an array");
+                return NULL;
+            }
+            Type *weights_type = call->arguments[1]->expr_type;
+            if (weights_type == NULL || weights_type->kind != TYPE_ARRAY ||
+                weights_type->as.array.element_type->kind != TYPE_DOUBLE)
+            {
+                type_error(&method_name, "Random.weightedChoice second argument (weights) must be double[]");
+                return NULL;
+            }
+            /* Return the element type of the items array */
+            return items_type->as.array.element_type;
+        }
+        else if (token_equals(method_name, "sample"))
+        {
+            /* Random.sample(array: T[], count: int): T[] */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Random.sample requires exactly 2 arguments (array, count)");
+                return NULL;
+            }
+            Type *array_type = call->arguments[0]->expr_type;
+            if (array_type == NULL || array_type->kind != TYPE_ARRAY)
+            {
+                type_error(&method_name, "Random.sample first argument (array) must be an array");
+                return NULL;
+            }
+            Type *count_type = call->arguments[1]->expr_type;
+            if (count_type == NULL || count_type->kind != TYPE_INT)
+            {
+                type_error(&method_name, "Random.sample second argument (count) must be int");
+                return NULL;
+            }
+            /* Return an array of the same element type */
+            return array_type;
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Random static method '%.*s'",
                      method_name.length, method_name.start);
             type_error(&method_name, msg);
             return NULL;

@@ -12,13 +12,17 @@ fn handleConnection(addr: str): void =>
 fn main(): void =>
     print("Testing background client handlers\n")
 
-    // Start a Python server that accepts multiple connections and sends data
-    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',46030));s.listen(5);open('/tmp/tcp_bg','w').write('1');c1,a1=s.accept();c1.send(b'HELLO1');c1.close();c2,a2=s.accept();c2.send(b'HELLO2');c2.close();c3,a3=s.accept();c3.send(b'HELLO3');c3.close();s.close()"})
+    // Clean up any leftover port file from previous runs
+    var preclean: Process = Process.run("rm", {"-f", "/tmp/tcp_bg_port"})
 
-    // Wait for server to be ready
+    // Start a Python server that binds to port 0 (OS assigns free port),
+    // calls listen(), THEN writes the port to a file (to avoid race condition)
+    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));port=s.getsockname()[1];s.listen(5);f=open('/tmp/tcp_bg_port','w');f.write(str(port));f.flush();f.close();c1,a1=s.accept();c1.send(b'HELLO1');c1.close();c2,a2=s.accept();c2.send(b'HELLO2');c2.close();c3,a3=s.accept();c3.send(b'HELLO3');c3.close();s.close()"})
+
+    // Wait for server to be ready and get the port
     var attempts: int = 0
     while attempts < 50 =>
-        var check: Process = Process.run("test", {"-f", "/tmp/tcp_bg"})
+        var check: Process = Process.run("test", {"-f", "/tmp/tcp_bg_port"})
         if check.exitCode == 0 =>
             attempts = 100
         else =>
@@ -29,13 +33,19 @@ fn main(): void =>
         print("Server not ready\n")
         return
 
+    // Read the port from the file
+    var portFile: TextFile = TextFile.open("/tmp/tcp_bg_port")
+    var portStr: str = portFile.readLine()
+    portFile.close()
+    var addr: str = $"127.0.0.1:{portStr}"
+
     print("Server ready\n")
 
     // Fire off 3 handlers in background using & operator (fire and forget pattern)
     // This demonstrates the &handleClient(client) pattern from the spec
-    &handleConnection("127.0.0.1:46030")
-    &handleConnection("127.0.0.1:46030")
-    &handleConnection("127.0.0.1:46030")
+    &handleConnection(addr)
+    &handleConnection(addr)
+    &handleConnection(addr)
 
     print("All handlers spawned (fire and forget)\n")
 
@@ -45,5 +55,5 @@ fn main(): void =>
 
     print("SUCCESS: Background handler pattern works\n")
 
-    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_bg"})
+    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_bg_port"})
     print("Test complete\n")

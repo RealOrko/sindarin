@@ -161,6 +161,8 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtTcpStream *");
     case TYPE_UDP_SOCKET:
         return arena_strdup(arena, "RtUdpSocket *");
+    case TYPE_RANDOM:
+        return arena_strdup(arena, "RtRandom *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally
