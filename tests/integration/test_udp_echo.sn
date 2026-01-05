@@ -3,6 +3,9 @@
 // Python server verifies and reports sender address
 
 fn main(): void =>
+    // Clean up ready file from any previous run
+    var cleanup_before: Process = Process.run("rm", {"-f", "/tmp/udp_ready"})
+
     // Start a Python UDP server that echoes data and reports sender
     var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.bind(('127.0.0.1',45687));open('/tmp/udp_ready','w').write('1');data,addr=s.recvfrom(1024);print(f'From:{addr[0]}:{addr[1]}');s.sendto(b'ECHO:'+data,addr);s.close()"})
 
