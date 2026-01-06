@@ -25,7 +25,8 @@ SRCS = arena.c file.c runtime.c token.c \
 	optimizer.c optimizer/optimizer_util.c optimizer/optimizer_tail_call.c optimizer/optimizer_string.c \
 	compiler.c debug.c diagnostic.c \
 	type_checker.c type_checker/type_checker_util.c type_checker/type_checker_expr.c \
-	type_checker/type_checker_expr_call.c type_checker/type_checker_expr_array.c \
+	type_checker/type_checker_expr_call.c type_checker/type_checker_expr_call_array.c \
+	type_checker/type_checker_expr_call_string.c type_checker/type_checker_expr_array.c \
 	type_checker/type_checker_expr_lambda.c type_checker/type_checker_stmt.c \
 	gcc_backend.c main.c \
 	runtime/runtime_arena.c runtime/runtime_string.c runtime/runtime_array.c \
@@ -45,7 +46,8 @@ HEADERS = arena.h file.h runtime.h token.h \
 	optimizer.h optimizer/optimizer_util.h optimizer/optimizer_tail_call.h optimizer/optimizer_string.h \
 	compiler.h debug.h diagnostic.h \
 	type_checker.h type_checker/type_checker_util.h type_checker/type_checker_expr.h \
-	type_checker/type_checker_expr_call.h type_checker/type_checker_expr_array.h \
+	type_checker/type_checker_expr_call.h type_checker/type_checker_expr_call_array.h \
+	type_checker/type_checker_expr_call_string.h type_checker/type_checker_expr_array.h \
 	type_checker/type_checker_expr_lambda.h type_checker/type_checker_stmt.h \
 	gcc_backend.h \
 	runtime/runtime_arena.h runtime/runtime_string.h runtime/runtime_array.h \
@@ -107,7 +109,7 @@ TEST_TARGET = $(BIN_DIR)/tests
 
 tests: create-bin-dir $(TEST_TARGET)
 
-$(TEST_TARGET): $(TEST_OBJS) $(BIN_DIR)/arena.o $(BIN_DIR)/debug.o $(BIN_DIR)/diagnostic.o $(BIN_DIR)/ast.o $(BIN_DIR)/ast_type.o $(BIN_DIR)/ast_expr.o $(BIN_DIR)/ast_stmt.o $(BIN_DIR)/ast_print.o $(BIN_DIR)/code_gen.o $(BIN_DIR)/code_gen_util.o $(BIN_DIR)/code_gen_expr.o $(BIN_DIR)/code_gen_expr_lambda.o $(BIN_DIR)/code_gen_expr_call_array.o $(BIN_DIR)/code_gen_expr_call_file.o $(BIN_DIR)/code_gen_expr_call_string.o $(BIN_DIR)/code_gen_expr_call_time.o $(BIN_DIR)/code_gen_expr_call_random.o $(BIN_DIR)/code_gen_expr_call_uuid.o $(BIN_DIR)/code_gen_expr_array.o $(BIN_DIR)/code_gen_expr_static.o $(BIN_DIR)/code_gen_expr_string.o $(BIN_DIR)/code_gen_stmt.o $(BIN_DIR)/optimizer.o $(BIN_DIR)/optimizer_util.o $(BIN_DIR)/optimizer_tail_call.o $(BIN_DIR)/optimizer_string.o $(BIN_DIR)/lexer.o $(BIN_DIR)/lexer_util.o $(BIN_DIR)/lexer_scan.o $(BIN_DIR)/parser.o $(BIN_DIR)/parser_util.o $(BIN_DIR)/parser_expr.o $(BIN_DIR)/parser_stmt.o $(BIN_DIR)/symbol_table.o $(BIN_DIR)/type_checker.o $(BIN_DIR)/type_checker_util.o $(BIN_DIR)/type_checker_expr.o $(BIN_DIR)/type_checker_expr_call.o $(BIN_DIR)/type_checker_expr_array.o $(BIN_DIR)/type_checker_expr_lambda.o $(BIN_DIR)/type_checker_stmt.o $(BIN_DIR)/token.o $(BIN_DIR)/file.o $(BIN_DIR)/runtime.o $(BIN_DIR)/runtime_arena.o $(BIN_DIR)/runtime_string.o $(BIN_DIR)/runtime_array.o $(BIN_DIR)/runtime_text_file.o $(BIN_DIR)/runtime_binary_file.o $(BIN_DIR)/runtime_io.o $(BIN_DIR)/runtime_byte.o $(BIN_DIR)/runtime_path.o $(BIN_DIR)/runtime_date.o $(BIN_DIR)/runtime_time.o $(BIN_DIR)/runtime_thread.o $(BIN_DIR)/runtime_process.o $(BIN_DIR)/runtime_net.o $(BIN_DIR)/runtime_random.o $(BIN_DIR)/runtime_uuid.o $(BIN_DIR)/runtime_sha1.o $(BIN_DIR)/runtime_env.o
+$(TEST_TARGET): $(TEST_OBJS) $(BIN_DIR)/arena.o $(BIN_DIR)/debug.o $(BIN_DIR)/diagnostic.o $(BIN_DIR)/ast.o $(BIN_DIR)/ast_type.o $(BIN_DIR)/ast_expr.o $(BIN_DIR)/ast_stmt.o $(BIN_DIR)/ast_print.o $(BIN_DIR)/code_gen.o $(BIN_DIR)/code_gen_util.o $(BIN_DIR)/code_gen_expr.o $(BIN_DIR)/code_gen_expr_lambda.o $(BIN_DIR)/code_gen_expr_call_array.o $(BIN_DIR)/code_gen_expr_call_file.o $(BIN_DIR)/code_gen_expr_call_string.o $(BIN_DIR)/code_gen_expr_call_time.o $(BIN_DIR)/code_gen_expr_call_random.o $(BIN_DIR)/code_gen_expr_call_uuid.o $(BIN_DIR)/code_gen_expr_array.o $(BIN_DIR)/code_gen_expr_static.o $(BIN_DIR)/code_gen_expr_string.o $(BIN_DIR)/code_gen_stmt.o $(BIN_DIR)/optimizer.o $(BIN_DIR)/optimizer_util.o $(BIN_DIR)/optimizer_tail_call.o $(BIN_DIR)/optimizer_string.o $(BIN_DIR)/lexer.o $(BIN_DIR)/lexer_util.o $(BIN_DIR)/lexer_scan.o $(BIN_DIR)/parser.o $(BIN_DIR)/parser_util.o $(BIN_DIR)/parser_expr.o $(BIN_DIR)/parser_stmt.o $(BIN_DIR)/symbol_table.o $(BIN_DIR)/type_checker.o $(BIN_DIR)/type_checker_util.o $(BIN_DIR)/type_checker_expr.o $(BIN_DIR)/type_checker_expr_call.o $(BIN_DIR)/type_checker_expr_call_array.o $(BIN_DIR)/type_checker_expr_call_string.o $(BIN_DIR)/type_checker_expr_array.o $(BIN_DIR)/type_checker_expr_lambda.o $(BIN_DIR)/type_checker_stmt.o $(BIN_DIR)/token.o $(BIN_DIR)/file.o $(BIN_DIR)/runtime.o $(BIN_DIR)/runtime_arena.o $(BIN_DIR)/runtime_string.o $(BIN_DIR)/runtime_array.o $(BIN_DIR)/runtime_text_file.o $(BIN_DIR)/runtime_binary_file.o $(BIN_DIR)/runtime_io.o $(BIN_DIR)/runtime_byte.o $(BIN_DIR)/runtime_path.o $(BIN_DIR)/runtime_date.o $(BIN_DIR)/runtime_time.o $(BIN_DIR)/runtime_thread.o $(BIN_DIR)/runtime_process.o $(BIN_DIR)/runtime_net.o $(BIN_DIR)/runtime_random.o $(BIN_DIR)/runtime_uuid.o $(BIN_DIR)/runtime_sha1.o $(BIN_DIR)/runtime_env.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lm
 
 $(BIN_DIR)/%.o: $(TEST_SRCDIR)/%.c

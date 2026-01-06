@@ -265,6 +265,38 @@ bin/sn source.sn --emit-c -o output.c
 bin/sn source.sn -g -o program
 ```
 
+### C Backend Configuration
+
+The C compiler backend can be configured via environment variables:
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `SN_CC` | C compiler command | `gcc` |
+| `SN_STD` | C standard | `c99` |
+| `SN_DEBUG_CFLAGS` | Debug mode flags | `-no-pie -fsanitize=address -fno-omit-frame-pointer -g` |
+| `SN_RELEASE_CFLAGS` | Release mode flags | `-O3 -flto` |
+| `SN_CFLAGS` | Additional compiler flags | (empty) |
+| `SN_LDFLAGS` | Additional linker flags | (empty) |
+| `SN_LDLIBS` | Additional libraries | (empty) |
+
+Examples:
+
+```bash
+# Use clang instead of gcc (requires runtime rebuilt without GCC LTO)
+SN_CC=clang bin/sn source.sn -o program
+
+# Add extra compiler flags
+SN_CFLAGS="-march=native" bin/sn source.sn -o program
+
+# Disable sanitizers in debug mode
+SN_DEBUG_CFLAGS="-g" bin/sn source.sn -g -o program
+
+# Link additional libraries
+SN_LDLIBS="-lssl -lcrypto" bin/sn source.sn -o program
+```
+
+Note: The default runtime objects are compiled with GCC's LTO. To use a different compiler like clang, you may need to rebuild the runtime without LTO or adjust `SN_RELEASE_CFLAGS`.
+
 ## Documentation Index
 
 - [TYPES.md](TYPES.md) - Primitive and built-in types
@@ -272,6 +304,7 @@ bin/sn source.sn -g -o program
 - [ARRAYS.md](ARRAYS.md) - Array operations and slicing
 - [LAMBDAS.md](LAMBDAS.md) - Lambda expressions and closures
 - [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile operations
+- [NETWORK_IO.md](NETWORK_IO.md) - TCP and UDP networking
 - [DATE.md](DATE.md) - Calendar date operations
 - [TIME.md](TIME.md) - Date and time operations
 - [RANDOM.md](RANDOM.md) - Random number generation
@@ -279,4 +312,6 @@ bin/sn source.sn -g -o program
 - [ENVIRONMENT.md](ENVIRONMENT.md) - Environment variables
 - [MEMORY.md](MEMORY.md) - Arena memory management
 - [THREADING.md](THREADING.md) - Threading with `&` spawn and `!` sync
+- [PROCESSES.md](PROCESSES.md) - Process execution and output capture
+- [NAMESPACES.md](NAMESPACES.md) - Namespaced imports for collision resolution
 - [INTEROP.md](INTEROP.md) - C interoperability and native functions

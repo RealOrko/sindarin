@@ -79,9 +79,12 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 | [ARRAYS](docs/language/ARRAYS.md) | Array operations and slicing |
 | [LAMBDAS](docs/language/LAMBDAS.md) | Lambda expressions and closures |
 | [FILE_IO](docs/language/FILE_IO.md) | TextFile and BinaryFile operations |
+| [NETWORK_IO](docs/language/NETWORK_IO.md) | TCP and UDP networking |
 | [DATE](docs/language/DATE.md) | Calendar date operations |
 | [TIME](docs/language/TIME.md) | Date and time operations |
 | [RANDOM](docs/language/RANDOM.md) | Random number generation |
+| [UUID](docs/language/UUID.md) | UUID generation and manipulation |
+| [ENVIRONMENT](docs/language/ENVIRONMENT.md) | Environment variable access |
 | [MEMORY](docs/language/MEMORY.md) | Arena memory management |
 | [THREADING](docs/language/THREADING.md) | Threading with spawn and sync |
 | [PROCESSES](docs/language/PROCESSES.md) | Process execution and output capture |

@@ -12,16 +12,20 @@
 int main(int argc, char **argv)
 {
     CompilerOptions options;
+    CCBackendConfig cc_config;
     Module *module = NULL;
     int result = 0;
 
     compiler_init(&options, argc, argv);
     init_debug(options.log_level);
 
-    /* Check for GCC availability early (unless --emit-c mode) */
+    /* Initialize C compiler backend configuration from environment variables */
+    cc_backend_init_config(&cc_config);
+
+    /* Check for C compiler availability early (unless --emit-c mode) */
     if (!options.emit_c_only)
     {
-        if (!gcc_check_available(options.verbose))
+        if (!gcc_check_available(&cc_config, options.verbose))
         {
             compiler_cleanup(&options);
             return 1;
@@ -44,7 +48,7 @@ int main(int argc, char **argv)
     gen.arithmetic_mode = options.arithmetic_mode;
     code_gen_module(&gen, module);
 
-    /* Copy link libraries from CodeGen to options for GCC backend */
+    /* Copy link libraries from CodeGen to options for C backend */
     options.link_libs = gen.pragma_links;
     options.link_lib_count = gen.pragma_link_count;
 
@@ -67,10 +71,10 @@ int main(int argc, char **argv)
         return 0;
     }
 
-    /* Phase 4: Linking (GCC compilation) */
+    /* Phase 4: Linking (C compilation) */
     diagnostic_phase_start(PHASE_LINKING);
 
-    if (!gcc_compile(options.output_file, options.executable_file,
+    if (!gcc_compile(&cc_config, options.output_file, options.executable_file,
                      options.compiler_dir, options.verbose, options.debug_build,
                      options.link_libs, options.link_lib_count))
     {

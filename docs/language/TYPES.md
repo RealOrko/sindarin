@@ -337,6 +337,80 @@ Instance methods:
 - `.timestamp()`, `.time()` - Time extraction (v7 only)
 - `.toString()`, `.toHex()`, `.toBase64()`, `.toBytes()` - Conversion
 
+### TcpListener
+
+A TCP socket that listens for incoming connections. See [NETWORK_IO.md](NETWORK_IO.md) for full documentation.
+
+```sindarin
+var server: TcpListener = TcpListener.bind(":8080")
+print($"Listening on port {server.port}\n")
+
+var client: TcpStream = server.accept()
+// handle client...
+server.close()
+```
+
+Static methods:
+- `bind(address)` - Create listener bound to address
+
+Instance methods:
+- `.accept()` - Wait for and accept a connection
+- `.close()` - Close the listener
+
+Properties:
+- `.port` - Bound port number
+
+### TcpStream
+
+A TCP connection for bidirectional communication. See [NETWORK_IO.md](NETWORK_IO.md) for full documentation.
+
+```sindarin
+var conn: TcpStream = TcpStream.connect("example.com:80")
+conn.writeLine("GET / HTTP/1.0")
+conn.writeLine("")
+var response: byte[] = conn.readAll()
+conn.close()
+```
+
+Static methods:
+- `connect(address)` - Connect to remote address
+
+Instance methods:
+- `.read(maxBytes)` - Read up to maxBytes
+- `.readAll()` - Read until connection closes
+- `.readLine()` - Read until newline
+- `.write(data)` - Write bytes
+- `.writeLine(text)` - Write string + newline
+- `.close()` - Close the connection
+
+Properties:
+- `.remoteAddress` - Remote peer address
+
+### UdpSocket
+
+A UDP socket for connectionless datagram communication. See [NETWORK_IO.md](NETWORK_IO.md) for full documentation.
+
+```sindarin
+var socket: UdpSocket = UdpSocket.bind(":9000")
+socket.sendTo("Hello".toBytes(), "127.0.0.1:9001")
+
+var data: byte[]
+var sender: str
+data, sender = socket.receiveFrom(1024)
+socket.close()
+```
+
+Static methods:
+- `bind(address)` - Create socket bound to address
+
+Instance methods:
+- `.sendTo(data, address)` - Send datagram
+- `.receiveFrom(maxBytes)` - Receive datagram and sender address
+- `.close()` - Close the socket
+
+Properties:
+- `.port` - Bound port number
+
 ## Utility Namespaces
 
 Sindarin provides several utility namespaces with static methods for common operations.
@@ -512,6 +586,9 @@ Methods:
 | `Process` | Process execution result | (from `Process.run()`) |
 | `UUID` | Universally unique identifier | (from `UUID.create()`) |
 | `Random` | Random number generator | (from `Random.create()`) |
+| `TcpListener` | TCP server socket | (from `TcpListener.bind()`) |
+| `TcpStream` | TCP connection | (from `TcpStream.connect()`) |
+| `UdpSocket` | UDP socket | (from `UdpSocket.bind()`) |
 | `Environment` | Environment variable access | (static methods only) |
 
 ### Utility Namespaces
@@ -594,6 +671,7 @@ var text: str = bytes.toString()
 - [STRINGS.md](STRINGS.md) - String methods and interpolation
 - [ARRAYS.md](ARRAYS.md) - Array operations
 - [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile types
+- [NETWORK_IO.md](NETWORK_IO.md) - TCP and UDP networking
 - [DATE.md](DATE.md) - Date type operations
 - [TIME.md](TIME.md) - Time type operations
 - [RANDOM.md](RANDOM.md) - Random number generation

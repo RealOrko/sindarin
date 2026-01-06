@@ -1,5 +1,7 @@
 #include "type_checker/type_checker_expr.h"
 #include "type_checker/type_checker_expr_call.h"
+#include "type_checker/type_checker_expr_call_array.h"
+#include "type_checker/type_checker_expr_call_string.h"
 #include "type_checker/type_checker_expr_array.h"
 #include "type_checker/type_checker_expr_lambda.h"
 #include "type_checker/type_checker_util.h"

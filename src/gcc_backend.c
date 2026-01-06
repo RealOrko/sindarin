@@ -11,25 +11,75 @@
 /* Static buffer for compiler directory path */
 static char compiler_dir_buf[PATH_MAX];
 
-bool gcc_check_available(bool verbose)
+/* Default values for backend configuration */
+#define DEFAULT_CC "gcc"
+#define DEFAULT_STD "c99"
+#define DEFAULT_DEBUG_CFLAGS "-no-pie -fsanitize=address -fno-omit-frame-pointer -g"
+#define DEFAULT_RELEASE_CFLAGS "-O3 -flto"
+
+void cc_backend_init_config(CCBackendConfig *config)
 {
-    /* Try to run 'gcc --version' to check if GCC is available */
-    int result = system("gcc --version > /dev/null 2>&1");
+    const char *env_val;
+
+    /* SN_CC: C compiler command */
+    env_val = getenv("SN_CC");
+    config->cc = (env_val && env_val[0]) ? env_val : DEFAULT_CC;
+
+    /* SN_STD: C standard */
+    env_val = getenv("SN_STD");
+    config->std = (env_val && env_val[0]) ? env_val : DEFAULT_STD;
+
+    /* SN_DEBUG_CFLAGS: Debug mode flags */
+    env_val = getenv("SN_DEBUG_CFLAGS");
+    config->debug_cflags = (env_val && env_val[0]) ? env_val : DEFAULT_DEBUG_CFLAGS;
+
+    /* SN_RELEASE_CFLAGS: Release mode flags */
+    env_val = getenv("SN_RELEASE_CFLAGS");
+    config->release_cflags = (env_val && env_val[0]) ? env_val : DEFAULT_RELEASE_CFLAGS;
+
+    /* SN_CFLAGS: Additional compiler flags (empty by default) */
+    env_val = getenv("SN_CFLAGS");
+    config->cflags = (env_val && env_val[0]) ? env_val : "";
+
+    /* SN_LDFLAGS: Additional linker flags (empty by default) */
+    env_val = getenv("SN_LDFLAGS");
+    config->ldflags = (env_val && env_val[0]) ? env_val : "";
+
+    /* SN_LDLIBS: Additional libraries (empty by default) */
+    env_val = getenv("SN_LDLIBS");
+    config->ldlibs = (env_val && env_val[0]) ? env_val : "";
+}
+
+bool gcc_check_available(const CCBackendConfig *config, bool verbose)
+{
+    /* Build command to check if compiler is available */
+    char check_cmd[PATH_MAX];
+    snprintf(check_cmd, sizeof(check_cmd), "%s --version > /dev/null 2>&1", config->cc);
+
+    int result = system(check_cmd);
 
     if (result == 0)
     {
         if (verbose)
         {
-            DEBUG_INFO("GCC found and available");
+            DEBUG_INFO("C compiler '%s' found and available", config->cc);
         }
         return true;
     }
 
-    fprintf(stderr, "Error: GCC is not installed or not in PATH.\n");
-    fprintf(stderr, "To compile Sn programs to executables, please install GCC:\n");
-    fprintf(stderr, "  Ubuntu/Debian: sudo apt install gcc\n");
-    fprintf(stderr, "  Fedora/RHEL:   sudo dnf install gcc\n");
-    fprintf(stderr, "  Arch Linux:    sudo pacman -S gcc\n");
+    fprintf(stderr, "Error: C compiler '%s' is not installed or not in PATH.\n", config->cc);
+    if (strcmp(config->cc, "gcc") == 0)
+    {
+        fprintf(stderr, "To compile Sn programs to executables, please install GCC:\n");
+        fprintf(stderr, "  Ubuntu/Debian: sudo apt install gcc\n");
+        fprintf(stderr, "  Fedora/RHEL:   sudo dnf install gcc\n");
+        fprintf(stderr, "  Arch Linux:    sudo pacman -S gcc\n");
+    }
+    else
+    {
+        fprintf(stderr, "Ensure '%s' is installed and in your PATH.\n", config->cc);
+        fprintf(stderr, "Or set SN_CC to a different compiler.\n");
+    }
     fprintf(stderr, "\nAlternatively, use --emit-c to output C code only.\n");
 
     return false;
@@ -65,8 +115,9 @@ const char *gcc_get_compiler_dir(const char *argv0)
     return compiler_dir_buf;
 }
 
-bool gcc_compile(const char *c_file, const char *output_exe,
-                 const char *compiler_dir, bool verbose, bool debug_mode,
+bool gcc_compile(const CCBackendConfig *config, const char *c_file,
+                 const char *output_exe, const char *compiler_dir,
+                 bool verbose, bool debug_mode,
                  char **link_libs, int link_lib_count)
 {
     char exe_path[PATH_MAX];
@@ -238,13 +289,15 @@ bool gcc_compile(const char *c_file, const char *output_exe,
         return false;
     }
 
-    /* Build GCC command
-     * Note: Debug mode uses address sanitizer and debug symbols.
-     * Release mode uses -O3 and -flto for maximum optimization.
+    /* Build C compiler command using configuration.
+     *
+     * Command structure:
+     *   $CC $MODE_CFLAGS -w -std=$STD -D_GNU_SOURCE $CFLAGS -I"dir" <sources>
+     *        -lpthread -lm $extra_libs $LDLIBS $LDFLAGS -o "output" 2>"errors"
      *
      * We use -w to suppress all warnings on generated code - any issues should
-     * be caught by the Sn type checker, not GCC. We redirect stderr to capture
-     * any errors for display only if compilation actually fails.
+     * be caught by the Sn type checker, not the C compiler. We redirect stderr
+     * to capture any errors for display only if compilation actually fails.
      */
 
     /* Build extra library flags from pragma link directives */
@@ -262,46 +315,48 @@ bool gcc_compile(const char *c_file, const char *output_exe,
         }
     }
 
-    char error_file[] = "/tmp/sn_gcc_errors_XXXXXX";
+    char error_file[] = "/tmp/sn_cc_errors_XXXXXX";
     int error_fd = mkstemp(error_file);
     if (error_fd == -1)
     {
         /* Fallback: use a fixed name */
-        strcpy(error_file, "/tmp/sn_gcc_errors.txt");
+        strcpy(error_file, "/tmp/sn_cc_errors.txt");
     }
     else
     {
         close(error_fd);
     }
 
-    if (debug_mode)
-    {
-        snprintf(command, sizeof(command),
-            "gcc -no-pie -fsanitize=address -fno-omit-frame-pointer -g "
-            "-w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -lm%s -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, runtime_net_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj, extra_libs, exe_path, error_file);
-    }
-    else
-    {
-        /* Release mode: maximum optimization with -O3 and link-time optimization */
-        snprintf(command, sizeof(command),
-            "gcc -O3 -flto -w -std=c99 -D_GNU_SOURCE -I\"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" -lpthread -lm%s -o \"%s\" 2>\"%s\"",
-            compiler_dir, c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj, runtime_string_obj, runtime_array_obj, runtime_text_file_obj, runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj, runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj, runtime_process_obj, runtime_net_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj, extra_libs, exe_path, error_file);
-    }
+    /* Select mode-specific flags */
+    const char *mode_cflags = debug_mode ? config->debug_cflags : config->release_cflags;
+
+    /* Build the command - note: config->cflags, config->ldlibs, config->ldflags
+     * may be empty strings, which is fine */
+    snprintf(command, sizeof(command),
+        "%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" "
+        "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
+        "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
+        "-lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
+        config->cc, mode_cflags, config->std, config->cflags, compiler_dir,
+        c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj,
+        runtime_string_obj, runtime_array_obj, runtime_text_file_obj,
+        runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj,
+        runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj,
+        runtime_process_obj, runtime_net_obj, runtime_random_obj, runtime_uuid_obj,
+        runtime_sha1_obj, runtime_env_obj,
+        extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
 
     if (verbose)
     {
         DEBUG_INFO("Executing: %s", command);
     }
 
-    /* Execute GCC */
+    /* Execute C compiler */
     int result = system(command);
 
     if (result != 0)
     {
-        /* Show GCC error output */
+        /* Show compiler error output */
         FILE *errfile = fopen(error_file, "r");
         if (errfile)
         {

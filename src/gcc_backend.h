@@ -3,27 +3,54 @@
 
 #include <stdbool.h>
 
-/* Check if GCC is available on the system.
- * Returns true if gcc is found and executable, false otherwise.
+/* Configuration for the C compiler backend.
+ * All fields are initialized from environment variables with sensible defaults.
+ */
+typedef struct {
+    const char *cc;              /* SN_CC: Compiler command (default: "gcc") */
+    const char *std;             /* SN_STD: C standard (default: "c99") */
+    const char *debug_cflags;    /* SN_DEBUG_CFLAGS: Debug mode flags */
+    const char *release_cflags;  /* SN_RELEASE_CFLAGS: Release mode flags */
+    const char *cflags;          /* SN_CFLAGS: Additional compiler flags */
+    const char *ldflags;         /* SN_LDFLAGS: Additional linker flags */
+    const char *ldlibs;          /* SN_LDLIBS: Additional libraries */
+} CCBackendConfig;
+
+/* Initialize backend configuration from environment variables.
+ * Uses defaults for any unset variables:
+ *   SN_CC            = "gcc"
+ *   SN_STD           = "c99"
+ *   SN_DEBUG_CFLAGS  = "-no-pie -fsanitize=address -fno-omit-frame-pointer -g"
+ *   SN_RELEASE_CFLAGS = "-O3 -flto"
+ *   SN_CFLAGS        = ""
+ *   SN_LDFLAGS       = ""
+ *   SN_LDLIBS        = ""
+ */
+void cc_backend_init_config(CCBackendConfig *config);
+
+/* Check if the C compiler is available on the system.
+ * Returns true if the compiler (from config->cc) is found and executable.
  * If verbose is true, prints diagnostic information about what was found.
  */
-bool gcc_check_available(bool verbose);
+bool gcc_check_available(const CCBackendConfig *config, bool verbose);
 
-/* Compile a C source file to an executable using GCC.
+/* Compile a C source file to an executable using the configured C compiler.
  *
  * Parameters:
+ *   config        - Backend configuration (compiler, flags, etc.)
  *   c_file        - Path to the C source file to compile
  *   output_exe    - Path for the output executable (if NULL, derives from c_file)
  *   compiler_dir  - Directory containing runtime objects (arena.o, debug.o, runtime.o)
- *   verbose       - If true, print the GCC command being executed
- *   debug_mode    - If true, include debug symbols and sanitizers
+ *   verbose       - If true, print the compiler command being executed
+ *   debug_mode    - If true, use debug flags; otherwise use release flags
  *   link_libs     - Array of library names to link (e.g., "m", "pthread") or NULL
  *   link_lib_count - Number of libraries in link_libs
  *
  * Returns true on success, false on failure.
  */
-bool gcc_compile(const char *c_file, const char *output_exe,
-                 const char *compiler_dir, bool verbose, bool debug_mode,
+bool gcc_compile(const CCBackendConfig *config, const char *c_file,
+                 const char *output_exe, const char *compiler_dir,
+                 bool verbose, bool debug_mode,
                  char **link_libs, int link_lib_count);
 
 /* Get the directory containing the compiler executable.
