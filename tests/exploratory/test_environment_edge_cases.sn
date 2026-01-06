@@ -1,0 +1,531 @@
+// Test Environment edge cases and error handling
+// Tests empty string vs unset variables, boolean parsing variants, child processes
+
+fn main(): int =>
+    print("=== Environment Edge Cases Tests ===\n")
+    var errors: int = 0
+
+    // ============================================================
+    // EMPTY STRING VS UNSET VARIABLES
+    // ============================================================
+    print("\n--- Empty String vs Unset Variables ---\n")
+
+    // Test 1: Empty string is different from unset
+    print("Test 1 - Empty string vs unset:\n")
+
+    // Ensure variable is not set
+    Environment.remove("SN_TEST_UNSET")
+    Environment.remove("SN_TEST_EMPTY")
+
+    // Set to empty string
+    Environment.set("SN_TEST_EMPTY", "")
+
+    // Check has() behavior
+    var hasUnset: bool = Environment.has("SN_TEST_UNSET")
+    var hasEmpty: bool = Environment.has("SN_TEST_EMPTY")
+
+    if !hasUnset =>
+        print("  PASS: has() returns false for unset variable\n")
+    else =>
+        print("  FAIL: has() should return false for unset variable\n")
+        errors++
+
+    if hasEmpty =>
+        print("  PASS: has() returns true for empty string\n")
+    else =>
+        print("  FAIL: has() should return true for empty string\n")
+        errors++
+
+    // Test 2: Empty string retrieved correctly
+    print("\nTest 2 - Empty string retrieval:\n")
+    var emptyVal: str = Environment.get("SN_TEST_EMPTY")
+    if emptyVal == "" =>
+        print("  PASS: Empty string retrieved correctly\n")
+    else =>
+        print($"  FAIL: Expected empty string, got '{emptyVal}'\n")
+        errors++
+
+    // Test 3: Default only applies to unset, not empty
+    print("\nTest 3 - Default with empty vs unset:\n")
+    var emptyWithDefault: str = Environment.get("SN_TEST_EMPTY", "default")
+    var unsetWithDefault: str = Environment.get("SN_TEST_UNSET", "default")
+
+    if emptyWithDefault == "" =>
+        print("  PASS: Empty string is returned (not default)\n")
+    else =>
+        print($"  FAIL: Expected empty string, got '{emptyWithDefault}'\n")
+        errors++
+
+    if unsetWithDefault == "default" =>
+        print("  PASS: Default is returned for unset variable\n")
+    else =>
+        print($"  FAIL: Expected 'default', got '{unsetWithDefault}'\n")
+        errors++
+
+    // Test 4: Empty value length check
+    print("\nTest 4 - Empty value length:\n")
+    var emptyLen: int = emptyVal.length
+    if emptyLen == 0 =>
+        print("  PASS: Empty string has length 0\n")
+    else =>
+        print($"  FAIL: Expected length 0, got {emptyLen}\n")
+        errors++
+
+    // ============================================================
+    // BOOLEAN PARSING VARIANTS (case-insensitive)
+    // ============================================================
+    print("\n--- Boolean Parsing Variants ---\n")
+
+    // Test 5: All truthy values (lowercase)
+    print("Test 5 - Truthy values (lowercase):\n")
+
+    Environment.set("SN_BOOL_TRUE", "true")
+    Environment.set("SN_BOOL_ONE", "1")
+    Environment.set("SN_BOOL_YES", "yes")
+    Environment.set("SN_BOOL_ON", "on")
+
+    var boolTrue: bool = Environment.getBool("SN_BOOL_TRUE")
+    var boolOne: bool = Environment.getBool("SN_BOOL_ONE")
+    var boolYes: bool = Environment.getBool("SN_BOOL_YES")
+    var boolOn: bool = Environment.getBool("SN_BOOL_ON")
+
+    if boolTrue =>
+        print("  PASS: 'true' is truthy\n")
+    else =>
+        print("  FAIL: 'true' should be truthy\n")
+        errors++
+
+    if boolOne =>
+        print("  PASS: '1' is truthy\n")
+    else =>
+        print("  FAIL: '1' should be truthy\n")
+        errors++
+
+    if boolYes =>
+        print("  PASS: 'yes' is truthy\n")
+    else =>
+        print("  FAIL: 'yes' should be truthy\n")
+        errors++
+
+    if boolOn =>
+        print("  PASS: 'on' is truthy\n")
+    else =>
+        print("  FAIL: 'on' should be truthy\n")
+        errors++
+
+    // Test 6: All truthy values (uppercase)
+    print("\nTest 6 - Truthy values (uppercase):\n")
+
+    Environment.set("SN_BOOL_TRUE_UC", "TRUE")
+    Environment.set("SN_BOOL_YES_UC", "YES")
+    Environment.set("SN_BOOL_ON_UC", "ON")
+
+    var boolTrueUc: bool = Environment.getBool("SN_BOOL_TRUE_UC")
+    var boolYesUc: bool = Environment.getBool("SN_BOOL_YES_UC")
+    var boolOnUc: bool = Environment.getBool("SN_BOOL_ON_UC")
+
+    if boolTrueUc =>
+        print("  PASS: 'TRUE' is truthy\n")
+    else =>
+        print("  FAIL: 'TRUE' should be truthy\n")
+        errors++
+
+    if boolYesUc =>
+        print("  PASS: 'YES' is truthy\n")
+    else =>
+        print("  FAIL: 'YES' should be truthy\n")
+        errors++
+
+    if boolOnUc =>
+        print("  PASS: 'ON' is truthy\n")
+    else =>
+        print("  FAIL: 'ON' should be truthy\n")
+        errors++
+
+    // Test 7: All truthy values (mixed case)
+    print("\nTest 7 - Truthy values (mixed case):\n")
+
+    Environment.set("SN_BOOL_TRUE_MC", "True")
+    Environment.set("SN_BOOL_YES_MC", "YeS")
+    Environment.set("SN_BOOL_ON_MC", "oN")
+
+    var boolTrueMc: bool = Environment.getBool("SN_BOOL_TRUE_MC")
+    var boolYesMc: bool = Environment.getBool("SN_BOOL_YES_MC")
+    var boolOnMc: bool = Environment.getBool("SN_BOOL_ON_MC")
+
+    if boolTrueMc =>
+        print("  PASS: 'True' is truthy\n")
+    else =>
+        print("  FAIL: 'True' should be truthy\n")
+        errors++
+
+    if boolYesMc =>
+        print("  PASS: 'YeS' is truthy\n")
+    else =>
+        print("  FAIL: 'YeS' should be truthy\n")
+        errors++
+
+    if boolOnMc =>
+        print("  PASS: 'oN' is truthy\n")
+    else =>
+        print("  FAIL: 'oN' should be truthy\n")
+        errors++
+
+    // Test 8: All falsy values (lowercase)
+    print("\nTest 8 - Falsy values (lowercase):\n")
+
+    Environment.set("SN_BOOL_FALSE", "false")
+    Environment.set("SN_BOOL_ZERO", "0")
+    Environment.set("SN_BOOL_NO", "no")
+    Environment.set("SN_BOOL_OFF", "off")
+
+    var boolFalse: bool = Environment.getBool("SN_BOOL_FALSE")
+    var boolZero: bool = Environment.getBool("SN_BOOL_ZERO")
+    var boolNo: bool = Environment.getBool("SN_BOOL_NO")
+    var boolOff: bool = Environment.getBool("SN_BOOL_OFF")
+
+    if !boolFalse =>
+        print("  PASS: 'false' is falsy\n")
+    else =>
+        print("  FAIL: 'false' should be falsy\n")
+        errors++
+
+    if !boolZero =>
+        print("  PASS: '0' is falsy\n")
+    else =>
+        print("  FAIL: '0' should be falsy\n")
+        errors++
+
+    if !boolNo =>
+        print("  PASS: 'no' is falsy\n")
+    else =>
+        print("  FAIL: 'no' should be falsy\n")
+        errors++
+
+    if !boolOff =>
+        print("  PASS: 'off' is falsy\n")
+    else =>
+        print("  FAIL: 'off' should be falsy\n")
+        errors++
+
+    // Test 9: All falsy values (uppercase)
+    print("\nTest 9 - Falsy values (uppercase):\n")
+
+    Environment.set("SN_BOOL_FALSE_UC", "FALSE")
+    Environment.set("SN_BOOL_NO_UC", "NO")
+    Environment.set("SN_BOOL_OFF_UC", "OFF")
+
+    var boolFalseUc: bool = Environment.getBool("SN_BOOL_FALSE_UC")
+    var boolNoUc: bool = Environment.getBool("SN_BOOL_NO_UC")
+    var boolOffUc: bool = Environment.getBool("SN_BOOL_OFF_UC")
+
+    if !boolFalseUc =>
+        print("  PASS: 'FALSE' is falsy\n")
+    else =>
+        print("  FAIL: 'FALSE' should be falsy\n")
+        errors++
+
+    if !boolNoUc =>
+        print("  PASS: 'NO' is falsy\n")
+    else =>
+        print("  FAIL: 'NO' should be falsy\n")
+        errors++
+
+    if !boolOffUc =>
+        print("  PASS: 'OFF' is falsy\n")
+    else =>
+        print("  FAIL: 'OFF' should be falsy\n")
+        errors++
+
+    // Test 10: Boolean with default for unset
+    print("\nTest 10 - Boolean default for unset:\n")
+
+    Environment.remove("SN_BOOL_UNSET")
+    var boolDefaultTrue: bool = Environment.getBool("SN_BOOL_UNSET", true)
+    var boolDefaultFalse: bool = Environment.getBool("SN_BOOL_UNSET", false)
+
+    if boolDefaultTrue =>
+        print("  PASS: Default true returned for unset\n")
+    else =>
+        print("  FAIL: Default true should be returned for unset\n")
+        errors++
+
+    if !boolDefaultFalse =>
+        print("  PASS: Default false returned for unset\n")
+    else =>
+        print("  FAIL: Default false should be returned for unset\n")
+        errors++
+
+    // ============================================================
+    // INTEGER PARSING EDGE CASES
+    // ============================================================
+    print("\n--- Integer Parsing Edge Cases ---\n")
+
+    // Test 11: Negative integers
+    print("Test 11 - Negative integers:\n")
+
+    Environment.set("SN_INT_NEG", "-42")
+    var negInt: int = Environment.getInt("SN_INT_NEG")
+    if negInt == -42 =>
+        print("  PASS: Negative integer parsed correctly\n")
+    else =>
+        print($"  FAIL: Expected -42, got {negInt}\n")
+        errors++
+
+    // Test 12: Zero
+    print("\nTest 12 - Zero parsing:\n")
+
+    Environment.set("SN_INT_ZERO", "0")
+    var zeroInt: int = Environment.getInt("SN_INT_ZERO")
+    if zeroInt == 0 =>
+        print("  PASS: Zero parsed correctly\n")
+    else =>
+        print($"  FAIL: Expected 0, got {zeroInt}\n")
+        errors++
+
+    // Test 13: Integer with default
+    print("\nTest 13 - Integer default for unset:\n")
+
+    Environment.remove("SN_INT_UNSET")
+    var intDefault: int = Environment.getInt("SN_INT_UNSET", 999)
+    if intDefault == 999 =>
+        print("  PASS: Default 999 returned for unset\n")
+    else =>
+        print($"  FAIL: Expected 999, got {intDefault}\n")
+        errors++
+
+    // ============================================================
+    // DOUBLE PARSING EDGE CASES
+    // ============================================================
+    print("\n--- Double Parsing Edge Cases ---\n")
+
+    // Test 14: Positive double
+    print("Test 14 - Positive double:\n")
+
+    Environment.set("SN_DOUBLE_POS", "3.14159")
+    var posDouble: double = Environment.getDouble("SN_DOUBLE_POS")
+    if posDouble > 3.14 =>
+        if posDouble < 3.15 =>
+            print("  PASS: Positive double parsed correctly\n")
+        else =>
+            print($"  FAIL: Unexpected value for positive double\n")
+            errors++
+    else =>
+        print($"  FAIL: Unexpected value for positive double\n")
+        errors++
+
+    // Test 15: Negative double
+    print("\nTest 15 - Negative double:\n")
+
+    Environment.set("SN_DOUBLE_NEG", "-3.14159")
+    var negDouble: double = Environment.getDouble("SN_DOUBLE_NEG")
+    if negDouble < -3.14 =>
+        if negDouble > -3.15 =>
+            print("  PASS: Negative double parsed correctly\n")
+        else =>
+            print($"  FAIL: Unexpected value for negative double\n")
+            errors++
+    else =>
+        print($"  FAIL: Unexpected value for negative double\n")
+        errors++
+
+    // Test 16: Double with default
+    print("\nTest 16 - Double default for unset:\n")
+
+    Environment.remove("SN_DOUBLE_UNSET")
+    var doubleDefault: double = Environment.getDouble("SN_DOUBLE_UNSET", 2.71828)
+    if doubleDefault > 2.71 =>
+        if doubleDefault < 2.72 =>
+            print("  PASS: Default returned for unset double\n")
+        else =>
+            print($"  FAIL: Unexpected default value\n")
+            errors++
+    else =>
+        print($"  FAIL: Unexpected default value\n")
+        errors++
+
+    // ============================================================
+    // LONG PARSING EDGE CASES
+    // ============================================================
+    print("\n--- Long Parsing Edge Cases ---\n")
+
+    // Test 17: Large long value
+    print("Test 17 - Large long value:\n")
+
+    Environment.set("SN_LONG_BIG", "9223372036854775807")
+    var bigLong: long = Environment.getLong("SN_LONG_BIG")
+    if bigLong > 9223372036854775800l =>
+        print("  PASS: Large long parsed correctly\n")
+    else =>
+        print($"  FAIL: Unexpected value for large long\n")
+        errors++
+
+    // Test 18: Negative long
+    print("\nTest 18 - Negative long:\n")
+
+    Environment.set("SN_LONG_NEG", "-1234567890123")
+    var negLong: long = Environment.getLong("SN_LONG_NEG")
+    if negLong == -1234567890123l =>
+        print("  PASS: Negative long parsed correctly\n")
+    else =>
+        print($"  FAIL: Unexpected value for negative long\n")
+        errors++
+
+    // ============================================================
+    // CHILD PROCESS ENVIRONMENT INHERITANCE
+    // ============================================================
+    print("\n--- Child Process Environment ---\n")
+
+    // Test 19: Child process inherits environment variables
+    print("Test 19 - Child process inherits env vars:\n")
+
+    Environment.set("SN_CHILD_TEST", "inherited_value")
+    var proc: Process = Process.run("sh", {"-c", "echo $SN_CHILD_TEST"})
+    var childOutput: str = proc.stdout.trim()
+
+    if childOutput == "inherited_value" =>
+        print("  PASS: Child process inherited env var\n")
+    else =>
+        print($"  FAIL: Expected 'inherited_value', got '{childOutput}'\n")
+        errors++
+
+    // Test 20: Child process sees modified variables
+    print("\nTest 20 - Child sees modified variables:\n")
+
+    Environment.set("SN_MODIFY_TEST", "original")
+    Environment.set("SN_MODIFY_TEST", "modified")
+    var proc2: Process = Process.run("sh", {"-c", "echo $SN_MODIFY_TEST"})
+    var modOutput: str = proc2.stdout.trim()
+
+    if modOutput == "modified" =>
+        print("  PASS: Child sees modified value\n")
+    else =>
+        print($"  FAIL: Expected 'modified', got '{modOutput}'\n")
+        errors++
+
+    // Test 21: Child process sees multiple variables
+    print("\nTest 21 - Multiple variables in child:\n")
+
+    Environment.set("SN_MULTI_A", "alpha")
+    Environment.set("SN_MULTI_B", "beta")
+    var proc3: Process = Process.run("sh", {"-c", "echo $SN_MULTI_A-$SN_MULTI_B"})
+    var multiOutput: str = proc3.stdout.trim()
+
+    if multiOutput == "alpha-beta" =>
+        print("  PASS: Multiple variables inherited correctly\n")
+    else =>
+        print($"  FAIL: Expected 'alpha-beta', got '{multiOutput}'\n")
+        errors++
+
+    // Test 22: Removed variable not visible to child
+    print("\nTest 22 - Removed variable not in child:\n")
+
+    Environment.set("SN_REMOVE_TEST", "will_be_gone")
+    Environment.remove("SN_REMOVE_TEST")
+    var proc4: Process = Process.run("sh", {"-c", "echo \"${SN_REMOVE_TEST:-unset}\""})
+    var removeOutput: str = proc4.stdout.trim()
+
+    if removeOutput == "unset" =>
+        print("  PASS: Removed variable not visible to child\n")
+    else =>
+        print($"  FAIL: Expected 'unset', got '{removeOutput}'\n")
+        errors++
+
+    // Test 23: Empty string visible to child
+    print("\nTest 23 - Empty string visible to child:\n")
+
+    Environment.set("SN_EMPTY_CHILD", "")
+    // Use parameter expansion to distinguish empty from unset
+    var proc5: Process = Process.run("sh", {"-c", "[ -z \"${SN_EMPTY_CHILD+x}\" ] && echo unset || echo set"})
+    var emptyOutput: str = proc5.stdout.trim()
+
+    if emptyOutput == "set" =>
+        print("  PASS: Empty string variable is set in child\n")
+    else =>
+        print($"  FAIL: Expected 'set', got '{emptyOutput}'\n")
+        errors++
+
+    // ============================================================
+    // SPECIAL CHARACTER HANDLING
+    // ============================================================
+    print("\n--- Special Character Handling ---\n")
+
+    // Test 24: Equals sign in value
+    print("Test 24 - Equals sign in value:\n")
+
+    Environment.set("SN_SPECIAL_EQUALS", "key=value")
+    var equalsVal: str = Environment.get("SN_SPECIAL_EQUALS")
+    if equalsVal == "key=value" =>
+        print("  PASS: Value with equals sign preserved\n")
+    else =>
+        print($"  FAIL: Expected 'key=value', got '{equalsVal}'\n")
+        errors++
+
+    // Test 25: Spaces in value
+    print("\nTest 25 - Spaces in value:\n")
+
+    Environment.set("SN_SPECIAL_SPACES", "hello world with spaces")
+    var spacesVal: str = Environment.get("SN_SPECIAL_SPACES")
+    if spacesVal == "hello world with spaces" =>
+        print("  PASS: Value with spaces preserved\n")
+    else =>
+        print($"  FAIL: Expected 'hello world with spaces', got '{spacesVal}'\n")
+        errors++
+
+    // Test 26: Newline in value
+    print("\nTest 26 - Newline in value:\n")
+
+    Environment.set("SN_SPECIAL_NEWLINE", "line1\nline2")
+    var nlVal: str = Environment.get("SN_SPECIAL_NEWLINE")
+    if nlVal.contains("\n") =>
+        print("  PASS: Newline preserved in value\n")
+    else =>
+        print("  FAIL: Newline should be preserved\n")
+        errors++
+
+    // ============================================================
+    // CLEANUP
+    // ============================================================
+    Environment.remove("SN_TEST_EMPTY")
+    Environment.remove("SN_BOOL_TRUE")
+    Environment.remove("SN_BOOL_ONE")
+    Environment.remove("SN_BOOL_YES")
+    Environment.remove("SN_BOOL_ON")
+    Environment.remove("SN_BOOL_TRUE_UC")
+    Environment.remove("SN_BOOL_YES_UC")
+    Environment.remove("SN_BOOL_ON_UC")
+    Environment.remove("SN_BOOL_TRUE_MC")
+    Environment.remove("SN_BOOL_YES_MC")
+    Environment.remove("SN_BOOL_ON_MC")
+    Environment.remove("SN_BOOL_FALSE")
+    Environment.remove("SN_BOOL_ZERO")
+    Environment.remove("SN_BOOL_NO")
+    Environment.remove("SN_BOOL_OFF")
+    Environment.remove("SN_BOOL_FALSE_UC")
+    Environment.remove("SN_BOOL_NO_UC")
+    Environment.remove("SN_BOOL_OFF_UC")
+    Environment.remove("SN_INT_NEG")
+    Environment.remove("SN_INT_ZERO")
+    Environment.remove("SN_DOUBLE_POS")
+    Environment.remove("SN_DOUBLE_NEG")
+    Environment.remove("SN_LONG_BIG")
+    Environment.remove("SN_LONG_NEG")
+    Environment.remove("SN_CHILD_TEST")
+    Environment.remove("SN_MODIFY_TEST")
+    Environment.remove("SN_MULTI_A")
+    Environment.remove("SN_MULTI_B")
+    Environment.remove("SN_EMPTY_CHILD")
+    Environment.remove("SN_SPECIAL_EQUALS")
+    Environment.remove("SN_SPECIAL_SPACES")
+    Environment.remove("SN_SPECIAL_NEWLINE")
+
+    // ============================================================
+    // RESULTS SUMMARY
+    // ============================================================
+    print("\n=== Test Summary ===\n")
+    if errors == 0 =>
+        print("All Environment edge case tests PASSED!\n")
+    else =>
+        print($"{errors} tests FAILED!\n")
+
+    return errors

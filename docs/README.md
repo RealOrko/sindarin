@@ -17,6 +17,8 @@ Core documentation for the Sindarin programming language:
 | [DATE.md](language/DATE.md) | Calendar date operations |
 | [TIME.md](language/TIME.md) | Date and time operations |
 | [RANDOM.md](language/RANDOM.md) | Random number generation |
+| [UUID.md](language/UUID.md) | Universally unique identifiers |
+| [ENVIRONMENT.md](language/ENVIRONMENT.md) | Environment variables |
 | [MEMORY.md](language/MEMORY.md) | Arena memory management |
 | [THREADING.md](language/THREADING.md) | Threading with `&` spawn and `!` sync operators |
 | [PROCESSES.md](language/PROCESSES.md) | Process execution and output capture |

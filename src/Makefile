@@ -19,7 +19,7 @@ SRCS = arena.c file.c runtime.c token.c \
 	code_gen.c code_gen/code_gen_util.c code_gen/code_gen_expr.c code_gen/code_gen_expr_lambda.c \
 	code_gen/code_gen_expr_call_array.c code_gen/code_gen_expr_call_file.c \
 	code_gen/code_gen_expr_call_string.c code_gen/code_gen_expr_call_time.c \
-	code_gen/code_gen_expr_call_random.c \
+	code_gen/code_gen_expr_call_random.c code_gen/code_gen_expr_call_uuid.c \
 	code_gen/code_gen_expr_array.c code_gen/code_gen_expr_static.c code_gen/code_gen_expr_string.c \
 	code_gen/code_gen_stmt.c \
 	optimizer.c optimizer/optimizer_util.c optimizer/optimizer_tail_call.c optimizer/optimizer_string.c \
@@ -32,7 +32,8 @@ SRCS = arena.c file.c runtime.c token.c \
 	runtime/runtime_text_file.c runtime/runtime_binary_file.c runtime/runtime_io.c \
 	runtime/runtime_byte.c runtime/runtime_path.c runtime/runtime_date.c runtime/runtime_time.c \
 	runtime/runtime_thread.c runtime/runtime_process.c runtime/runtime_net.c \
-	runtime/runtime_random.c
+	runtime/runtime_random.c runtime/runtime_uuid.c runtime/runtime_sha1.c \
+	runtime/runtime_env.c
 HEADERS = arena.h file.h runtime.h token.h \
 	lexer.h lexer/lexer_util.h lexer/lexer_scan.h \
 	ast.h ast/ast_type.h ast/ast_expr.h ast/ast_stmt.h ast/ast_print.h \
@@ -51,7 +52,8 @@ HEADERS = arena.h file.h runtime.h token.h \
 	runtime/runtime_file.h runtime/runtime_io.h runtime/runtime_byte.h \
 	runtime/runtime_path.h runtime/runtime_date.h runtime/runtime_time.h \
 	runtime/runtime_thread.h runtime/runtime_process.h runtime/runtime_net.h \
-	runtime/runtime_random.h
+	runtime/runtime_random.h runtime/runtime_uuid.h runtime/runtime_sha1.h \
+	runtime/runtime_env.h
 BIN_DIR = ../bin
 OBJS = $(addprefix $(BIN_DIR)/, $(notdir $(SRCS:.c=.o)))
 DEPS = $(OBJS:.o=.d)
@@ -83,6 +85,9 @@ copy-runtime-header: create-bin-dir
 	@cp runtime/runtime_process.h $(BIN_DIR)/runtime/runtime_process.h
 	@cp runtime/runtime_net.h $(BIN_DIR)/runtime/runtime_net.h
 	@cp runtime/runtime_random.h $(BIN_DIR)/runtime/runtime_random.h
+	@cp runtime/runtime_uuid.h $(BIN_DIR)/runtime/runtime_uuid.h
+	@cp runtime/runtime_sha1.h $(BIN_DIR)/runtime/runtime_sha1.h
+	@cp runtime/runtime_env.h $(BIN_DIR)/runtime/runtime_env.h
 
 $(TARGET): $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $^
@@ -102,7 +107,7 @@ TEST_TARGET = $(BIN_DIR)/tests
 
 tests: create-bin-dir $(TEST_TARGET)
 
-$(TEST_TARGET): $(TEST_OBJS) $(BIN_DIR)/arena.o $(BIN_DIR)/debug.o $(BIN_DIR)/diagnostic.o $(BIN_DIR)/ast.o $(BIN_DIR)/ast_type.o $(BIN_DIR)/ast_expr.o $(BIN_DIR)/ast_stmt.o $(BIN_DIR)/ast_print.o $(BIN_DIR)/code_gen.o $(BIN_DIR)/code_gen_util.o $(BIN_DIR)/code_gen_expr.o $(BIN_DIR)/code_gen_expr_lambda.o $(BIN_DIR)/code_gen_expr_call_array.o $(BIN_DIR)/code_gen_expr_call_file.o $(BIN_DIR)/code_gen_expr_call_string.o $(BIN_DIR)/code_gen_expr_call_time.o $(BIN_DIR)/code_gen_expr_call_random.o $(BIN_DIR)/code_gen_expr_array.o $(BIN_DIR)/code_gen_expr_static.o $(BIN_DIR)/code_gen_expr_string.o $(BIN_DIR)/code_gen_stmt.o $(BIN_DIR)/optimizer.o $(BIN_DIR)/optimizer_util.o $(BIN_DIR)/optimizer_tail_call.o $(BIN_DIR)/optimizer_string.o $(BIN_DIR)/lexer.o $(BIN_DIR)/lexer_util.o $(BIN_DIR)/lexer_scan.o $(BIN_DIR)/parser.o $(BIN_DIR)/parser_util.o $(BIN_DIR)/parser_expr.o $(BIN_DIR)/parser_stmt.o $(BIN_DIR)/symbol_table.o $(BIN_DIR)/type_checker.o $(BIN_DIR)/type_checker_util.o $(BIN_DIR)/type_checker_expr.o $(BIN_DIR)/type_checker_expr_call.o $(BIN_DIR)/type_checker_expr_array.o $(BIN_DIR)/type_checker_expr_lambda.o $(BIN_DIR)/type_checker_stmt.o $(BIN_DIR)/token.o $(BIN_DIR)/file.o $(BIN_DIR)/runtime.o $(BIN_DIR)/runtime_arena.o $(BIN_DIR)/runtime_string.o $(BIN_DIR)/runtime_array.o $(BIN_DIR)/runtime_text_file.o $(BIN_DIR)/runtime_binary_file.o $(BIN_DIR)/runtime_io.o $(BIN_DIR)/runtime_byte.o $(BIN_DIR)/runtime_path.o $(BIN_DIR)/runtime_date.o $(BIN_DIR)/runtime_time.o $(BIN_DIR)/runtime_thread.o $(BIN_DIR)/runtime_process.o $(BIN_DIR)/runtime_net.o $(BIN_DIR)/runtime_random.o
+$(TEST_TARGET): $(TEST_OBJS) $(BIN_DIR)/arena.o $(BIN_DIR)/debug.o $(BIN_DIR)/diagnostic.o $(BIN_DIR)/ast.o $(BIN_DIR)/ast_type.o $(BIN_DIR)/ast_expr.o $(BIN_DIR)/ast_stmt.o $(BIN_DIR)/ast_print.o $(BIN_DIR)/code_gen.o $(BIN_DIR)/code_gen_util.o $(BIN_DIR)/code_gen_expr.o $(BIN_DIR)/code_gen_expr_lambda.o $(BIN_DIR)/code_gen_expr_call_array.o $(BIN_DIR)/code_gen_expr_call_file.o $(BIN_DIR)/code_gen_expr_call_string.o $(BIN_DIR)/code_gen_expr_call_time.o $(BIN_DIR)/code_gen_expr_call_random.o $(BIN_DIR)/code_gen_expr_call_uuid.o $(BIN_DIR)/code_gen_expr_array.o $(BIN_DIR)/code_gen_expr_static.o $(BIN_DIR)/code_gen_expr_string.o $(BIN_DIR)/code_gen_stmt.o $(BIN_DIR)/optimizer.o $(BIN_DIR)/optimizer_util.o $(BIN_DIR)/optimizer_tail_call.o $(BIN_DIR)/optimizer_string.o $(BIN_DIR)/lexer.o $(BIN_DIR)/lexer_util.o $(BIN_DIR)/lexer_scan.o $(BIN_DIR)/parser.o $(BIN_DIR)/parser_util.o $(BIN_DIR)/parser_expr.o $(BIN_DIR)/parser_stmt.o $(BIN_DIR)/symbol_table.o $(BIN_DIR)/type_checker.o $(BIN_DIR)/type_checker_util.o $(BIN_DIR)/type_checker_expr.o $(BIN_DIR)/type_checker_expr_call.o $(BIN_DIR)/type_checker_expr_array.o $(BIN_DIR)/type_checker_expr_lambda.o $(BIN_DIR)/type_checker_stmt.o $(BIN_DIR)/token.o $(BIN_DIR)/file.o $(BIN_DIR)/runtime.o $(BIN_DIR)/runtime_arena.o $(BIN_DIR)/runtime_string.o $(BIN_DIR)/runtime_array.o $(BIN_DIR)/runtime_text_file.o $(BIN_DIR)/runtime_binary_file.o $(BIN_DIR)/runtime_io.o $(BIN_DIR)/runtime_byte.o $(BIN_DIR)/runtime_path.o $(BIN_DIR)/runtime_date.o $(BIN_DIR)/runtime_time.o $(BIN_DIR)/runtime_thread.o $(BIN_DIR)/runtime_process.o $(BIN_DIR)/runtime_net.o $(BIN_DIR)/runtime_random.o $(BIN_DIR)/runtime_uuid.o $(BIN_DIR)/runtime_sha1.o $(BIN_DIR)/runtime_env.o
 	$(CC) -o $@ $^ $(LDFLAGS) -lm
 
 $(BIN_DIR)/%.o: $(TEST_SRCDIR)/%.c

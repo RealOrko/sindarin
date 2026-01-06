@@ -611,6 +611,200 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         }
     }
 
+    /* UUID static methods */
+    if (codegen_token_equals(type_name, "UUID"))
+    {
+        /* UUID.create() or UUID.new() -> rt_uuid_create(arena) */
+        if (codegen_token_equals(method_name, "create") || codegen_token_equals(method_name, "new"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_create(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.v7() -> rt_uuid_v7(arena) */
+        else if (codegen_token_equals(method_name, "v7"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_v7(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.v4() -> rt_uuid_v4(arena) */
+        else if (codegen_token_equals(method_name, "v4"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_v4(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.v5(namespace, name) -> rt_uuid_v5(arena, namespace, name) */
+        else if (codegen_token_equals(method_name, "v5"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_v5(%s, %s, %s)",
+                                 ARENA_VAR(gen), arg0, arg1);
+        }
+        /* UUID.fromString(str) -> rt_uuid_from_string(arena, str) */
+        else if (codegen_token_equals(method_name, "fromString"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_from_string(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        /* UUID.fromHex(str) -> rt_uuid_from_hex(arena, str) */
+        else if (codegen_token_equals(method_name, "fromHex"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_from_hex(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        /* UUID.fromBase64(str) -> rt_uuid_from_base64(arena, str) */
+        else if (codegen_token_equals(method_name, "fromBase64"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_from_base64(%s, %s)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        /* UUID.fromBytes(bytes) -> rt_uuid_from_bytes(arena, bytes->data) */
+        else if (codegen_token_equals(method_name, "fromBytes"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_from_bytes(%s, (unsigned char *)%s->data)",
+                                 ARENA_VAR(gen), arg0);
+        }
+        /* UUID.zero() -> rt_uuid_nil(arena) */
+        else if (codegen_token_equals(method_name, "zero"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_nil(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.max() -> rt_uuid_max(arena) */
+        else if (codegen_token_equals(method_name, "max"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_max(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.namespaceDns() -> rt_uuid_namespace_dns(arena) */
+        else if (codegen_token_equals(method_name, "namespaceDns"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_namespace_dns(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.namespaceUrl() -> rt_uuid_namespace_url(arena) */
+        else if (codegen_token_equals(method_name, "namespaceUrl"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_namespace_url(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.namespaceOid() -> rt_uuid_namespace_oid(arena) */
+        else if (codegen_token_equals(method_name, "namespaceOid"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_namespace_oid(%s)", ARENA_VAR(gen));
+        }
+        /* UUID.namespaceX500() -> rt_uuid_namespace_x500(arena) */
+        else if (codegen_token_equals(method_name, "namespaceX500"))
+        {
+            return arena_sprintf(gen->arena, "rt_uuid_namespace_x500(%s)", ARENA_VAR(gen));
+        }
+    }
+
+    /* Environment static methods */
+    if (codegen_token_equals(type_name, "Environment"))
+    {
+        /* Environment.get(key) -> rt_env_get(arena, key)
+         * Environment.get(key, default) -> rt_env_get_default(arena, key, default) */
+        if (codegen_token_equals(method_name, "get"))
+        {
+            if (call->arg_count == 1)
+            {
+                return arena_sprintf(gen->arena, "rt_env_get(%s, %s)",
+                                     ARENA_VAR(gen), arg0);
+            }
+            else
+            {
+                return arena_sprintf(gen->arena, "rt_env_get_default(%s, %s, %s)",
+                                     ARENA_VAR(gen), arg0, arg1);
+            }
+        }
+        /* Environment.set(key, value) -> rt_env_set(key, value) */
+        else if (codegen_token_equals(method_name, "set"))
+        {
+            return arena_sprintf(gen->arena, "(void)rt_env_set(%s, %s)", arg0, arg1);
+        }
+        /* Environment.has(key) -> rt_env_has(key) */
+        else if (codegen_token_equals(method_name, "has"))
+        {
+            return arena_sprintf(gen->arena, "rt_env_has(%s)", arg0);
+        }
+        /* Environment.remove(key) -> rt_env_remove(key) */
+        else if (codegen_token_equals(method_name, "remove"))
+        {
+            return arena_sprintf(gen->arena, "rt_env_remove(%s)", arg0);
+        }
+        /* Environment.getInt(key) -> rt_env_get_int(key, &success) with error handling
+         * Environment.getInt(key, default) -> rt_env_get_int_default(key, default) */
+        else if (codegen_token_equals(method_name, "getInt"))
+        {
+            if (call->arg_count == 1)
+            {
+                return arena_sprintf(gen->arena,
+                    "({ int __success = 0; long __val = rt_env_get_int(%s, &__success); "
+                    "if (!__success) { fprintf(stderr, \"RuntimeError: Environment variable '%%s' not set or invalid int\\n\", %s); exit(1); } __val; })",
+                    arg0, arg0);
+            }
+            else
+            {
+                return arena_sprintf(gen->arena, "rt_env_get_int_default(%s, %s)", arg0, arg1);
+            }
+        }
+        /* Environment.getLong(key) -> rt_env_get_long(key, &success) with error handling
+         * Environment.getLong(key, default) -> rt_env_get_long_default(key, default) */
+        else if (codegen_token_equals(method_name, "getLong"))
+        {
+            if (call->arg_count == 1)
+            {
+                return arena_sprintf(gen->arena,
+                    "({ int __success = 0; long long __val = rt_env_get_long(%s, &__success); "
+                    "if (!__success) { fprintf(stderr, \"RuntimeError: Environment variable '%%s' not set or invalid long\\n\", %s); exit(1); } __val; })",
+                    arg0, arg0);
+            }
+            else
+            {
+                return arena_sprintf(gen->arena, "rt_env_get_long_default(%s, %s)", arg0, arg1);
+            }
+        }
+        /* Environment.getDouble(key) -> rt_env_get_double(key, &success) with error handling
+         * Environment.getDouble(key, default) -> rt_env_get_double_default(key, default) */
+        else if (codegen_token_equals(method_name, "getDouble"))
+        {
+            if (call->arg_count == 1)
+            {
+                return arena_sprintf(gen->arena,
+                    "({ int __success = 0; double __val = rt_env_get_double(%s, &__success); "
+                    "if (!__success) { fprintf(stderr, \"RuntimeError: Environment variable '%%s' not set or invalid double\\n\", %s); exit(1); } __val; })",
+                    arg0, arg0);
+            }
+            else
+            {
+                return arena_sprintf(gen->arena, "rt_env_get_double_default(%s, %s)", arg0, arg1);
+            }
+        }
+        /* Environment.getBool(key) -> rt_env_get_bool(key, &success) with error handling
+         * Environment.getBool(key, default) -> rt_env_get_bool_default(key, default) */
+        else if (codegen_token_equals(method_name, "getBool"))
+        {
+            if (call->arg_count == 1)
+            {
+                return arena_sprintf(gen->arena,
+                    "({ int __success = 0; int __val = rt_env_get_bool(%s, &__success); "
+                    "if (!__success) { fprintf(stderr, \"RuntimeError: Environment variable '%%s' not set or invalid bool\\n\", %s); exit(1); } __val; })",
+                    arg0, arg0);
+            }
+            else
+            {
+                return arena_sprintf(gen->arena, "rt_env_get_bool_default(%s, %s)", arg0, arg1);
+            }
+        }
+        /* Environment.list() -> rt_env_list(arena) */
+        else if (codegen_token_equals(method_name, "list"))
+        {
+            return arena_sprintf(gen->arena, "rt_env_list(%s)", ARENA_VAR(gen));
+        }
+        /* Environment.names() -> rt_env_names(arena) */
+        else if (codegen_token_equals(method_name, "names"))
+        {
+            return arena_sprintf(gen->arena, "rt_env_names(%s)", ARENA_VAR(gen));
+        }
+        /* Environment.all() -> rt_env_names(arena) (backward compatibility alias) */
+        else if (codegen_token_equals(method_name, "all"))
+        {
+            return arena_sprintf(gen->arena, "rt_env_names(%s)", ARENA_VAR(gen));
+        }
+    }
+
     /* Fallback for unimplemented static methods */
     return arena_sprintf(gen->arena,
         "(fprintf(stderr, \"Static method call not yet implemented: %.*s.%.*s\\n\"), exit(1), (void *)0)",

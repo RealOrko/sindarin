@@ -275,6 +275,8 @@ bin/sn source.sn -g -o program
 - [DATE.md](DATE.md) - Calendar date operations
 - [TIME.md](TIME.md) - Date and time operations
 - [RANDOM.md](RANDOM.md) - Random number generation
+- [UUID.md](UUID.md) - Universally unique identifiers
+- [ENVIRONMENT.md](ENVIRONMENT.md) - Environment variables
 - [MEMORY.md](MEMORY.md) - Arena memory management
 - [THREADING.md](THREADING.md) - Threading with `&` spawn and `!` sync
 - [INTEROP.md](INTEROP.md) - C interoperability and native functions

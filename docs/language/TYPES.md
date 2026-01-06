@@ -308,6 +308,35 @@ Static methods:
 - `choice(array)`, `shuffle(array)`, `sample(array, count)` - Collection operations
 - `create()`, `createWithSeed(seed)` - Create Random instances
 
+### UUID
+
+Universally unique identifier type. See [UUID.md](UUID.md) for full documentation.
+
+```sindarin
+// Generate a time-ordered UUID (v7) - recommended
+var id: UUID = UUID.create()
+print($"New record: {id}\n")
+
+// Parse from string
+var parsed: UUID = UUID.fromString("01912345-6789-7abc-8def-0123456789ab")
+
+// Deterministic UUID from namespace + name
+var ns: UUID = UUID.namespaceUrl()
+var userId: UUID = UUID.v5(ns, "https://myapp.com/users/alice")
+```
+
+Static methods:
+- `create()`, `v7()` - Generate time-ordered UUIDv7
+- `v4()` - Generate random UUIDv4
+- `v5(namespace, name)` - Deterministic UUID from namespace + name
+- `fromString(str)`, `fromHex(str)`, `fromBase64(str)` - Parse from string formats
+- `nil()`, `max()` - Special UUID values
+
+Instance methods:
+- `.version()`, `.variant()`, `.isNil()` - UUID properties
+- `.timestamp()`, `.time()` - Time extraction (v7 only)
+- `.toString()`, `.toHex()`, `.toBase64()`, `.toBytes()` - Conversion
+
 ## Utility Namespaces
 
 Sindarin provides several utility namespaces with static methods for common operations.
@@ -481,7 +510,9 @@ Methods:
 | `Date` | Calendar date value | (from `Date.today()`) |
 | `Time` | Date/time value | (from `Time.now()`) |
 | `Process` | Process execution result | (from `Process.run()`) |
+| `UUID` | Universally unique identifier | (from `UUID.create()`) |
 | `Random` | Random number generator | (from `Random.create()`) |
+| `Environment` | Environment variable access | (static methods only) |
 
 ### Utility Namespaces
 
@@ -493,6 +524,7 @@ Methods:
 | `Stdout` | Standard output stream |
 | `Stderr` | Standard error stream |
 | `Bytes` | Byte array conversions |
+| `Environment` | Environment variable access |
 
 ## Type Annotations
 
@@ -565,5 +597,7 @@ var text: str = bytes.toString()
 - [DATE.md](DATE.md) - Date type operations
 - [TIME.md](TIME.md) - Time type operations
 - [RANDOM.md](RANDOM.md) - Random number generation
+- [UUID.md](UUID.md) - Universally unique identifiers
+- [ENVIRONMENT.md](ENVIRONMENT.md) - Environment variables
 - [MEMORY.md](MEMORY.md) - Memory management and type lifetimes
 - [INTEROP.md](INTEROP.md) - C interoperability and pointer types

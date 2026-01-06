@@ -546,11 +546,11 @@ void test_code_gen_array_of_arrays()
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
 
-    // Expected: long * (*)[] nested = NULL; nested;
-    // get_c_type for array of array: long * (*)[]
+    // Expected: long * * nested = NULL; nested;
+    // get_c_type for array of array: long * * (pointer to pointer to long)
     // Empty arrays of arrays and functions are initialized to NULL for runtime compatibility
     const char *expected = get_expected(&arena,
-                                  "long * (*)[] nested = NULL;\n"
+                                  "long * * nested = NULL;\n"
                                   "nested;\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"

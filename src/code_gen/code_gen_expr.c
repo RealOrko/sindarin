@@ -174,6 +174,30 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
         return arena_sprintf(gen->arena, "((%s) %s (%s))", left_str, c_op, right_str);
     }
 
+    // Handle UUID comparison operators
+    if (type->kind == TYPE_UUID)
+    {
+        switch (op)
+        {
+            case TOKEN_EQUAL_EQUAL:
+                return arena_sprintf(gen->arena, "rt_uuid_equals(%s, %s)", left_str, right_str);
+            case TOKEN_BANG_EQUAL:
+                return arena_sprintf(gen->arena, "(!rt_uuid_equals(%s, %s))", left_str, right_str);
+            case TOKEN_LESS:
+                return arena_sprintf(gen->arena, "rt_uuid_is_less_than(%s, %s)", left_str, right_str);
+            case TOKEN_LESS_EQUAL:
+                return arena_sprintf(gen->arena, "(rt_uuid_is_less_than(%s, %s) || rt_uuid_equals(%s, %s))",
+                                     left_str, right_str, left_str, right_str);
+            case TOKEN_GREATER:
+                return arena_sprintf(gen->arena, "rt_uuid_is_greater_than(%s, %s)", left_str, right_str);
+            case TOKEN_GREATER_EQUAL:
+                return arena_sprintf(gen->arena, "(rt_uuid_is_greater_than(%s, %s) || rt_uuid_equals(%s, %s))",
+                                     left_str, right_str, left_str, right_str);
+            default:
+                break;
+        }
+    }
+
     char *op_str = code_gen_binary_op_str(op);
     char *suffix = code_gen_type_suffix(type);
     if (op == TOKEN_PLUS && type->kind == TYPE_STRING)
@@ -478,6 +502,12 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
             case TYPE_RANDOM: {
                 result = code_gen_random_method_call(gen, expr, member_name_str,
+                    member->object, call->arg_count, call->arguments);
+                if (result) return result;
+                break;
+            }
+            case TYPE_UUID: {
+                result = code_gen_uuid_method_call(gen, expr, member_name_str,
                     member->object, call->arg_count, call->arguments);
                 if (result) return result;
                 break;

@@ -1,0 +1,233 @@
+// Test UUID version and variant extraction comprehensively
+// This is a focused test on version/variant that verifies all possible version values
+
+fn main(): int =>
+    print("=== UUID Version and Variant Tests ===\n")
+    var errors: int = 0
+
+    // ============================================================
+    // VERSION EXTRACTION FOR ALL POSSIBLE VERSIONS
+    // ============================================================
+    print("\n--- Version Extraction ---\n")
+
+    // Test version 0 (from nil UUID)
+    print("Test: Version 0 (nil UUID):\n")
+    var nilUuid: UUID = UUID.zero()
+    var ver0: int = nilUuid.version()
+    if ver0 == 0 =>
+        print($"  PASS: nil UUID has version 0 (got {ver0})\n")
+    else =>
+        print($"  FAIL: nil UUID should have version 0, got {ver0}\n")
+        errors++
+
+    // Test version 1 (v1 formatted UUID - timestamp+MAC based)
+    print("\nTest: Version 1 (parsed):\n")
+    // v1 format: xxxxxxxx-xxxx-1xxx-xxxx-xxxxxxxxxxxx
+    var v1Uuid: UUID = UUID.fromString("12345678-1234-1abc-8def-123456789abc")
+    var ver1: int = v1Uuid.version()
+    if ver1 == 1 =>
+        print($"  PASS: Parsed v1 UUID has version 1 (got {ver1})\n")
+    else =>
+        print($"  FAIL: Parsed v1 UUID should have version 1, got {ver1}\n")
+        errors++
+
+    // Test version 2 (v2 formatted UUID - DCE security)
+    print("\nTest: Version 2 (parsed):\n")
+    var v2Uuid: UUID = UUID.fromString("12345678-1234-2abc-8def-123456789abc")
+    var ver2: int = v2Uuid.version()
+    if ver2 == 2 =>
+        print($"  PASS: Parsed v2 UUID has version 2 (got {ver2})\n")
+    else =>
+        print($"  FAIL: Parsed v2 UUID should have version 2, got {ver2}\n")
+        errors++
+
+    // Test version 3 (v3 formatted UUID - MD5 hash)
+    print("\nTest: Version 3 (parsed):\n")
+    var v3Uuid: UUID = UUID.fromString("12345678-1234-3abc-8def-123456789abc")
+    var ver3: int = v3Uuid.version()
+    if ver3 == 3 =>
+        print($"  PASS: Parsed v3 UUID has version 3 (got {ver3})\n")
+    else =>
+        print($"  FAIL: Parsed v3 UUID should have version 3, got {ver3}\n")
+        errors++
+
+    // Test version 4 (generated and parsed)
+    print("\nTest: Version 4 (generated):\n")
+    var v4Gen: UUID = UUID.v4()
+    var ver4Gen: int = v4Gen.version()
+    if ver4Gen == 4 =>
+        print($"  PASS: Generated v4 UUID has version 4 (got {ver4Gen})\n")
+    else =>
+        print($"  FAIL: Generated v4 UUID should have version 4, got {ver4Gen}\n")
+        errors++
+
+    print("\nTest: Version 4 (parsed):\n")
+    var v4Parsed: UUID = UUID.fromString("12345678-1234-4abc-8def-123456789abc")
+    var ver4Parsed: int = v4Parsed.version()
+    if ver4Parsed == 4 =>
+        print($"  PASS: Parsed v4 UUID has version 4 (got {ver4Parsed})\n")
+    else =>
+        print($"  FAIL: Parsed v4 UUID should have version 4, got {ver4Parsed}\n")
+        errors++
+
+    // Test version 5 (generated and parsed)
+    print("\nTest: Version 5 (generated):\n")
+    var nsUrl: UUID = UUID.namespaceUrl()
+    var v5Gen: UUID = UUID.v5(nsUrl, "test")
+    var ver5Gen: int = v5Gen.version()
+    if ver5Gen == 5 =>
+        print($"  PASS: Generated v5 UUID has version 5 (got {ver5Gen})\n")
+    else =>
+        print($"  FAIL: Generated v5 UUID should have version 5, got {ver5Gen}\n")
+        errors++
+
+    print("\nTest: Version 5 (parsed):\n")
+    var v5Parsed: UUID = UUID.fromString("12345678-1234-5abc-8def-123456789abc")
+    var ver5Parsed: int = v5Parsed.version()
+    if ver5Parsed == 5 =>
+        print($"  PASS: Parsed v5 UUID has version 5 (got {ver5Parsed})\n")
+    else =>
+        print($"  FAIL: Parsed v5 UUID should have version 5, got {ver5Parsed}\n")
+        errors++
+
+    // Test version 6 (v6 formatted UUID - reordered timestamp)
+    print("\nTest: Version 6 (parsed):\n")
+    var v6Uuid: UUID = UUID.fromString("12345678-1234-6abc-8def-123456789abc")
+    var ver6: int = v6Uuid.version()
+    if ver6 == 6 =>
+        print($"  PASS: Parsed v6 UUID has version 6 (got {ver6})\n")
+    else =>
+        print($"  FAIL: Parsed v6 UUID should have version 6, got {ver6}\n")
+        errors++
+
+    // Test version 7 (generated and parsed)
+    print("\nTest: Version 7 (generated):\n")
+    var v7Gen: UUID = UUID.v7()
+    var ver7Gen: int = v7Gen.version()
+    if ver7Gen == 7 =>
+        print($"  PASS: Generated v7 UUID has version 7 (got {ver7Gen})\n")
+    else =>
+        print($"  FAIL: Generated v7 UUID should have version 7, got {ver7Gen}\n")
+        errors++
+
+    print("\nTest: Version 7 (parsed):\n")
+    var v7Parsed: UUID = UUID.fromString("12345678-1234-7abc-8def-123456789abc")
+    var ver7Parsed: int = v7Parsed.version()
+    if ver7Parsed == 7 =>
+        print($"  PASS: Parsed v7 UUID has version 7 (got {ver7Parsed})\n")
+    else =>
+        print($"  FAIL: Parsed v7 UUID should have version 7, got {ver7Parsed}\n")
+        errors++
+
+    // Test version 8 (v8 formatted UUID - custom)
+    print("\nTest: Version 8 (parsed):\n")
+    var v8Uuid: UUID = UUID.fromString("12345678-1234-8abc-8def-123456789abc")
+    var ver8: int = v8Uuid.version()
+    if ver8 == 8 =>
+        print($"  PASS: Parsed v8 UUID has version 8 (got {ver8})\n")
+    else =>
+        print($"  FAIL: Parsed v8 UUID should have version 8, got {ver8}\n")
+        errors++
+
+    // Test version 15 (max UUID has all bits set)
+    print("\nTest: Version from max UUID:\n")
+    var maxUuid: UUID = UUID.max()
+    var ver15: int = maxUuid.version()
+    if ver15 == 15 =>
+        print($"  PASS: max UUID has version 15 (all bits set) (got {ver15})\n")
+    else =>
+        print($"  INFO: max UUID has version {ver15}\n")
+
+    // ============================================================
+    // VARIANT EXTRACTION
+    // ============================================================
+    print("\n--- Variant Extraction ---\n")
+
+    // Test variant 0 (NCS backward compatibility: 0xxx)
+    print("Test: Variant 0 (NCS - bits 0xxx):\n")
+    // Variant is in byte 8, high bits. For variant 0, bits 63-62 of low word should be 0x
+    // Byte 8 should be 0x00-0x7F for variant 0
+    var ncsUuid: UUID = UUID.fromString("12345678-1234-4abc-0def-123456789abc")
+    var varNcs: int = ncsUuid.variant()
+    if varNcs == 0 =>
+        print($"  PASS: UUID with 0xxx bits has variant 0 (got {varNcs})\n")
+    else =>
+        print($"  INFO: UUID with 0xxx bits has variant {varNcs}\n")
+
+    // Test variant 1 (RFC 9562: 10xx)
+    print("\nTest: Variant 1 (RFC 9562 - bits 10xx):\n")
+    // Byte 8 should be 0x80-0xBF for variant 1
+    var rfcUuid: UUID = UUID.fromString("12345678-1234-4abc-8def-123456789abc")
+    var varRfc: int = rfcUuid.variant()
+    if varRfc == 1 =>
+        print($"  PASS: UUID with 10xx bits has variant 1 (got {varRfc})\n")
+    else =>
+        print($"  FAIL: UUID with 10xx bits should have variant 1, got {varRfc}\n")
+        errors++
+
+    // Another variant 1 test (byte 8 = 0xB...)
+    print("\nTest: Variant 1 (RFC 9562 - bits 10xx, upper range):\n")
+    var rfcUuid2: UUID = UUID.fromString("12345678-1234-4abc-bdef-123456789abc")
+    var varRfc2: int = rfcUuid2.variant()
+    if varRfc2 == 1 =>
+        print($"  PASS: UUID with Bxxx bits has variant 1 (got {varRfc2})\n")
+    else =>
+        print($"  FAIL: UUID with Bxxx bits should have variant 1, got {varRfc2}\n")
+        errors++
+
+    // Test variant 2 (Microsoft backward compatibility: 110x)
+    print("\nTest: Variant 2 (Microsoft - bits 110x):\n")
+    // Byte 8 should be 0xC0-0xDF for variant 2
+    var msUuid: UUID = UUID.fromString("12345678-1234-4abc-cdef-123456789abc")
+    var varMs: int = msUuid.variant()
+    if varMs == 2 =>
+        print($"  PASS: UUID with 110x bits has variant 2 (got {varMs})\n")
+    else =>
+        print($"  INFO: UUID with 110x bits has variant {varMs}\n")
+
+    // Test variant 3 (Reserved: 111x)
+    print("\nTest: Variant 3 (Reserved - bits 111x):\n")
+    // Byte 8 should be 0xE0-0xFF for variant 3
+    var resUuid: UUID = UUID.fromString("12345678-1234-4abc-edef-123456789abc")
+    var varRes: int = resUuid.variant()
+    if varRes == 3 =>
+        print($"  PASS: UUID with 111x bits has variant 3 (got {varRes})\n")
+    else =>
+        print($"  INFO: UUID with 111x bits has variant {varRes}\n")
+
+    // Generated UUIDs should all have variant 1
+    print("\nTest: All generated UUIDs have RFC variant:\n")
+    var genV4: UUID = UUID.v4()
+    var genV5: UUID = UUID.v5(nsUrl, "test2")
+    var genV7: UUID = UUID.v7()
+    var genCreate: UUID = UUID.create()
+
+    var allRfcVariant: bool = true
+    if genV4.variant() != 1 =>
+        print($"  FAIL: v4 variant is {genV4.variant()}\n")
+        allRfcVariant = false
+    if genV5.variant() != 1 =>
+        print($"  FAIL: v5 variant is {genV5.variant()}\n")
+        allRfcVariant = false
+    if genV7.variant() != 1 =>
+        print($"  FAIL: v7 variant is {genV7.variant()}\n")
+        allRfcVariant = false
+    if genCreate.variant() != 1 =>
+        print($"  FAIL: create() variant is {genCreate.variant()}\n")
+        allRfcVariant = false
+
+    if allRfcVariant =>
+        print("  PASS: All generated UUIDs have RFC variant (1)\n")
+    else =>
+        errors++
+
+    // ============================================================
+    // SUMMARY
+    // ============================================================
+    print("\n=== Test Summary ===\n")
+    if errors == 0 =>
+        print("All version/variant tests PASSED!\n")
+    else =>
+        print($"{errors} tests FAILED!\n")
+
+    return errors

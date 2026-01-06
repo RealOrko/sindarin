@@ -138,6 +138,10 @@ const char *token_type_to_string(TokenType type)
         return "TYPE";
     case TOKEN_OPAQUE:
         return "OPAQUE";
+    case TOKEN_UUID:
+        return "UUID";
+    case TOKEN_ENV:
+        return "ENV";
     case TOKEN_PLUS:
         return "PLUS";
     case TOKEN_MINUS:

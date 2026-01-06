@@ -486,6 +486,10 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_time_is_before(RtTime *, RtTime *);\n");
     indented_fprintf(gen, 0, "extern int rt_time_is_after(RtTime *, RtTime *);\n");
     indented_fprintf(gen, 0, "extern int rt_time_equals(RtTime *, RtTime *);\n\n");
+
+    indented_fprintf(gen, 0, "/* Environment operations */\n");
+    indented_fprintf(gen, 0, "extern char *rt_env_get(RtArena *, const char *);\n");
+    indented_fprintf(gen, 0, "extern char **rt_env_names(RtArena *);\n\n");
 }
 
 /* Generate C typedef for a native callback type declaration.

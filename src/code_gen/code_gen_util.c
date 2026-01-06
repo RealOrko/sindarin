@@ -163,6 +163,8 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtUdpSocket *");
     case TYPE_RANDOM:
         return arena_strdup(arena, "RtRandom *");
+    case TYPE_UUID:
+        return arena_strdup(arena, "RtUuid *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally
@@ -175,20 +177,12 @@ const char *get_c_type(Arena *arena, Type *type)
         {
             element_c_type = get_c_type(arena, type->as.array.element_type);
         }
-        if (type->as.array.element_type->kind == TYPE_ARRAY)
-        {
-            size_t len = strlen(element_c_type) + 10;
-            char *result = arena_alloc(arena, len);
-            snprintf(result, len, "%s (*)[]", element_c_type);
-            return result;
-        }
-        else
-        {
-            size_t len = strlen(element_c_type) + 3;
-            char *result = arena_alloc(arena, len);
-            snprintf(result, len, "%s *", element_c_type);
-            return result;
-        }
+        // For nested arrays (e.g., str[][]), just add another pointer level
+        // str[][] -> char*** (array of string arrays)
+        size_t len = strlen(element_c_type) + 3;
+        char *result = arena_alloc(arena, len);
+        snprintf(result, len, "%s *", element_c_type);
+        return result;
     }
     case TYPE_POINTER:
     {

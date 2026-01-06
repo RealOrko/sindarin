@@ -1,0 +1,481 @@
+// Test UUID edge cases and error handling
+// Tests malformed UUID parsing, version/variant extraction, and edge cases
+
+fn main(): int =>
+    print("=== UUID Edge Cases Tests ===\n")
+    var errors: int = 0
+
+    // ============================================================
+    // MALFORMED UUID PARSING
+    // ============================================================
+    print("\n--- Malformed UUID Parsing ---\n")
+
+    // Test 1: Wrong length (too short)
+    print("Test 1 - Too short string:\n")
+    var tooShort: str = "01234567-89ab-7def-8123"
+    // Parse should return nil/empty UUID on invalid input
+    // The runtime exits on invalid parse, so we test valid formats instead
+    print("  Note: Invalid strings cause runtime error, testing valid format handling\n")
+
+    // Test 2: Wrong length (too long)
+    print("Test 2 - Too long string:\n")
+    var tooLong: str = "01234567-89ab-7def-8123-456789abcdef-extra"
+    print("  Note: Invalid strings cause runtime error, testing valid format handling\n")
+
+    // Test 3: Missing dashes
+    print("Test 3 - Missing dashes:\n")
+    var noDashes: str = "0123456789ab7def8123456789abcdef"
+    // This is actually valid hex format, test via fromHex
+    var hexUuid: UUID = UUID.fromHex(noDashes)
+    print($"  Parsed hex format: {hexUuid.toString()}\n")
+    if hexUuid.toString() == "01234567-89ab-7def-8123-456789abcdef" =>
+        print("  PASS: fromHex handles 32-char hex string\n")
+    else =>
+        print("  FAIL: fromHex produced wrong result\n")
+        errors++
+
+    // Test 4: Dashes in wrong positions
+    print("\nTest 4 - Test standard format parsing:\n")
+    var validFormat: str = "01234567-89ab-7def-8123-456789abcdef"
+    var parsed: UUID = UUID.fromString(validFormat)
+    if parsed.toString() == validFormat =>
+        print("  PASS: Standard format parses correctly\n")
+    else =>
+        print($"  FAIL: Got {parsed.toString()}\n")
+        errors++
+
+    // Test 5: Uppercase hex digits
+    print("\nTest 5 - Uppercase hex digits:\n")
+    var uppercase: str = "01234567-89AB-7DEF-8123-456789ABCDEF"
+    var uppercaseParsed: UUID = UUID.fromString(uppercase)
+    // Should normalize to lowercase
+    if uppercaseParsed.toString() == "01234567-89ab-7def-8123-456789abcdef" =>
+        print("  PASS: Uppercase hex is normalized to lowercase\n")
+    else =>
+        print($"  FAIL: Got {uppercaseParsed.toString()}\n")
+        errors++
+
+    // Test 6: Mixed case
+    print("\nTest 6 - Mixed case hex digits:\n")
+    var mixedCase: str = "01234567-89Ab-7DeF-8123-456789AbCdEf"
+    var mixedParsed: UUID = UUID.fromString(mixedCase)
+    if mixedParsed.toString() == "01234567-89ab-7def-8123-456789abcdef" =>
+        print("  PASS: Mixed case hex is normalized\n")
+    else =>
+        print($"  FAIL: Got {mixedParsed.toString()}\n")
+        errors++
+
+    // ============================================================
+    // VERSION EXTRACTION
+    // ============================================================
+    print("\n--- Version Extraction ---\n")
+
+    // Test 7: Extract version from v7 UUID
+    print("Test 7 - Version extraction from v7:\n")
+    var v7: UUID = UUID.v7()
+    var v7ver: int = v7.version()
+    if v7ver == 7 =>
+        print("  PASS: v7 UUID reports version 7\n")
+    else =>
+        print($"  FAIL: Expected 7, got {v7ver}\n")
+        errors++
+
+    // Test 8: Extract version from v4 UUID
+    print("\nTest 8 - Version extraction from v4:\n")
+    var v4: UUID = UUID.v4()
+    var v4ver: int = v4.version()
+    if v4ver == 4 =>
+        print("  PASS: v4 UUID reports version 4\n")
+    else =>
+        print($"  FAIL: Expected 4, got {v4ver}\n")
+        errors++
+
+    // Test 9: Extract version from v5 UUID
+    print("\nTest 9 - Version extraction from v5:\n")
+    var ns: UUID = UUID.namespaceUrl()
+    var v5: UUID = UUID.v5(ns, "test")
+    var v5ver: int = v5.version()
+    if v5ver == 5 =>
+        print("  PASS: v5 UUID reports version 5\n")
+    else =>
+        print($"  FAIL: Expected 5, got {v5ver}\n")
+        errors++
+
+    // Test 10: Version from nil UUID
+    print("\nTest 10 - Version from nil UUID:\n")
+    var nilUuid: UUID = UUID.zero()
+    var nilVer: int = nilUuid.version()
+    if nilVer == 0 =>
+        print("  PASS: nil UUID reports version 0\n")
+    else =>
+        print($"  Note: nil UUID reports version {nilVer}\n")
+
+    // Test 11: Version from max UUID
+    print("\nTest 11 - Version from max UUID:\n")
+    var maxUuid: UUID = UUID.max()
+    var maxVer: int = maxUuid.version()
+    print($"  max UUID reports version {maxVer}\n")
+
+    // Test 12: Version from parsed UUID with known version
+    print("\nTest 12 - Version from parsed v4 UUID:\n")
+    // UUID with version 4 explicitly in the format: xxxxxxxx-xxxx-4xxx-xxxx-xxxxxxxxxxxx
+    var parsedV4: UUID = UUID.fromString("12345678-1234-4abc-8def-123456789abc")
+    var parsedV4ver: int = parsedV4.version()
+    if parsedV4ver == 4 =>
+        print("  PASS: Parsed v4-format UUID reports version 4\n")
+    else =>
+        print($"  FAIL: Expected 4, got {parsedV4ver}\n")
+        errors++
+
+    // Test 13: Version from parsed UUID with version 7
+    print("\nTest 13 - Version from parsed v7 UUID:\n")
+    // UUID with version 7 explicitly in the format
+    var parsedV7: UUID = UUID.fromString("01912345-6789-7abc-8def-0123456789ab")
+    var parsedV7ver: int = parsedV7.version()
+    if parsedV7ver == 7 =>
+        print("  PASS: Parsed v7-format UUID reports version 7\n")
+    else =>
+        print($"  FAIL: Expected 7, got {parsedV7ver}\n")
+        errors++
+
+    // ============================================================
+    // VARIANT EXTRACTION
+    // ============================================================
+    print("\n--- Variant Extraction ---\n")
+
+    // Test 14: Variant from generated v7 UUID (should be variant 1 - RFC 9562)
+    print("Test 14 - Variant from v7 UUID:\n")
+    var v7ForVariant: UUID = UUID.v7()
+    var v7variant: int = v7ForVariant.variant()
+    if v7variant == 1 =>
+        print("  PASS: v7 UUID has RFC 9562 variant (1)\n")
+    else =>
+        print($"  FAIL: Expected variant 1, got {v7variant}\n")
+        errors++
+
+    // Test 15: Variant from generated v4 UUID
+    print("\nTest 15 - Variant from v4 UUID:\n")
+    var v4ForVariant: UUID = UUID.v4()
+    var v4variant: int = v4ForVariant.variant()
+    if v4variant == 1 =>
+        print("  PASS: v4 UUID has RFC 9562 variant (1)\n")
+    else =>
+        print($"  FAIL: Expected variant 1, got {v4variant}\n")
+        errors++
+
+    // Test 16: Variant from generated v5 UUID
+    print("\nTest 16 - Variant from v5 UUID:\n")
+    var v5variant: int = v5.variant()
+    if v5variant == 1 =>
+        print("  PASS: v5 UUID has RFC 9562 variant (1)\n")
+    else =>
+        print($"  FAIL: Expected variant 1, got {v5variant}\n")
+        errors++
+
+    // Test 17: Variant from nil UUID
+    print("\nTest 17 - Variant from nil UUID:\n")
+    var nilVariant: int = nilUuid.variant()
+    print($"  nil UUID reports variant {nilVariant}\n")
+
+    // Test 18: Variant from max UUID
+    print("\nTest 18 - Variant from max UUID:\n")
+    var maxVariant: int = maxUuid.variant()
+    print($"  max UUID reports variant {maxVariant}\n")
+
+    // Test 19: Variant from UUID with explicit RFC variant bits
+    print("\nTest 19 - Variant from parsed UUID with RFC variant:\n")
+    // Variant 1 has bits 10xx at position 8, so byte 8 starts with 8-b
+    var rfcVariantUuid: UUID = UUID.fromString("12345678-1234-4abc-8def-123456789abc")
+    var rfcVariant: int = rfcVariantUuid.variant()
+    if rfcVariant == 1 =>
+        print("  PASS: UUID with 8xxx variant bits reports variant 1\n")
+    else =>
+        print($"  FAIL: Expected variant 1, got {rfcVariant}\n")
+        errors++
+
+    // ============================================================
+    // TIMESTAMP EXTRACTION EDGE CASES (v7 only)
+    // ============================================================
+    print("\n--- Timestamp Extraction (v7 only) ---\n")
+
+    // Test 20: Timestamp from v7 UUID should work
+    print("Test 20 - Timestamp extraction from v7:\n")
+    var v7ts: UUID = UUID.v7()
+    var ts: long = v7ts.timestamp()
+    // Should be a reasonable timestamp (after year 2020 = 1577836800000)
+    if ts > 1577836800000l =>
+        print("  PASS: v7 timestamp is valid (after 2020)\n")
+    else =>
+        print($"  FAIL: Unexpected timestamp {ts}\n")
+        errors++
+
+    // Test 21: Consecutive v7 UUIDs have non-decreasing timestamps
+    print("\nTest 21 - v7 timestamp ordering:\n")
+    var first: UUID = UUID.v7()
+    var second: UUID = UUID.v7()
+    var ts1: long = first.timestamp()
+    var ts2: long = second.timestamp()
+    if ts2 >= ts1 =>
+        print("  PASS: Second v7 timestamp >= first\n")
+    else =>
+        print($"  FAIL: Timestamps out of order: {ts1} > {ts2}\n")
+        errors++
+
+    // Note: timestamp() on non-v7 UUIDs causes runtime error (exit)
+    // We document this but can't test it without crashing
+    print("\nTest 22 - Note: timestamp() on non-v7 throws error (documented behavior)\n")
+    print("  Skipping: calling timestamp() on v4/v5/nil/max would exit program\n")
+
+    // ============================================================
+    // SPECIAL UUID VALUES
+    // ============================================================
+    print("\n--- Special UUID Values ---\n")
+
+    // Test 23: Nil UUID properties
+    print("Test 23 - Nil UUID properties:\n")
+    var nil2: UUID = UUID.zero()
+    if nil2.isNil() =>
+        print("  PASS: nil UUID isNil() returns true\n")
+    else =>
+        print("  FAIL: nil UUID isNil() should be true\n")
+        errors++
+    if nil2.toString() == "00000000-0000-0000-0000-000000000000" =>
+        print("  PASS: nil UUID string is all zeros\n")
+    else =>
+        print($"  FAIL: nil UUID string is {nil2.toString()}\n")
+        errors++
+
+    // Test 24: Max UUID properties
+    print("\nTest 24 - Max UUID properties:\n")
+    var max2: UUID = UUID.max()
+    if !max2.isNil() =>
+        print("  PASS: max UUID isNil() returns false\n")
+    else =>
+        print("  FAIL: max UUID isNil() should be false\n")
+        errors++
+    if max2.toString() == "ffffffff-ffff-ffff-ffff-ffffffffffff" =>
+        print("  PASS: max UUID string is all f's\n")
+    else =>
+        print($"  FAIL: max UUID string is {max2.toString()}\n")
+        errors++
+
+    // Test 25: Generated UUIDs are not nil
+    print("\nTest 25 - Generated UUIDs are not nil:\n")
+    var gen: UUID = UUID.create()
+    if !gen.isNil() =>
+        print("  PASS: Generated UUID is not nil\n")
+    else =>
+        print("  FAIL: Generated UUID should not be nil\n")
+        errors++
+
+    // ============================================================
+    // FORMAT CONVERSIONS
+    // ============================================================
+    print("\n--- Format Conversions ---\n")
+
+    // Test 26: Hex format round-trip
+    print("Test 26 - Hex format round-trip:\n")
+    var original: UUID = UUID.create()
+    var hex: str = original.toHex()
+    var fromHex: UUID = UUID.fromHex(hex)
+    if original.equals(fromHex) =>
+        print("  PASS: Hex round-trip preserves UUID\n")
+    else =>
+        print("  FAIL: Hex round-trip changed UUID\n")
+        errors++
+
+    // Test 27: Base64 format round-trip
+    print("\nTest 27 - Base64 format round-trip:\n")
+    var b64: str = original.toBase64()
+    var fromB64: UUID = UUID.fromBase64(b64)
+    if original.equals(fromB64) =>
+        print("  PASS: Base64 round-trip preserves UUID\n")
+    else =>
+        print("  FAIL: Base64 round-trip changed UUID\n")
+        errors++
+
+    // Test 28: String format round-trip
+    print("\nTest 28 - String format round-trip:\n")
+    var strFormat: str = original.toString()
+    var fromStr: UUID = UUID.fromString(strFormat)
+    if original.equals(fromStr) =>
+        print("  PASS: String round-trip preserves UUID\n")
+    else =>
+        print("  FAIL: String round-trip changed UUID\n")
+        errors++
+
+    // Test 29: Format lengths are correct
+    print("\nTest 29 - Format lengths:\n")
+    var lenUuid: UUID = UUID.create()
+    var strLen: int = lenUuid.toString().length
+    var hexLen: int = lenUuid.toHex().length
+    var b64Len: int = lenUuid.toBase64().length
+    if strLen == 36 =>
+        print("  PASS: toString() is 36 chars\n")
+    else =>
+        print($"  FAIL: toString() is {strLen} chars, expected 36\n")
+        errors++
+    if hexLen == 32 =>
+        print("  PASS: toHex() is 32 chars\n")
+    else =>
+        print($"  FAIL: toHex() is {hexLen} chars, expected 32\n")
+        errors++
+    if b64Len == 22 =>
+        print("  PASS: toBase64() is 22 chars\n")
+    else =>
+        print($"  FAIL: toBase64() is {b64Len} chars, expected 22\n")
+        errors++
+
+    // ============================================================
+    // COMPARISON EDGE CASES
+    // ============================================================
+    print("\n--- Comparison Edge Cases ---\n")
+
+    // Test 30: Nil UUID comparisons
+    print("Test 30 - Nil UUID comparisons:\n")
+    var nil3: UUID = UUID.zero()
+    var nil4: UUID = UUID.zero()
+    if nil3.equals(nil4) =>
+        print("  PASS: Two nil UUIDs are equal\n")
+    else =>
+        print("  FAIL: Two nil UUIDs should be equal\n")
+        errors++
+    if nil3 == nil4 =>
+        print("  PASS: nil == nil is true\n")
+    else =>
+        print("  FAIL: nil == nil should be true\n")
+        errors++
+
+    // Test 31: Max UUID comparisons
+    print("\nTest 31 - Max UUID comparisons:\n")
+    var max3: UUID = UUID.max()
+    var max4: UUID = UUID.max()
+    if max3.equals(max4) =>
+        print("  PASS: Two max UUIDs are equal\n")
+    else =>
+        print("  FAIL: Two max UUIDs should be equal\n")
+        errors++
+
+    // Test 32: Nil < anything except nil
+    print("\nTest 32 - Nil < non-nil:\n")
+    var nonNil: UUID = UUID.create()
+    if nil3 < nonNil =>
+        print("  PASS: nil < non-nil UUID\n")
+    else =>
+        print("  FAIL: nil should be < non-nil UUID\n")
+        errors++
+
+    // Test 33: Max > anything except max
+    print("\nTest 33 - Max > non-max:\n")
+    if max3 > nonNil =>
+        print("  PASS: max > non-max UUID\n")
+    else =>
+        print("  FAIL: max should be > non-max UUID\n")
+        errors++
+
+    // Test 34: Self-comparison
+    print("\nTest 34 - Self-comparison:\n")
+    var selfUuid: UUID = UUID.create()
+    if selfUuid.equals(selfUuid) =>
+        print("  PASS: UUID equals itself\n")
+    else =>
+        print("  FAIL: UUID should equal itself\n")
+        errors++
+    if !(selfUuid < selfUuid) =>
+        print("  PASS: UUID is not < itself\n")
+    else =>
+        print("  FAIL: UUID should not be < itself\n")
+        errors++
+    if !(selfUuid > selfUuid) =>
+        print("  PASS: UUID is not > itself\n")
+    else =>
+        print("  FAIL: UUID should not be > itself\n")
+        errors++
+
+    // ============================================================
+    // NAMESPACE CONSTANTS
+    // ============================================================
+    print("\n--- Namespace Constants ---\n")
+
+    // Test 35: All namespace UUIDs are different
+    print("Test 35 - Namespace UUIDs are unique:\n")
+    var nsDns: UUID = UUID.namespaceDns()
+    var nsUrl: UUID = UUID.namespaceUrl()
+    var nsOid: UUID = UUID.namespaceOid()
+    var nsX500: UUID = UUID.namespaceX500()
+
+    var allDifferent: bool = true
+    if nsDns.equals(nsUrl) => allDifferent = false
+    if nsDns.equals(nsOid) => allDifferent = false
+    if nsDns.equals(nsX500) => allDifferent = false
+    if nsUrl.equals(nsOid) => allDifferent = false
+    if nsUrl.equals(nsX500) => allDifferent = false
+    if nsOid.equals(nsX500) => allDifferent = false
+
+    if allDifferent =>
+        print("  PASS: All namespace UUIDs are unique\n")
+    else =>
+        print("  FAIL: Some namespace UUIDs are duplicates\n")
+        errors++
+
+    // Test 36: Namespace UUIDs have expected values
+    print("\nTest 36 - Namespace UUID values:\n")
+    if nsDns.toString() == "6ba7b810-9dad-11d1-80b4-00c04fd430c8" =>
+        print("  PASS: DNS namespace is correct\n")
+    else =>
+        print($"  FAIL: DNS namespace is {nsDns.toString()}\n")
+        errors++
+
+    // ============================================================
+    // V5 DETERMINISTIC GENERATION
+    // ============================================================
+    print("\n--- V5 Deterministic Generation ---\n")
+
+    // Test 37: Same input produces same UUID
+    print("Test 37 - V5 determinism:\n")
+    var v5a: UUID = UUID.v5(nsUrl, "test-string")
+    var v5b: UUID = UUID.v5(nsUrl, "test-string")
+    if v5a.equals(v5b) =>
+        print("  PASS: Same input produces same v5 UUID\n")
+    else =>
+        print("  FAIL: Same input should produce same v5 UUID\n")
+        errors++
+
+    // Test 38: Different names produce different UUIDs
+    print("\nTest 38 - Different names produce different UUIDs:\n")
+    var v5c: UUID = UUID.v5(nsUrl, "different-string")
+    if !v5a.equals(v5c) =>
+        print("  PASS: Different input produces different v5 UUID\n")
+    else =>
+        print("  FAIL: Different input should produce different v5 UUID\n")
+        errors++
+
+    // Test 39: Different namespaces produce different UUIDs
+    print("\nTest 39 - Different namespaces produce different UUIDs:\n")
+    var v5d: UUID = UUID.v5(nsDns, "test-string")
+    if !v5a.equals(v5d) =>
+        print("  PASS: Different namespace produces different v5 UUID\n")
+    else =>
+        print("  FAIL: Different namespace should produce different v5 UUID\n")
+        errors++
+
+    // Test 40: Empty string is valid input for v5
+    print("\nTest 40 - Empty string as v5 input:\n")
+    var v5Empty: UUID = UUID.v5(nsUrl, "")
+    var v5EmptyVer: int = v5Empty.version()
+    if v5EmptyVer == 5 =>
+        print("  PASS: Empty string produces valid v5 UUID\n")
+    else =>
+        print($"  FAIL: Empty string v5 has version {v5EmptyVer}\n")
+        errors++
+
+    // ============================================================
+    // RESULTS SUMMARY
+    // ============================================================
+    print("\n=== Test Summary ===\n")
+    if errors == 0 =>
+        print("All UUID edge case tests PASSED!\n")
+    else =>
+        print($"{errors} tests FAILED!\n")
+
+    return errors

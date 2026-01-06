@@ -52,6 +52,7 @@ const char *type_name(Type *type)
         case TYPE_TCP_STREAM:   return "TcpStream";
         case TYPE_UDP_SOCKET:   return "UdpSocket";
         case TYPE_RANDOM:       return "Random";
+        case TYPE_UUID:         return "UUID";
         case TYPE_POINTER:      return "pointer";
         default:                return "unknown";
     }

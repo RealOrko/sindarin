@@ -17,6 +17,9 @@
 #include "runtime/runtime_process_tests.c"
 #include "runtime/runtime_net_tests.c"
 #include "runtime/runtime_random_tests.c"
+#include "runtime/runtime_uuid_tests.c"
+#include "runtime/runtime_sha1_tests.c"
+#include "runtime/runtime_env_tests.c"
 #include "standalone/symbol_table_tests.c"
 #include "standalone/token_tests.c"
 #include "type_checker/type_checker_tests.c"
@@ -79,6 +82,18 @@ int main()
     // *** Runtime Random ***
 
     test_rt_random_main();
+
+    // *** Runtime UUID ***
+
+    test_rt_uuid_main();
+
+    // *** Runtime SHA-1 ***
+
+    test_rt_sha1_main();
+
+    // *** Runtime Environment ***
+
+    test_rt_env_main();
 
     // *** AST ***
     

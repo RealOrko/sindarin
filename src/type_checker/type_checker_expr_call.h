@@ -52,4 +52,7 @@ Type *type_check_udp_socket_method(Expr *expr, Type *object_type, Token member_n
 /* Random type method checker */
 Type *type_check_random_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 
+/* UUID type method checker */
+Type *type_check_uuid_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
+
 #endif /* TYPE_CHECKER_EXPR_CALL_H */

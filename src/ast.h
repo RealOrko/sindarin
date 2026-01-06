@@ -39,6 +39,8 @@ typedef enum
     TYPE_TCP_STREAM,
     TYPE_UDP_SOCKET,
     TYPE_RANDOM,
+    TYPE_UUID,
+    TYPE_ENVIRONMENT,
     TYPE_POINTER,
     TYPE_OPAQUE
 } TypeKind;

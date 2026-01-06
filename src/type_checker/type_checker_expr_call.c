@@ -2062,6 +2062,119 @@ Type *type_check_random_method(Expr *expr, Type *object_type, Token member_name,
 }
 
 /* ============================================================================
+ * UUID Instance Method Type Checking
+ * ============================================================================
+ * Handles type checking for UUID instance methods like toString(), version(),
+ * toBytes(), equals(), etc.
+ * ============================================================================ */
+
+Type *type_check_uuid_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table)
+{
+    (void)expr; /* Reserved for future use (e.g., error location) */
+
+    /* Only handle UUID types */
+    if (object_type->kind != TYPE_UUID)
+    {
+        return NULL;
+    }
+
+    /* uuid.toString() -> str */
+    if (token_equals(member_name, "toString"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID toString method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+
+    /* uuid.toHex() -> str */
+    if (token_equals(member_name, "toHex"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID toHex method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+
+    /* uuid.toBase64() -> str */
+    if (token_equals(member_name, "toBase64"))
+    {
+        Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID toBase64 method");
+        return ast_create_function_type(table->arena, str_type, param_types, 0);
+    }
+
+    /* uuid.toBytes() -> byte[] */
+    if (token_equals(member_name, "toBytes"))
+    {
+        Type *byte_type = ast_create_primitive_type(table->arena, TYPE_BYTE);
+        Type *byte_array_type = ast_create_array_type(table->arena, byte_type);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID toBytes method");
+        return ast_create_function_type(table->arena, byte_array_type, param_types, 0);
+    }
+
+    /* uuid.version() -> int */
+    if (token_equals(member_name, "version"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID version method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* uuid.variant() -> int */
+    if (token_equals(member_name, "variant"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID variant method");
+        return ast_create_function_type(table->arena, int_type, param_types, 0);
+    }
+
+    /* uuid.isNil() -> bool */
+    if (token_equals(member_name, "isNil"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID isNil method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 0);
+    }
+
+    /* uuid.timestamp() -> long (v7 only) */
+    if (token_equals(member_name, "timestamp"))
+    {
+        Type *long_type = ast_create_primitive_type(table->arena, TYPE_LONG);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID timestamp method");
+        return ast_create_function_type(table->arena, long_type, param_types, 0);
+    }
+
+    /* uuid.time() -> Time (v7 only) */
+    if (token_equals(member_name, "time"))
+    {
+        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
+        Type *param_types[] = {NULL};
+        DEBUG_VERBOSE("Returning function type for UUID time method");
+        return ast_create_function_type(table->arena, time_type, param_types, 0);
+    }
+
+    /* uuid.equals(other: UUID) -> bool */
+    if (token_equals(member_name, "equals"))
+    {
+        Type *bool_type = ast_create_primitive_type(table->arena, TYPE_BOOL);
+        Type *uuid_type = ast_create_primitive_type(table->arena, TYPE_UUID);
+        Type *param_types[1] = {uuid_type};
+        DEBUG_VERBOSE("Returning function type for UUID equals method");
+        return ast_create_function_type(table->arena, bool_type, param_types, 1);
+    }
+
+    /* Not a UUID method */
+    return NULL;
+}
+
+/* ============================================================================
  * Static Method Call Type Checking
  * ============================================================================
  * Handles type checking for static method calls like TextFile.open(),
@@ -3533,6 +3646,479 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         {
             char msg[128];
             snprintf(msg, sizeof(msg), "Unknown Random static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* UUID static methods - universally unique identifier generation */
+    if (token_equals(type_name, "UUID"))
+    {
+        if (token_equals(method_name, "create") || token_equals(method_name, "new"))
+        {
+            /* UUID.create(): UUID - Generate UUIDv7 (recommended default) */
+            /* UUID.new(): UUID - Alias for create() */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.create takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "v7"))
+        {
+            /* UUID.v7(): UUID - Generate UUIDv7 (time-ordered) */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.v7 takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "v4"))
+        {
+            /* UUID.v4(): UUID - Generate UUIDv4 (random) */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.v4 takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "v5"))
+        {
+            /* UUID.v5(namespace: UUID, name: str): UUID - Deterministic UUID from namespace + name */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "UUID.v5 requires exactly 2 arguments (namespace, name)");
+                return NULL;
+            }
+            Type *ns_type = call->arguments[0]->expr_type;
+            Type *name_type = call->arguments[1]->expr_type;
+            if (ns_type == NULL || ns_type->kind != TYPE_UUID)
+            {
+                type_error(&method_name, "UUID.v5 first argument (namespace) must be UUID");
+                return NULL;
+            }
+            if (name_type == NULL || name_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "UUID.v5 second argument (name) must be str");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "fromString"))
+        {
+            /* UUID.fromString(str): UUID - Parse standard 36-char format */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "UUID.fromString requires exactly 1 argument (str)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "UUID.fromString requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "fromHex"))
+        {
+            /* UUID.fromHex(str): UUID - Parse 32-char hex format */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "UUID.fromHex requires exactly 1 argument (str)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "UUID.fromHex requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "fromBase64"))
+        {
+            /* UUID.fromBase64(str): UUID - Parse 22-char base64 format */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "UUID.fromBase64 requires exactly 1 argument (str)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "UUID.fromBase64 requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "fromBytes"))
+        {
+            /* UUID.fromBytes(bytes: byte[]): UUID - Create from 16-byte array */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "UUID.fromBytes requires exactly 1 argument (byte[])");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_ARRAY ||
+                arg_type->as.array.element_type == NULL ||
+                arg_type->as.array.element_type->kind != TYPE_BYTE)
+            {
+                type_error(&method_name, "UUID.fromBytes requires a byte[] argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "zero"))
+        {
+            /* UUID.zero(): UUID - All zeros UUID (nil UUID) */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.zero takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "max"))
+        {
+            /* UUID.max(): UUID - All ones UUID */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.max takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "namespaceDns"))
+        {
+            /* UUID.namespaceDns(): UUID - DNS namespace constant */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.namespaceDns takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "namespaceUrl"))
+        {
+            /* UUID.namespaceUrl(): UUID - URL namespace constant */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.namespaceUrl takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "namespaceOid"))
+        {
+            /* UUID.namespaceOid(): UUID - OID namespace constant */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.namespaceOid takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else if (token_equals(method_name, "namespaceX500"))
+        {
+            /* UUID.namespaceX500(): UUID - X.500 DN namespace constant */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "UUID.namespaceX500 takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_UUID);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown UUID static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
+    /* Environment static methods - access environment variables */
+    if (token_equals(type_name, "Environment"))
+    {
+        if (token_equals(method_name, "get"))
+        {
+            /* Environment.get(key: str): str - Get environment variable value
+             * Environment.get(key: str, default: str): str - Get with default */
+            if (call->arg_count == 1)
+            {
+                Type *arg_type = call->arguments[0]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.get requires a string argument for key");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_STRING);
+            }
+            else if (call->arg_count == 2)
+            {
+                Type *key_type = call->arguments[0]->expr_type;
+                Type *default_type = call->arguments[1]->expr_type;
+                if (key_type == NULL || key_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.get requires a string argument for key");
+                    return NULL;
+                }
+                if (default_type == NULL || default_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.get requires a string argument for default");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_STRING);
+            }
+            else
+            {
+                type_error(&method_name, "Environment.get requires 1 or 2 arguments");
+                return NULL;
+            }
+        }
+        else if (token_equals(method_name, "set"))
+        {
+            /* Environment.set(key: str, value: str): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Environment.set requires exactly 2 arguments (key, value)");
+                return NULL;
+            }
+            Type *key_type = call->arguments[0]->expr_type;
+            Type *value_type = call->arguments[1]->expr_type;
+            if (key_type == NULL || key_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Environment.set requires a string argument for key");
+                return NULL;
+            }
+            if (value_type == NULL || value_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Environment.set requires a string argument for value");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "has"))
+        {
+            /* Environment.has(key: str): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Environment.has requires exactly 1 argument (key)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Environment.has requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "remove"))
+        {
+            /* Environment.remove(key: str): bool */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Environment.remove requires exactly 1 argument (key)");
+                return NULL;
+            }
+            Type *arg_type = call->arguments[0]->expr_type;
+            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Environment.remove requires a string argument");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "getInt"))
+        {
+            /* Environment.getInt(key: str): int
+             * Environment.getInt(key: str, default: int): int */
+            if (call->arg_count == 1)
+            {
+                Type *arg_type = call->arguments[0]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getInt requires a string argument for key");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_INT);
+            }
+            else if (call->arg_count == 2)
+            {
+                Type *key_type = call->arguments[0]->expr_type;
+                Type *default_type = call->arguments[1]->expr_type;
+                if (key_type == NULL || key_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getInt requires a string argument for key");
+                    return NULL;
+                }
+                if (default_type == NULL || default_type->kind != TYPE_INT)
+                {
+                    type_error(&method_name, "Environment.getInt requires an int argument for default");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_INT);
+            }
+            else
+            {
+                type_error(&method_name, "Environment.getInt requires 1 or 2 arguments");
+                return NULL;
+            }
+        }
+        else if (token_equals(method_name, "getLong"))
+        {
+            /* Environment.getLong(key: str): long
+             * Environment.getLong(key: str, default: long): long */
+            if (call->arg_count == 1)
+            {
+                Type *arg_type = call->arguments[0]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getLong requires a string argument for key");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_LONG);
+            }
+            else if (call->arg_count == 2)
+            {
+                Type *key_type = call->arguments[0]->expr_type;
+                Type *default_type = call->arguments[1]->expr_type;
+                if (key_type == NULL || key_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getLong requires a string argument for key");
+                    return NULL;
+                }
+                if (default_type == NULL || default_type->kind != TYPE_LONG)
+                {
+                    type_error(&method_name, "Environment.getLong requires a long argument for default");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_LONG);
+            }
+            else
+            {
+                type_error(&method_name, "Environment.getLong requires 1 or 2 arguments");
+                return NULL;
+            }
+        }
+        else if (token_equals(method_name, "getDouble"))
+        {
+            /* Environment.getDouble(key: str): double
+             * Environment.getDouble(key: str, default: double): double */
+            if (call->arg_count == 1)
+            {
+                Type *arg_type = call->arguments[0]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getDouble requires a string argument for key");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+            }
+            else if (call->arg_count == 2)
+            {
+                Type *key_type = call->arguments[0]->expr_type;
+                Type *default_type = call->arguments[1]->expr_type;
+                if (key_type == NULL || key_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getDouble requires a string argument for key");
+                    return NULL;
+                }
+                if (default_type == NULL || default_type->kind != TYPE_DOUBLE)
+                {
+                    type_error(&method_name, "Environment.getDouble requires a double argument for default");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_DOUBLE);
+            }
+            else
+            {
+                type_error(&method_name, "Environment.getDouble requires 1 or 2 arguments");
+                return NULL;
+            }
+        }
+        else if (token_equals(method_name, "getBool"))
+        {
+            /* Environment.getBool(key: str): bool
+             * Environment.getBool(key: str, default: bool): bool */
+            if (call->arg_count == 1)
+            {
+                Type *arg_type = call->arguments[0]->expr_type;
+                if (arg_type == NULL || arg_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getBool requires a string argument for key");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_BOOL);
+            }
+            else if (call->arg_count == 2)
+            {
+                Type *key_type = call->arguments[0]->expr_type;
+                Type *default_type = call->arguments[1]->expr_type;
+                if (key_type == NULL || key_type->kind != TYPE_STRING)
+                {
+                    type_error(&method_name, "Environment.getBool requires a string argument for key");
+                    return NULL;
+                }
+                if (default_type == NULL || default_type->kind != TYPE_BOOL)
+                {
+                    type_error(&method_name, "Environment.getBool requires a bool argument for default");
+                    return NULL;
+                }
+                return ast_create_primitive_type(table->arena, TYPE_BOOL);
+            }
+            else
+            {
+                type_error(&method_name, "Environment.getBool requires 1 or 2 arguments");
+                return NULL;
+            }
+        }
+        else if (token_equals(method_name, "list"))
+        {
+            /* Environment.list(): str[][] - Get all as [name, value] pairs */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Environment.list takes no arguments");
+                return NULL;
+            }
+            Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+            Type *pair_type = ast_create_array_type(table->arena, str_type);
+            return ast_create_array_type(table->arena, pair_type);
+        }
+        else if (token_equals(method_name, "names"))
+        {
+            /* Environment.names(): str[] - Get all variable names */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Environment.names takes no arguments");
+                return NULL;
+            }
+            Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+            return ast_create_array_type(table->arena, str_type);
+        }
+        else if (token_equals(method_name, "all"))
+        {
+            /* Environment.all(): str[] - Alias for names() for backward compatibility */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Environment.all takes no arguments");
+                return NULL;
+            }
+            Type *str_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+            return ast_create_array_type(table->arena, str_type);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Environment static method '%.*s'",
                      method_name.length, method_name.start);
             type_error(&method_name, msg);
             return NULL;

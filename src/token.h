@@ -53,6 +53,10 @@ typedef enum
     // Type declaration keywords
     TOKEN_TYPE,
     TOKEN_OPAQUE,
+    // UUID type keyword
+    TOKEN_UUID,
+    // Environment access keyword
+    TOKEN_ENV,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,
