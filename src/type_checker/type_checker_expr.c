@@ -405,11 +405,6 @@ static Type *type_check_index_assign(Expr *expr, SymbolTable *table)
     return element_type;
 }
 
-/* is_builtin_name, type_check_call - RELOCATED to type_checker_expr_call.c
- * Now exposed as is_builtin_name() and type_check_call_expression() */
-
-/* type_check_array, type_check_array_access - RELOCATED to type_checker_expr_array.c */
-
 static Type *type_check_increment_decrement(Expr *expr, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking %s expression", expr->type == EXPR_INCREMENT ? "increment" : "decrement");
@@ -436,10 +431,6 @@ static Type *type_check_increment_decrement(Expr *expr, SymbolTable *table)
     }
     return operand_type;
 }
-
-/* type_check_array_slice, type_check_range, type_check_spread - RELOCATED to type_checker_expr_array.c */
-
-/* token_equals - RELOCATED to type_checker_expr_call.c (used by type_check_member) */
 
 static Type *type_check_member(Expr *expr, SymbolTable *table)
 {
@@ -670,15 +661,6 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         return NULL;
     }
 }
-
-/* type_check_lambda - RELOCATED to type_checker_expr_lambda.c */
-
-/* type_check_static_call - RELOCATED to type_checker_expr_call.c
- * Handles TextFile.*, BinaryFile.*, Path.*, Directory.*, Time.*, Stdin.*, Stdout.*, Stderr.*, Bytes.* static methods
- * See type_check_static_method_call() in type_checker_expr_call.c
- */
-
-/* type_check_sized_array_alloc - RELOCATED to type_checker_expr_array.c */
 
 /* Thread spawn expression type checking - &fn() or &Type.method() */
 static Type *type_check_thread_spawn(Expr *expr, SymbolTable *table)

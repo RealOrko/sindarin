@@ -18,67 +18,6 @@
 
 /* Forward declarations */
 char *code_gen_range_expression(CodeGen *gen, Expr *expr);
-/* code_gen_lambda_expression is now in code_gen_expr_lambda.h */
-/* code_gen_thread_spawn_expression, code_gen_thread_sync_expression -
- * RELOCATED to code_gen_expr_thread.h/c */
-
-/* CapturedVars structure, captured_vars_init, captured_vars_add -
- * RELOCATED to code_gen_expr_lambda.h/c */
-
-/* is_primitive_type - RELOCATED to code_gen_expr_lambda.c */
-
-/* is_provably_non_negative - RELOCATED to code_gen_expr_array.c */
-
-/* RELOCATED to code_gen_expr_lambda.h/c:
- * - LocalVars structure
- * - EnclosingLambdaContext structure
- * - find_enclosing_lambda_param function
- * - local_vars_init, local_vars_add, collect_local_vars_from_stmt
- */
-
-/* is_local_var - RELOCATED to code_gen_expr_lambda.c */
-
-/* collect_local_vars_from_stmt - RELOCATED to code_gen_expr_lambda.c */
-
-/* is_lambda_param - RELOCATED to code_gen_expr_lambda.c */
-
-/* collect_captured_vars - RELOCATED to code_gen_expr_lambda.c */
-
-/* collect_captured_vars_from_stmt: relocated to code_gen_expr_lambda.c */
-
-/* expression_produces_temp - RELOCATED to code_gen_expr_call.c */
-
-/* is_string_literal_expr - RELOCATED to code_gen_expr_string.c */
-
-/* is_numeric, get_binary_promoted_type - RELOCATED to code_gen_expr_binary.c */
-
-/* code_gen_binary_expression - RELOCATED to code_gen_expr_binary.c */
-
-/* code_gen_unary_expression - RELOCATED to code_gen_expr_binary.c */
-
-/* code_gen_literal_expression - RELOCATED to code_gen_expr_core.c */
-
-/* code_gen_variable_expression - RELOCATED to code_gen_expr_core.c */
-
-/* code_gen_assign_expression - RELOCATED to code_gen_expr_core.c */
-
-/* code_gen_index_assign_expression - RELOCATED to code_gen_expr_core.c */
-
-/* get_rt_format_func, has_any_format_spec, code_gen_interpolated_expression
- * - RELOCATED to code_gen_expr_string.c */
-
-/* code_gen_call_expression, expression_produces_temp - RELOCATED to code_gen_expr_call.c */
-
-/* The ~1650-line code_gen_call_expression function has been moved to
- * code_gen/code_gen_expr_call.c for better modularity. That file also
- * contains expression_produces_temp helper function.
- */
-
-/* --- The ~1650-line function body was removed here --- */
-
-/* code_gen_array_expression - RELOCATED to code_gen_expr_array.c */
-
-/* code_gen_array_access_expression - RELOCATED to code_gen_expr_array.c */
 
 char *code_gen_increment_expression(CodeGen *gen, Expr *expr)
 {
@@ -239,21 +178,6 @@ char *code_gen_spread_expression(CodeGen *gen, Expr *expr)
     // but if used standalone, just return the array
     return code_gen_expression(gen, expr->as.spread.array);
 }
-
-/* code_gen_array_slice_expression - RELOCATED to code_gen_expr_array.c */
-
-/* code_gen_lambda_stmt_body - RELOCATED to code_gen_expr_lambda.c */
-
-/* code_gen_lambda_expression - RELOCATED to code_gen_expr_lambda.c */
-
-/* codegen_token_equals - RELOCATED to code_gen_expr_static.c */
-
-/* code_gen_static_call_expression - RELOCATED to code_gen_expr_static.c */
-
-
-/* get_rt_result_type, code_gen_thread_spawn_expression,
- * code_gen_thread_sync_expression - RELOCATED to code_gen_expr_thread.h/c */
-
 
 static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
 {

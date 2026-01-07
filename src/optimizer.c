@@ -65,11 +65,6 @@ bool stmt_is_terminator(Stmt *stmt)
     }
 }
 
-/* is_literal_zero, is_literal_one, expr_is_noop - RELOCATED to optimizer_util.c */
-
-/* add_used_variable, collect_used_variables, collect_used_variables_stmt,
-   is_variable_used - RELOCATED to optimizer_util.c */
-
 /* ============================================================================
  * Dead Code Removal
  * ============================================================================
@@ -159,8 +154,6 @@ int remove_unreachable_statements(Optimizer *opt, Stmt ***stmts, int *count)
     return removed;
 }
 
-/* remove_unused_variables, simplify_noop_expr, simplify_noop_stmt - RELOCATED to optimizer_util.c */
-
 /* Run dead code elimination on a function */
 void optimizer_eliminate_dead_code_function(Optimizer *opt, FunctionStmt *fn)
 {
@@ -194,7 +187,3 @@ void optimizer_dead_code_elimination(Optimizer *opt, Module *module)
         }
     }
 }
-
-/* Tail call optimization functions - RELOCATED to optimizer_tail_call.c */
-
-/* String optimization functions - RELOCATED to optimizer_string.c */
