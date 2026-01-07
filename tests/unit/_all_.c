@@ -11,16 +11,26 @@
 #include "runtime/runtime_byte_tests.c"
 #include "runtime/runtime_array_tests.c"
 #include "runtime/runtime_time_tests.c"
-#include "runtime/runtime_date_tests.c"
+#include "runtime/runtime_date_tests_format.c"
+#include "runtime/runtime_date_tests_arithmetic.c"
+#include "runtime/runtime_date_tests_months.c"
+#include "runtime/runtime_date_tests_boundaries.c"
 #include "runtime/runtime_path_tests.c"
 #include "runtime/runtime_thread_tests.c"
 #include "runtime/runtime_process_tests.c"
 #include "runtime/runtime_net_tests.c"
-#include "runtime/runtime_random_tests.c"
+#include "runtime/runtime_random_tests_core.c"
+#include "runtime/runtime_random_tests_basic.c"
+#include "runtime/runtime_random_tests_static.c"
+#include "runtime/runtime_random_tests_many.c"
+#include "runtime/runtime_random_tests_choice.c"
+#include "runtime/runtime_random_tests_collection.c"
 #include "runtime/runtime_uuid_tests.c"
 #include "runtime/runtime_sha1_tests.c"
 #include "runtime/runtime_env_tests.c"
-#include "standalone/symbol_table_tests.c"
+#include "standalone/symbol_table_tests_core.c"
+#include "standalone/symbol_table_tests_thread.c"
+#include "standalone/symbol_table_tests_namespace.c"
 #include "standalone/token_tests.c"
 #include "type_checker/type_checker_tests.c"
 
@@ -61,7 +71,10 @@ int main()
 
     // *** Runtime Date ***
 
-    test_rt_date_main();
+    test_rt_date_format_main();
+    test_rt_date_arithmetic_main();
+    test_rt_date_months_main();
+    test_rt_date_boundaries_main();
 
     // *** Runtime Path ***
 
@@ -81,7 +94,12 @@ int main()
 
     // *** Runtime Random ***
 
-    test_rt_random_main();
+    test_rt_random_core_main();
+    test_rt_random_basic_main();
+    test_rt_random_static_main();
+    test_rt_random_many_main();
+    test_rt_random_choice_main();
+    test_rt_random_collection_main();
 
     // *** Runtime UUID ***
 
@@ -117,7 +135,9 @@ int main()
 
     // *** Symbol Table ***
 
-    test_symbol_table_main();
+    test_symbol_table_core_main();
+    test_symbol_table_thread_main();
+    test_symbol_table_namespace_main();
     
     // *** Token ***
 

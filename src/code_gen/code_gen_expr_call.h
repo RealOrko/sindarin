@@ -1,8 +1,8 @@
 /**
- * code_gen_expr_call.h - Code generation for method call expressions
+ * code_gen_expr_call.h - Code generation for call expressions
  *
- * Contains declarations for generating C code from method calls on
- * arrays, strings, and other object types.
+ * Contains declarations for generating C code from function calls and
+ * method calls on arrays, strings, and other object types.
  */
 
 #ifndef CODE_GEN_EXPR_CALL_H
@@ -11,6 +11,30 @@
 #include "code_gen.h"
 #include "ast.h"
 #include <stdbool.h>
+
+/* ============================================================================
+ * Core Call Expression Code Generation (code_gen_expr_call.c)
+ * ============================================================================ */
+
+/**
+ * Check if an expression produces a temporary string that needs to be freed.
+ * Returns true if the expression creates a new string allocation.
+ */
+bool expression_produces_temp(Expr *expr);
+
+/**
+ * Generate code for call expressions (function calls and method calls).
+ * This is the main dispatcher that handles:
+ * - Namespace function calls (namespace.function())
+ * - Method calls on objects (object.method())
+ * - Static method calls (Type.method())
+ * - Regular function calls (function())
+ */
+char *code_gen_call_expression(CodeGen *gen, Expr *expr);
+
+/* ============================================================================
+ * Array Method Code Generation (code_gen_expr_call_array.c)
+ * ============================================================================ */
 
 /**
  * Generate code for array method calls (push, clear, pop, concat, etc.)

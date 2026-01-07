@@ -4,6 +4,8 @@
 #include "parser.h"
 #include "ast.h"
 #include "ast/ast_stmt.h"
+#include "parser/parser_stmt_decl.h"
+#include "parser/parser_stmt_control.h"
 
 /* Block/indentation helpers */
 int is_at_function_boundary(Parser *parser);
@@ -12,14 +14,6 @@ Stmt *parser_indented_block(Parser *parser);
 /* Statement parsing functions */
 Stmt *parser_statement(Parser *parser);
 Stmt *parser_declaration(Parser *parser);
-Stmt *parser_var_declaration(Parser *parser);
-Stmt *parser_function_declaration(Parser *parser);
-Stmt *parser_native_function_declaration(Parser *parser);
-Stmt *parser_type_declaration(Parser *parser);
-Stmt *parser_return_statement(Parser *parser);
-Stmt *parser_if_statement(Parser *parser);
-Stmt *parser_while_statement(Parser *parser, bool is_shared);
-Stmt *parser_for_statement(Parser *parser, bool is_shared);
 Stmt *parser_block_statement(Parser *parser);
 Stmt *parser_expression_statement(Parser *parser);
 Stmt *parser_import_statement(Parser *parser);

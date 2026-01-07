@@ -137,6 +137,11 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     char runtime_thread_obj[PATH_MAX];
     char runtime_process_obj[PATH_MAX];
     char runtime_net_obj[PATH_MAX];
+    char runtime_random_core_obj[PATH_MAX];
+    char runtime_random_basic_obj[PATH_MAX];
+    char runtime_random_static_obj[PATH_MAX];
+    char runtime_random_choice_obj[PATH_MAX];
+    char runtime_random_collection_obj[PATH_MAX];
     char runtime_random_obj[PATH_MAX];
     char runtime_uuid_obj[PATH_MAX];
     char runtime_sha1_obj[PATH_MAX];
@@ -181,6 +186,11 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     snprintf(runtime_thread_obj, sizeof(runtime_thread_obj), "%s/runtime_thread.o", compiler_dir);
     snprintf(runtime_process_obj, sizeof(runtime_process_obj), "%s/runtime_process.o", compiler_dir);
     snprintf(runtime_net_obj, sizeof(runtime_net_obj), "%s/runtime_net.o", compiler_dir);
+    snprintf(runtime_random_core_obj, sizeof(runtime_random_core_obj), "%s/runtime_random_core.o", compiler_dir);
+    snprintf(runtime_random_basic_obj, sizeof(runtime_random_basic_obj), "%s/runtime_random_basic.o", compiler_dir);
+    snprintf(runtime_random_static_obj, sizeof(runtime_random_static_obj), "%s/runtime_random_static.o", compiler_dir);
+    snprintf(runtime_random_choice_obj, sizeof(runtime_random_choice_obj), "%s/runtime_random_choice.o", compiler_dir);
+    snprintf(runtime_random_collection_obj, sizeof(runtime_random_collection_obj), "%s/runtime_random_collection.o", compiler_dir);
     snprintf(runtime_random_obj, sizeof(runtime_random_obj), "%s/runtime_random.o", compiler_dir);
     snprintf(runtime_uuid_obj, sizeof(runtime_uuid_obj), "%s/runtime_uuid.o", compiler_dir);
     snprintf(runtime_sha1_obj, sizeof(runtime_sha1_obj), "%s/runtime_sha1.o", compiler_dir);
@@ -268,6 +278,31 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_net_obj);
         return false;
     }
+    if (access(runtime_random_core_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_core_obj);
+        return false;
+    }
+    if (access(runtime_random_basic_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_basic_obj);
+        return false;
+    }
+    if (access(runtime_random_static_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_static_obj);
+        return false;
+    }
+    if (access(runtime_random_choice_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_choice_obj);
+        return false;
+    }
+    if (access(runtime_random_collection_obj, R_OK) != 0)
+    {
+        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_collection_obj);
+        return false;
+    }
     if (access(runtime_random_obj, R_OK) != 0)
     {
         fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_obj);
@@ -335,15 +370,15 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     snprintf(command, sizeof(command),
         "%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" "
         "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
-        "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
+        "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
         "-lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
         config->cc, mode_cflags, config->std, config->cflags, compiler_dir,
         c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj,
         runtime_string_obj, runtime_array_obj, runtime_text_file_obj,
         runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj,
         runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj,
-        runtime_process_obj, runtime_net_obj, runtime_random_obj, runtime_uuid_obj,
-        runtime_sha1_obj, runtime_env_obj,
+        runtime_process_obj, runtime_net_obj, runtime_random_core_obj, runtime_random_basic_obj,
+        runtime_random_static_obj, runtime_random_choice_obj, runtime_random_collection_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj,
         extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
 
     if (verbose)
