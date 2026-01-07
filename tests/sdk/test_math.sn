@@ -147,7 +147,7 @@ fn main(): int =>
     print($"float pi  = {f_pi}\n")
 
     print("\n=== All float tests completed! ===\n")
-    return 0
 
     print("\n=== All tests completed! ===\n")
+    
     return 0
