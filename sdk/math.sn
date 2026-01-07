@@ -1,0 +1,515 @@
+# ==============================================================================
+# sdk/math.sn - Mathematical Functions for Sindarin
+# ==============================================================================
+# Provides C math library bindings, constants, and helper functions.
+#
+# Usage:
+#   import "sdk/math" as math
+#   var angle: double = math.deg_to_rad(45.0)
+#   print($"sin(45) = {math.sin(angle)}\n")
+# ==============================================================================
+
+#pragma include "<math.h>"
+#pragma link "m"
+
+# ==============================================================================
+# C Math Library Bindings (double precision)
+# ==============================================================================
+
+# --- Trigonometric Functions ---
+native fn sin(x: double): double
+native fn cos(x: double): double
+native fn tan(x: double): double
+native fn asin(x: double): double
+native fn acos(x: double): double
+native fn atan(x: double): double
+native fn atan2(y: double, x: double): double
+
+# --- Hyperbolic Functions ---
+native fn sinh(x: double): double
+native fn cosh(x: double): double
+native fn tanh(x: double): double
+native fn asinh(x: double): double
+native fn acosh(x: double): double
+native fn atanh(x: double): double
+
+# --- Exponential and Logarithmic Functions ---
+native fn exp(x: double): double
+native fn exp2(x: double): double
+native fn log(x: double): double
+native fn log2(x: double): double
+native fn log10(x: double): double
+native fn log1p(x: double): double
+native fn expm1(x: double): double
+
+# --- Power Functions ---
+native fn pow(base: double, exp: double): double
+native fn sqrt(x: double): double
+native fn cbrt(x: double): double
+native fn hypot(x: double, y: double): double
+
+# --- Rounding Functions ---
+native fn ceil(x: double): double
+native fn floor(x: double): double
+native fn trunc(x: double): double
+native fn round(x: double): double
+
+# --- Remainder and Modulo ---
+native fn fmod(x: double, y: double): double
+native fn remainder(x: double, y: double): double
+
+# --- Absolute Value ---
+native fn fabs(x: double): double
+
+# --- Floating-Point Manipulation ---
+native fn copysign(x: double, y: double): double
+native fn fdim(x: double, y: double): double
+native fn fmax(x: double, y: double): double
+native fn fmin(x: double, y: double): double
+
+# ==============================================================================
+# Mathematical Constants
+# ==============================================================================
+
+fn pi(): double =>
+    return 3.14159265358979323846
+
+fn e(): double =>
+    return 2.71828182845904523536
+
+fn tau(): double =>
+    return 6.28318530717958647692
+
+fn phi(): double =>
+    return 1.61803398874989484820
+
+fn sqrt2(): double =>
+    return 1.41421356237309504880
+
+fn sqrt3(): double =>
+    return 1.73205080756887729352
+
+fn ln2(): double =>
+    return 0.69314718055994530942
+
+fn ln10(): double =>
+    return 2.30258509299404568402
+
+# ==============================================================================
+# Integer Helper Functions
+# ==============================================================================
+
+fn abs_i(x: int): int =>
+    if x < 0 =>
+        return -x
+    return x
+
+fn min_i(a: int, b: int): int =>
+    if a < b =>
+        return a
+    return b
+
+fn max_i(a: int, b: int): int =>
+    if a > b =>
+        return a
+    return b
+
+fn clamp_i(x: int, lo: int, hi: int): int =>
+    if x < lo =>
+        return lo
+    if x > hi =>
+        return hi
+    return x
+
+fn sign_i(x: int): int =>
+    if x < 0 =>
+        return -1
+    if x > 0 =>
+        return 1
+    return 0
+
+# ==============================================================================
+# Double Helper Functions
+# ==============================================================================
+
+fn abs_d(x: double): double =>
+    return fabs(x)
+
+fn min_d(a: double, b: double): double =>
+    return fmin(a, b)
+
+fn max_d(a: double, b: double): double =>
+    return fmax(a, b)
+
+fn clamp_d(x: double, lo: double, hi: double): double =>
+    return fmin(fmax(x, lo), hi)
+
+fn sign_d(x: double): double =>
+    if x < 0.0 =>
+        return -1.0
+    if x > 0.0 =>
+        return 1.0
+    return 0.0
+
+# ==============================================================================
+# Angle Conversion
+# ==============================================================================
+
+fn deg_to_rad(deg: double): double =>
+    return deg * pi() / 180.0
+
+fn rad_to_deg(rad: double): double =>
+    return rad * 180.0 / pi()
+
+# ==============================================================================
+# Safe Wrappers (check for undefined behavior)
+# ==============================================================================
+
+# Safe square root - returns 0.0 for negative inputs instead of NaN
+fn safe_sqrt(x: double): double =>
+    if x < 0.0 =>
+        return 0.0
+    return sqrt(x)
+
+# Safe logarithm - returns 0.0 for non-positive inputs
+fn safe_log(x: double): double =>
+    if x <= 0.0 =>
+        return 0.0
+    return log(x)
+
+# Safe log10 - returns 0.0 for non-positive inputs
+fn safe_log10(x: double): double =>
+    if x <= 0.0 =>
+        return 0.0
+    return log10(x)
+
+# Safe log2 - returns 0.0 for non-positive inputs
+fn safe_log2(x: double): double =>
+    if x <= 0.0 =>
+        return 0.0
+    return log2(x)
+
+# Safe asin - clamps input to [-1, 1] to avoid NaN
+fn safe_asin(x: double): double =>
+    if x < -1.0 =>
+        return asin(-1.0)
+    if x > 1.0 =>
+        return asin(1.0)
+    return asin(x)
+
+# Safe acos - clamps input to [-1, 1] to avoid NaN
+fn safe_acos(x: double): double =>
+    if x < -1.0 =>
+        return acos(-1.0)
+    if x > 1.0 =>
+        return acos(1.0)
+    return acos(x)
+
+# Safe division - returns 0.0 for division by zero
+fn safe_div(x: double, y: double): double =>
+    if y == 0.0 =>
+        return 0.0
+    return x / y
+
+# Safe acosh - returns 0.0 for inputs less than 1
+fn safe_acosh(x: double): double =>
+    if x < 1.0 =>
+        return 0.0
+    return acosh(x)
+
+# Safe atanh - returns 0.0 for inputs outside (-1, 1)
+fn safe_atanh(x: double): double =>
+    if x <= -1.0 =>
+        return 0.0
+    if x >= 1.0 =>
+        return 0.0
+    return atanh(x)
+
+# ==============================================================================
+# Additional Utility Functions
+# ==============================================================================
+
+# Linear interpolation between a and b by factor t (0.0 to 1.0)
+fn lerp(a: double, b: double, t: double): double =>
+    return a + (b - a) * t
+
+# Inverse linear interpolation - returns t such that lerp(a, b, t) == x
+fn inv_lerp(a: double, b: double, x: double): double =>
+    if a == b =>
+        return 0.0
+    return (x - a) / (b - a)
+
+# Remap a value from one range to another
+fn remap(x: double, in_min: double, in_max: double, out_min: double, out_max: double): double =>
+    var t: double = inv_lerp(in_min, in_max, x)
+    return lerp(out_min, out_max, t)
+
+# Check if two doubles are approximately equal within a tolerance
+fn approx_eq(a: double, b: double, tolerance: double): bool =>
+    var diff: double = fabs(a - b)
+    return diff < tolerance
+
+# Wrap angle to range [0, 2*pi)
+fn wrap_angle(angle: double): double =>
+    var two_pi: double = tau()
+    var result: double = fmod(angle, two_pi)
+    if result < 0.0 =>
+        return result + two_pi
+    return result
+
+# Wrap angle to range [-pi, pi)
+fn wrap_angle_signed(angle: double): double =>
+    var result: double = wrap_angle(angle + pi())
+    return result - pi()
+
+# Distance between two 2D points
+fn distance_2d(x1: double, y1: double, x2: double, y2: double): double =>
+    return hypot(x2 - x1, y2 - y1)
+
+# Distance between two 3D points
+fn distance_3d(x1: double, y1: double, z1: double, x2: double, y2: double, z2: double): double =>
+    var dx: double = x2 - x1
+    var dy: double = y2 - y1
+    var dz: double = z2 - z1
+    return sqrt(dx * dx + dy * dy + dz * dz)
+
+# Smoothstep interpolation (cubic Hermite)
+fn smoothstep(edge0: double, edge1: double, x: double): double =>
+    var t: double = clamp_d((x - edge0) / (edge1 - edge0), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+# Check if a value is NaN (not equal to itself)
+fn is_nan(x: double): bool =>
+    return x != x
+
+# Check if a value is finite (not infinity or NaN)
+# Uses the property that infinity - infinity = NaN
+fn is_finite(x: double): bool =>
+    if x != x =>
+        return false
+    var test: double = x - x
+    return test == 0.0
+
+# ==============================================================================
+# C Math Library Bindings (single precision / float)
+# ==============================================================================
+
+# --- Trigonometric Functions (float) ---
+native fn sinf(x: float): float
+native fn cosf(x: float): float
+native fn tanf(x: float): float
+native fn asinf(x: float): float
+native fn acosf(x: float): float
+native fn atanf(x: float): float
+native fn atan2f(y: float, x: float): float
+
+# --- Hyperbolic Functions (float) ---
+native fn sinhf(x: float): float
+native fn coshf(x: float): float
+native fn tanhf(x: float): float
+native fn asinhf(x: float): float
+native fn acoshf(x: float): float
+native fn atanhf(x: float): float
+
+# --- Exponential and Logarithmic Functions (float) ---
+native fn expf(x: float): float
+native fn exp2f(x: float): float
+native fn logf(x: float): float
+native fn log2f(x: float): float
+native fn log10f(x: float): float
+native fn log1pf(x: float): float
+native fn expm1f(x: float): float
+
+# --- Power Functions (float) ---
+native fn powf(base: float, exponent: float): float
+native fn sqrtf(x: float): float
+native fn cbrtf(x: float): float
+native fn hypotf(x: float, y: float): float
+
+# --- Rounding Functions (float) ---
+native fn ceilf(x: float): float
+native fn floorf(x: float): float
+native fn truncf(x: float): float
+native fn roundf(x: float): float
+
+# --- Remainder and Modulo (float) ---
+native fn fmodf(x: float, y: float): float
+native fn remainderf(x: float, y: float): float
+
+# --- Absolute Value (float) ---
+native fn fabsf(x: float): float
+
+# --- Floating-Point Manipulation (float) ---
+native fn copysignf(x: float, y: float): float
+native fn fdimf(x: float, y: float): float
+native fn fmaxf(x: float, y: float): float
+native fn fminf(x: float, y: float): float
+
+# ==============================================================================
+# Mathematical Constants (float)
+# ==============================================================================
+
+fn pi_f(): float =>
+    return 3.14159265
+
+fn e_f(): float =>
+    return 2.71828182
+
+fn tau_f(): float =>
+    return 6.28318530
+
+fn phi_f(): float =>
+    return 1.61803398
+
+fn sqrt2_f(): float =>
+    return 1.41421356
+
+fn sqrt3_f(): float =>
+    return 1.73205080
+
+fn ln2_f(): float =>
+    return 0.69314718
+
+fn ln10_f(): float =>
+    return 2.30258509
+
+# ==============================================================================
+# Float Helper Functions
+# ==============================================================================
+
+fn abs_f(x: float): float =>
+    return fabsf(x)
+
+fn min_f(a: float, b: float): float =>
+    return fminf(a, b)
+
+fn max_f(a: float, b: float): float =>
+    return fmaxf(a, b)
+
+fn clamp_f(x: float, lo: float, hi: float): float =>
+    return fminf(fmaxf(x, lo), hi)
+
+fn sign_f(x: float): float =>
+    if x < 0.0 =>
+        return -1.0
+    if x > 0.0 =>
+        return 1.0
+    return 0.0
+
+# ==============================================================================
+# Angle Conversion (float)
+# ==============================================================================
+
+fn deg_to_rad_f(deg: float): float =>
+    return deg * pi_f() / 180.0
+
+fn rad_to_deg_f(rad: float): float =>
+    return rad * 180.0 / pi_f()
+
+# ==============================================================================
+# Safe Wrappers (float)
+# ==============================================================================
+
+fn safe_sqrt_f(x: float): float =>
+    if x < 0.0 =>
+        return 0.0
+    return sqrtf(x)
+
+fn safe_log_f(x: float): float =>
+    if x <= 0.0 =>
+        return 0.0
+    return logf(x)
+
+fn safe_log10_f(x: float): float =>
+    if x <= 0.0 =>
+        return 0.0
+    return log10f(x)
+
+fn safe_log2_f(x: float): float =>
+    if x <= 0.0 =>
+        return 0.0
+    return log2f(x)
+
+fn safe_asin_f(x: float): float =>
+    if x < -1.0 =>
+        return asinf(-1.0)
+    if x > 1.0 =>
+        return asinf(1.0)
+    return asinf(x)
+
+fn safe_acos_f(x: float): float =>
+    if x < -1.0 =>
+        return acosf(-1.0)
+    if x > 1.0 =>
+        return acosf(1.0)
+    return acosf(x)
+
+fn safe_div_f(x: float, y: float): float =>
+    if y == 0.0 =>
+        return 0.0
+    return x / y
+
+fn safe_acosh_f(x: float): float =>
+    if x < 1.0 =>
+        return 0.0
+    return acoshf(x)
+
+fn safe_atanh_f(x: float): float =>
+    if x <= -1.0 =>
+        return 0.0
+    if x >= 1.0 =>
+        return 0.0
+    return atanhf(x)
+
+# ==============================================================================
+# Float Utility Functions
+# ==============================================================================
+
+fn lerp_f(a: float, b: float, t: float): float =>
+    return a + (b - a) * t
+
+fn inv_lerp_f(a: float, b: float, x: float): float =>
+    if a == b =>
+        return 0.0
+    return (x - a) / (b - a)
+
+fn remap_f(x: float, in_min: float, in_max: float, out_min: float, out_max: float): float =>
+    var t: float = inv_lerp_f(in_min, in_max, x)
+    return lerp_f(out_min, out_max, t)
+
+fn approx_eq_f(a: float, b: float, tolerance: float): bool =>
+    var diff: float = fabsf(a - b)
+    return diff < tolerance
+
+fn wrap_angle_f(angle: float): float =>
+    var two_pi: float = tau_f()
+    var result: float = fmodf(angle, two_pi)
+    if result < 0.0 =>
+        return result + two_pi
+    return result
+
+fn wrap_angle_signed_f(angle: float): float =>
+    var result: float = wrap_angle_f(angle + pi_f())
+    return result - pi_f()
+
+fn distance_2d_f(x1: float, y1: float, x2: float, y2: float): float =>
+    return hypotf(x2 - x1, y2 - y1)
+
+fn distance_3d_f(x1: float, y1: float, z1: float, x2: float, y2: float, z2: float): float =>
+    var dx: float = x2 - x1
+    var dy: float = y2 - y1
+    var dz: float = z2 - z1
+    return sqrtf(dx * dx + dy * dy + dz * dz)
+
+fn smoothstep_f(edge0: float, edge1: float, x: float): float =>
+    var t: float = clamp_f((x - edge0) / (edge1 - edge0), 0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+
+fn is_nan_f(x: float): bool =>
+    return x != x
+
+fn is_finite_f(x: float): bool =>
+    if x != x =>
+        return false
+    var test: float = x - x
+    return test == 0.0

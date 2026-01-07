@@ -797,10 +797,20 @@ static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
             return;
         }
 
-        /* Register all extracted symbols under the namespace.
+        /* PASS 1: Register all symbols in namespace AND temporarily in global scope.
+         * We need them in global scope temporarily so that functions within the
+         * imported module can reference each other (e.g., a helper calling a native fn).
          * We need to iterate through original statements to get function modifiers
-         * since get_module_symbols only extracts names and types. */
+         * since get_module_symbols only extracts names and types.
+         *
+         * Track which symbols we add so we only remove those (not symbols from
+         * a direct import of the same module). */
         int sym_idx = 0;
+        bool *added_to_global = arena_alloc(table->arena, sizeof(bool) * symbol_count);
+        for (int j = 0; j < symbol_count; j++)
+            added_to_global[j] = false;
+
+        int added_idx = 0;
         for (int i = 0; i < import->imported_count && sym_idx < symbol_count; i++)
         {
             Stmt *imported_stmt = import->imported_stmts[i];
@@ -832,15 +842,59 @@ static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
                 /* Add function symbol to namespace with proper function modifier */
                 symbol_table_add_function_to_namespace(table, ns_token, *func_name, func_type, effective_modifier, modifier);
 
+                /* Only add to global scope if not already there (e.g., from direct import).
+                 * Track whether we added it so we can remove it later. */
+                Symbol *existing = symbol_table_lookup_symbol(table, *func_name);
+                if (existing == NULL)
+                {
+                    symbol_table_add_function(table, *func_name, func_type, effective_modifier, modifier);
+                    added_to_global[added_idx] = true;
+                }
+                added_idx++;
+
                 char func_str[128];
                 int func_len = func_name->length < 127 ? func_name->length : 127;
                 memcpy(func_str, func_name->start, func_len);
                 func_str[func_len] = '\0';
                 DEBUG_VERBOSE("Added function '%s' to namespace '%s' (mod=%d)", func_str, ns_str, effective_modifier);
+            }
+        }
 
+        /* PASS 2: Type-check all function bodies.
+         * Now all symbols are visible in global scope, so intra-module calls work. */
+        for (int i = 0; i < import->imported_count; i++)
+        {
+            Stmt *imported_stmt = import->imported_stmts[i];
+            if (imported_stmt == NULL)
+                continue;
+
+            if (imported_stmt->type == STMT_FUNCTION)
+            {
                 /* Type-check the function body so expr_type is set for code generation.
-                 * Use the body-only version to avoid adding to global scope. */
+                 * Use the body-only version to avoid re-adding to global scope. */
                 type_check_function_body_only(imported_stmt, table);
+            }
+        }
+
+        /* PASS 3: Remove only the symbols WE added to global scope.
+         * Don't remove symbols that were already there (e.g., from direct import). */
+        sym_idx = 0;
+        added_idx = 0;
+        for (int i = 0; i < import->imported_count && sym_idx < symbol_count; i++)
+        {
+            Stmt *imported_stmt = import->imported_stmts[i];
+            if (imported_stmt == NULL)
+                continue;
+
+            if (imported_stmt->type == STMT_FUNCTION)
+            {
+                Token *func_name = symbols[sym_idx];
+                sym_idx++;
+                if (added_to_global[added_idx])
+                {
+                    symbol_table_remove_symbol_from_global(table, *func_name);
+                }
+                added_idx++;
             }
         }
     }
