@@ -680,6 +680,23 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         /* Generate the actual lambda function definition with capture access */
         char *lambda_func;
         char *lambda_func_name = arena_sprintf(gen->arena, "__lambda_%d__", lambda_id);
+
+        /* Add captured primitives to symbol table so they get dereferenced when accessed.
+         * Push a new scope, add the captured variables with MEM_AS_REF, generate body, pop scope. */
+        symbol_table_push_scope(gen->symbol_table);
+        for (int i = 0; i < cv.count; i++)
+        {
+            if (is_primitive_type(cv.types[i]))
+            {
+                /* Create a token from the string name */
+                Token name_token;
+                name_token.start = cv.names[i];
+                name_token.length = strlen(cv.names[i]);
+                name_token.line = 0;
+                symbol_table_add_symbol_full(gen->symbol_table, name_token, cv.types[i], SYMBOL_LOCAL, MEM_AS_REF);
+            }
+        }
+
         if (lambda->has_stmt_body)
         {
             /* Multi-line lambda with statement body - needs return value and label */
@@ -784,6 +801,9 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         }
         gen->current_arena_var = saved_arena_var;
 
+        /* Pop the scope we pushed for captured primitives */
+        symbol_table_pop_scope(gen->symbol_table);
+
         /* Append to definitions buffer */
         gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
                                                 gen->lambda_definitions, lambda_func);
@@ -798,16 +818,39 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         for (int i = 0; i < cv.count; i++)
         {
-            /* For primitives: the outer variable is now declared as a pointer
-             * (via the pre-pass that marks captured primitives for heap allocation).
-             * We simply store that pointer in the closure - both outer scope and
-             * closure now share the same arena-allocated storage.
+            /* For primitives: check if the variable is already a pointer or a value.
+             * The symbol table tells us: MEM_AS_REF means already a pointer.
+             * Variables that are NOT pointers (need heap allocation):
+             * - Lambda parameters (values)
+             * - Loop iteration variables (values)
+             * Variables that ARE already pointers (just copy):
+             * - Outer function scope with pre-pass pointer declaration
+             * - Variables captured from outer lambda body
              * For reference types (arrays, strings), just copy the pointer value. */
             if (is_primitive_type(cv.types[i]))
             {
-                /* The variable is already a pointer - just copy it to the closure */
-                closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
-                                             closure_init, cv.names[i], cv.names[i]);
+                /* Lookup the symbol to check if it's already a pointer (MEM_AS_REF) */
+                Token name_token;
+                name_token.start = cv.names[i];
+                name_token.length = strlen(cv.names[i]);
+                name_token.line = 0;
+                Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, name_token);
+
+                bool already_pointer = (sym != NULL && sym->mem_qual == MEM_AS_REF);
+                if (already_pointer)
+                {
+                    /* The variable is already a pointer - just copy it to the closure */
+                    closure_init = arena_sprintf(gen->arena, "%s    __cl__->%s = %s;\n",
+                                                 closure_init, cv.names[i], cv.names[i]);
+                }
+                else
+                {
+                    /* It's a value (lambda param, loop var, etc.) - need to heap-allocate */
+                    const char *c_type = get_c_type(gen->arena, cv.types[i]);
+                    closure_init = arena_sprintf(gen->arena,
+                        "%s    __cl__->%s = ({ %s *__tmp__ = rt_arena_alloc(%s, sizeof(%s)); *__tmp__ = %s; __tmp__; });\n",
+                        closure_init, cv.names[i], c_type, ARENA_VAR(gen), c_type, cv.names[i]);
+                }
             }
             else
             {

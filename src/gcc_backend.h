@@ -16,6 +16,17 @@ typedef struct {
     const char *ldlibs;          /* SN_LDLIBS: Additional libraries */
 } CCBackendConfig;
 
+/* Load backend configuration from config file (if it exists).
+ * Must be called BEFORE cc_backend_init_config() to take effect.
+ * The config file is determined by executable name:
+ *   sn-gcc   -> sn.gcc.cfg
+ *   sn-clang -> sn.clang.cfg
+ *   sn-tcc   -> sn.tcc.cfg
+ * Config file format: KEY=VALUE (one per line), supports:
+ *   SN_CC, SN_STD, SN_DEBUG_CFLAGS, SN_RELEASE_CFLAGS, SN_CFLAGS, SN_LDFLAGS, SN_LDLIBS
+ */
+void cc_backend_load_config(const char *compiler_dir);
+
 /* Initialize backend configuration from environment variables.
  * Uses defaults for any unset variables:
  *   SN_CC            = "gcc"
@@ -25,6 +36,7 @@ typedef struct {
  *   SN_CFLAGS        = ""
  *   SN_LDFLAGS       = ""
  *   SN_LDLIBS        = ""
+ * Priority: Environment variable > Config file value > Default
  */
 void cc_backend_init_config(CCBackendConfig *config);
 

@@ -6,6 +6,16 @@
 #include <setjmp.h>
 #include "runtime_arena.h"
 
+/* Thread-local storage compatibility:
+ * - GCC/Clang: use __thread
+ * - TinyCC: no TLS support, falls back to global (NOT thread-safe)
+ */
+#ifdef __TINYC__
+#define RT_THREAD_LOCAL /* TinyCC: no TLS, threading features limited */
+#else
+#define RT_THREAD_LOCAL __thread
+#endif
+
 /* ============================================================================
  * Thread Types - Core Structures
  * ============================================================================
@@ -99,7 +109,7 @@ typedef struct RtThreadPanicContext {
 } RtThreadPanicContext;
 
 /* Thread-local panic context for the current thread */
-extern __thread RtThreadPanicContext *rt_thread_panic_ctx;
+extern RT_THREAD_LOCAL RtThreadPanicContext *rt_thread_panic_ctx;
 
 /* Initialize a panic context for the current thread */
 void rt_thread_panic_context_init(RtThreadPanicContext *ctx,

@@ -25,7 +25,7 @@
  * Each thread has its own panic context for catching panics via setjmp/longjmp.
  */
 
-__thread RtThreadPanicContext *rt_thread_panic_ctx = NULL;
+RT_THREAD_LOCAL RtThreadPanicContext *rt_thread_panic_ctx = NULL;
 
 /* ============================================================================
  * Global Thread Pool

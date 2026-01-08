@@ -71,11 +71,12 @@ static void code_gen_thread_sync_statement(CodeGen *gen, Expr *expr, int indent)
 
             if (is_primitive)
             {
-                /* For primitives, we need to store through a pointer cast because
-                 * the variable is RtThreadHandle* but we're storing a primitive value.
-                 * Pattern: *((type *)&var) = *(type *)sync(...) */
-                indented_fprintf(gen, indent, "*(%s *)&%s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n",
-                    c_type, var_name, c_type, var_name, ARENA_VAR(gen), rt_type);
+                /* For primitives, we declared two variables: __var_pending__ (RtThreadHandle*)
+                 * and var (actual type). Sync the pending handle and assign to the typed var.
+                 * Pattern: var = *(type *)sync(__var_pending__, ...) */
+                char *pending_var = arena_sprintf(gen->arena, "__%s_pending__", var_name);
+                indented_fprintf(gen, indent, "%s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n",
+                    var_name, c_type, pending_var, ARENA_VAR(gen), rt_type);
             }
             else
             {
@@ -116,11 +117,12 @@ static void code_gen_thread_sync_statement(CodeGen *gen, Expr *expr, int indent)
 
             if (is_primitive)
             {
-                /* For primitives, we need to store through a pointer cast because
-                 * the variable is RtThreadHandle* but we're storing a primitive value.
-                 * Pattern: *((type *)&var) = *(type *)sync(...) */
-                indented_fprintf(gen, indent, "*(%s *)&%s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n",
-                    c_type, var_name, c_type, var_name, ARENA_VAR(gen), rt_type);
+                /* For primitives, we declared two variables: __var_pending__ (RtThreadHandle*)
+                 * and var (actual type). Sync the pending handle and assign to the typed var.
+                 * Pattern: var = *(type *)sync(__var_pending__, ...) */
+                char *pending_var = arena_sprintf(gen->arena, "__%s_pending__", var_name);
+                indented_fprintf(gen, indent, "%s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n",
+                    var_name, c_type, pending_var, ARENA_VAR(gen), rt_type);
             }
             else
             {
@@ -184,25 +186,37 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
     char *var_name = get_var_name(gen->arena, stmt->name);
 
     // Check if this is a thread spawn assignment.
-    // For thread spawns with primitive types, we use RtThreadHandle* as the variable type.
-    // For reference types (arrays, strings), we use the actual type directly.
-    // The sync expression handles type conversion when retrieving the result.
+    // For thread spawns with primitive types, we declare TWO variables:
+    //   1. __varname_pending__ of type RtThreadHandle* to hold the handle
+    //   2. varname of the actual type to hold the result after sync
+    // For reference types (arrays, strings), we use the actual type directly
+    // since both handles and results are pointer types.
     bool is_thread_spawn = (stmt->initializer != NULL &&
                             stmt->initializer->type == EXPR_THREAD_SPAWN);
-    bool is_reference_type = (stmt->type->kind == TYPE_ARRAY ||
-                              stmt->type->kind == TYPE_STRING ||
-                              stmt->type->kind == TYPE_FUNCTION ||
-                              stmt->type->kind == TYPE_PROCESS);
+    bool is_primitive_type = (stmt->type->kind == TYPE_INT ||
+                              stmt->type->kind == TYPE_LONG ||
+                              stmt->type->kind == TYPE_DOUBLE ||
+                              stmt->type->kind == TYPE_BOOL ||
+                              stmt->type->kind == TYPE_BYTE ||
+                              stmt->type->kind == TYPE_CHAR);
 
-    const char *type_c;
-    if (is_thread_spawn && !is_reference_type)
+    const char *type_c = get_c_type(gen->arena, stmt->type);
+
+    // For thread spawn with primitive result, generate two declarations
+    if (is_thread_spawn && is_primitive_type)
     {
-        // Primitives: use RtThreadHandle* since sync stores the result through a pointer cast
-        type_c = "RtThreadHandle *";
-    }
-    else
-    {
-        type_c = get_c_type(gen->arena, stmt->type);
+        char *pending_var = arena_sprintf(gen->arena, "__%s_pending__", var_name);
+        char *init_str = code_gen_expression(gen, stmt->initializer);
+
+        // Declare the pending handle variable
+        indented_fprintf(gen, indent, "RtThreadHandle *%s = %s;\n", pending_var, init_str);
+
+        // Declare the actual typed variable (uninitialized, will be set on sync)
+        indented_fprintf(gen, indent, "%s %s;\n", type_c, var_name);
+
+        // Add to symbol table
+        symbol_table_add_symbol_full(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL, stmt->mem_qualifier);
+        return;
     }
 
     // Check if this primitive is captured by a closure - if so, treat it like 'as ref'

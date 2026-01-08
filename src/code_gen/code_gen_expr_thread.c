@@ -717,24 +717,25 @@ char *code_gen_thread_sync_expression(CodeGen *gen, Expr *expr)
         {
             /* Primitive type: cast pointer and dereference
              * Uses rt_thread_sync_with_result for panic propagation + result promotion
-             * For variable handles, we use a compound expression that stores the result
-             * in the variable via a union cast. This works for all primitive sizes. */
+             * For variable handles, we have TWO variables: __var_pending__ (RtThreadHandle*)
+             * and var (actual type). Sync uses the pending handle, assigns to the typed var. */
             if (is_variable_handle)
             {
-                /* Generate code that syncs and stores the result back in the variable.
-                 * We use a union to safely convert between RtThreadHandle* and the primitive type.
-                 * The pattern is: ({ type _tmp = *(type*)sync(var, ...); *(type*)&var = _tmp; _tmp; })
-                 * This allows subsequent uses of var to get the synced value. */
+                /* For primitive thread spawn variables, we declared:
+                 *   RtThreadHandle *__var_pending__ = &fn();
+                 *   type var;
+                 * Now sync using __var_pending__ and assign result to var.
+                 * Pattern: ({ var = *(type*)sync(__var_pending__, ...); var; }) */
+                char *var_name = get_var_name(gen->arena, sync->handle->as.variable.name);
+                char *pending_var = arena_sprintf(gen->arena, "__%s_pending__", var_name);
                 int temp_id = gen->temp_count++;
                 return arena_sprintf(gen->arena,
                     "({\n"
-                    "    %s __sync_result_%d__ = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n"
-                    "    *(%s *)&%s = __sync_result_%d__;\n"
-                    "    __sync_result_%d__;\n"
+                    "    %s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n"
+                    "    %s;\n"
                     "})",
-                    c_type, temp_id, c_type, handle_code, ARENA_VAR(gen), rt_type,
-                    c_type, handle_code, temp_id,
-                    temp_id);
+                    var_name, c_type, pending_var, ARENA_VAR(gen), rt_type,
+                    var_name);
             }
             else
             {

@@ -19,6 +19,9 @@ int main(int argc, char **argv)
     compiler_init(&options, argc, argv);
     init_debug(options.log_level);
 
+    /* Load backend config file if it exists (e.g., sn.gcc.cfg, sn.tcc.cfg) */
+    cc_backend_load_config(options.compiler_dir);
+
     /* Initialize C compiler backend configuration from environment variables */
     cc_backend_init_config(&cc_config);
 

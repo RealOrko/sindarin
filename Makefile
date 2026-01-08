@@ -1,13 +1,16 @@
 # Sn Compiler - Root Makefile
 # Consolidates all build and test operations
 
-.PHONY: all build clean run test test-unit test-integration test-integration-errors test-explore test-explore-errors test-threading assembly measure-optimization benchmark help
+.PHONY: all build build-gcc build-clang build-tcc clean run test test-unit test-integration test-integration-errors test-explore test-explore-errors test-gcc test-clang test-tcc test-threading assembly measure-optimization benchmark help
 
 # Default optimization level for GCC when compiling generated C
 OPT_LEVEL ?= -O2
 
 # Directories
 BIN_DIR := bin
+
+# Sindarin compiler binary (can be overridden for backend-specific tests)
+SN := $(BIN_DIR)/sn
 LOG_DIR := log
 SRC_DIR := src
 TEST_DIR := tests/integration
@@ -31,26 +34,88 @@ NC := \033[0m
 all: build
 
 #------------------------------------------------------------------------------
-# build - Build compiler and test binary (no tests run)
+# build - Build compiler with all backends (GCC, Clang, TinyCC)
+# Produces: sn-gcc, sn-clang, sn-tcc with 'sn' symlink pointing to sn-gcc
 #------------------------------------------------------------------------------
 build: clean
 	@mkdir -p $(BIN_DIR) $(LOG_DIR)
-	@echo "Building compiler..."
+	@echo "Building compiler with all backends..."
 	@$(MAKE) -C $(SRC_DIR) clean
-	@$(MAKE) -C $(SRC_DIR) > $(LOG_DIR)/build-output.log 2>&1
+	@# Build GCC backend first (includes test binary)
+	@echo "  Building GCC backend..."
+	@$(MAKE) -C $(SRC_DIR) BACKEND=gcc > $(LOG_DIR)/build-output.log 2>&1
 	@$(MAKE) -C $(SRC_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
-	@cat $(LOG_DIR)/build-output.log
-	@# Clean up intermediate files, keeping only required runtime objects
-	@find $(BIN_DIR) -name "*.d" -delete
-	@find $(BIN_DIR) -name "*.o" ! -name "arena.o" ! -name "debug.o" ! -name "runtime.o" ! -name "runtime_arena.o" ! -name "runtime_string.o" ! -name "runtime_array.o" ! -name "runtime_text_file.o" ! -name "runtime_binary_file.o" ! -name "runtime_io.o" ! -name "runtime_byte.o" ! -name "runtime_path.o" ! -name "runtime_date.o" ! -name "runtime_time.o" ! -name "runtime_thread.o" ! -name "runtime_process.o" ! -name "runtime_net.o" ! -name "runtime_random_core.o" ! -name "runtime_random_basic.o" ! -name "runtime_random_static.o" ! -name "runtime_random_choice.o" ! -name "runtime_random_collection.o" ! -name "runtime_random.o" ! -name "runtime_uuid.o" ! -name "runtime_sha1.o" ! -name "runtime_env.o" -delete
+	@# Build Clang backend (compiler binary + runtime)
+	@echo "  Building Clang backend..."
+	@$(MAKE) -C $(SRC_DIR) runtime-clang >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) BACKEND=clang ../$(BIN_DIR)/sn-clang >> $(LOG_DIR)/build-output.log 2>&1
+	@# Build TinyCC backend (compiler binary + runtime)
+	@echo "  Building TinyCC backend..."
+	@$(MAKE) -C $(SRC_DIR) runtime-tinycc >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) BACKEND=tinycc ../$(BIN_DIR)/sn-tcc >> $(LOG_DIR)/build-output.log 2>&1
+	@# Set sn symlink to gcc by default
+	@rm -f $(BIN_DIR)/sn
+	@ln -s sn-gcc $(BIN_DIR)/sn
+	@cp -n etc/*.cfg $(BIN_DIR)/ 2>/dev/null || true
+	@echo "Built: sn-gcc, sn-clang, sn-tcc (sn -> sn-gcc)"
+	@find $(BIN_DIR) -maxdepth 1 -name "*.d" -delete
+	@find $(BIN_DIR) -maxdepth 1 -name "*.o" -delete
 
 #------------------------------------------------------------------------------
-# clean - Remove build artifacts
+# build-gcc - Build compiler with GCC backend only
+#------------------------------------------------------------------------------
+build-gcc: clean
+	@mkdir -p $(BIN_DIR) $(LOG_DIR)
+	@echo "Building compiler with GCC backend..."
+	@$(MAKE) -C $(SRC_DIR) clean
+	@$(MAKE) -C $(SRC_DIR) BACKEND=gcc > $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
+	@cat $(LOG_DIR)/build-output.log
+	@cp -n etc/*.cfg $(BIN_DIR)/ 2>/dev/null || true
+	@find $(BIN_DIR) -maxdepth 1 -name "*.d" -delete
+	@find $(BIN_DIR) -maxdepth 1 -name "*.o" -delete
+
+#------------------------------------------------------------------------------
+# build-clang - Build compiler with Clang backend only
+#------------------------------------------------------------------------------
+build-clang: clean
+	@mkdir -p $(BIN_DIR) $(LOG_DIR)
+	@echo "Building compiler with Clang backend..."
+	@$(MAKE) -C $(SRC_DIR) clean
+	@$(MAKE) -C $(SRC_DIR) BACKEND=clang > $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
+	@cat $(LOG_DIR)/build-output.log
+	@cp -n etc/*.cfg $(BIN_DIR)/ 2>/dev/null || true
+	@find $(BIN_DIR) -maxdepth 1 -name "*.d" -delete
+	@find $(BIN_DIR) -maxdepth 1 -name "*.o" -delete
+
+#------------------------------------------------------------------------------
+# build-tcc - Build compiler with TinyCC backend only
+#------------------------------------------------------------------------------
+build-tcc: clean
+	@mkdir -p $(BIN_DIR) $(LOG_DIR)
+	@echo "Building compiler with TinyCC backend..."
+	@$(MAKE) -C $(SRC_DIR) clean
+	@$(MAKE) -C $(SRC_DIR) BACKEND=tinycc > $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
+	@cat $(LOG_DIR)/build-output.log
+	@cp -n etc/*.cfg $(BIN_DIR)/ 2>/dev/null || true
+	@find $(BIN_DIR) -maxdepth 1 -name "*.d" -delete
+	@find $(BIN_DIR) -maxdepth 1 -name "*.o" -delete
+
+#------------------------------------------------------------------------------
+# clean - Remove build artifacts (preserves .cfg config files)
 #------------------------------------------------------------------------------
 clean:
+	@# Preserve config files during clean
+	@mkdir -p /tmp/sn_cfg_backup
+	@cp $(BIN_DIR)/*.cfg /tmp/sn_cfg_backup/ 2>/dev/null || true
 	@rm -rf $(BIN_DIR)/*
 	@rm -rf $(LOG_DIR)/*
 	@mkdir -p $(BIN_DIR) $(LOG_DIR)
+	@# Restore config files
+	@cp /tmp/sn_cfg_backup/*.cfg $(BIN_DIR)/ 2>/dev/null || true
+	@rm -rf /tmp/sn_cfg_backup
 
 #------------------------------------------------------------------------------
 # run - Compile and run samples/main.sn
@@ -62,12 +127,50 @@ run:
 	@cat $(LOG_DIR)/hello-world-output.log
 
 #------------------------------------------------------------------------------
-# test - Run all tests (unit, integration, exploratory)
+# test - Run all tests with all backends
 #------------------------------------------------------------------------------
-test: test-unit test-integration test-integration-errors test-explore test-explore-errors
+test: test-gcc test-clang test-tcc
+
+#------------------------------------------------------------------------------
+# test-gcc - Run all tests with GCC backend
+#------------------------------------------------------------------------------
+test-gcc:
+	@echo ""
+	@echo "$(BOLD)═══════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BOLD)  GCC Backend$(NC)"
+	@echo "$(BOLD)═══════════════════════════════════════════════════════════$(NC)"
+	@$(MAKE) --no-print-directory test-unit
+	@$(MAKE) --no-print-directory test-integration test-integration-errors SN=$(BIN_DIR)/sn-gcc
+	@$(MAKE) --no-print-directory test-explore test-explore-errors SN=$(BIN_DIR)/sn-gcc
+
+#------------------------------------------------------------------------------
+# test-clang - Run all tests with Clang backend
+#------------------------------------------------------------------------------
+test-clang:
+	@echo ""
+	@echo "$(BOLD)═══════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BOLD)  Clang Backend$(NC)"
+	@echo "$(BOLD)═══════════════════════════════════════════════════════════$(NC)"
+	@$(MAKE) --no-print-directory test-unit
+	@$(MAKE) --no-print-directory test-integration test-integration-errors SN=$(BIN_DIR)/sn-clang
+	@$(MAKE) --no-print-directory test-explore test-explore-errors SN=$(BIN_DIR)/sn-clang
+
+#------------------------------------------------------------------------------
+# test-tcc - Run all tests with TinyCC backend
+#------------------------------------------------------------------------------
+test-tcc:
+	@echo ""
+	@echo "$(BOLD)═══════════════════════════════════════════════════════════$(NC)"
+	@echo "$(BOLD)  TinyCC Backend$(NC)"
+	@echo "$(BOLD)═══════════════════════════════════════════════════════════$(NC)"
+	@$(MAKE) --no-print-directory test-unit
+	@$(MAKE) --no-print-directory test-integration test-integration-errors SN=$(BIN_DIR)/sn-tcc
+	@$(MAKE) --no-print-directory test-explore test-explore-errors SN=$(BIN_DIR)/sn-tcc
 
 #------------------------------------------------------------------------------
 # test-unit - Run unit tests
+# Note: Unit tests use a single GCC-compiled binary since they test compiler
+# internals. Backend-specific code generation is tested via integration tests.
 #------------------------------------------------------------------------------
 test-unit:
 	@echo ""
@@ -109,7 +212,7 @@ test-integration:
 			skipped=$$((skipped + 1)); \
 			continue; \
 		fi; \
-		if ! $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -l 1 -g -O0 2>"$(TEMP_DIR)/$$test_name.compile_err"; then \
+		if ! $(SN) "$$test_file" -o "$$exe_file" -l 1 -g -O0 2>"$(TEMP_DIR)/$$test_name.compile_err"; then \
 			printf "$(RED)FAIL$(NC) (compile error)\n"; \
 			head -3 "$(TEMP_DIR)/$$test_name.compile_err" | sed 's/^/    /'; \
 			failed=$$((failed + 1)); \
@@ -167,7 +270,7 @@ test-integration-errors:
 			skipped=$$((skipped + 1)); \
 			continue; \
 		fi; \
-		if $(BIN_DIR)/sn "$$test_file" -o "$(TEMP_DIR)/$$test_name" -l 1 2>"$$compile_err"; then \
+		if $(SN) "$$test_file" -o "$(TEMP_DIR)/$$test_name" -l 1 2>"$$compile_err"; then \
 			printf "$(RED)FAIL$(NC) (should not compile)\n"; \
 			failed=$$((failed + 1)); \
 			continue; \
@@ -204,7 +307,7 @@ test-explore:
 		exe_file="$(EXPLORE_OUT)/$$test_name"; \
 		output_file="$(EXPLORE_OUT)/$$test_name.out"; \
 		printf "  %-45s " "$$test_name"; \
-		if ! timeout 10s $(BIN_DIR)/sn "$$test_file" -o "$$exe_file" -g -O0 2>"$(EXPLORE_OUT)/$$test_name.compile_err"; then \
+		if ! timeout 10s $(SN) "$$test_file" -o "$$exe_file" -g -O0 2>"$(EXPLORE_OUT)/$$test_name.compile_err"; then \
 			printf "$(RED)FAIL$(NC) (compile error)\n"; \
 			head -3 "$(EXPLORE_OUT)/$$test_name.compile_err" | sed 's/^/    /'; \
 			failed=$$((failed + 1)); \
@@ -258,7 +361,7 @@ test-explore-errors:
 			skipped=$$((skipped + 1)); \
 			continue; \
 		fi; \
-		if $(BIN_DIR)/sn "$$test_file" -o "$(EXPLORE_OUT)/$$test_name" -l 1 2>"$$compile_err"; then \
+		if $(SN) "$$test_file" -o "$(EXPLORE_OUT)/$$test_name" -l 1 2>"$$compile_err"; then \
 			printf "$(RED)FAIL$(NC) (should not compile)\n"; \
 			failed=$$((failed + 1)); \
 			continue; \
@@ -346,17 +449,20 @@ benchmark:
 help:
 	@echo "Sn Compiler - Available targets:"
 	@echo ""
-	@echo "  make              Build compiler (default)"
-	@echo "  make build        Build compiler and test binary"
+	@echo "  make              Build compiler (all backends)"
+	@echo "  make build        Build compiler with all backends (sn-gcc, sn-clang, sn-tcc)"
+	@echo "  make build-gcc    Build compiler with GCC backend only"
+	@echo "  make build-clang  Build compiler with Clang backend only"
+	@echo "  make build-tcc    Build compiler with TinyCC backend only"
 	@echo "  make clean        Remove build artifacts"
 	@echo "  make run          Compile and run samples/main.sn"
 	@echo ""
-	@echo "  make test         Run all tests"
-	@echo "  make test-unit    Run unit tests"
-	@echo "  make test-integration        Run integration tests (positive)"
-	@echo "  make test-integration-errors Run integration error tests (negative)"
-	@echo "  make test-explore            Run exploratory tests (positive)"
-	@echo "  make test-explore-errors     Run exploratory error tests (negative)"
+	@echo "  make test         Run ALL tests with ALL backends (GCC, Clang, TinyCC)"
+	@echo "  make test-gcc     Run all tests with GCC backend"
+	@echo "  make test-clang   Run all tests with Clang backend"
+	@echo "  make test-tcc     Run all tests with TinyCC backend"
+	@echo ""
+	@echo "  Each backend runs: unit tests, integration tests, exploratory tests"
 	@echo ""
 	@echo "  make assembly     Assemble and link assembly files"
 	@echo "  make measure-optimization  Measure optimization impact"
@@ -364,3 +470,23 @@ help:
 	@echo ""
 	@echo "Options:"
 	@echo "  OPT_LEVEL=-O0     Set GCC optimization level (default: -O2)"
+	@echo ""
+	@echo "Backend selection:"
+	@echo "  bin/sn-gcc        Use GCC backend directly"
+	@echo "  bin/sn-clang      Use Clang backend directly"
+	@echo "  bin/sn-tcc        Use TinyCC backend directly"
+	@echo "  bin/sn            Symlink to most recently built backend"
+	@echo ""
+	@echo "  Or set SN_CC environment variable:"
+	@echo "    SN_CC=gcc bin/sn ...    Use GCC backend"
+	@echo "    SN_CC=clang bin/sn ...  Use Clang backend"
+	@echo "    SN_CC=tcc bin/sn ...    Use TinyCC backend"
+	@echo ""
+	@echo "Config files (in bin/, copied from etc/ during build):"
+	@echo "  sn.gcc.cfg        Config for sn-gcc"
+	@echo "  sn.clang.cfg      Config for sn-clang"
+	@echo "  sn.tcc.cfg        Config for sn-tcc"
+	@echo ""
+	@echo "  Format: KEY=VALUE (e.g., SN_RELEASE_CFLAGS=-O2)"
+	@echo "  Supported: SN_CC, SN_STD, SN_CFLAGS, SN_LDFLAGS, SN_LDLIBS,"
+	@echo "             SN_DEBUG_CFLAGS, SN_RELEASE_CFLAGS"
