@@ -1,10 +1,8 @@
 // tests/type_checker_tests_promotion.c
 // Type checker tests for numeric type promotion (int -> double)
 
-void test_type_check_int_double_addition()
+static void test_type_check_int_double_addition()
 {
-    printf("Testing type check for int + double promotion...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -63,10 +61,8 @@ void test_type_check_int_double_addition()
     arena_free(&arena);
 }
 
-void test_type_check_int_double_subtraction()
+static void test_type_check_int_double_subtraction()
 {
-    printf("Testing type check for double - int promotion...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -119,10 +115,8 @@ void test_type_check_int_double_subtraction()
     arena_free(&arena);
 }
 
-void test_type_check_int_int_no_promotion()
+static void test_type_check_int_int_no_promotion()
 {
-    printf("Testing type check for int + int (no promotion needed)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -174,10 +168,8 @@ void test_type_check_int_int_no_promotion()
     arena_free(&arena);
 }
 
-void test_type_check_int_double_comparison()
+static void test_type_check_int_double_comparison()
 {
-    printf("Testing type check for int < double comparison...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -231,10 +223,8 @@ void test_type_check_int_double_comparison()
     arena_free(&arena);
 }
 
-void test_type_check_double_int_equality()
+static void test_type_check_double_int_equality()
 {
-    printf("Testing type check for double == int comparison...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -288,10 +278,8 @@ void test_type_check_double_int_equality()
     arena_free(&arena);
 }
 
-void test_type_check_int_double_greater()
+static void test_type_check_int_double_greater()
 {
-    printf("Testing type check for int > double comparison...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -355,10 +343,8 @@ void test_type_check_int_double_greater()
     arena_free(&arena);
 }
 
-void test_type_check_int32_var_decl()
+static void test_type_check_int32_var_decl()
 {
-    printf("Testing type check for int32 variable declaration...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -396,10 +382,8 @@ void test_type_check_int32_var_decl()
     arena_free(&arena);
 }
 
-void test_type_check_uint_var_decl()
+static void test_type_check_uint_var_decl()
 {
-    printf("Testing type check for uint variable declaration...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -437,10 +421,8 @@ void test_type_check_uint_var_decl()
     arena_free(&arena);
 }
 
-void test_type_check_uint32_var_decl()
+static void test_type_check_uint32_var_decl()
 {
-    printf("Testing type check for uint32 variable declaration...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -478,10 +460,8 @@ void test_type_check_uint32_var_decl()
     arena_free(&arena);
 }
 
-void test_type_check_float_var_decl()
+static void test_type_check_float_var_decl()
 {
-    printf("Testing type check for float variable declaration...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -519,10 +499,8 @@ void test_type_check_float_var_decl()
     arena_free(&arena);
 }
 
-void test_type_check_int32_addition()
+static void test_type_check_int32_addition()
 {
-    printf("Testing type check for int32 + int32 operation...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -574,10 +552,8 @@ void test_type_check_int32_addition()
     arena_free(&arena);
 }
 
-void test_type_check_float_double_promotion()
+static void test_type_check_float_double_promotion()
 {
-    printf("Testing type check for float to double promotion...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -630,10 +606,8 @@ void test_type_check_float_double_promotion()
     arena_free(&arena);
 }
 
-void test_type_check_interop_type_mismatch()
+static void test_type_check_interop_type_mismatch()
 {
-    printf("Testing type check for interop type mismatch detection...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -682,10 +656,8 @@ void test_type_check_interop_type_mismatch()
     arena_free(&arena);
 }
 
-void test_type_check_pointer_nil_assignment()
+static void test_type_check_pointer_nil_assignment()
 {
-    printf("Testing type check for pointer = nil assignment in native function...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -725,10 +697,8 @@ void test_type_check_pointer_nil_assignment()
     arena_free(&arena);
 }
 
-void test_type_check_double_pointer()
+static void test_type_check_double_pointer()
 {
-    printf("Testing type check for double pointer **int in native function...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -774,10 +744,8 @@ void test_type_check_double_pointer()
     arena_free(&arena);
 }
 
-void test_type_check_pointer_type_equality()
+static void test_type_check_pointer_type_equality()
 {
-    printf("Testing type check for pointer type equality...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -798,20 +766,22 @@ void test_type_check_pointer_type_equality()
 
 void test_type_checker_promotion_main()
 {
-    test_type_check_int_double_addition();
-    test_type_check_int_double_subtraction();
-    test_type_check_int_int_no_promotion();
-    test_type_check_int_double_comparison();
-    test_type_check_double_int_equality();
-    test_type_check_int_double_greater();
-    test_type_check_int32_var_decl();
-    test_type_check_uint_var_decl();
-    test_type_check_uint32_var_decl();
-    test_type_check_float_var_decl();
-    test_type_check_int32_addition();
-    test_type_check_float_double_promotion();
-    test_type_check_interop_type_mismatch();
-    test_type_check_pointer_nil_assignment();
-    test_type_check_double_pointer();
-    test_type_check_pointer_type_equality();
+    TEST_SECTION("Type Checker Promotion");
+
+    TEST_RUN("int_double_addition", test_type_check_int_double_addition);
+    TEST_RUN("int_double_subtraction", test_type_check_int_double_subtraction);
+    TEST_RUN("int_int_no_promotion", test_type_check_int_int_no_promotion);
+    TEST_RUN("int_double_comparison", test_type_check_int_double_comparison);
+    TEST_RUN("double_int_equality", test_type_check_double_int_equality);
+    TEST_RUN("int_double_greater", test_type_check_int_double_greater);
+    TEST_RUN("int32_var_decl", test_type_check_int32_var_decl);
+    TEST_RUN("uint_var_decl", test_type_check_uint_var_decl);
+    TEST_RUN("uint32_var_decl", test_type_check_uint32_var_decl);
+    TEST_RUN("float_var_decl", test_type_check_float_var_decl);
+    TEST_RUN("int32_addition", test_type_check_int32_addition);
+    TEST_RUN("float_double_promotion", test_type_check_float_double_promotion);
+    TEST_RUN("interop_type_mismatch", test_type_check_interop_type_mismatch);
+    TEST_RUN("pointer_nil_assignment", test_type_check_pointer_nil_assignment);
+    TEST_RUN("double_pointer", test_type_check_double_pointer);
+    TEST_RUN("pointer_type_equality", test_type_check_pointer_type_equality);
 }

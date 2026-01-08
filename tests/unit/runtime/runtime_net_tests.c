@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include "../runtime.h"
 #include "../debug.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * TcpListener Bind Tests
@@ -18,9 +19,8 @@
  * Tests for rt_tcp_listener_bind() with various address formats.
  * ============================================================================ */
 
-void test_rt_tcp_listener_bind_ipv4()
+static void test_rt_tcp_listener_bind_ipv4(void)
 {
-    printf("Testing rt_tcp_listener_bind with IPv4 address...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -41,9 +41,8 @@ void test_rt_tcp_listener_bind_ipv4()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_port_only()
+static void test_rt_tcp_listener_bind_port_only(void)
 {
-    printf("Testing rt_tcp_listener_bind with port-only address...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -62,9 +61,8 @@ void test_rt_tcp_listener_bind_port_only()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_os_assigned_port()
+static void test_rt_tcp_listener_bind_os_assigned_port(void)
 {
-    printf("Testing rt_tcp_listener_bind with OS-assigned port (:0)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -86,9 +84,8 @@ void test_rt_tcp_listener_bind_os_assigned_port()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_multiple_listeners()
+static void test_rt_tcp_listener_bind_multiple_listeners(void)
 {
-    printf("Testing rt_tcp_listener_bind with multiple listeners on different ports...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -122,9 +119,8 @@ void test_rt_tcp_listener_bind_multiple_listeners()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_localhost_alias()
+static void test_rt_tcp_listener_bind_localhost_alias(void)
 {
-    printf("Testing rt_tcp_listener_bind with 127.0.0.1:0...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -141,9 +137,8 @@ void test_rt_tcp_listener_bind_localhost_alias()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_close_idempotent()
+static void test_rt_tcp_listener_close_idempotent(void)
 {
-    printf("Testing rt_tcp_listener_close is safe to call multiple times...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -158,9 +153,8 @@ void test_rt_tcp_listener_close_idempotent()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_port_range()
+static void test_rt_tcp_listener_port_range(void)
 {
-    printf("Testing rt_tcp_listener_bind returns valid port range...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -182,9 +176,8 @@ void test_rt_tcp_listener_port_range()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_ipv6()
+static void test_rt_tcp_listener_bind_ipv6(void)
 {
-    printf("Testing rt_tcp_listener_bind with IPv6 address...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -202,9 +195,8 @@ void test_rt_tcp_listener_bind_ipv6()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_ipv6_specific_port()
+static void test_rt_tcp_listener_bind_ipv6_specific_port(void)
 {
-    printf("Testing rt_tcp_listener_bind with IPv6 address on specific port...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -221,9 +213,8 @@ void test_rt_tcp_listener_bind_ipv6_specific_port()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_hostname()
+static void test_rt_tcp_listener_bind_hostname(void)
 {
-    printf("Testing rt_tcp_listener_bind with hostname...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -241,9 +232,8 @@ void test_rt_tcp_listener_bind_hostname()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_bind_hostname_specific_port()
+static void test_rt_tcp_listener_bind_hostname_specific_port(void)
 {
-    printf("Testing rt_tcp_listener_bind with hostname on specific port...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -295,9 +285,8 @@ static void *client_connect_thread(void *arg)
     return NULL;
 }
 
-void test_rt_tcp_listener_accept_basic()
+static void test_rt_tcp_listener_accept_basic(void)
 {
-    printf("Testing rt_tcp_listener_accept basic...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -334,9 +323,8 @@ void test_rt_tcp_listener_accept_basic()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_listener_accept_has_remote_address()
+static void test_rt_tcp_listener_accept_has_remote_address(void)
 {
-    printf("Testing rt_tcp_listener_accept returns stream with remote address...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -370,9 +358,8 @@ void test_rt_tcp_listener_accept_has_remote_address()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_listener_accept_multiple_connections()
+static void test_rt_tcp_listener_accept_multiple_connections(void)
 {
-    printf("Testing rt_tcp_listener_accept with multiple connections...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena1 = rt_arena_create(NULL);
@@ -421,9 +408,8 @@ void test_rt_tcp_listener_accept_multiple_connections()
  * Tests for rt_tcp_listener_close() behavior.
  * ============================================================================ */
 
-void test_rt_tcp_listener_close_basic()
+static void test_rt_tcp_listener_close_basic(void)
 {
-    printf("Testing rt_tcp_listener_close basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -441,9 +427,8 @@ void test_rt_tcp_listener_close_basic()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_close_multiple_times()
+static void test_rt_tcp_listener_close_multiple_times(void)
 {
-    printf("Testing rt_tcp_listener_close multiple times is safe...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -463,9 +448,8 @@ void test_rt_tcp_listener_close_multiple_times()
     rt_arena_destroy(arena);
 }
 
-void test_rt_tcp_listener_close_releases_port()
+static void test_rt_tcp_listener_close_releases_port(void)
 {
-    printf("Testing rt_tcp_listener_close releases port for reuse...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -492,9 +476,8 @@ void test_rt_tcp_listener_close_releases_port()
  * Tests for rt_tcp_stream_connect() - connecting to a server.
  * ============================================================================ */
 
-void test_rt_tcp_stream_connect_basic()
+static void test_rt_tcp_stream_connect_basic(void)
 {
-    printf("Testing rt_tcp_stream_connect basic...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -530,9 +513,8 @@ void test_rt_tcp_stream_connect_basic()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_connect_has_valid_fd()
+static void test_rt_tcp_stream_connect_has_valid_fd(void)
 {
-    printf("Testing rt_tcp_stream_connect returns stream with valid fd...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -583,9 +565,8 @@ void test_rt_tcp_stream_connect_has_valid_fd()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_connect_has_remote_address()
+static void test_rt_tcp_stream_connect_has_remote_address(void)
 {
-    printf("Testing rt_tcp_stream_connect returns stream with remote address...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -645,9 +626,8 @@ void test_rt_tcp_stream_connect_has_remote_address()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_connect_localhost_hostname()
+static void test_rt_tcp_stream_connect_localhost_hostname(void)
 {
-    printf("Testing rt_tcp_stream_connect with localhost hostname...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -704,9 +684,8 @@ void test_rt_tcp_stream_connect_localhost_hostname()
  * Tests for rt_tcp_stream_close() behavior.
  * ============================================================================ */
 
-void test_rt_tcp_stream_close_basic()
+static void test_rt_tcp_stream_close_basic(void)
 {
-    printf("Testing rt_tcp_stream_close basic...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -763,9 +742,8 @@ void test_rt_tcp_stream_close_basic()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_close_multiple_times()
+static void test_rt_tcp_stream_close_multiple_times(void)
 {
-    printf("Testing rt_tcp_stream_close multiple times is safe...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -845,9 +823,8 @@ static void *accept_thread_helper(void *arg)
     return NULL;
 }
 
-void test_rt_tcp_stream_write_basic()
+static void test_rt_tcp_stream_write_basic(void)
 {
-    printf("Testing rt_tcp_stream_write basic...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -895,9 +872,8 @@ void test_rt_tcp_stream_write_basic()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_read_basic()
+static void test_rt_tcp_stream_read_basic(void)
 {
-    printf("Testing rt_tcp_stream_read basic...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -954,9 +930,8 @@ void test_rt_tcp_stream_read_basic()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_read_all()
+static void test_rt_tcp_stream_read_all(void)
 {
-    printf("Testing rt_tcp_stream_read_all...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -1016,9 +991,8 @@ void test_rt_tcp_stream_read_all()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_read_line()
+static void test_rt_tcp_stream_read_line(void)
 {
-    printf("Testing rt_tcp_stream_read_line...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -1068,9 +1042,8 @@ void test_rt_tcp_stream_read_line()
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_write_line()
+static void test_rt_tcp_stream_write_line(void)
 {
-    printf("Testing rt_tcp_stream_write_line...\n");
 
     RtArena *server_arena = rt_arena_create(NULL);
     RtArena *client_arena = rt_arena_create(NULL);
@@ -1258,7 +1231,6 @@ static void test_rt_udp_socket_close_releases_port()
 /* Test basic send_to and receive_from with localhost */
 static void test_rt_udp_socket_send_receive_basic()
 {
-    printf("Testing rt_udp_socket_send_to and receive_from basic...\n");
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create receiver socket */
@@ -1312,7 +1284,6 @@ static void test_rt_udp_socket_send_receive_basic()
 /* Test that sender address is correctly returned from receive_from */
 static void test_rt_udp_socket_receive_from_sender_address()
 {
-    printf("Testing rt_udp_socket_receive_from sender address...\n");
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create receiver socket */
@@ -1360,7 +1331,6 @@ static void test_rt_udp_socket_receive_from_sender_address()
 /* Test data integrity - sent data matches received data */
 static void test_rt_udp_socket_data_integrity()
 {
-    printf("Testing rt_udp_socket data integrity...\n");
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create receiver and sender */
@@ -1400,7 +1370,6 @@ static void test_rt_udp_socket_data_integrity()
 /* Test sending multiple datagrams */
 static void test_rt_udp_socket_multiple_datagrams()
 {
-    printf("Testing rt_udp_socket multiple datagrams...\n");
     RtArena *arena = rt_arena_create(NULL);
 
     RtUdpSocket *receiver = rt_udp_socket_bind(arena, "127.0.0.1:0");
@@ -1450,7 +1419,6 @@ static void test_rt_udp_socket_multiple_datagrams()
 /* Test sending empty datagram */
 static void test_rt_udp_socket_empty_datagram()
 {
-    printf("Testing rt_udp_socket empty datagram...\n");
     RtArena *arena = rt_arena_create(NULL);
 
     RtUdpSocket *receiver = rt_udp_socket_bind(arena, "127.0.0.1:0");
@@ -1587,55 +1555,46 @@ static void try_bind_empty_port(void)
 
 static void test_address_error_empty_string(void)
 {
-    printf("Testing address error: empty string...\n");
     assert(expect_exit_failure(try_bind_empty_address) == 1);
 }
 
 static void test_address_error_missing_port(void)
 {
-    printf("Testing address error: missing port...\n");
     assert(expect_exit_failure(try_bind_missing_port) == 1);
 }
 
 static void test_address_error_invalid_port_letters(void)
 {
-    printf("Testing address error: port with letters...\n");
     assert(expect_exit_failure(try_bind_invalid_port_letters) == 1);
 }
 
 static void test_address_error_port_too_high(void)
 {
-    printf("Testing address error: port > 65535...\n");
     assert(expect_exit_failure(try_bind_port_too_high) == 1);
 }
 
 static void test_address_error_port_negative(void)
 {
-    printf("Testing address error: negative port...\n");
     assert(expect_exit_failure(try_bind_port_negative) == 1);
 }
 
 static void test_address_error_ipv6_missing_bracket(void)
 {
-    printf("Testing address error: IPv6 missing closing bracket...\n");
     assert(expect_exit_failure(try_bind_ipv6_missing_bracket) == 1);
 }
 
 static void test_address_error_ipv6_missing_port(void)
 {
-    printf("Testing address error: IPv6 missing port after bracket...\n");
     assert(expect_exit_failure(try_bind_ipv6_missing_port) == 1);
 }
 
 static void test_address_error_ipv6_no_colon(void)
 {
-    printf("Testing address error: IPv6 no colon after bracket...\n");
     assert(expect_exit_failure(try_bind_ipv6_no_colon_after_bracket) == 1);
 }
 
 static void test_address_error_empty_port(void)
 {
-    printf("Testing address error: empty port after colon...\n");
     assert(expect_exit_failure(try_bind_empty_port) == 1);
 }
 
@@ -1657,13 +1616,11 @@ static void try_udp_bind_missing_port(void)
 
 static void test_udp_address_error_empty_string(void)
 {
-    printf("Testing UDP address error: empty string...\n");
     assert(expect_exit_failure(try_udp_bind_empty_address) == 1);
 }
 
 static void test_udp_address_error_missing_port(void)
 {
-    printf("Testing UDP address error: missing port...\n");
     assert(expect_exit_failure(try_udp_bind_missing_port) == 1);
 }
 
@@ -1671,80 +1628,82 @@ static void test_udp_address_error_missing_port(void)
  * Test Main Entry Point
  * ============================================================================ */
 
-void test_rt_net_main()
+void test_rt_net_main(void)
 {
+    TEST_SECTION("Network I/O");
+
     /* TcpListener bind tests - IPv4 */
-    test_rt_tcp_listener_bind_ipv4();
-    test_rt_tcp_listener_bind_port_only();
-    test_rt_tcp_listener_bind_os_assigned_port();
-    test_rt_tcp_listener_bind_multiple_listeners();
-    test_rt_tcp_listener_bind_localhost_alias();
-    test_rt_tcp_listener_close_idempotent();
-    test_rt_tcp_listener_port_range();
+    TEST_RUN("tcp_listener_bind_ipv4", test_rt_tcp_listener_bind_ipv4);
+    TEST_RUN("tcp_listener_bind_port_only", test_rt_tcp_listener_bind_port_only);
+    TEST_RUN("tcp_listener_bind_os_assigned_port", test_rt_tcp_listener_bind_os_assigned_port);
+    TEST_RUN("tcp_listener_bind_multiple_listeners", test_rt_tcp_listener_bind_multiple_listeners);
+    TEST_RUN("tcp_listener_bind_localhost_alias", test_rt_tcp_listener_bind_localhost_alias);
+    TEST_RUN("tcp_listener_close_idempotent", test_rt_tcp_listener_close_idempotent);
+    TEST_RUN("tcp_listener_port_range", test_rt_tcp_listener_port_range);
 
     /* TcpListener bind tests - IPv6 */
-    test_rt_tcp_listener_bind_ipv6();
-    test_rt_tcp_listener_bind_ipv6_specific_port();
+    TEST_RUN("tcp_listener_bind_ipv6", test_rt_tcp_listener_bind_ipv6);
+    TEST_RUN("tcp_listener_bind_ipv6_specific_port", test_rt_tcp_listener_bind_ipv6_specific_port);
 
     /* TcpListener bind tests - hostname */
-    test_rt_tcp_listener_bind_hostname();
-    test_rt_tcp_listener_bind_hostname_specific_port();
+    TEST_RUN("tcp_listener_bind_hostname", test_rt_tcp_listener_bind_hostname);
+    TEST_RUN("tcp_listener_bind_hostname_specific_port", test_rt_tcp_listener_bind_hostname_specific_port);
 
     /* TcpListener accept tests */
-    test_rt_tcp_listener_accept_basic();
-    test_rt_tcp_listener_accept_has_remote_address();
-    test_rt_tcp_listener_accept_multiple_connections();
+    TEST_RUN("tcp_listener_accept_basic", test_rt_tcp_listener_accept_basic);
+    TEST_RUN("tcp_listener_accept_has_remote_address", test_rt_tcp_listener_accept_has_remote_address);
+    TEST_RUN("tcp_listener_accept_multiple_connections", test_rt_tcp_listener_accept_multiple_connections);
 
     /* TcpListener close tests */
-    test_rt_tcp_listener_close_basic();
-    test_rt_tcp_listener_close_multiple_times();
-    test_rt_tcp_listener_close_releases_port();
+    TEST_RUN("tcp_listener_close_basic", test_rt_tcp_listener_close_basic);
+    TEST_RUN("tcp_listener_close_multiple_times", test_rt_tcp_listener_close_multiple_times);
+    TEST_RUN("tcp_listener_close_releases_port", test_rt_tcp_listener_close_releases_port);
 
     /* TcpStream connect tests */
-    test_rt_tcp_stream_connect_basic();
-    test_rt_tcp_stream_connect_has_valid_fd();
-    test_rt_tcp_stream_connect_has_remote_address();
-    test_rt_tcp_stream_connect_localhost_hostname();
+    TEST_RUN("tcp_stream_connect_basic", test_rt_tcp_stream_connect_basic);
+    TEST_RUN("tcp_stream_connect_has_valid_fd", test_rt_tcp_stream_connect_has_valid_fd);
+    TEST_RUN("tcp_stream_connect_has_remote_address", test_rt_tcp_stream_connect_has_remote_address);
+    TEST_RUN("tcp_stream_connect_localhost_hostname", test_rt_tcp_stream_connect_localhost_hostname);
 
     /* TcpStream close tests */
-    test_rt_tcp_stream_close_basic();
-    test_rt_tcp_stream_close_multiple_times();
+    TEST_RUN("tcp_stream_close_basic", test_rt_tcp_stream_close_basic);
+    TEST_RUN("tcp_stream_close_multiple_times", test_rt_tcp_stream_close_multiple_times);
 
     /* TcpStream read/write tests */
-    test_rt_tcp_stream_write_basic();
-    test_rt_tcp_stream_read_basic();
-    test_rt_tcp_stream_read_all();
-    test_rt_tcp_stream_read_line();
-    test_rt_tcp_stream_write_line();
+    TEST_RUN("tcp_stream_write_basic", test_rt_tcp_stream_write_basic);
+    TEST_RUN("tcp_stream_read_basic", test_rt_tcp_stream_read_basic);
+    TEST_RUN("tcp_stream_read_all", test_rt_tcp_stream_read_all);
+    TEST_RUN("tcp_stream_read_line", test_rt_tcp_stream_read_line);
+    TEST_RUN("tcp_stream_write_line", test_rt_tcp_stream_write_line);
 
     /* UdpSocket bind tests */
-    test_rt_udp_socket_bind_ipv4();
-    test_rt_udp_socket_bind_port_only();
-    test_rt_udp_socket_bind_os_assigned_port();
-    test_rt_udp_socket_bind_multiple();
+    TEST_RUN("udp_socket_bind_ipv4", test_rt_udp_socket_bind_ipv4);
+    TEST_RUN("udp_socket_bind_port_only", test_rt_udp_socket_bind_port_only);
+    TEST_RUN("udp_socket_bind_os_assigned_port", test_rt_udp_socket_bind_os_assigned_port);
+    TEST_RUN("udp_socket_bind_multiple", test_rt_udp_socket_bind_multiple);
 
     /* UdpSocket close tests */
-    test_rt_udp_socket_close_basic();
-    test_rt_udp_socket_close_multiple_times();
-    test_rt_udp_socket_close_releases_port();
+    TEST_RUN("udp_socket_close_basic", test_rt_udp_socket_close_basic);
+    TEST_RUN("udp_socket_close_multiple_times", test_rt_udp_socket_close_multiple_times);
+    TEST_RUN("udp_socket_close_releases_port", test_rt_udp_socket_close_releases_port);
 
     /* UdpSocket send/receive tests */
-    test_rt_udp_socket_send_receive_basic();
-    test_rt_udp_socket_receive_from_sender_address();
-    test_rt_udp_socket_data_integrity();
-    test_rt_udp_socket_multiple_datagrams();
-    test_rt_udp_socket_empty_datagram();
+    TEST_RUN("udp_socket_send_receive_basic", test_rt_udp_socket_send_receive_basic);
+    TEST_RUN("udp_socket_receive_from_sender_address", test_rt_udp_socket_receive_from_sender_address);
+    TEST_RUN("udp_socket_data_integrity", test_rt_udp_socket_data_integrity);
+    TEST_RUN("udp_socket_multiple_datagrams", test_rt_udp_socket_multiple_datagrams);
+    TEST_RUN("udp_socket_empty_datagram", test_rt_udp_socket_empty_datagram);
 
     /* Address parsing error tests (use fork to test exit behavior) */
-    test_address_error_empty_string();
-    test_address_error_missing_port();
-    test_address_error_invalid_port_letters();
-    test_address_error_port_too_high();
-    test_address_error_port_negative();
-    test_address_error_ipv6_missing_bracket();
-    test_address_error_ipv6_missing_port();
-    test_address_error_ipv6_no_colon();
-    test_address_error_empty_port();
-    test_udp_address_error_empty_string();
-    test_udp_address_error_missing_port();
+    TEST_RUN("address_error_empty_string", test_address_error_empty_string);
+    TEST_RUN("address_error_missing_port", test_address_error_missing_port);
+    TEST_RUN("address_error_invalid_port_letters", test_address_error_invalid_port_letters);
+    TEST_RUN("address_error_port_too_high", test_address_error_port_too_high);
+    TEST_RUN("address_error_port_negative", test_address_error_port_negative);
+    TEST_RUN("address_error_ipv6_missing_bracket", test_address_error_ipv6_missing_bracket);
+    TEST_RUN("address_error_ipv6_missing_port", test_address_error_ipv6_missing_port);
+    TEST_RUN("address_error_ipv6_no_colon", test_address_error_ipv6_no_colon);
+    TEST_RUN("address_error_empty_port", test_address_error_empty_port);
+    TEST_RUN("udp_address_error_empty_string", test_udp_address_error_empty_string);
+    TEST_RUN("udp_address_error_missing_port", test_udp_address_error_missing_port);
 }

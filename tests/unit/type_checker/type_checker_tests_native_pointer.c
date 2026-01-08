@@ -2,11 +2,11 @@
 // Tests for native function pointer variable handling, as val, and as ref
 // Note: setup_test_token helper is defined in type_checker_tests_native.c
 
+#include "../test_harness.h"
+
 /* Test that pointer variables are REJECTED in regular (non-native) functions */
 static void test_pointer_var_rejected_in_regular_function(void)
 {
-    printf("Testing pointer variable rejected in regular function...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -49,8 +49,6 @@ static void test_pointer_var_rejected_in_regular_function(void)
 /* Test that pointer variables are ACCEPTED in native functions */
 static void test_pointer_var_accepted_in_native_function(void)
 {
-    printf("Testing pointer variable accepted in native function...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -117,8 +115,6 @@ static Stmt *create_pointer_arithmetic_stmt(Arena *arena, Type *ptr_type, Type *
 /* Test that pointer arithmetic is REJECTED for all operators (+, -, *, /, %) */
 static void test_pointer_arithmetic_rejected(void)
 {
-    printf("Testing pointer arithmetic rejected for all operators...\n");
-
     /* Test each arithmetic operator */
     TokenType operators[] = {TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_MODULO};
     const char *op_names[] = {"+", "-", "*", "/", "%%"};
@@ -162,17 +158,12 @@ static void test_pointer_arithmetic_rejected(void)
         ast_module_add_statement(&arena, &module, func_decl);
 
         int no_error = type_check_module(&module, &table);
-        if (no_error != 0)
-        {
-            printf("FAIL: Pointer arithmetic with '%s' should be rejected but passed\n", op_names[i]);
-            assert(no_error == 0);
-        }
+        assert(no_error == 0);
 
         symbol_table_cleanup(&table);
         arena_free(&arena);
     }
 
-    printf("  All pointer arithmetic operators correctly rejected\n");
 }
 
 /* Test helper: create a comparison expression with two pointers */
@@ -216,8 +207,6 @@ static Stmt *create_pointer_comparison_stmt(Arena *arena, Type *ptr_type, TokenT
 /* Test that pointer equality (==, !=) with nil is ALLOWED */
 static void test_pointer_nil_comparison_allowed(void)
 {
-    printf("Testing pointer nil comparison (== and !=) allowed...\n");
-
     TokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
     const char *op_names[] = {"==", "!="};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
@@ -260,24 +249,17 @@ static void test_pointer_nil_comparison_allowed(void)
         ast_module_add_statement(&arena, &module, func_decl);
 
         int no_error = type_check_module(&module, &table);
-        if (no_error != 1)
-        {
-            printf("FAIL: Pointer nil comparison with '%s' should be allowed but failed\n", op_names[i]);
-            assert(no_error == 1);
-        }
+        assert(no_error == 1);
 
         symbol_table_cleanup(&table);
         arena_free(&arena);
     }
 
-    printf("  Pointer nil comparison correctly allowed\n");
 }
 
 /* Test that pointer-to-pointer equality (==, !=) is ALLOWED */
 static void test_pointer_pointer_comparison_allowed(void)
 {
-    printf("Testing pointer-to-pointer comparison (== and !=) allowed...\n");
-
     TokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
     const char *op_names[] = {"==", "!="};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
@@ -328,24 +310,17 @@ static void test_pointer_pointer_comparison_allowed(void)
         ast_module_add_statement(&arena, &module, func_decl);
 
         int no_error = type_check_module(&module, &table);
-        if (no_error != 1)
-        {
-            printf("FAIL: Pointer-to-pointer comparison with '%s' should be allowed but failed\n", op_names[i]);
-            assert(no_error == 1);
-        }
+        assert(no_error == 1);
 
         symbol_table_cleanup(&table);
         arena_free(&arena);
     }
 
-    printf("  Pointer-to-pointer comparison correctly allowed\n");
 }
 
 /* Test that inline pointer passing (e.g., use_ptr(get_ptr())) is allowed */
 static void test_inline_pointer_passing_allowed(void)
 {
-    printf("Testing inline pointer passing (use_ptr(get_ptr())) allowed...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -405,13 +380,7 @@ static void test_inline_pointer_passing_allowed(void)
     ast_module_add_statement(&arena, &module, main_func);
 
     int no_error = type_check_module(&module, &table);
-    if (no_error != 1)
-    {
-        printf("FAIL: Inline pointer passing use_ptr(get_ptr()) should be allowed\n");
-        assert(no_error == 1);
-    }
-
-    printf("  Inline pointer passing correctly allowed\n");
+    assert(no_error == 1);
 
     symbol_table_cleanup(&table);
     arena_free(&arena);
@@ -420,8 +389,6 @@ static void test_inline_pointer_passing_allowed(void)
 /* Test inline pointer passing with nil is allowed */
 static void test_inline_nil_passing_allowed(void)
 {
-    printf("Testing inline nil passing (use_ptr(nil)) allowed...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -475,13 +442,7 @@ static void test_inline_nil_passing_allowed(void)
     ast_module_add_statement(&arena, &module, main_func);
 
     int no_error = type_check_module(&module, &table);
-    if (no_error != 1)
-    {
-        printf("FAIL: Inline nil passing use_ptr(nil) should be allowed\n");
-        assert(no_error == 1);
-    }
-
-    printf("  Inline nil passing correctly allowed\n");
+    assert(no_error == 1);
 
     symbol_table_cleanup(&table);
     arena_free(&arena);
@@ -490,8 +451,6 @@ static void test_inline_nil_passing_allowed(void)
 /* Test that 'as val' correctly unwraps *int to int */
 static void test_as_val_unwraps_pointer_int(void)
 {
-    printf("Testing 'as val' unwraps *int to int...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -542,8 +501,6 @@ static void test_as_val_unwraps_pointer_int(void)
     assert(as_val_expr->expr_type != NULL);
     assert(as_val_expr->expr_type->kind == TYPE_INT);
 
-    printf("  '*int as val' correctly typed as int\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -551,8 +508,6 @@ static void test_as_val_unwraps_pointer_int(void)
 /* Test that 'as val' correctly unwraps *double to double */
 static void test_as_val_unwraps_pointer_double(void)
 {
-    printf("Testing 'as val' unwraps *double to double...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -603,8 +558,6 @@ static void test_as_val_unwraps_pointer_double(void)
     assert(as_val_expr->expr_type != NULL);
     assert(as_val_expr->expr_type->kind == TYPE_DOUBLE);
 
-    printf("  '*double as val' correctly typed as double\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -612,8 +565,6 @@ static void test_as_val_unwraps_pointer_double(void)
 /* Test that 'as val' rejects non-pointer operand (int as val should error) */
 static void test_as_val_rejects_non_pointer(void)
 {
-    printf("Testing 'as val' rejects non-pointer operand (int as val)...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -658,8 +609,6 @@ static void test_as_val_rejects_non_pointer(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL: int as val is not allowed */
 
-    printf("  'int as val' correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -667,8 +616,6 @@ static void test_as_val_rejects_non_pointer(void)
 /* Test that 'as val' correctly unwraps *float to float */
 static void test_as_val_unwraps_pointer_float(void)
 {
-    printf("Testing 'as val' unwraps *float to float...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -719,16 +666,13 @@ static void test_as_val_unwraps_pointer_float(void)
     assert(as_val_expr->expr_type != NULL);
     assert(as_val_expr->expr_type->kind == TYPE_FLOAT);
 
-    printf("  '*float as val' correctly typed as float\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test: *char as val converts to str (null-terminated string) */
-void test_as_val_char_pointer_to_str(void)
+static void test_as_val_char_pointer_to_str(void)
 {
-    printf("Testing: *char as val => str (null-terminated string)...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -781,16 +725,13 @@ void test_as_val_char_pointer_to_str(void)
     /* Verify the metadata flag is set */
     assert(as_val_expr->as.as_val.is_cstr_to_str == true);
 
-    printf("  '*char as val' correctly typed as str with is_cstr_to_str=true\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test: *int as val does NOT set is_cstr_to_str flag */
-void test_as_val_int_pointer_no_cstr_flag(void)
+static void test_as_val_int_pointer_no_cstr_flag(void)
 {
-    printf("Testing: *int as val does NOT set is_cstr_to_str...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -842,8 +783,6 @@ void test_as_val_int_pointer_no_cstr_flag(void)
     /* Verify the metadata flag is NOT set */
     assert(as_val_expr->as.as_val.is_cstr_to_str == false);
 
-    printf("  '*int as val' correctly typed as int with is_cstr_to_str=false\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -851,8 +790,6 @@ void test_as_val_int_pointer_no_cstr_flag(void)
 /* Test that pointer return from native fn WITHOUT 'as val' fails in regular function */
 static void test_pointer_return_without_as_val_fails_in_regular_fn(void)
 {
-    printf("Testing pointer return without 'as val' fails in regular function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -894,8 +831,6 @@ static void test_pointer_return_without_as_val_fails_in_regular_fn(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL: pointer return without as val in regular function */
 
-    printf("  Pointer return without 'as val' correctly rejected in regular function\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -903,8 +838,6 @@ static void test_pointer_return_without_as_val_fails_in_regular_fn(void)
 /* Test that pointer return from native fn WITH 'as val' succeeds in regular function */
 static void test_pointer_return_with_as_val_succeeds_in_regular_fn(void)
 {
-    printf("Testing pointer return with 'as val' succeeds in regular function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -949,8 +882,6 @@ static void test_pointer_return_with_as_val_succeeds_in_regular_fn(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should SUCCEED: pointer return with as val in regular function */
 
-    printf("  Pointer return with 'as val' correctly allowed in regular function\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -958,8 +889,6 @@ static void test_pointer_return_with_as_val_succeeds_in_regular_fn(void)
 /* Test that native functions can store pointer return values without 'as val' */
 static void test_native_fn_can_store_pointer_return(void)
 {
-    printf("Testing native function can store pointer return without 'as val'...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -1001,8 +930,6 @@ static void test_native_fn_can_store_pointer_return(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should SUCCEED: native function can store pointer returns */
 
-    printf("  Native function can correctly store pointer return values\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -1014,8 +941,6 @@ static void test_native_fn_can_store_pointer_return(void)
 /* Test that 'as ref' parameter on primitive types in native functions is valid */
 static void test_as_ref_primitive_param_in_native_fn(void)
 {
-    printf("Testing 'as ref' primitive parameter in native function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -1055,8 +980,6 @@ static void test_as_ref_primitive_param_in_native_fn(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass: as ref on int is valid */
 
-    printf("  'as ref' primitive parameters in native function correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -1064,8 +987,6 @@ static void test_as_ref_primitive_param_in_native_fn(void)
 /* Test that 'as ref' on array parameter (non-primitive) is rejected */
 static void test_as_ref_array_param_rejected(void)
 {
-    printf("Testing 'as ref' on array parameter is rejected...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -1100,8 +1021,6 @@ static void test_as_ref_array_param_rejected(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL: as ref only applies to primitives */
 
-    printf("  'as ref' on array parameter correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -1109,8 +1028,6 @@ static void test_as_ref_array_param_rejected(void)
 /* Test that calling a native function with 'as ref' params works with regular vars */
 static void test_as_ref_param_call_with_vars(void)
 {
-    printf("Testing call to native function with 'as ref' params...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -1184,8 +1101,6 @@ static void test_as_ref_param_call_with_vars(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  Calling native function with 'as ref' params correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -1196,34 +1111,25 @@ static void test_as_ref_param_call_with_vars(void)
 
 void test_type_checker_native_pointer_main(void)
 {
-    printf("\n=== Native Pointer Tests ===\n");
+    TEST_SECTION("Native Pointer");
 
-    /* Pointer variable tests */
-    test_pointer_var_rejected_in_regular_function();
-    test_pointer_var_accepted_in_native_function();
-    test_pointer_arithmetic_rejected();
-    test_pointer_nil_comparison_allowed();
-    test_pointer_pointer_comparison_allowed();
-    test_inline_pointer_passing_allowed();
-    test_inline_nil_passing_allowed();
-
-    /* as val tests */
-    test_as_val_unwraps_pointer_int();
-    test_as_val_unwraps_pointer_double();
-    test_as_val_unwraps_pointer_float();
-    test_as_val_rejects_non_pointer();
-    test_as_val_char_pointer_to_str();
-    test_as_val_int_pointer_no_cstr_flag();
-
-    /* Pointer return tests */
-    test_pointer_return_without_as_val_fails_in_regular_fn();
-    test_pointer_return_with_as_val_succeeds_in_regular_fn();
-    test_native_fn_can_store_pointer_return();
-
-    /* as ref tests */
-    test_as_ref_primitive_param_in_native_fn();
-    test_as_ref_array_param_rejected();
-    test_as_ref_param_call_with_vars();
-
-    printf("All native pointer tests passed!\n");
+    TEST_RUN("pointer_var_rejected_in_regular_function", test_pointer_var_rejected_in_regular_function);
+    TEST_RUN("pointer_var_accepted_in_native_function", test_pointer_var_accepted_in_native_function);
+    TEST_RUN("pointer_arithmetic_rejected", test_pointer_arithmetic_rejected);
+    TEST_RUN("pointer_nil_comparison_allowed", test_pointer_nil_comparison_allowed);
+    TEST_RUN("pointer_pointer_comparison_allowed", test_pointer_pointer_comparison_allowed);
+    TEST_RUN("inline_pointer_passing_allowed", test_inline_pointer_passing_allowed);
+    TEST_RUN("inline_nil_passing_allowed", test_inline_nil_passing_allowed);
+    TEST_RUN("as_val_unwraps_pointer_int", test_as_val_unwraps_pointer_int);
+    TEST_RUN("as_val_unwraps_pointer_double", test_as_val_unwraps_pointer_double);
+    TEST_RUN("as_val_unwraps_pointer_float", test_as_val_unwraps_pointer_float);
+    TEST_RUN("as_val_rejects_non_pointer", test_as_val_rejects_non_pointer);
+    TEST_RUN("as_val_char_pointer_to_str", test_as_val_char_pointer_to_str);
+    TEST_RUN("as_val_int_pointer_no_cstr_flag", test_as_val_int_pointer_no_cstr_flag);
+    TEST_RUN("pointer_return_without_as_val_fails_in_regular_fn", test_pointer_return_without_as_val_fails_in_regular_fn);
+    TEST_RUN("pointer_return_with_as_val_succeeds_in_regular_fn", test_pointer_return_with_as_val_succeeds_in_regular_fn);
+    TEST_RUN("native_fn_can_store_pointer_return", test_native_fn_can_store_pointer_return);
+    TEST_RUN("as_ref_primitive_param_in_native_fn", test_as_ref_primitive_param_in_native_fn);
+    TEST_RUN("as_ref_array_param_rejected", test_as_ref_array_param_rejected);
+    TEST_RUN("as_ref_param_call_with_vars", test_as_ref_param_call_with_vars);
 }

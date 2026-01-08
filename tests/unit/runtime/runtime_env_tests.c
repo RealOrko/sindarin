@@ -9,16 +9,15 @@
 #include "../../src/runtime/runtime_arena.h"
 #include "../../src/runtime/runtime_array.h"
 #include "../test_utils.h"
+#include "../test_harness.h"
 #include "../debug.h"
 
 /* ============================================================================
  * rt_env_get() Tests
  * ============================================================================ */
 
-void test_rt_env_get_existing_variable()
+static void test_rt_env_get_existing_variable(void)
 {
-    printf("Testing rt_env_get with existing variable...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Set a test variable */
@@ -33,10 +32,8 @@ void test_rt_env_get_existing_variable()
     rt_arena_destroy(arena);
 }
 
-void test_rt_env_get_missing_variable()
+static void test_rt_env_get_missing_variable(void)
 {
-    printf("Testing rt_env_get with missing variable...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *value = rt_env_get(arena, "NONEXISTENT_VAR_12345");
@@ -45,10 +42,8 @@ void test_rt_env_get_missing_variable()
     rt_arena_destroy(arena);
 }
 
-void test_rt_env_get_empty_value()
+static void test_rt_env_get_empty_value(void)
 {
-    printf("Testing rt_env_get with empty value...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Set a test variable with empty string */
@@ -67,10 +62,8 @@ void test_rt_env_get_empty_value()
  * rt_env_get_default() Tests
  * ============================================================================ */
 
-void test_rt_env_get_default_existing_variable()
+static void test_rt_env_get_default_existing_variable(void)
 {
-    printf("Testing rt_env_get_default with existing variable...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     rt_env_set("TEST_ENV_DEFAULT", "actual_value");
@@ -83,10 +76,8 @@ void test_rt_env_get_default_existing_variable()
     rt_arena_destroy(arena);
 }
 
-void test_rt_env_get_default_missing_variable()
+static void test_rt_env_get_default_missing_variable(void)
 {
-    printf("Testing rt_env_get_default with missing variable...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *value = rt_env_get_default(arena, "NONEXISTENT_VAR_67890", "default_value");
@@ -100,10 +91,8 @@ void test_rt_env_get_default_missing_variable()
  * rt_env_set() Tests
  * ============================================================================ */
 
-void test_rt_env_set_new_variable()
+static void test_rt_env_set_new_variable(void)
 {
-    printf("Testing rt_env_set with new variable...\n");
-
     int result = rt_env_set("TEST_SET_NEW", "new_value");
     TEST_ASSERT(result == 1, "rt_env_set should return 1 on success");
 
@@ -115,10 +104,8 @@ void test_rt_env_set_new_variable()
     rt_arena_destroy(arena);
 }
 
-void test_rt_env_set_overwrite_variable()
+static void test_rt_env_set_overwrite_variable(void)
 {
-    printf("Testing rt_env_set overwriting existing variable...\n");
-
     rt_env_set("TEST_SET_OVERWRITE", "original");
     rt_env_set("TEST_SET_OVERWRITE", "updated");
 
@@ -134,10 +121,8 @@ void test_rt_env_set_overwrite_variable()
  * rt_env_remove() Tests
  * ============================================================================ */
 
-void test_rt_env_remove_existing_variable()
+static void test_rt_env_remove_existing_variable(void)
 {
-    printf("Testing rt_env_remove with existing variable...\n");
-
     rt_env_set("TEST_REMOVE_EXISTS", "value");
 
     int result = rt_env_remove("TEST_REMOVE_EXISTS");
@@ -146,10 +131,8 @@ void test_rt_env_remove_existing_variable()
     TEST_ASSERT(rt_env_has("TEST_REMOVE_EXISTS") == 0, "Variable should be removed");
 }
 
-void test_rt_env_remove_missing_variable()
+static void test_rt_env_remove_missing_variable(void)
 {
-    printf("Testing rt_env_remove with missing variable...\n");
-
     int result = rt_env_remove("NONEXISTENT_VAR_REMOVE_99999");
     TEST_ASSERT(result == 0, "rt_env_remove should return 0 when variable didn't exist");
 }
@@ -158,10 +141,8 @@ void test_rt_env_remove_missing_variable()
  * rt_env_has() Tests
  * ============================================================================ */
 
-void test_rt_env_has_existing_variable()
+static void test_rt_env_has_existing_variable(void)
 {
-    printf("Testing rt_env_has with existing variable...\n");
-
     rt_env_set("TEST_HAS_EXISTS", "value");
 
     int result = rt_env_has("TEST_HAS_EXISTS");
@@ -170,10 +151,8 @@ void test_rt_env_has_existing_variable()
     rt_env_remove("TEST_HAS_EXISTS");
 }
 
-void test_rt_env_has_empty_variable()
+static void test_rt_env_has_empty_variable(void)
 {
-    printf("Testing rt_env_has with empty variable...\n");
-
     rt_env_set("TEST_HAS_EMPTY", "");
 
     int result = rt_env_has("TEST_HAS_EMPTY");
@@ -182,10 +161,8 @@ void test_rt_env_has_empty_variable()
     rt_env_remove("TEST_HAS_EMPTY");
 }
 
-void test_rt_env_has_missing_variable()
+static void test_rt_env_has_missing_variable(void)
 {
-    printf("Testing rt_env_has with missing variable...\n");
-
     int result = rt_env_has("NONEXISTENT_VAR_HAS_88888");
     TEST_ASSERT(result == 0, "rt_env_has should return 0 for missing variable");
 }
@@ -194,10 +171,8 @@ void test_rt_env_has_missing_variable()
  * rt_env_get_int() Tests
  * ============================================================================ */
 
-void test_rt_env_get_int_valid()
+static void test_rt_env_get_int_valid(void)
 {
-    printf("Testing rt_env_get_int with valid integer...\n");
-
     rt_env_set("TEST_INT", "42");
 
     int success;
@@ -208,10 +183,8 @@ void test_rt_env_get_int_valid()
     rt_env_remove("TEST_INT");
 }
 
-void test_rt_env_get_int_negative()
+static void test_rt_env_get_int_negative(void)
 {
-    printf("Testing rt_env_get_int with negative integer...\n");
-
     rt_env_set("TEST_INT_NEG", "-123");
 
     int success;
@@ -222,10 +195,8 @@ void test_rt_env_get_int_negative()
     rt_env_remove("TEST_INT_NEG");
 }
 
-void test_rt_env_get_int_invalid()
+static void test_rt_env_get_int_invalid(void)
 {
-    printf("Testing rt_env_get_int with invalid integer...\n");
-
     rt_env_set("TEST_INT_INVALID", "not_a_number");
 
     int success;
@@ -235,19 +206,15 @@ void test_rt_env_get_int_invalid()
     rt_env_remove("TEST_INT_INVALID");
 }
 
-void test_rt_env_get_int_missing()
+static void test_rt_env_get_int_missing(void)
 {
-    printf("Testing rt_env_get_int with missing variable...\n");
-
     int success;
     rt_env_get_int("NONEXISTENT_VAR_INT", &success);
     TEST_ASSERT(success == 0, "rt_env_get_int should fail for missing variable");
 }
 
-void test_rt_env_get_int_default()
+static void test_rt_env_get_int_default(void)
 {
-    printf("Testing rt_env_get_int_default...\n");
-
     /* Test with missing variable */
     long value = rt_env_get_int_default("NONEXISTENT_VAR_INT_DEFAULT", 100);
     TEST_ASSERT_EQ(value, 100, "rt_env_get_int_default should return default for missing variable");
@@ -264,10 +231,8 @@ void test_rt_env_get_int_default()
  * rt_env_get_long() Tests
  * ============================================================================ */
 
-void test_rt_env_get_long_valid()
+static void test_rt_env_get_long_valid(void)
 {
-    printf("Testing rt_env_get_long with valid long...\n");
-
     rt_env_set("TEST_LONG", "9223372036854775807");  /* LLONG_MAX */
 
     int success;
@@ -278,10 +243,8 @@ void test_rt_env_get_long_valid()
     rt_env_remove("TEST_LONG");
 }
 
-void test_rt_env_get_long_default()
+static void test_rt_env_get_long_default(void)
 {
-    printf("Testing rt_env_get_long_default...\n");
-
     long long value = rt_env_get_long_default("NONEXISTENT_VAR_LONG", 1234567890LL);
     TEST_ASSERT(value == 1234567890LL, "rt_env_get_long_default should return default");
 }
@@ -290,10 +253,8 @@ void test_rt_env_get_long_default()
  * rt_env_get_double() Tests
  * ============================================================================ */
 
-void test_rt_env_get_double_valid()
+static void test_rt_env_get_double_valid(void)
 {
-    printf("Testing rt_env_get_double with valid double...\n");
-
     rt_env_set("TEST_DOUBLE", "3.14159");
 
     int success;
@@ -304,10 +265,8 @@ void test_rt_env_get_double_valid()
     rt_env_remove("TEST_DOUBLE");
 }
 
-void test_rt_env_get_double_integer()
+static void test_rt_env_get_double_integer(void)
 {
-    printf("Testing rt_env_get_double with integer value...\n");
-
     rt_env_set("TEST_DOUBLE_INT", "42");
 
     int success;
@@ -318,10 +277,8 @@ void test_rt_env_get_double_integer()
     rt_env_remove("TEST_DOUBLE_INT");
 }
 
-void test_rt_env_get_double_default()
+static void test_rt_env_get_double_default(void)
 {
-    printf("Testing rt_env_get_double_default...\n");
-
     double value = rt_env_get_double_default("NONEXISTENT_VAR_DOUBLE", 2.71828);
     TEST_ASSERT(value > 2.71 && value < 2.72, "rt_env_get_double_default should return default");
 }
@@ -330,10 +287,8 @@ void test_rt_env_get_double_default()
  * rt_env_get_bool() Tests - Boolean Parsing
  * ============================================================================ */
 
-void test_rt_env_get_bool_true_values()
+static void test_rt_env_get_bool_true_values(void)
 {
-    printf("Testing rt_env_get_bool with truthy values...\n");
-
     const char *truthy[] = {"true", "TRUE", "True", "1", "yes", "YES", "on", "ON"};
 
     for (size_t i = 0; i < sizeof(truthy) / sizeof(truthy[0]); i++) {
@@ -345,22 +300,15 @@ void test_rt_env_get_bool_true_values()
         int success;
         int value = rt_env_get_bool(var_name, &success);
 
-        if (success != 1 || value != 1) {
-            printf("  FAILED for '%s'\n", truthy[i]);
-        }
         TEST_ASSERT(success == 1, "rt_env_get_bool should succeed for truthy value");
         TEST_ASSERT(value == 1, "rt_env_get_bool should return 1 for truthy value");
 
         rt_env_remove(var_name);
     }
-
-    printf("  All truthy values parsed correctly\n");
 }
 
-void test_rt_env_get_bool_false_values()
+static void test_rt_env_get_bool_false_values(void)
 {
-    printf("Testing rt_env_get_bool with falsy values...\n");
-
     const char *falsy[] = {"false", "FALSE", "False", "0", "no", "NO", "off", "OFF"};
 
     for (size_t i = 0; i < sizeof(falsy) / sizeof(falsy[0]); i++) {
@@ -372,22 +320,15 @@ void test_rt_env_get_bool_false_values()
         int success;
         int value = rt_env_get_bool(var_name, &success);
 
-        if (success != 1 || value != 0) {
-            printf("  FAILED for '%s'\n", falsy[i]);
-        }
         TEST_ASSERT(success == 1, "rt_env_get_bool should succeed for falsy value");
         TEST_ASSERT(value == 0, "rt_env_get_bool should return 0 for falsy value");
 
         rt_env_remove(var_name);
     }
-
-    printf("  All falsy values parsed correctly\n");
 }
 
-void test_rt_env_get_bool_invalid()
+static void test_rt_env_get_bool_invalid(void)
 {
-    printf("Testing rt_env_get_bool with invalid values...\n");
-
     const char *invalid[] = {"maybe", "2", "", "truthy", "faux"};
 
     for (size_t i = 0; i < sizeof(invalid) / sizeof(invalid[0]); i++) {
@@ -399,21 +340,14 @@ void test_rt_env_get_bool_invalid()
         int success;
         rt_env_get_bool(var_name, &success);
 
-        if (success != 0) {
-            printf("  FAILED for '%s' - should not parse as bool\n", invalid[i]);
-        }
         TEST_ASSERT(success == 0, "rt_env_get_bool should fail for invalid value");
 
         rt_env_remove(var_name);
     }
-
-    printf("  All invalid values rejected correctly\n");
 }
 
-void test_rt_env_get_bool_default()
+static void test_rt_env_get_bool_default(void)
 {
-    printf("Testing rt_env_get_bool_default...\n");
-
     /* Test with missing variable */
     int value = rt_env_get_bool_default("NONEXISTENT_VAR_BOOL", 1);
     TEST_ASSERT(value == 1, "rt_env_get_bool_default should return default for missing variable");
@@ -430,10 +364,8 @@ void test_rt_env_get_bool_default()
  * rt_env_list() Tests
  * ============================================================================ */
 
-void test_rt_env_list_basic()
+static void test_rt_env_list_basic(void)
 {
-    printf("Testing rt_env_list basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Set some test variables */
@@ -475,10 +407,8 @@ void test_rt_env_list_basic()
  * rt_env_names() Tests
  * ============================================================================ */
 
-void test_rt_env_names_basic()
+static void test_rt_env_names_basic(void)
 {
-    printf("Testing rt_env_names basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Set a test variable */
@@ -510,59 +440,57 @@ void test_rt_env_names_basic()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_env_main()
+void test_rt_env_main(void)
 {
-    printf("\n=== Runtime Environment Tests ===\n\n");
+    TEST_SECTION("Runtime Environment");
 
     /* rt_env_get tests */
-    test_rt_env_get_existing_variable();
-    test_rt_env_get_missing_variable();
-    test_rt_env_get_empty_value();
+    TEST_RUN("get_existing_variable", test_rt_env_get_existing_variable);
+    TEST_RUN("get_missing_variable", test_rt_env_get_missing_variable);
+    TEST_RUN("get_empty_value", test_rt_env_get_empty_value);
 
     /* rt_env_get_default tests */
-    test_rt_env_get_default_existing_variable();
-    test_rt_env_get_default_missing_variable();
+    TEST_RUN("get_default_existing_variable", test_rt_env_get_default_existing_variable);
+    TEST_RUN("get_default_missing_variable", test_rt_env_get_default_missing_variable);
 
     /* rt_env_set tests */
-    test_rt_env_set_new_variable();
-    test_rt_env_set_overwrite_variable();
+    TEST_RUN("set_new_variable", test_rt_env_set_new_variable);
+    TEST_RUN("set_overwrite_variable", test_rt_env_set_overwrite_variable);
 
     /* rt_env_remove tests */
-    test_rt_env_remove_existing_variable();
-    test_rt_env_remove_missing_variable();
+    TEST_RUN("remove_existing_variable", test_rt_env_remove_existing_variable);
+    TEST_RUN("remove_missing_variable", test_rt_env_remove_missing_variable);
 
     /* rt_env_has tests */
-    test_rt_env_has_existing_variable();
-    test_rt_env_has_empty_variable();
-    test_rt_env_has_missing_variable();
+    TEST_RUN("has_existing_variable", test_rt_env_has_existing_variable);
+    TEST_RUN("has_empty_variable", test_rt_env_has_empty_variable);
+    TEST_RUN("has_missing_variable", test_rt_env_has_missing_variable);
 
     /* rt_env_get_int tests */
-    test_rt_env_get_int_valid();
-    test_rt_env_get_int_negative();
-    test_rt_env_get_int_invalid();
-    test_rt_env_get_int_missing();
-    test_rt_env_get_int_default();
+    TEST_RUN("get_int_valid", test_rt_env_get_int_valid);
+    TEST_RUN("get_int_negative", test_rt_env_get_int_negative);
+    TEST_RUN("get_int_invalid", test_rt_env_get_int_invalid);
+    TEST_RUN("get_int_missing", test_rt_env_get_int_missing);
+    TEST_RUN("get_int_default", test_rt_env_get_int_default);
 
     /* rt_env_get_long tests */
-    test_rt_env_get_long_valid();
-    test_rt_env_get_long_default();
+    TEST_RUN("get_long_valid", test_rt_env_get_long_valid);
+    TEST_RUN("get_long_default", test_rt_env_get_long_default);
 
     /* rt_env_get_double tests */
-    test_rt_env_get_double_valid();
-    test_rt_env_get_double_integer();
-    test_rt_env_get_double_default();
+    TEST_RUN("get_double_valid", test_rt_env_get_double_valid);
+    TEST_RUN("get_double_integer", test_rt_env_get_double_integer);
+    TEST_RUN("get_double_default", test_rt_env_get_double_default);
 
     /* rt_env_get_bool tests - comprehensive boolean parsing */
-    test_rt_env_get_bool_true_values();
-    test_rt_env_get_bool_false_values();
-    test_rt_env_get_bool_invalid();
-    test_rt_env_get_bool_default();
+    TEST_RUN("get_bool_true_values", test_rt_env_get_bool_true_values);
+    TEST_RUN("get_bool_false_values", test_rt_env_get_bool_false_values);
+    TEST_RUN("get_bool_invalid", test_rt_env_get_bool_invalid);
+    TEST_RUN("get_bool_default", test_rt_env_get_bool_default);
 
     /* rt_env_list tests */
-    test_rt_env_list_basic();
+    TEST_RUN("list_basic", test_rt_env_list_basic);
 
     /* rt_env_names tests */
-    test_rt_env_names_basic();
-
-    printf("\n=== All Runtime Environment Tests Passed ===\n\n");
+    TEST_RUN("names_basic", test_rt_env_names_basic);
 }

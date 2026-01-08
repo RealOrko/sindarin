@@ -6,15 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Date Arithmetic Tests - add_days
  * ============================================================================ */
 
-void test_rt_date_add_days_positive()
+static void test_rt_date_add_days_positive(void)
 {
-    printf("Testing rt_date_add_days with positive values (future dates)...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Add 1 day - tomorrow */
@@ -55,10 +54,8 @@ void test_rt_date_add_days_positive()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_days_negative()
+static void test_rt_date_add_days_negative(void)
 {
-    printf("Testing rt_date_add_days with negative values (past dates)...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Subtract 1 day - yesterday */
@@ -99,10 +96,8 @@ void test_rt_date_add_days_negative()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_days_zero()
+static void test_rt_date_add_days_zero(void)
 {
-    printf("Testing rt_date_add_days with zero (same date)...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Add 0 days - should return same date */
@@ -126,10 +121,8 @@ void test_rt_date_add_days_zero()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_days_null_handling()
+static void test_rt_date_add_days_null_handling(void)
 {
-    printf("Testing rt_date_add_days with NULL handling...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -144,10 +137,8 @@ void test_rt_date_add_days_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_days_leap_year()
+static void test_rt_date_add_days_leap_year(void)
 {
-    printf("Testing rt_date_add_days with leap year handling...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Adding through Feb 29 in leap year */
@@ -178,10 +169,8 @@ void test_rt_date_add_days_leap_year()
  * Date Arithmetic Tests - add_weeks
  * ============================================================================ */
 
-void test_rt_date_add_weeks_positive()
+static void test_rt_date_add_weeks_positive(void)
 {
-    printf("Testing rt_date_add_weeks with positive values...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Add 1 week = 7 days */
@@ -214,10 +203,8 @@ void test_rt_date_add_weeks_positive()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_weeks_negative()
+static void test_rt_date_add_weeks_negative(void)
 {
-    printf("Testing rt_date_add_weeks with negative values...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Subtract 2 weeks = 14 days */
@@ -251,10 +238,8 @@ void test_rt_date_add_weeks_negative()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_weeks_zero()
+static void test_rt_date_add_weeks_zero(void)
 {
-    printf("Testing rt_date_add_weeks with zero...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Add 0 weeks = same date */
@@ -275,10 +260,8 @@ void test_rt_date_add_weeks_zero()
  * Date Arithmetic Tests - diff_days
  * ============================================================================ */
 
-void test_rt_date_diff_days_positive()
+static void test_rt_date_diff_days_positive(void)
 {
-    printf("Testing rt_date_diff_days with future.diffDays(past) > 0...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* future.diffDays(past) should be positive */
@@ -315,10 +298,8 @@ void test_rt_date_diff_days_positive()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_diff_days_negative()
+static void test_rt_date_diff_days_negative(void)
 {
-    printf("Testing rt_date_diff_days with past.diffDays(future) < 0...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* past.diffDays(future) should be negative */
@@ -349,10 +330,8 @@ void test_rt_date_diff_days_negative()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_diff_days_zero()
+static void test_rt_date_diff_days_zero(void)
 {
-    printf("Testing rt_date_diff_days with same.diffDays(same) == 0...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* same.diffDays(same) should be zero */
@@ -374,10 +353,8 @@ void test_rt_date_diff_days_zero()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_diff_days_null_handling()
+static void test_rt_date_diff_days_null_handling(void)
 {
-    printf("Testing rt_date_diff_days with NULL handling...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -400,27 +377,25 @@ void test_rt_date_diff_days_null_handling()
  * Main entry point for arithmetic tests
  * ============================================================================ */
 
-void test_rt_date_arithmetic_main()
+void test_rt_date_arithmetic_main(void)
 {
-    printf("\n=== Date Arithmetic Tests ===\n");
+    TEST_SECTION("Date Arithmetic");
 
     /* add_days tests */
-    test_rt_date_add_days_positive();
-    test_rt_date_add_days_negative();
-    test_rt_date_add_days_zero();
-    test_rt_date_add_days_null_handling();
-    test_rt_date_add_days_leap_year();
+    TEST_RUN("date_add_days_positive", test_rt_date_add_days_positive);
+    TEST_RUN("date_add_days_negative", test_rt_date_add_days_negative);
+    TEST_RUN("date_add_days_zero", test_rt_date_add_days_zero);
+    TEST_RUN("date_add_days_null_handling", test_rt_date_add_days_null_handling);
+    TEST_RUN("date_add_days_leap_year", test_rt_date_add_days_leap_year);
 
     /* add_weeks tests */
-    test_rt_date_add_weeks_positive();
-    test_rt_date_add_weeks_negative();
-    test_rt_date_add_weeks_zero();
+    TEST_RUN("date_add_weeks_positive", test_rt_date_add_weeks_positive);
+    TEST_RUN("date_add_weeks_negative", test_rt_date_add_weeks_negative);
+    TEST_RUN("date_add_weeks_zero", test_rt_date_add_weeks_zero);
 
     /* diff_days tests */
-    test_rt_date_diff_days_positive();
-    test_rt_date_diff_days_negative();
-    test_rt_date_diff_days_zero();
-    test_rt_date_diff_days_null_handling();
-
-    printf("All Date arithmetic tests passed!\n");
+    TEST_RUN("date_diff_days_positive", test_rt_date_diff_days_positive);
+    TEST_RUN("date_diff_days_negative", test_rt_date_diff_days_negative);
+    TEST_RUN("date_diff_days_zero", test_rt_date_diff_days_zero);
+    TEST_RUN("date_diff_days_null_handling", test_rt_date_diff_days_null_handling);
 }

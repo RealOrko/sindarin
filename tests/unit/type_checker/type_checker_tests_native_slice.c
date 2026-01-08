@@ -2,11 +2,11 @@
 // Tests for pointer slicing and array slicing in native functions
 // Note: setup_test_token helper is defined in type_checker_tests_native.c
 
+#include "../test_harness.h"
+
 /* Test that pointer slice *byte[0..10] produces byte[] */
 static void test_pointer_slice_byte_to_byte_array(void)
 {
-    printf("Testing pointer slice *byte[0..10] => byte[]...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -73,8 +73,6 @@ static void test_pointer_slice_byte_to_byte_array(void)
     assert(slice_expr->expr_type->kind == TYPE_ARRAY);
     assert(slice_expr->expr_type->as.array.element_type->kind == TYPE_BYTE);
 
-    printf("  '*byte[0..10]' correctly typed as byte[]\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -82,8 +80,6 @@ static void test_pointer_slice_byte_to_byte_array(void)
 /* Test that pointer slice *int[0..5] produces int[] */
 static void test_pointer_slice_int_to_int_array(void)
 {
-    printf("Testing pointer slice *int[0..5] => int[]...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -149,8 +145,6 @@ static void test_pointer_slice_int_to_int_array(void)
     assert(slice_expr->expr_type->kind == TYPE_ARRAY);
     assert(slice_expr->expr_type->as.array.element_type->kind == TYPE_INT);
 
-    printf("  '*int[0..5]' correctly typed as int[]\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -158,8 +152,6 @@ static void test_pointer_slice_int_to_int_array(void)
 /* Test that slicing a non-array, non-pointer type fails (e.g., int[0..5]) */
 static void test_slice_non_array_non_pointer_fails(void)
 {
-    printf("Testing slice on non-array, non-pointer type fails (int[0..5])...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -218,8 +210,6 @@ static void test_slice_non_array_non_pointer_fails(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL: cannot slice int */
 
-    printf("  Slice on int correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -227,8 +217,6 @@ static void test_slice_non_array_non_pointer_fails(void)
 /* Test that array slicing still works correctly (regression test) */
 static void test_array_slice_still_works(void)
 {
-    printf("Testing array slice still works (regression test)...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -304,8 +292,6 @@ static void test_array_slice_still_works(void)
     assert(slice_expr->expr_type->kind == TYPE_ARRAY);
     assert(slice_expr->expr_type->as.array.element_type->kind == TYPE_INT);
 
-    printf("  Array slice still correctly typed as int[]\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -313,8 +299,6 @@ static void test_array_slice_still_works(void)
 /* Test that as_val context tracking functions work */
 static void test_as_val_context_tracking(void)
 {
-    printf("Testing as_val context tracking...\n");
-
     /* Default: not active */
     assert(as_val_context_is_active() == false);
 
@@ -334,14 +318,11 @@ static void test_as_val_context_tracking(void)
     as_val_context_exit();
     assert(as_val_context_is_active() == false);
 
-    printf("  as_val context tracking works correctly\n");
 }
 
 /* Test that pointer slice with 'as val' works in regular function */
 static void test_pointer_slice_with_as_val_in_regular_fn(void)
 {
-    printf("Testing pointer slice with 'as val' in regular function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -418,8 +399,6 @@ static void test_pointer_slice_with_as_val_in_regular_fn(void)
     /* Verify is_from_pointer is true on the inner slice expression */
     assert(slice_expr->as.array_slice.is_from_pointer == true);
 
-    printf("  Pointer slice with 'as val' correctly allowed in regular function\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -427,8 +406,6 @@ static void test_pointer_slice_with_as_val_in_regular_fn(void)
 /* Test that pointer slice WITHOUT 'as val' fails in regular function */
 static void test_pointer_slice_without_as_val_in_regular_fn_fails(void)
 {
-    printf("Testing pointer slice without 'as val' fails in regular function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -488,8 +465,6 @@ static void test_pointer_slice_without_as_val_in_regular_fn_fails(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL: ptr[0..10] without as val not allowed in regular fn */
 
-    printf("  Pointer slice without 'as val' correctly rejected in regular function\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -497,8 +472,6 @@ static void test_pointer_slice_without_as_val_in_regular_fn_fails(void)
 /* Test that 'as val' on array types works (no-op) */
 static void test_as_val_on_array_type_is_noop(void)
 {
-    printf("Testing 'as val' on array type is no-op...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -563,8 +536,6 @@ static void test_as_val_on_array_type_is_noop(void)
     assert(as_val_expr->expr_type->kind == TYPE_ARRAY);
     assert(as_val_expr->expr_type->as.array.element_type->kind == TYPE_INT);
 
-    printf("  'as val' on array type correctly returns same array type\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -572,8 +543,6 @@ static void test_as_val_on_array_type_is_noop(void)
 /* Test that get_buffer()[0..len] as val correctly infers byte[] from *byte */
 static void test_get_buffer_slice_as_val_type_inference(void)
 {
-    printf("Testing 'get_buffer()[0..len] as val' type inference...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -665,8 +634,6 @@ static void test_get_buffer_slice_as_val_type_inference(void)
     assert(as_val_expr->expr_type->kind == TYPE_ARRAY);
     assert(as_val_expr->expr_type->as.array.element_type->kind == TYPE_BYTE);
 
-    printf("  'get_buffer()[0..len] as val' correctly infers byte[]\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -674,8 +641,6 @@ static void test_get_buffer_slice_as_val_type_inference(void)
 /* Test that slicing a non-pointer/non-array type produces error */
 static void test_slice_invalid_type_error(void)
 {
-    printf("Testing slice of invalid type produces error...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -741,8 +706,6 @@ static void test_slice_invalid_type_error(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL: cannot slice an int */
 
-    printf("  Slicing invalid type (int) correctly produces error\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -750,8 +713,6 @@ static void test_slice_invalid_type_error(void)
 /* Test that *int slice produces int[] */
 static void test_int_pointer_slice_as_val_type_inference(void)
 {
-    printf("Testing '*int slice as val' produces int[]...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -830,8 +791,6 @@ static void test_int_pointer_slice_as_val_type_inference(void)
     assert(as_val_expr->expr_type->kind == TYPE_ARRAY);
     assert(as_val_expr->expr_type->as.array.element_type->kind == TYPE_INT);
 
-    printf("  '*int slice as val' correctly infers int[]\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -839,8 +798,6 @@ static void test_int_pointer_slice_as_val_type_inference(void)
 /* Test that pointer slice with step parameter is rejected */
 static void test_pointer_slice_with_step_fails(void)
 {
-    printf("Testing pointer slice with step parameter fails...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -911,8 +868,6 @@ static void test_pointer_slice_with_step_fails(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL: ptr[0..10:2] with step not allowed */
 
-    printf("  Pointer slice with step parameter correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -923,24 +878,18 @@ static void test_pointer_slice_with_step_fails(void)
 
 void test_type_checker_native_slice_main(void)
 {
-    printf("\n=== Native Slice Tests ===\n");
+    TEST_SECTION("Native Slice");
 
-    // Pointer slice tests
-    test_pointer_slice_byte_to_byte_array();
-    test_pointer_slice_int_to_int_array();
-    test_slice_non_array_non_pointer_fails();
-    test_array_slice_still_works();
-    // Pointer slice with 'as val' tests
-    test_as_val_context_tracking();
-    test_pointer_slice_with_as_val_in_regular_fn();
-    test_pointer_slice_without_as_val_in_regular_fn_fails();
-    test_as_val_on_array_type_is_noop();
-    // Type inference tests for pointer slice with 'as val'
-    test_get_buffer_slice_as_val_type_inference();
-    test_slice_invalid_type_error();
-    test_int_pointer_slice_as_val_type_inference();
-    // Edge case tests for pointer slicing
-    test_pointer_slice_with_step_fails();
-
-    printf("All native slice tests passed!\n");
+    TEST_RUN("pointer_slice_byte_to_byte_array", test_pointer_slice_byte_to_byte_array);
+    TEST_RUN("pointer_slice_int_to_int_array", test_pointer_slice_int_to_int_array);
+    TEST_RUN("slice_non_array_non_pointer_fails", test_slice_non_array_non_pointer_fails);
+    TEST_RUN("array_slice_still_works", test_array_slice_still_works);
+    TEST_RUN("as_val_context_tracking", test_as_val_context_tracking);
+    TEST_RUN("pointer_slice_with_as_val_in_regular_fn", test_pointer_slice_with_as_val_in_regular_fn);
+    TEST_RUN("pointer_slice_without_as_val_in_regular_fn_fails", test_pointer_slice_without_as_val_in_regular_fn_fails);
+    TEST_RUN("as_val_on_array_type_is_noop", test_as_val_on_array_type_is_noop);
+    TEST_RUN("get_buffer_slice_as_val_type_inference", test_get_buffer_slice_as_val_type_inference);
+    TEST_RUN("slice_invalid_type_error", test_slice_invalid_type_error);
+    TEST_RUN("int_pointer_slice_as_val_type_inference", test_int_pointer_slice_as_val_type_inference);
+    TEST_RUN("pointer_slice_with_step_fails", test_pointer_slice_with_step_fails);
 }

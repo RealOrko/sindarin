@@ -9,6 +9,7 @@
 #include "../debug.h"
 #include "../symbol_table.h"
 #include "../ast.h"
+#include "../test_harness.h"
 
 // Helper macros and constants
 #define TEST_ARENA_SIZE 4096
@@ -26,10 +27,9 @@ static Type *create_string_type(Arena *arena) {
 }
 
 // Test initialization with NULL
-void test_symbol_table_init_null_arena() {
+static void test_symbol_table_init_null_arena(void) {
     DEBUG_INFO("Starting test_symbol_table_init_null_arena");
-    printf("Testing symbol_table_init with NULL arena...\n");
-
+    
     SymbolTable table = {0};  // Zero-initialize to check it stays zeroed
     symbol_table_init(NULL, &table);
     // Should not crash, and table remains zeroed since arena is NULL
@@ -41,10 +41,9 @@ void test_symbol_table_init_null_arena() {
 }
 
 // Test initialization and basic global scope
-void test_symbol_table_init_basic() {
+static void test_symbol_table_init_basic(void) {
     DEBUG_INFO("Starting test_symbol_table_init_basic");
-    printf("Testing symbol_table_init basic...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -67,10 +66,9 @@ void test_symbol_table_init_basic() {
 }
 
 // Test cleanup on empty table
-void test_symbol_table_cleanup_empty() {
+static void test_symbol_table_cleanup_empty(void) {
     DEBUG_INFO("Starting test_symbol_table_cleanup_empty");
-    printf("Testing symbol_table_cleanup on empty table...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -82,10 +80,9 @@ void test_symbol_table_cleanup_empty() {
 }
 
 // Test pushing a single scope
-void test_symbol_table_push_scope_single() {
+static void test_symbol_table_push_scope_single(void) {
     DEBUG_INFO("Starting test_symbol_table_push_scope_single");
-    printf("Testing symbol_table_push_scope single...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -107,10 +104,9 @@ void test_symbol_table_push_scope_single() {
 }
 
 // Test pushing multiple scopes and nesting
-void test_symbol_table_push_scope_nested() {
+static void test_symbol_table_push_scope_nested(void) {
     DEBUG_INFO("Starting test_symbol_table_push_scope_nested");
-    printf("Testing symbol_table_push_scope nested...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -134,10 +130,9 @@ void test_symbol_table_push_scope_nested() {
 }
 
 // Test scope expansion (when capacity exceeded)
-void test_symbol_table_push_scope_expand() {
+static void test_symbol_table_push_scope_expand(void) {
     DEBUG_INFO("Starting test_symbol_table_push_scope_expand");
-    printf("Testing symbol_table_push_scope with array expansion...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE * 2);  // Larger for multiple reallocs
     SymbolTable table;
@@ -163,10 +158,9 @@ void test_symbol_table_push_scope_expand() {
 }
 
 // Test popping beyond global (should do nothing)
-void test_symbol_table_pop_scope_beyond_global() {
+static void test_symbol_table_pop_scope_beyond_global(void) {
     DEBUG_INFO("Starting test_symbol_table_pop_scope_beyond_global");
-    printf("Testing symbol_table_pop_scope beyond global...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -188,10 +182,9 @@ void test_symbol_table_pop_scope_beyond_global() {
 }
 
 // Test offset propagation on pop (max of child and parent)
-void test_symbol_table_pop_scope_offset_propagation() {
+static void test_symbol_table_pop_scope_offset_propagation(void) {
     DEBUG_INFO("Starting test_symbol_table_pop_scope_offset_propagation");
-    printf("Testing symbol_table_pop_scope offset propagation...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -221,10 +214,9 @@ void test_symbol_table_pop_scope_offset_propagation() {
 }
 
 // Test begin_function_scope (push + reset offsets)
-void test_symbol_table_begin_function_scope() {
+static void test_symbol_table_begin_function_scope(void) {
     DEBUG_INFO("Starting test_symbol_table_begin_function_scope");
-    printf("Testing symbol_table_begin_function_scope...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -250,10 +242,9 @@ void test_symbol_table_begin_function_scope() {
 }
 
 // Test adding local symbol basic
-void test_symbol_table_add_symbol_local_basic() {
+static void test_symbol_table_add_symbol_local_basic(void) {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_local_basic");
-    printf("Testing symbol_table_add_symbol local basic...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -281,10 +272,9 @@ void test_symbol_table_add_symbol_local_basic() {
     DEBUG_INFO("Finished test_symbol_table_add_symbol_local_basic");
 }
 
-void test_symbol_table_add_symbol_param() {
+static void test_symbol_table_add_symbol_param(void) {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_param");
-    printf("Testing symbol_table_add_symbol_with_kind param...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -315,10 +305,9 @@ void test_symbol_table_add_symbol_param() {
 }
 
 // Test adding global (kind default, offset 0)
-void test_symbol_table_add_symbol_global() {
+static void test_symbol_table_add_symbol_global(void) {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_global");
-    printf("Testing symbol_table_add_symbol global (offset 0)...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -340,10 +329,9 @@ void test_symbol_table_add_symbol_global() {
 }
 
 // Test adding in no current scope (should error, do nothing)
-void test_symbol_table_add_symbol_no_scope() {
+static void test_symbol_table_add_symbol_no_scope(void) {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_no_scope");
-    printf("Testing symbol_table_add_symbol with no current scope...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table = {0};  // Uninitialized, current NULL
@@ -360,10 +348,9 @@ void test_symbol_table_add_symbol_no_scope() {
 }
 
 // Test lookup current scope basic
-void test_symbol_table_lookup_current_basic() {
+static void test_symbol_table_lookup_current_basic(void) {
     DEBUG_INFO("Starting test_symbol_table_lookup_current_basic");
-    printf("Testing symbol_table_lookup_symbol_current basic...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -389,10 +376,9 @@ void test_symbol_table_lookup_current_basic() {
 }
 
 // Test lookup all scopes (enclosing)
-void test_symbol_table_lookup_enclosing() {
+static void test_symbol_table_lookup_enclosing(void) {
     DEBUG_INFO("Starting test_symbol_table_lookup_enclosing");
-    printf("Testing symbol_table_lookup_symbol with enclosing scopes...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -425,10 +411,9 @@ void test_symbol_table_lookup_enclosing() {
 }
 
 // Test shadowing (inner hides outer)
-void test_symbol_table_lookup_shadowing() {
+static void test_symbol_table_lookup_shadowing(void) {
     DEBUG_INFO("Starting test_symbol_table_lookup_shadowing");
-    printf("Testing symbol_table_lookup_symbol with shadowing...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -465,10 +450,9 @@ void test_symbol_table_lookup_shadowing() {
 }
 
 // Test token equality variations (pointer match, content match, different lengths)
-void test_symbol_table_lookup_token_variations() {
+static void test_symbol_table_lookup_token_variations(void) {
     DEBUG_INFO("Starting test_symbol_table_lookup_token_variations");
-    printf("Testing symbol_table_lookup_symbol with token variations...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -515,10 +499,9 @@ void test_symbol_table_lookup_token_variations() {
 }
 
 // Test lookup with NULL table or current
-void test_symbol_table_lookup_nulls() {
+static void test_symbol_table_lookup_nulls(void) {
     DEBUG_INFO("Starting test_symbol_table_lookup_nulls");
-    printf("Testing symbol_table_lookup_symbol with NULLs...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -542,10 +525,9 @@ void test_symbol_table_lookup_nulls() {
 }
 
 // Test get_symbol_offset basic and not found
-void test_symbol_table_get_symbol_offset() {
+static void test_symbol_table_get_symbol_offset(void) {
     DEBUG_INFO("Starting test_symbol_table_get_symbol_offset");
-    printf("Testing symbol_table_get_symbol_offset...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -570,10 +552,9 @@ void test_symbol_table_get_symbol_offset() {
 }
 
 // Test offset alignment for different type sizes (char=1, int=8, etc.)
-void test_symbol_table_offsets_alignment() {
+static void test_symbol_table_offsets_alignment(void) {
     DEBUG_INFO("Starting test_symbol_table_offsets_alignment");
-    printf("Testing symbol_table offsets with alignment...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -630,10 +611,9 @@ void test_symbol_table_offsets_alignment() {
 }
 
 // Test type cloning on add (since add clones type)
-void test_symbol_table_add_symbol_type_clone() {
+static void test_symbol_table_add_symbol_type_clone(void) {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_type_clone");
-    printf("Testing symbol_table_add_symbol type cloning...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -656,10 +636,9 @@ void test_symbol_table_add_symbol_type_clone() {
 }
 
 // Test arena exhaustion (simulate by small arena, but hard; test alloc failures)
-void test_symbol_table_add_symbol_arena_exhaust() {
+static void test_symbol_table_add_symbol_arena_exhaust(void) {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_arena_exhaust");
-    printf("Testing symbol_table_add_symbol with arena exhaustion (simulated)...\n");
-
+    
     // Note: Hard to simulate exact OOM in unit test without mocking arena.
     // Assume code handles NULL from arena_alloc gracefully (DEBUG_ERROR, return early)
 
@@ -685,10 +664,9 @@ void test_symbol_table_add_symbol_arena_exhaust() {
 }
 
 // Test adding many symbols (stress offsets)
-void test_symbol_table_add_many_symbols() {
+static void test_symbol_table_add_many_symbols(void) {
     DEBUG_INFO("Starting test_symbol_table_add_many_symbols");
-    printf("Testing symbol_table_add_symbol many times (offset accumulation)...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE * 4);  // Larger for many
     SymbolTable table;
@@ -716,10 +694,9 @@ void test_symbol_table_add_many_symbols() {
 }
 
 // Test token duplication on add (arena_strndup)
-void test_symbol_table_add_symbol_token_dup() {
+static void test_symbol_table_add_symbol_token_dup(void) {
     DEBUG_INFO("Starting test_symbol_table_add_symbol_token_dup");
-    printf("Testing symbol_table_add_symbol token duplication...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -745,10 +722,9 @@ void test_symbol_table_add_symbol_token_dup() {
 }
 
 // Test complex types (array, function) cloning and size
-void test_symbol_table_add_complex_types() {
+static void test_symbol_table_add_complex_types(void) {
     DEBUG_INFO("Starting test_symbol_table_add_complex_types");
-    printf("Testing symbol_table_add_symbol with complex types (array, function)...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -784,10 +760,9 @@ void test_symbol_table_add_complex_types() {
 }
 
 // Test print function (basic output verification via printf, but since DEBUG, assume it works)
-void test_symbol_table_print() {
+static void test_symbol_table_print(void) {
     DEBUG_INFO("Starting test_symbol_table_print");
-    printf("Testing symbol_table_print...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -805,32 +780,34 @@ void test_symbol_table_print() {
     DEBUG_INFO("Finished test_symbol_table_print");
 }
 
-void test_symbol_table_core_main()
+void test_symbol_table_core_main(void)
 {
-    test_symbol_table_init_null_arena();
-    test_symbol_table_init_basic();
-    test_symbol_table_cleanup_empty();
-    test_symbol_table_push_scope_single();
-    test_symbol_table_push_scope_nested();
-    test_symbol_table_push_scope_expand();
-    test_symbol_table_pop_scope_beyond_global();
-    test_symbol_table_pop_scope_offset_propagation();
-    test_symbol_table_begin_function_scope();
-    test_symbol_table_add_symbol_local_basic();
-    test_symbol_table_add_symbol_param();
-    test_symbol_table_add_symbol_global();
-    test_symbol_table_add_symbol_no_scope();
-    test_symbol_table_lookup_current_basic();
-    test_symbol_table_lookup_enclosing();
-    test_symbol_table_lookup_shadowing();
-    test_symbol_table_lookup_token_variations();
-    test_symbol_table_lookup_nulls();
-    test_symbol_table_get_symbol_offset();
-    test_symbol_table_offsets_alignment();
-    test_symbol_table_add_symbol_type_clone();
-    test_symbol_table_add_symbol_arena_exhaust();
-    test_symbol_table_add_many_symbols();
-    test_symbol_table_add_symbol_token_dup();
-    test_symbol_table_add_complex_types();
-    test_symbol_table_print();
+    TEST_SECTION("Symbol Table Core");
+
+    TEST_RUN("symbol_table_init_null_arena", test_symbol_table_init_null_arena);
+    TEST_RUN("symbol_table_init_basic", test_symbol_table_init_basic);
+    TEST_RUN("symbol_table_cleanup_empty", test_symbol_table_cleanup_empty);
+    TEST_RUN("symbol_table_push_scope_single", test_symbol_table_push_scope_single);
+    TEST_RUN("symbol_table_push_scope_nested", test_symbol_table_push_scope_nested);
+    TEST_RUN("symbol_table_push_scope_expand", test_symbol_table_push_scope_expand);
+    TEST_RUN("symbol_table_pop_scope_beyond_global", test_symbol_table_pop_scope_beyond_global);
+    TEST_RUN("symbol_table_pop_scope_offset_propagation", test_symbol_table_pop_scope_offset_propagation);
+    TEST_RUN("symbol_table_begin_function_scope", test_symbol_table_begin_function_scope);
+    TEST_RUN("symbol_table_add_symbol_local_basic", test_symbol_table_add_symbol_local_basic);
+    TEST_RUN("symbol_table_add_symbol_param", test_symbol_table_add_symbol_param);
+    TEST_RUN("symbol_table_add_symbol_global", test_symbol_table_add_symbol_global);
+    TEST_RUN("symbol_table_add_symbol_no_scope", test_symbol_table_add_symbol_no_scope);
+    TEST_RUN("symbol_table_lookup_current_basic", test_symbol_table_lookup_current_basic);
+    TEST_RUN("symbol_table_lookup_enclosing", test_symbol_table_lookup_enclosing);
+    TEST_RUN("symbol_table_lookup_shadowing", test_symbol_table_lookup_shadowing);
+    TEST_RUN("symbol_table_lookup_token_variations", test_symbol_table_lookup_token_variations);
+    TEST_RUN("symbol_table_lookup_nulls", test_symbol_table_lookup_nulls);
+    TEST_RUN("symbol_table_get_symbol_offset", test_symbol_table_get_symbol_offset);
+    TEST_RUN("symbol_table_offsets_alignment", test_symbol_table_offsets_alignment);
+    TEST_RUN("symbol_table_add_symbol_type_clone", test_symbol_table_add_symbol_type_clone);
+    TEST_RUN("symbol_table_add_symbol_arena_exhaust", test_symbol_table_add_symbol_arena_exhaust);
+    TEST_RUN("symbol_table_add_many_symbols", test_symbol_table_add_many_symbols);
+    TEST_RUN("symbol_table_add_symbol_token_dup", test_symbol_table_add_symbol_token_dup);
+    TEST_RUN("symbol_table_add_complex_types", test_symbol_table_add_complex_types);
+    TEST_RUN("symbol_table_print", test_symbol_table_print);
 }

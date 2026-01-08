@@ -7,6 +7,7 @@
 #include <string.h>
 #include "../runtime.h"
 #include "../debug.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Thread Arena Mode Selection Tests
@@ -18,9 +19,8 @@
  * ============================================================================ */
 
 /* Test default mode creates own arena with parent link */
-void test_thread_default_mode_arena(void)
+static void test_thread_default_mode_arena(void)
 {
-    printf("Testing default mode creates own arena with parent link...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -57,9 +57,8 @@ void test_thread_default_mode_arena(void)
 }
 
 /* Test shared mode reuses caller arena */
-void test_thread_shared_mode_arena(void)
+static void test_thread_shared_mode_arena(void)
 {
-    printf("Testing shared mode reuses caller arena...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -93,9 +92,8 @@ void test_thread_shared_mode_arena(void)
 }
 
 /* Test private mode creates isolated arena (parent = NULL) */
-void test_thread_private_mode_arena(void)
+static void test_thread_private_mode_arena(void)
 {
-    printf("Testing private mode creates isolated arena (parent=NULL)...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -131,9 +129,8 @@ void test_thread_private_mode_arena(void)
 }
 
 /* Test that thread arena cleanup happens correctly for each mode */
-void test_thread_arena_cleanup_logic(void)
+static void test_thread_arena_cleanup_logic(void)
 {
-    printf("Testing thread arena cleanup logic...\n");
 
     /* Test 1: Default mode - thread_arena should be non-NULL and destroyable */
     RtArena *caller1 = rt_arena_create(NULL);
@@ -185,9 +182,8 @@ void test_thread_arena_cleanup_logic(void)
 }
 
 /* Test arena freezing for shared mode */
-void test_thread_shared_mode_arena_freezing(void)
+static void test_thread_shared_mode_arena_freezing(void)
 {
-    printf("Testing shared mode arena freezing...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -205,9 +201,8 @@ void test_thread_shared_mode_arena_freezing(void)
 }
 
 /* Test that RtThreadArgs properly stores mode flags */
-void test_thread_args_mode_flags(void)
+static void test_thread_args_mode_flags(void)
 {
-    printf("Testing RtThreadArgs mode flags...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     assert(arena != NULL);
@@ -236,9 +231,8 @@ void test_thread_args_mode_flags(void)
 }
 
 /* Test that RtThreadHandle properly stores mode flags */
-void test_thread_handle_mode_flags(void)
+static void test_thread_handle_mode_flags(void)
 {
-    printf("Testing RtThreadHandle mode flags...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     assert(arena != NULL);
@@ -286,9 +280,8 @@ static void *default_mode_thread_wrapper(void *arg)
 }
 
 /* Test default mode with actual thread execution */
-void test_integration_default_mode_thread(void)
+static void test_integration_default_mode_thread(void)
 {
-    printf("Testing integration: default mode thread execution...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -323,7 +316,6 @@ void test_integration_default_mode_thread(void)
     /* Cleanup */
     rt_arena_destroy(caller_arena);
 
-    printf("  Default mode thread executed and cleaned up correctly\n");
 }
 
 /* Thread wrapper for shared mode test - just stores a primitive result
@@ -344,9 +336,8 @@ static void *shared_mode_thread_wrapper(void *arg)
 }
 
 /* Test shared mode with actual thread execution */
-void test_integration_shared_mode_thread(void)
+static void test_integration_shared_mode_thread(void)
 {
-    printf("Testing integration: shared mode thread execution...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -374,7 +365,6 @@ void test_integration_shared_mode_thread(void)
     /* Cleanup */
     rt_arena_destroy(caller_arena);
 
-    printf("  Shared mode thread executed with arena freezing correctly\n");
 }
 
 /* Thread wrapper for private mode test - returns primitive */
@@ -397,9 +387,8 @@ static void *private_mode_thread_wrapper(void *arg)
 }
 
 /* Test private mode with actual thread execution */
-void test_integration_private_mode_thread(void)
+static void test_integration_private_mode_thread(void)
 {
-    printf("Testing integration: private mode thread execution...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -432,13 +421,11 @@ void test_integration_private_mode_thread(void)
     /* Cleanup */
     rt_arena_destroy(caller_arena);
 
-    printf("  Private mode thread executed with isolated arena correctly\n");
 }
 
 /* Test shared mode freeze prevents allocation */
-void test_integration_shared_mode_freeze_blocks_alloc(void)
+static void test_integration_shared_mode_freeze_blocks_alloc(void)
 {
-    printf("Testing integration: shared mode freeze blocks allocation...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -466,13 +453,11 @@ void test_integration_shared_mode_freeze_blocks_alloc(void)
     /* Cleanup */
     rt_arena_destroy(caller_arena);
 
-    printf("  Shared mode freeze/unfreeze works correctly\n");
 }
 
 /* Test arena cleanup after thread sync - no leaks */
-void test_integration_arena_cleanup_no_leaks(void)
+static void test_integration_arena_cleanup_no_leaks(void)
 {
-    printf("Testing integration: arena cleanup after sync (no leaks)...\n");
 
     /* Spawn and sync multiple threads, verify arenas are cleaned up */
     for (int i = 0; i < 5; i++) {
@@ -499,13 +484,11 @@ void test_integration_arena_cleanup_no_leaks(void)
         rt_arena_destroy(caller_arena);
     }
 
-    printf("  Multiple thread spawns and syncs cleaned up without leaks\n");
 }
 
 /* Test arena auto-cleanup when caller arena is destroyed with pending threads */
-void test_integration_arena_auto_joins_pending_threads(void)
+static void test_integration_arena_auto_joins_pending_threads(void)
 {
-    printf("Testing integration: arena destruction auto-joins pending threads...\n");
 
     RtArena *caller_arena = rt_arena_create(NULL);
     assert(caller_arena != NULL);
@@ -526,30 +509,27 @@ void test_integration_arena_auto_joins_pending_threads(void)
     rt_arena_destroy(caller_arena);
 
     /* If we get here without hanging, auto-join worked */
-    printf("  Arena destruction auto-joined pending thread correctly\n");
 }
 
 /* Main test runner for thread arena tests */
 void test_rt_thread_main(void)
 {
-    printf("\n=== Running Thread Arena Mode Tests ===\n\n");
+    TEST_SECTION("Thread Arena Mode");
 
     /* Unit tests */
-    test_thread_default_mode_arena();
-    test_thread_shared_mode_arena();
-    test_thread_private_mode_arena();
-    test_thread_arena_cleanup_logic();
-    test_thread_shared_mode_arena_freezing();
-    test_thread_args_mode_flags();
-    test_thread_handle_mode_flags();
+    TEST_RUN("thread_default_mode_arena", test_thread_default_mode_arena);
+    TEST_RUN("thread_shared_mode_arena", test_thread_shared_mode_arena);
+    TEST_RUN("thread_private_mode_arena", test_thread_private_mode_arena);
+    TEST_RUN("thread_arena_cleanup_logic", test_thread_arena_cleanup_logic);
+    TEST_RUN("thread_shared_mode_arena_freezing", test_thread_shared_mode_arena_freezing);
+    TEST_RUN("thread_args_mode_flags", test_thread_args_mode_flags);
+    TEST_RUN("thread_handle_mode_flags", test_thread_handle_mode_flags);
 
     /* Integration tests with actual thread execution */
-    test_integration_default_mode_thread();
-    test_integration_shared_mode_thread();
-    test_integration_private_mode_thread();
-    test_integration_shared_mode_freeze_blocks_alloc();
-    test_integration_arena_cleanup_no_leaks();
-    test_integration_arena_auto_joins_pending_threads();
-
-    printf("\n=== All Thread Arena Mode Tests Passed ===\n\n");
+    TEST_RUN("integration_default_mode_thread", test_integration_default_mode_thread);
+    TEST_RUN("integration_shared_mode_thread", test_integration_shared_mode_thread);
+    TEST_RUN("integration_private_mode_thread", test_integration_private_mode_thread);
+    TEST_RUN("integration_shared_mode_freeze_blocks_alloc", test_integration_shared_mode_freeze_blocks_alloc);
+    TEST_RUN("integration_arena_cleanup_no_leaks", test_integration_arena_cleanup_no_leaks);
+    TEST_RUN("integration_arena_auto_joins_pending_threads", test_integration_arena_auto_joins_pending_threads);
 }

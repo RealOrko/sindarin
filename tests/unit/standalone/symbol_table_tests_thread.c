@@ -9,6 +9,7 @@
 #include "../debug.h"
 #include "../symbol_table.h"
 #include "../ast.h"
+#include "../test_harness.h"
 
 // Helper macros and constants
 #define TEST_ARENA_SIZE 4096
@@ -24,10 +25,9 @@ static Type *create_int_type_thread(Arena *arena) {
 // =====================================================
 
 // Test that symbols start in THREAD_STATE_NORMAL
-void test_thread_state_initial_normal() {
+static void test_thread_state_initial_normal(void) {
     DEBUG_INFO("Starting test_thread_state_initial_normal");
-    printf("Testing symbol starts in THREAD_STATE_NORMAL...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -50,10 +50,9 @@ void test_thread_state_initial_normal() {
 }
 
 // Test mark_pending transitions to PENDING state
-void test_thread_state_mark_pending() {
+static void test_thread_state_mark_pending(void) {
     DEBUG_INFO("Starting test_thread_state_mark_pending");
-    printf("Testing mark_pending transitions to PENDING state...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -81,10 +80,9 @@ void test_thread_state_mark_pending() {
 }
 
 // Test mark_synchronized transitions to SYNCHRONIZED state
-void test_thread_state_mark_synchronized() {
+static void test_thread_state_mark_synchronized(void) {
     DEBUG_INFO("Starting test_thread_state_mark_synchronized");
-    printf("Testing mark_synchronized transitions to SYNCHRONIZED state...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -116,10 +114,9 @@ void test_thread_state_mark_synchronized() {
 }
 
 // Test is_pending query returns correct values
-void test_thread_state_is_pending_query() {
+static void test_thread_state_is_pending_query(void) {
     DEBUG_INFO("Starting test_thread_state_is_pending_query");
-    printf("Testing is_pending query returns correct values...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -153,10 +150,9 @@ void test_thread_state_is_pending_query() {
 }
 
 // Test invalid state transitions are prevented
-void test_thread_state_invalid_transitions() {
+static void test_thread_state_invalid_transitions(void) {
     DEBUG_INFO("Starting test_thread_state_invalid_transitions");
-    printf("Testing invalid state transitions are prevented...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -210,10 +206,9 @@ void test_thread_state_invalid_transitions() {
 }
 
 // Test is_synchronized query
-void test_thread_state_is_synchronized_query() {
+static void test_thread_state_is_synchronized_query(void) {
     DEBUG_INFO("Starting test_thread_state_is_synchronized_query");
-    printf("Testing is_synchronized query returns correct values...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -251,10 +246,9 @@ void test_thread_state_is_synchronized_query() {
 // =====================================================
 
 // Test freeze_symbol increments freeze_count
-void test_frozen_state_freeze_increments_count() {
+static void test_frozen_state_freeze_increments_count(void) {
     DEBUG_INFO("Starting test_frozen_state_freeze_increments_count");
-    printf("Testing freeze_symbol increments freeze_count...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -288,10 +282,9 @@ void test_frozen_state_freeze_increments_count() {
 }
 
 // Test multiple freezes accumulate count correctly
-void test_frozen_state_multiple_freezes() {
+static void test_frozen_state_multiple_freezes(void) {
     DEBUG_INFO("Starting test_frozen_state_multiple_freezes");
-    printf("Testing multiple freezes accumulate count correctly...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -328,10 +321,9 @@ void test_frozen_state_multiple_freezes() {
 }
 
 // Test unfreeze_symbol decrements count
-void test_frozen_state_unfreeze_decrements_count() {
+static void test_frozen_state_unfreeze_decrements_count(void) {
     DEBUG_INFO("Starting test_frozen_state_unfreeze_decrements_count");
-    printf("Testing unfreeze_symbol decrements count...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -362,10 +354,9 @@ void test_frozen_state_unfreeze_decrements_count() {
 }
 
 // Test frozen=false when count reaches 0
-void test_frozen_state_unfreezes_at_zero() {
+static void test_frozen_state_unfreezes_at_zero(void) {
     DEBUG_INFO("Starting test_frozen_state_unfreezes_at_zero");
-    printf("Testing frozen=false when count reaches 0...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -402,10 +393,9 @@ void test_frozen_state_unfreezes_at_zero() {
 }
 
 // Test is_frozen query returns correct values
-void test_frozen_state_is_frozen_query() {
+static void test_frozen_state_is_frozen_query(void) {
     DEBUG_INFO("Starting test_frozen_state_is_frozen_query");
-    printf("Testing is_frozen query returns correct values...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -442,10 +432,9 @@ void test_frozen_state_is_frozen_query() {
 }
 
 // Test unfreeze prevents negative counts
-void test_frozen_state_prevents_negative_count() {
+static void test_frozen_state_prevents_negative_count(void) {
     DEBUG_INFO("Starting test_frozen_state_prevents_negative_count");
-    printf("Testing unfreeze prevents negative count...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -484,21 +473,23 @@ void test_frozen_state_prevents_negative_count() {
     DEBUG_INFO("Finished test_frozen_state_prevents_negative_count");
 }
 
-void test_symbol_table_thread_main()
+void test_symbol_table_thread_main(void)
 {
-    // Thread state tracking tests
-    test_thread_state_initial_normal();
-    test_thread_state_mark_pending();
-    test_thread_state_mark_synchronized();
-    test_thread_state_is_pending_query();
-    test_thread_state_invalid_transitions();
-    test_thread_state_is_synchronized_query();
+    TEST_SECTION("Symbol Table Thread State");
 
-    // Frozen state tracking tests
-    test_frozen_state_freeze_increments_count();
-    test_frozen_state_multiple_freezes();
-    test_frozen_state_unfreeze_decrements_count();
-    test_frozen_state_unfreezes_at_zero();
-    test_frozen_state_is_frozen_query();
-    test_frozen_state_prevents_negative_count();
+    TEST_RUN("thread_state_initial_normal", test_thread_state_initial_normal);
+    TEST_RUN("thread_state_mark_pending", test_thread_state_mark_pending);
+    TEST_RUN("thread_state_mark_synchronized", test_thread_state_mark_synchronized);
+    TEST_RUN("thread_state_is_pending_query", test_thread_state_is_pending_query);
+    TEST_RUN("thread_state_invalid_transitions", test_thread_state_invalid_transitions);
+    TEST_RUN("thread_state_is_synchronized_query", test_thread_state_is_synchronized_query);
+
+    TEST_SECTION("Symbol Table Frozen State");
+
+    TEST_RUN("frozen_state_freeze_increments_count", test_frozen_state_freeze_increments_count);
+    TEST_RUN("frozen_state_multiple_freezes", test_frozen_state_multiple_freezes);
+    TEST_RUN("frozen_state_unfreeze_decrements_count", test_frozen_state_unfreeze_decrements_count);
+    TEST_RUN("frozen_state_unfreezes_at_zero", test_frozen_state_unfreezes_at_zero);
+    TEST_RUN("frozen_state_is_frozen_query", test_frozen_state_is_frozen_query);
+    TEST_RUN("frozen_state_prevents_negative_count", test_frozen_state_prevents_negative_count);
 }

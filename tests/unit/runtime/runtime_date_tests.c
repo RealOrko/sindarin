@@ -6,9 +6,10 @@
 // - runtime_date_tests_boundaries.c (boundary, comparison, getter, constructor, token tests)
 
 #include <stdio.h>
+#include "../test_harness.h"
 
 // Empty main function - all tests have been moved to other files
-void test_rt_date_main()
+void test_rt_date_main(void)
 {
     // Tests moved to runtime_date_tests_boundaries.c
 }

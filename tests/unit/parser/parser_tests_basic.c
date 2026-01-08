@@ -1,10 +1,8 @@
 // tests/parser_tests_basic.c
 // Basic parser tests (empty, var_decl, function_no_params, if_statement)
 
-void test_empty_program_parsing()
+static void test_empty_program_parsing()
 {
-    printf("Testing parser_execute empty program...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -23,10 +21,8 @@ void test_empty_program_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_var_decl_parsing()
+static void test_var_decl_parsing()
 {
-    printf("Testing parser_execute variable declaration...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -51,10 +47,8 @@ void test_var_decl_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_function_no_params_parsing()
+static void test_function_no_params_parsing()
 {
-    printf("Testing parser_execute function no params...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -88,10 +82,8 @@ void test_function_no_params_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_if_statement_parsing()
+static void test_if_statement_parsing()
 {
-    printf("Testing parser_execute if statement...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -150,10 +142,8 @@ void test_if_statement_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interop_type_var_decl_parsing()
+static void test_interop_type_var_decl_parsing()
 {
-    printf("Testing parser_execute interop type variable declarations...\n");
-
     // Test int32 type
     {
         Arena arena;
@@ -231,10 +221,8 @@ void test_interop_type_var_decl_parsing()
     }
 }
 
-void test_interop_type_function_parsing()
+static void test_interop_type_function_parsing()
 {
-    printf("Testing parser_execute interop type function params and returns...\n");
-
     // Test function with int32 param and return
     {
         Arena arena;
@@ -302,10 +290,8 @@ void test_interop_type_function_parsing()
     }
 }
 
-void test_pointer_type_var_decl_parsing()
+static void test_pointer_type_var_decl_parsing()
 {
-    printf("Testing parser_execute pointer type variable declarations...\n");
-
     // Test *int pointer type
     {
         Arena arena;
@@ -368,10 +354,8 @@ void test_pointer_type_var_decl_parsing()
     }
 }
 
-void test_pointer_type_function_parsing()
+static void test_pointer_type_function_parsing()
 {
-    printf("Testing parser_execute pointer type function params and returns...\n");
-
     // Test function with pointer param
     {
         Arena arena;
@@ -441,10 +425,8 @@ void test_pointer_type_function_parsing()
     }
 }
 
-void test_native_function_without_body_parsing()
+static void test_native_function_without_body_parsing()
 {
-    printf("Testing parser_execute native function without body...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -468,10 +450,8 @@ void test_native_function_without_body_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_native_function_with_body_parsing()
+static void test_native_function_with_body_parsing()
 {
-    printf("Testing parser_execute native function with Sindarin body...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -498,10 +478,8 @@ void test_native_function_with_body_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_native_function_with_pointer_types_parsing()
+static void test_native_function_with_pointer_types_parsing()
 {
-    printf("Testing parser_execute native function with pointer types...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -526,10 +504,8 @@ void test_native_function_with_pointer_types_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_regular_function_not_native_parsing()
+static void test_regular_function_not_native_parsing()
 {
-    printf("Testing parser_execute regular function is not native...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -550,10 +526,8 @@ void test_regular_function_not_native_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_as_val_postfix_with_call_parsing()
+static void test_as_val_postfix_with_call_parsing()
 {
-    printf("Testing parser_execute 'get_ptr() as val' expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -577,10 +551,8 @@ void test_as_val_postfix_with_call_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_as_val_postfix_with_array_access_parsing()
+static void test_as_val_postfix_with_array_access_parsing()
 {
-    printf("Testing parser_execute 'arr[i] as val' expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -606,10 +578,8 @@ void test_as_val_postfix_with_array_access_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_as_val_postfix_with_variable_parsing()
+static void test_as_val_postfix_with_variable_parsing()
 {
-    printf("Testing parser_execute 'ptr as val' expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -632,10 +602,8 @@ void test_as_val_postfix_with_variable_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_as_val_postfix_precedence_parsing()
+static void test_as_val_postfix_precedence_parsing()
 {
-    printf("Testing parser_execute 'as val' precedence (after array access)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -663,10 +631,8 @@ void test_as_val_postfix_precedence_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_pointer_slice_basic_parsing()
+static void test_pointer_slice_basic_parsing()
 {
-    printf("Testing parser_execute pointer slice 'ptr[0..10]' expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -698,10 +664,8 @@ void test_pointer_slice_basic_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_pointer_slice_with_call_parsing()
+static void test_pointer_slice_with_call_parsing()
 {
-    printf("Testing parser_execute pointer slice 'get_ptr()[0..len]' expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -733,10 +697,8 @@ void test_pointer_slice_with_call_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_pointer_slice_with_as_val_parsing()
+static void test_pointer_slice_with_as_val_parsing()
 {
-    printf("Testing parser_execute pointer slice 'ptr[0..len] as val' expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -771,10 +733,8 @@ void test_pointer_slice_with_as_val_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_pointer_slice_from_start_parsing()
+static void test_pointer_slice_from_start_parsing()
 {
-    printf("Testing parser_execute pointer slice 'ptr[..len]' (from start) expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -804,10 +764,8 @@ void test_pointer_slice_from_start_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_inline_pointer_call_slice_as_val_parsing()
+static void test_inline_pointer_call_slice_as_val_parsing()
 {
-    printf("Testing parser_execute 'get_buffer()[0..len] as val' expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -852,10 +810,8 @@ void test_inline_pointer_call_slice_as_val_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_variadic_native_function_parsing()
+static void test_variadic_native_function_parsing()
 {
-    printf("Testing parser_execute variadic native function with ...  ...\n");
-
     // Test basic variadic native function: native fn printf(format: str, ...): int
     {
         Arena arena;
@@ -947,10 +903,8 @@ void test_variadic_native_function_parsing()
     }
 }
 
-void test_native_callback_type_alias_basic_parsing()
+static void test_native_callback_type_alias_basic_parsing()
 {
-    printf("Testing parser_execute native callback type alias basic 'type Comparator = native fn(a: *void, b: *void): int'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -985,10 +939,8 @@ void test_native_callback_type_alias_basic_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_native_callback_type_alias_simple_parsing()
+static void test_native_callback_type_alias_simple_parsing()
 {
-    printf("Testing parser_execute native callback type alias 'type SignalHandler = native fn(sig: int): void'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1019,10 +971,8 @@ void test_native_callback_type_alias_simple_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_native_callback_type_alias_no_params_parsing()
+static void test_native_callback_type_alias_no_params_parsing()
 {
-    printf("Testing parser_execute native callback type alias with no params 'type Callback = native fn(): int'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1047,10 +997,8 @@ void test_native_callback_type_alias_no_params_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_native_callback_type_alias_with_userdata_parsing()
+static void test_native_callback_type_alias_with_userdata_parsing()
 {
-    printf("Testing parser_execute native callback type alias with userdata 'type EventCallback = native fn(event: int, userdata: *void): void'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1082,7 +1030,7 @@ void test_native_callback_type_alias_with_userdata_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_native_callback_type_alias_parsing()
+static void test_native_callback_type_alias_parsing()
 {
     test_native_callback_type_alias_basic_parsing();
     test_native_callback_type_alias_simple_parsing();
@@ -1090,10 +1038,8 @@ void test_native_callback_type_alias_parsing()
     test_native_callback_type_alias_with_userdata_parsing();
 }
 
-void test_native_lambda_parsing()
+static void test_native_lambda_parsing()
 {
-    printf("Testing native lambda expression parsing 'fn(a: *void, b: *void): int => 0' inside native function...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1136,10 +1082,8 @@ void test_native_lambda_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_non_native_lambda_is_not_marked_native()
+static void test_non_native_lambda_is_not_marked_native()
 {
-    printf("Testing non-native lambda is NOT marked as native...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1171,7 +1115,7 @@ void test_non_native_lambda_is_not_marked_native()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_native_lambda_with_pointer_params_parsing()
+static void test_native_lambda_with_pointer_params_parsing()
 {
     test_native_lambda_parsing();
     test_non_native_lambda_is_not_marked_native();
@@ -1181,10 +1125,8 @@ void test_native_lambda_with_pointer_params_parsing()
  * Opaque Type Declaration Tests
  * ========================================================================== */
 
-void test_opaque_type_decl_parsing()
+static void test_opaque_type_decl_parsing()
 {
-    printf("Testing parser for opaque type declaration (type FILE = opaque)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1204,10 +1146,8 @@ void test_opaque_type_decl_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_opaque_type_in_function_param()
+static void test_opaque_type_in_function_param()
 {
-    printf("Testing parser for opaque type in function parameter...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1243,10 +1183,8 @@ void test_opaque_type_in_function_param()
  * Pragma Parsing Tests
  * ========================================================================== */
 
-void test_pragma_include_parsing()
+static void test_pragma_include_parsing()
 {
-    printf("Testing parser for #pragma include directive...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1275,10 +1213,8 @@ void test_pragma_include_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_pragma_link_parsing()
+static void test_pragma_link_parsing()
 {
-    printf("Testing parser for #pragma link directive...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1307,10 +1243,8 @@ void test_pragma_link_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_multiple_pragmas_parsing()
+static void test_multiple_pragmas_parsing()
 {
-    printf("Testing parser for multiple pragma directives...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1348,10 +1282,8 @@ void test_multiple_pragmas_parsing()
  * As Ref Parameter Tests
  * ========================================================================== */
 
-void test_as_ref_parameter_parsing()
+static void test_as_ref_parameter_parsing()
 {
-    printf("Testing parser for 'as ref' parameter syntax...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1376,10 +1308,8 @@ void test_as_ref_parameter_parsing()
  * Variadic Function Tests (Additional)
  * ========================================================================== */
 
-void test_variadic_with_multiple_fixed_params_parsing()
+static void test_variadic_with_multiple_fixed_params_parsing()
 {
-    printf("Testing parser for variadic function with multiple fixed params...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -1400,45 +1330,38 @@ void test_variadic_with_multiple_fixed_params_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_parser_basic_main()
+static void test_parser_basic_main()
 {
-    test_empty_program_parsing();
-    test_var_decl_parsing();
-    test_function_no_params_parsing();
-    test_if_statement_parsing();
-    test_interop_type_var_decl_parsing();
-    test_interop_type_function_parsing();
-    test_pointer_type_var_decl_parsing();
-    test_pointer_type_function_parsing();
-    test_native_function_without_body_parsing();
-    test_native_function_with_body_parsing();
-    test_native_function_with_pointer_types_parsing();
-    test_regular_function_not_native_parsing();
-    test_as_val_postfix_with_call_parsing();
-    test_as_val_postfix_with_array_access_parsing();
-    test_as_val_postfix_with_variable_parsing();
-    test_as_val_postfix_precedence_parsing();
-    // Pointer slice tests
-    test_pointer_slice_basic_parsing();
-    test_pointer_slice_with_call_parsing();
-    test_pointer_slice_with_as_val_parsing();
-    test_pointer_slice_from_start_parsing();
-    // Inline pointer call + slice + as val test
-    test_inline_pointer_call_slice_as_val_parsing();
-    // Variadic function tests
-    test_variadic_native_function_parsing();
-    // Native callback type alias tests
-    test_native_callback_type_alias_parsing();
-    // Native lambda tests
-    test_native_lambda_with_pointer_params_parsing();
-    // Opaque type declaration tests
-    test_opaque_type_decl_parsing();
-    test_opaque_type_in_function_param();
-    // Pragma parsing tests
-    test_pragma_include_parsing();
-    test_pragma_link_parsing();
-    test_multiple_pragmas_parsing();
-    // Additional interop tests
-    test_as_ref_parameter_parsing();
-    test_variadic_with_multiple_fixed_params_parsing();
+    TEST_SECTION("Parser Basic Tests");
+    TEST_RUN("empty_program_parsing", test_empty_program_parsing);
+    TEST_RUN("var_decl_parsing", test_var_decl_parsing);
+    TEST_RUN("function_no_params_parsing", test_function_no_params_parsing);
+    TEST_RUN("if_statement_parsing", test_if_statement_parsing);
+    TEST_RUN("interop_type_var_decl_parsing", test_interop_type_var_decl_parsing);
+    TEST_RUN("interop_type_function_parsing", test_interop_type_function_parsing);
+    TEST_RUN("pointer_type_var_decl_parsing", test_pointer_type_var_decl_parsing);
+    TEST_RUN("pointer_type_function_parsing", test_pointer_type_function_parsing);
+    TEST_RUN("native_function_without_body_parsing", test_native_function_without_body_parsing);
+    TEST_RUN("native_function_with_body_parsing", test_native_function_with_body_parsing);
+    TEST_RUN("native_function_with_pointer_types_parsing", test_native_function_with_pointer_types_parsing);
+    TEST_RUN("regular_function_not_native_parsing", test_regular_function_not_native_parsing);
+    TEST_RUN("as_val_postfix_with_call_parsing", test_as_val_postfix_with_call_parsing);
+    TEST_RUN("as_val_postfix_with_array_access_parsing", test_as_val_postfix_with_array_access_parsing);
+    TEST_RUN("as_val_postfix_with_variable_parsing", test_as_val_postfix_with_variable_parsing);
+    TEST_RUN("as_val_postfix_precedence_parsing", test_as_val_postfix_precedence_parsing);
+    TEST_RUN("pointer_slice_basic_parsing", test_pointer_slice_basic_parsing);
+    TEST_RUN("pointer_slice_with_call_parsing", test_pointer_slice_with_call_parsing);
+    TEST_RUN("pointer_slice_with_as_val_parsing", test_pointer_slice_with_as_val_parsing);
+    TEST_RUN("pointer_slice_from_start_parsing", test_pointer_slice_from_start_parsing);
+    TEST_RUN("inline_pointer_call_slice_as_val_parsing", test_inline_pointer_call_slice_as_val_parsing);
+    TEST_RUN("variadic_native_function_parsing", test_variadic_native_function_parsing);
+    TEST_RUN("native_callback_type_alias_parsing", test_native_callback_type_alias_parsing);
+    TEST_RUN("native_lambda_with_pointer_params_parsing", test_native_lambda_with_pointer_params_parsing);
+    TEST_RUN("opaque_type_decl_parsing", test_opaque_type_decl_parsing);
+    TEST_RUN("opaque_type_in_function_param", test_opaque_type_in_function_param);
+    TEST_RUN("pragma_include_parsing", test_pragma_include_parsing);
+    TEST_RUN("pragma_link_parsing", test_pragma_link_parsing);
+    TEST_RUN("multiple_pragmas_parsing", test_multiple_pragmas_parsing);
+    TEST_RUN("as_ref_parameter_parsing", test_as_ref_parameter_parsing);
+    TEST_RUN("variadic_with_multiple_fixed_params_parsing", test_variadic_with_multiple_fixed_params_parsing);
 }

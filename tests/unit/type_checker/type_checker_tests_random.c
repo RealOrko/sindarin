@@ -6,6 +6,7 @@
 // - type_checker_tests_random_choice.c: choice() and weightedChoice() operations
 // - type_checker_tests_random_collection.c: shuffle() and sample() operations
 
+#include "../test_harness.h"
 #include "type_checker_tests_random_basic.c"
 #include "type_checker_tests_random_many.c"
 #include "type_checker_tests_random_choice.c"
@@ -13,6 +14,7 @@
 
 void test_type_checker_random_main(void)
 {
+    TEST_SECTION("Type Checker Random");
     test_tc_random_basic_main();
     test_tc_random_many_main();
     test_tc_random_choice_main();

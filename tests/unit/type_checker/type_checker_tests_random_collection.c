@@ -15,7 +15,6 @@
 /* Test Random.shuffle(int[]) returns void */
 static void test_random_shuffle_int_array_returns_void(void)
 {
-    printf("Testing Random.shuffle(int[]) returns void...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -56,7 +55,6 @@ static void test_random_shuffle_int_array_returns_void(void)
 /* Test Random.shuffle(str[]) returns void */
 static void test_random_shuffle_str_array_returns_void(void)
 {
-    printf("Testing Random.shuffle(str[]) returns void...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -97,7 +95,6 @@ static void test_random_shuffle_str_array_returns_void(void)
 /* Test Random.shuffle(double[]) returns void */
 static void test_random_shuffle_double_array_returns_void(void)
 {
-    printf("Testing Random.shuffle(double[]) returns void...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -138,7 +135,6 @@ static void test_random_shuffle_double_array_returns_void(void)
 /* Test Random.shuffle() with non-array argument reports error */
 static void test_random_shuffle_non_array_error(void)
 {
-    printf("Testing Random.shuffle() with non-array argument reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -172,7 +168,6 @@ static void test_random_shuffle_non_array_error(void)
 /* Test Random.shuffle() with string argument reports error */
 static void test_random_shuffle_string_arg_error(void)
 {
-    printf("Testing Random.shuffle() with string argument reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -206,7 +201,6 @@ static void test_random_shuffle_string_arg_error(void)
 /* Test Random.shuffle() with wrong argument count reports error */
 static void test_random_shuffle_wrong_arg_count_error(void)
 {
-    printf("Testing Random.shuffle() with wrong argument count reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -236,7 +230,6 @@ static void test_random_shuffle_wrong_arg_count_error(void)
 /* Test Random.sample(int[], int) returns int[] */
 static void test_random_sample_int_array_returns_int_array(void)
 {
-    printf("Testing Random.sample(int[], int) returns int[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -285,7 +278,6 @@ static void test_random_sample_int_array_returns_int_array(void)
 /* Test Random.sample(str[], int) returns str[] */
 static void test_random_sample_str_array_returns_str_array(void)
 {
-    printf("Testing Random.sample(str[], int) returns str[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -335,7 +327,6 @@ static void test_random_sample_str_array_returns_str_array(void)
 /* Test Random.sample() with non-array first arg reports error */
 static void test_random_sample_non_array_first_arg_error(void)
 {
-    printf("Testing Random.sample() with non-array first arg reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -376,7 +367,6 @@ static void test_random_sample_non_array_first_arg_error(void)
 /* Test Random.sample() with non-int second arg reports error */
 static void test_random_sample_non_int_second_arg_error(void)
 {
-    printf("Testing Random.sample() with non-int second arg reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -424,7 +414,6 @@ static void test_random_sample_non_int_second_arg_error(void)
 /* Test Random.sample() with wrong argument count reports error */
 static void test_random_sample_wrong_arg_count_error(void)
 {
-    printf("Testing Random.sample() with wrong argument count reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -464,7 +453,6 @@ static void test_random_sample_wrong_arg_count_error(void)
 /* Test Random.sample() with no arguments reports error */
 static void test_random_sample_no_args_error(void)
 {
-    printf("Testing Random.sample() with no arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -494,7 +482,6 @@ static void test_random_sample_no_args_error(void)
 /* Test rng.shuffle(int[]) instance method returns void */
 static void test_random_instance_shuffle_int_array(void)
 {
-    printf("Testing rng.shuffle(int[]) instance method returns void...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -536,7 +523,6 @@ static void test_random_instance_shuffle_int_array(void)
 /* Test rng.sample(int[], int) instance method returns int[] */
 static void test_random_instance_sample_int_array(void)
 {
-    printf("Testing rng.sample(int[], int) instance method returns int[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -587,29 +573,25 @@ static void test_random_instance_sample_int_array(void)
  * Main test runner
  * ============================================================================ */
 
-void test_tc_random_collection_main(void)
+static void test_tc_random_collection_main(void)
 {
-    printf("\n=== Type Checker Random Collection Tests ===\n");
-
     /* Shuffle static tests */
-    test_random_shuffle_int_array_returns_void();
-    test_random_shuffle_str_array_returns_void();
-    test_random_shuffle_double_array_returns_void();
-    test_random_shuffle_non_array_error();
-    test_random_shuffle_string_arg_error();
-    test_random_shuffle_wrong_arg_count_error();
+    TEST_RUN("shuffle_int_array_returns_void", test_random_shuffle_int_array_returns_void);
+    TEST_RUN("shuffle_str_array_returns_void", test_random_shuffle_str_array_returns_void);
+    TEST_RUN("shuffle_double_array_returns_void", test_random_shuffle_double_array_returns_void);
+    TEST_RUN("shuffle_non_array_error", test_random_shuffle_non_array_error);
+    TEST_RUN("shuffle_string_arg_error", test_random_shuffle_string_arg_error);
+    TEST_RUN("shuffle_wrong_arg_count_error", test_random_shuffle_wrong_arg_count_error);
 
     /* Sample static tests */
-    test_random_sample_int_array_returns_int_array();
-    test_random_sample_str_array_returns_str_array();
-    test_random_sample_non_array_first_arg_error();
-    test_random_sample_non_int_second_arg_error();
-    test_random_sample_wrong_arg_count_error();
-    test_random_sample_no_args_error();
+    TEST_RUN("sample_int_array_returns_int_array", test_random_sample_int_array_returns_int_array);
+    TEST_RUN("sample_str_array_returns_str_array", test_random_sample_str_array_returns_str_array);
+    TEST_RUN("sample_non_array_first_arg_error", test_random_sample_non_array_first_arg_error);
+    TEST_RUN("sample_non_int_second_arg_error", test_random_sample_non_int_second_arg_error);
+    TEST_RUN("sample_wrong_arg_count_error", test_random_sample_wrong_arg_count_error);
+    TEST_RUN("sample_no_args_error", test_random_sample_no_args_error);
 
     /* Instance method tests */
-    test_random_instance_shuffle_int_array();
-    test_random_instance_sample_int_array();
-
-    printf("=== All Type Checker Random Collection Tests Passed ===\n\n");
+    TEST_RUN("instance_shuffle_int_array", test_random_instance_shuffle_int_array);
+    TEST_RUN("instance_sample_int_array", test_random_instance_sample_int_array);
 }

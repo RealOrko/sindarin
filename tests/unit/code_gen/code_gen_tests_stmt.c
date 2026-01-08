@@ -1,10 +1,9 @@
 // tests/code_gen_tests_stmt.c
 // Statement code generation tests
 
-void test_code_gen_call_expression_simple()
+static void test_code_gen_call_expression_simple(void)
 {
     DEBUG_INFO("Starting test_code_gen_call_expression_simple");
-    printf("Testing code_gen for call expressions...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -68,10 +67,9 @@ void test_code_gen_call_expression_simple()
     DEBUG_INFO("Finished test_code_gen_call_expression_simple");
 }
 
-void test_code_gen_function_simple_void()
+static void test_code_gen_function_simple_void(void)
 {
     DEBUG_INFO("Starting test_code_gen_function_simple_void");
-    printf("Testing code_gen for simple void function...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -127,10 +125,9 @@ void test_code_gen_function_simple_void()
     DEBUG_INFO("Finished test_code_gen_function_simple_void");
 }
 
-void test_code_gen_function_with_params_and_return()
+static void test_code_gen_function_with_params_and_return(void)
 {
     DEBUG_INFO("Starting test_code_gen_function_with_params_and_return");
-    printf("Testing code_gen for function with params and return...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -208,10 +205,9 @@ void test_code_gen_function_with_params_and_return()
     DEBUG_INFO("Finished test_code_gen_function_with_params_and_return");
 }
 
-void test_code_gen_main_function_special_case()
+static void test_code_gen_main_function_special_case(void)
 {
     DEBUG_INFO("Starting test_code_gen_main_function_special_case");
-    printf("Testing code_gen for main function (int return)...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -260,10 +256,9 @@ void test_code_gen_main_function_special_case()
     DEBUG_INFO("Finished test_code_gen_main_function_special_case");
 }
 
-void test_code_gen_block_statement()
+static void test_code_gen_block_statement(void)
 {
     DEBUG_INFO("Starting test_code_gen_block_statement");
-    printf("Testing code_gen for block statements...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -318,10 +313,9 @@ void test_code_gen_block_statement()
     DEBUG_INFO("Finished test_code_gen_block_statement");
 }
 
-void test_code_gen_if_statement()
+static void test_code_gen_if_statement(void)
 {
     DEBUG_INFO("Starting test_code_gen_if_statement");
-    printf("Testing code_gen for if statements...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -382,10 +376,9 @@ void test_code_gen_if_statement()
     DEBUG_INFO("Finished test_code_gen_if_statement");
 }
 
-void test_code_gen_while_statement()
+static void test_code_gen_while_statement(void)
 {
     DEBUG_INFO("Starting test_code_gen_while_statement");
-    printf("Testing code_gen for while statements...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -446,10 +439,9 @@ void test_code_gen_while_statement()
     DEBUG_INFO("Finished test_code_gen_while_statement");
 }
 
-void test_code_gen_for_statement()
+static void test_code_gen_for_statement(void)
 {
     DEBUG_INFO("Starting test_code_gen_for_statement");
-    printf("Testing code_gen for for statements...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -557,10 +549,9 @@ void test_code_gen_for_statement()
     DEBUG_INFO("Finished test_code_gen_for_statement");
 }
 
-void test_code_gen_string_free_in_block()
+static void test_code_gen_string_free_in_block(void)
 {
     DEBUG_INFO("Starting test_code_gen_string_free_in_block");
-    printf("Testing string freeing in blocks...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -623,10 +614,9 @@ void test_code_gen_string_free_in_block()
     DEBUG_INFO("Finished test_code_gen_string_free_in_block");
 }
 
-void test_code_gen_increment_decrement()
+static void test_code_gen_increment_decrement(void)
 {
     DEBUG_INFO("Starting test_code_gen_increment_decrement");
-    printf("Testing code_gen for ++ -- ...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -679,10 +669,9 @@ void test_code_gen_increment_decrement()
     DEBUG_INFO("Finished test_code_gen_increment_decrement");
 }
 
-void test_code_gen_null_expression()
+static void test_code_gen_null_expression(void)
 {
     DEBUG_INFO("Starting test_code_gen_null_expression");
-    printf("Testing code_gen_expression with NULL...\n");
 
     Arena arena;
     arena_init(&arena, 1024);
@@ -724,10 +713,9 @@ void test_code_gen_null_expression()
     DEBUG_INFO("Finished test_code_gen_null_expression");
 }
 
-void test_code_gen_new_label()
+static void test_code_gen_new_label(void)
 {
     DEBUG_INFO("Starting test_code_gen_new_label");
-    printf("Testing code_gen_new_label...\n");
 
     Arena arena;
     arena_init(&arena, 1024);
@@ -752,10 +740,9 @@ void test_code_gen_new_label()
     DEBUG_INFO("Finished test_code_gen_new_label");
 }
 
-void test_code_gen_module_no_main_adds_dummy()
+static void test_code_gen_module_no_main_adds_dummy(void)
 {
     DEBUG_INFO("Starting test_code_gen_module_no_main_adds_dummy");
-    printf("Testing code_gen_module adds dummy main if none...\n");
 
     Arena arena;
     arena_init(&arena, 1024);
@@ -791,19 +778,20 @@ void test_code_gen_module_no_main_adds_dummy()
     DEBUG_INFO("Finished test_code_gen_module_no_main_adds_dummy");
 }
 
-void test_code_gen_stmt_main()
+void test_code_gen_stmt_main(void)
 {
-    test_code_gen_call_expression_simple();
-    test_code_gen_function_simple_void();
-    test_code_gen_function_with_params_and_return();
-    test_code_gen_main_function_special_case();
-    test_code_gen_block_statement();
-    test_code_gen_if_statement();
-    test_code_gen_while_statement();
-    test_code_gen_for_statement();
-    test_code_gen_string_free_in_block();
-    test_code_gen_increment_decrement();
-    test_code_gen_null_expression();
-    test_code_gen_new_label();
-    test_code_gen_module_no_main_adds_dummy();
+    TEST_SECTION("Code Gen Statement Tests");
+    TEST_RUN("code_gen_call_expression_simple", test_code_gen_call_expression_simple);
+    TEST_RUN("code_gen_function_simple_void", test_code_gen_function_simple_void);
+    TEST_RUN("code_gen_function_with_params_and_return", test_code_gen_function_with_params_and_return);
+    TEST_RUN("code_gen_main_function_special_case", test_code_gen_main_function_special_case);
+    TEST_RUN("code_gen_block_statement", test_code_gen_block_statement);
+    TEST_RUN("code_gen_if_statement", test_code_gen_if_statement);
+    TEST_RUN("code_gen_while_statement", test_code_gen_while_statement);
+    TEST_RUN("code_gen_for_statement", test_code_gen_for_statement);
+    TEST_RUN("code_gen_string_free_in_block", test_code_gen_string_free_in_block);
+    TEST_RUN("code_gen_increment_decrement", test_code_gen_increment_decrement);
+    TEST_RUN("code_gen_null_expression", test_code_gen_null_expression);
+    TEST_RUN("code_gen_new_label", test_code_gen_new_label);
+    TEST_RUN("code_gen_module_no_main_adds_dummy", test_code_gen_module_no_main_adds_dummy);
 }

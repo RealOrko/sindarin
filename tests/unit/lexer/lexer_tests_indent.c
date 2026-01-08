@@ -1,10 +1,11 @@
 // tests/lexer_tests_indent.c
 // Indentation and comment lexer tests
 
-void test_lexer_comments()
+#include "../test_harness.h"
+
+static void test_lexer_comments(void)
 {
     DEBUG_INFO("Starting test_lexer_comments");
-    printf("Testing lexer skips single-line comments '// comment'\n");
 
     const char *source = "// This is a comment\nvar x = 1;";
     Arena arena;
@@ -36,10 +37,9 @@ void test_lexer_comments()
     DEBUG_INFO("Finished test_lexer_comments");
 }
 
-void test_lexer_indentation_basic()
+static void test_lexer_indentation_basic(void)
 {
     DEBUG_INFO("Starting test_lexer_indentation_basic");
-    printf("Testing basic indentation: no indent, then indent, dedent\n");
 
     const char *source = "if true:\n  x = 1\ny = 2";
     Arena arena;
@@ -86,10 +86,9 @@ void test_lexer_indentation_basic()
     DEBUG_INFO("Finished test_lexer_indentation_basic");
 }
 
-void test_lexer_indentation_nested()
+static void test_lexer_indentation_nested(void)
 {
     DEBUG_INFO("Starting test_lexer_indentation_nested");
-    printf("Testing nested indentation: 0 -> 2 -> 4 -> dedents\n");
 
     const char *source = "outer:\n  if true:\n    inner = 1\n  end_outer\ninner_end";
     Arena arena;
@@ -145,10 +144,9 @@ void test_lexer_indentation_nested()
     DEBUG_INFO("Finished test_lexer_indentation_nested");
 }
 
-void test_lexer_indentation_error_inconsistent()
+static void test_lexer_indentation_error_inconsistent(void)
 {
     DEBUG_INFO("Starting test_lexer_indentation_error_inconsistent");
-    printf("Testing indentation error: inconsistent levels (2 -> 3, invalid)\n");
 
     const char *source = "if true:\n  x = 1\n   y = 2"; // 2 spaces, then 3 spaces (error)
     Arena arena;
@@ -188,10 +186,9 @@ void test_lexer_indentation_error_inconsistent()
     DEBUG_INFO("Finished test_lexer_indentation_error_inconsistent");
 }
 
-void test_lexer_multiple_newlines()
+static void test_lexer_multiple_newlines(void)
 {
     DEBUG_INFO("Starting test_lexer_multiple_newlines");
-    printf("Testing multiple newlines and indents\n");
 
     const char *source = "\n\n  x = 1\n\ny = 2\n";
     Arena arena;
@@ -235,10 +232,9 @@ void test_lexer_multiple_newlines()
     DEBUG_INFO("Finished test_lexer_multiple_newlines");
 }
 
-void test_lexer_line_with_only_comment()
+static void test_lexer_line_with_only_comment(void)
 {
     DEBUG_INFO("Starting test_lexer_line_with_only_comment");
-    printf("Testing line with only comment, should skip to next\n");
 
     const char *source = "x = 1\n  // comment only\ny = 2";
     Arena arena;
@@ -282,10 +278,9 @@ void test_lexer_line_with_only_comment()
     DEBUG_INFO("Finished test_lexer_line_with_only_comment");
 }
 
-void test_lexer_unexpected_character()
+static void test_lexer_unexpected_character(void)
 {
     DEBUG_INFO("Starting test_lexer_unexpected_character");
-    printf("Testing lexer with unexpected char '@'\n");
 
     const char *source = "@";
     Arena arena;
@@ -303,10 +298,9 @@ void test_lexer_unexpected_character()
     DEBUG_INFO("Finished test_lexer_unexpected_character");
 }
 
-void test_lexer_mixed_tokens()
+static void test_lexer_mixed_tokens(void)
 {
     DEBUG_INFO("Starting test_lexer_mixed_tokens");
-    printf("Testing lexer with mixed tokens 'fn add(a: int, b: int) -> int { return a + b; }'\n");
 
     const char *source = "fn add(a: int, b: int) -> int { return a + b; }";
     Arena arena;
@@ -364,10 +358,9 @@ void test_lexer_mixed_tokens()
     DEBUG_INFO("Finished test_lexer_mixed_tokens");
 }
 
-void test_lexer_tabs_as_indent()
+static void test_lexer_tabs_as_indent(void)
 {
     DEBUG_INFO("Starting test_lexer_tabs_as_indent");
-    printf("Testing lexer treats tabs as 1 indent unit (per code)\n");
 
     const char *source = "if true:\n\tx = 1\ny = 2"; // tab for indent
     Arena arena;
@@ -387,15 +380,16 @@ void test_lexer_tabs_as_indent()
     DEBUG_INFO("Finished test_lexer_tabs_as_indent");
 }
 
-void test_lexer_indent_main()
+void test_lexer_indent_main(void)
 {
-    test_lexer_comments();
-    test_lexer_indentation_basic();
-    test_lexer_indentation_nested();
-    test_lexer_indentation_error_inconsistent();
-    test_lexer_multiple_newlines();
-    test_lexer_line_with_only_comment();
-    test_lexer_unexpected_character();
-    test_lexer_mixed_tokens();
-    test_lexer_tabs_as_indent();
+    TEST_SECTION("Lexer Indentation Tests");
+    TEST_RUN("lexer_comments", test_lexer_comments);
+    TEST_RUN("lexer_indentation_basic", test_lexer_indentation_basic);
+    TEST_RUN("lexer_indentation_nested", test_lexer_indentation_nested);
+    TEST_RUN("lexer_indentation_error_inconsistent", test_lexer_indentation_error_inconsistent);
+    TEST_RUN("lexer_multiple_newlines", test_lexer_multiple_newlines);
+    TEST_RUN("lexer_line_with_only_comment", test_lexer_line_with_only_comment);
+    TEST_RUN("lexer_unexpected_character", test_lexer_unexpected_character);
+    TEST_RUN("lexer_mixed_tokens", test_lexer_mixed_tokens);
+    TEST_RUN("lexer_tabs_as_indent", test_lexer_tabs_as_indent);
 }

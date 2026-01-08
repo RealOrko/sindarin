@@ -1,9 +1,8 @@
 // tests/ast_tests_type.c
 // Type-related AST tests
 
-void test_ast_create_primitive_type()
+static void test_ast_create_primitive_type()
 {
-    printf("Testing ast_create_primitive_type...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -59,9 +58,8 @@ void test_ast_create_primitive_type()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_array_type()
+static void test_ast_create_array_type()
 {
-    printf("Testing ast_create_array_type...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -87,9 +85,8 @@ void test_ast_create_array_type()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_function_type()
+static void test_ast_create_function_type()
 {
-    printf("Testing ast_create_function_type...\n");
     Arena arena;
     setup_arena(&arena);
     Type *ret = ast_create_primitive_type(&arena, TYPE_VOID);
@@ -125,9 +122,8 @@ void test_ast_create_function_type()
     cleanup_arena(&arena);
 }
 
-void test_ast_clone_type()
+static void test_ast_clone_type()
 {
-    printf("Testing ast_clone_type...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -180,9 +176,8 @@ void test_ast_clone_type()
     cleanup_arena(&arena);
 }
 
-void test_ast_type_equals()
+static void test_ast_type_equals()
 {
-    printf("Testing ast_type_equals...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -247,9 +242,8 @@ void test_ast_type_equals()
     cleanup_arena(&arena);
 }
 
-void test_ast_type_to_string()
+static void test_ast_type_to_string()
 {
-    printf("Testing ast_type_to_string...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -309,10 +303,11 @@ void test_ast_type_to_string()
 
 void test_ast_type_main()
 {
-    test_ast_create_primitive_type();
-    test_ast_create_array_type();
-    test_ast_create_function_type();
-    test_ast_clone_type();
-    test_ast_type_equals();
-    test_ast_type_to_string();
+    TEST_SECTION("AST Type Tests");
+    TEST_RUN("ast_create_primitive_type", test_ast_create_primitive_type);
+    TEST_RUN("ast_create_array_type", test_ast_create_array_type);
+    TEST_RUN("ast_create_function_type", test_ast_create_function_type);
+    TEST_RUN("ast_clone_type", test_ast_clone_type);
+    TEST_RUN("ast_type_equals", test_ast_type_equals);
+    TEST_RUN("ast_type_to_string", test_ast_type_to_string);
 }

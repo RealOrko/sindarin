@@ -13,6 +13,7 @@
 #include "../token.h"
 #include "../type_checker.h"
 #include "../symbol_table.h"
+#include "../test_harness.h"
 
 void setup_token(Token *tok, TokenType type, const char *lexeme, int line, const char *filename, Arena *arena) {
     tok->type = type;

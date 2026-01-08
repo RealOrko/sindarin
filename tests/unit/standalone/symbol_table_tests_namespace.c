@@ -9,6 +9,7 @@
 #include "../debug.h"
 #include "../symbol_table.h"
 #include "../ast.h"
+#include "../test_harness.h"
 
 // Helper macros and constants
 #define TEST_ARENA_SIZE 4096
@@ -29,10 +30,9 @@ static Type *create_string_type_ns(Arena *arena) {
 // =====================================================
 
 // Test symbol_table_add_namespace creates namespace correctly
-void test_namespace_add_namespace() {
+static void test_namespace_add_namespace(void) {
     DEBUG_INFO("Starting test_namespace_add_namespace");
-    printf("Testing symbol_table_add_namespace creates namespace correctly...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -57,10 +57,9 @@ void test_namespace_add_namespace() {
 }
 
 // Test symbol_table_add_symbol_to_namespace adds symbols to namespace
-void test_namespace_add_symbol_to_namespace() {
+static void test_namespace_add_symbol_to_namespace(void) {
     DEBUG_INFO("Starting test_namespace_add_symbol_to_namespace");
-    printf("Testing symbol_table_add_symbol_to_namespace adds symbols to namespace...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -101,10 +100,9 @@ void test_namespace_add_symbol_to_namespace() {
 }
 
 // Test symbol_table_lookup_in_namespace finds namespaced symbols
-void test_namespace_lookup_in_namespace() {
+static void test_namespace_lookup_in_namespace(void) {
     DEBUG_INFO("Starting test_namespace_lookup_in_namespace");
-    printf("Testing symbol_table_lookup_in_namespace finds namespaced symbols...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -148,10 +146,9 @@ void test_namespace_lookup_in_namespace() {
 }
 
 // Test symbol_table_is_namespace correctly identifies namespaces
-void test_namespace_is_namespace() {
+static void test_namespace_is_namespace(void) {
     DEBUG_INFO("Starting test_namespace_is_namespace");
-    printf("Testing symbol_table_is_namespace correctly identifies namespaces...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -186,10 +183,9 @@ void test_namespace_is_namespace() {
 }
 
 // Test error handling: adding symbol to non-existent namespace
-void test_namespace_add_symbol_to_nonexistent() {
+static void test_namespace_add_symbol_to_nonexistent(void) {
     DEBUG_INFO("Starting test_namespace_add_symbol_to_nonexistent");
-    printf("Testing adding symbol to non-existent namespace (should not crash)...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -215,10 +211,9 @@ void test_namespace_add_symbol_to_nonexistent() {
 }
 
 // Test error handling: duplicate namespace names
-void test_namespace_duplicate_names() {
+static void test_namespace_duplicate_names(void) {
     DEBUG_INFO("Starting test_namespace_duplicate_names");
-    printf("Testing duplicate namespace names (should not crash)...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -246,10 +241,9 @@ void test_namespace_duplicate_names() {
 }
 
 // Test that regular lookup still works for direct (non-namespaced) symbols
-void test_namespace_regular_lookup_unaffected() {
+static void test_namespace_regular_lookup_unaffected(void) {
     DEBUG_INFO("Starting test_namespace_regular_lookup_unaffected");
-    printf("Testing regular lookup still works for direct symbols...\n");
-
+    
     Arena arena;
     arena_init(&arena, TEST_ARENA_SIZE);
     SymbolTable table;
@@ -288,14 +282,15 @@ void test_namespace_regular_lookup_unaffected() {
     DEBUG_INFO("Finished test_namespace_regular_lookup_unaffected");
 }
 
-void test_symbol_table_namespace_main()
+void test_symbol_table_namespace_main(void)
 {
-    // Namespace tests
-    test_namespace_add_namespace();
-    test_namespace_add_symbol_to_namespace();
-    test_namespace_lookup_in_namespace();
-    test_namespace_is_namespace();
-    test_namespace_add_symbol_to_nonexistent();
-    test_namespace_duplicate_names();
-    test_namespace_regular_lookup_unaffected();
+    TEST_SECTION("Symbol Table Namespace");
+
+    TEST_RUN("namespace_add_namespace", test_namespace_add_namespace);
+    TEST_RUN("namespace_add_symbol_to_namespace", test_namespace_add_symbol_to_namespace);
+    TEST_RUN("namespace_lookup_in_namespace", test_namespace_lookup_in_namespace);
+    TEST_RUN("namespace_is_namespace", test_namespace_is_namespace);
+    TEST_RUN("namespace_add_symbol_to_nonexistent", test_namespace_add_symbol_to_nonexistent);
+    TEST_RUN("namespace_duplicate_names", test_namespace_duplicate_names);
+    TEST_RUN("namespace_regular_lookup_unaffected", test_namespace_regular_lookup_unaffected);
 }

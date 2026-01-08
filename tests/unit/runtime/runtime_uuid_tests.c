@@ -10,6 +10,7 @@
 #include "../../src/runtime/runtime_uuid.h"
 #include "../../src/runtime/runtime_arena.h"
 #include "../test_utils.h"
+#include "../test_harness.h"
 #include "../debug.h"
 
 /* ============================================================================
@@ -18,10 +19,8 @@
  * Tests for UUIDv4 (random) generation following RFC 9562.
  * ============================================================================ */
 
-void test_rt_uuid_v4_basic()
+static void test_rt_uuid_v4_basic(void)
 {
-    printf("Testing rt_uuid_v4 basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -31,14 +30,11 @@ void test_rt_uuid_v4_basic()
     /* UUID should not be all zeros */
     TEST_ASSERT(uuid->high != 0 || uuid->low != 0, "UUID should not be nil");
 
-    printf("  Created UUID successfully\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v4_version_bits()
+static void test_rt_uuid_v4_version_bits(void)
 {
-    printf("Testing rt_uuid_v4 version bits...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -52,14 +48,11 @@ void test_rt_uuid_v4_version_bits()
         TEST_ASSERT_EQ(version, 4, "UUID version should be 4");
     }
 
-    printf("  All 100 UUIDs have correct version (4)\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v4_variant_bits()
+static void test_rt_uuid_v4_variant_bits(void)
 {
-    printf("Testing rt_uuid_v4 variant bits...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -77,14 +70,11 @@ void test_rt_uuid_v4_variant_bits()
         TEST_ASSERT_EQ(variant_bits, 0x02, "Variant bits should be 10 (binary)");
     }
 
-    printf("  All 100 UUIDs have correct variant (1 / RFC 9562)\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v4_uniqueness()
+static void test_rt_uuid_v4_uniqueness(void)
 {
-    printf("Testing rt_uuid_v4 uniqueness...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -109,16 +99,13 @@ void test_rt_uuid_v4_uniqueness()
 
     TEST_ASSERT_EQ(duplicates, 0, "All UUIDs should be unique");
 
-    printf("  Generated %d unique UUIDs\n", NUM_UUIDS);
     #undef NUM_UUIDS
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v4_randomness()
+static void test_rt_uuid_v4_randomness(void)
 {
-    printf("Testing rt_uuid_v4 randomness (bit distribution)...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -173,30 +160,23 @@ void test_rt_uuid_v4_randomness()
                     "Low word random bits should have ~50% distribution");
     }
 
-    printf("  Bit distribution is approximately uniform\n");
     #undef NUM_SAMPLES
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v4_null_arena()
+static void test_rt_uuid_v4_null_arena(void)
 {
-    printf("Testing rt_uuid_v4 with NULL arena...\n");
-
     RtUuid *uuid = rt_uuid_v4(NULL);
     TEST_ASSERT_NULL(uuid, "UUID should be NULL with NULL arena");
-
-    printf("  NULL arena handled correctly\n");
 }
 
 /* ============================================================================
  * rt_uuid_to_string() Tests
  * ============================================================================ */
 
-void test_rt_uuid_to_string_format()
+static void test_rt_uuid_to_string_format(void)
 {
-    printf("Testing rt_uuid_to_string format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -235,8 +215,6 @@ void test_rt_uuid_to_string_format()
                            str[19] == 'A' || str[19] == 'B');
     TEST_ASSERT(variant_digit_ok, "Variant digit should be 8, 9, a, or b");
 
-    printf("  UUID string format: %s\n", str);
-
     rt_arena_destroy(arena);
 }
 
@@ -244,10 +222,8 @@ void test_rt_uuid_to_string_format()
  * rt_uuid_to_hex() Tests
  * ============================================================================ */
 
-void test_rt_uuid_to_hex_format()
+static void test_rt_uuid_to_hex_format(void)
 {
-    printf("Testing rt_uuid_to_hex format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -268,8 +244,6 @@ void test_rt_uuid_to_hex_format()
         TEST_ASSERT(is_hex, "All characters should be hex digits");
     }
 
-    printf("  UUID hex: %s\n", hex);
-
     rt_arena_destroy(arena);
 }
 
@@ -277,10 +251,8 @@ void test_rt_uuid_to_hex_format()
  * rt_uuid_to_bytes() Tests
  * ============================================================================ */
 
-void test_rt_uuid_to_bytes()
+static void test_rt_uuid_to_bytes(void)
 {
-    printf("Testing rt_uuid_to_bytes...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -317,8 +289,6 @@ void test_rt_uuid_to_bytes()
     /* Variant byte (byte 8) should have 0x8X-0xBX pattern */
     TEST_ASSERT((bytes[8] & 0xC0) == 0x80, "Variant bits correct in byte 8");
 
-    printf("  Bytes conversion correct\n");
-
     rt_arena_destroy(arena);
 }
 
@@ -326,10 +296,8 @@ void test_rt_uuid_to_bytes()
  * rt_uuid_to_base64() Tests
  * ============================================================================ */
 
-void test_rt_uuid_to_base64_format()
+static void test_rt_uuid_to_base64_format(void)
 {
-    printf("Testing rt_uuid_to_base64 format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -358,15 +326,11 @@ void test_rt_uuid_to_base64_format()
         TEST_ASSERT(base64[i] != '=', "No padding in UUID base64");
     }
 
-    printf("  UUID base64: %s\n", base64);
-
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_to_base64_known_value()
+static void test_rt_uuid_to_base64_known_value(void)
 {
-    printf("Testing rt_uuid_to_base64 with known value...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -378,8 +342,6 @@ void test_rt_uuid_to_base64_known_value()
     /* Nil UUID (all zeros) should produce all 'A's */
     TEST_ASSERT_STR_EQ(base64, "AAAAAAAAAAAAAAAAAAAAAA", "Nil UUID base64 should be all As");
 
-    printf("  Nil UUID base64: %s\n", base64);
-
     rt_arena_destroy(arena);
 }
 
@@ -387,10 +349,8 @@ void test_rt_uuid_to_base64_known_value()
  * Comparison Tests
  * ============================================================================ */
 
-void test_rt_uuid_equals()
+static void test_rt_uuid_equals(void)
 {
-    printf("Testing rt_uuid_equals...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -411,15 +371,11 @@ void test_rt_uuid_equals()
     uuid_copy->low = uuid1->low;
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid1, uuid_copy), "Copied UUID should equal original");
 
-    printf("  Equality comparison correct\n");
-
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_compare()
+static void test_rt_uuid_compare(void)
 {
-    printf("Testing rt_uuid_compare...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -442,8 +398,6 @@ void test_rt_uuid_compare()
     TEST_ASSERT_TRUE(rt_uuid_is_greater_than(high, low), "is_greater_than should be true");
     TEST_ASSERT_FALSE(rt_uuid_is_greater_than(low, high), "is_greater_than should be false");
 
-    printf("  Comparison operations correct\n");
-
     rt_arena_destroy(arena);
 }
 
@@ -451,10 +405,8 @@ void test_rt_uuid_compare()
  * Special UUID Tests
  * ============================================================================ */
 
-void test_rt_uuid_nil()
+static void test_rt_uuid_nil(void)
 {
-    printf("Testing rt_uuid_nil...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -468,15 +420,11 @@ void test_rt_uuid_nil()
     char *str = rt_uuid_to_string(arena, nil);
     TEST_ASSERT_STR_EQ(str, "00000000-0000-0000-0000-000000000000", "Nil string format");
 
-    printf("  Nil UUID: %s\n", str);
-
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_max()
+static void test_rt_uuid_max(void)
 {
-    printf("Testing rt_uuid_max...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -490,8 +438,6 @@ void test_rt_uuid_max()
     char *str = rt_uuid_to_string(arena, max);
     TEST_ASSERT_STR_EQ(str, "ffffffff-ffff-ffff-ffff-ffffffffffff", "Max string format");
 
-    printf("  Max UUID: %s\n", str);
-
     rt_arena_destroy(arena);
 }
 
@@ -499,10 +445,8 @@ void test_rt_uuid_max()
  * Namespace Tests
  * ============================================================================ */
 
-void test_rt_uuid_namespaces()
+static void test_rt_uuid_namespaces(void)
 {
-    printf("Testing UUID namespaces...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -530,11 +474,6 @@ void test_rt_uuid_namespaces()
     char *x500_str = rt_uuid_to_string(arena, x500);
     TEST_ASSERT_STR_EQ(x500_str, "6ba7b814-9dad-11d1-80b4-00c04fd430c8", "X500 namespace");
 
-    printf("  DNS:  %s\n", dns_str);
-    printf("  URL:  %s\n", url_str);
-    printf("  OID:  %s\n", oid_str);
-    printf("  X500: %s\n", x500_str);
-
     rt_arena_destroy(arena);
 }
 
@@ -544,10 +483,8 @@ void test_rt_uuid_namespaces()
  * Tests for UUIDv7 (timestamp + random) generation following RFC 9562.
  * ============================================================================ */
 
-void test_rt_uuid_v7_basic()
+static void test_rt_uuid_v7_basic(void)
 {
-    printf("Testing rt_uuid_v7 basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -557,14 +494,11 @@ void test_rt_uuid_v7_basic()
     /* UUID should not be all zeros */
     TEST_ASSERT(uuid->high != 0 || uuid->low != 0, "UUID should not be nil");
 
-    printf("  Created UUIDv7 successfully\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v7_version_bits()
+static void test_rt_uuid_v7_version_bits(void)
 {
-    printf("Testing rt_uuid_v7 version bits...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -578,14 +512,11 @@ void test_rt_uuid_v7_version_bits()
         TEST_ASSERT_EQ(version, 7, "UUID version should be 7");
     }
 
-    printf("  All 100 UUIDs have correct version (7)\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v7_variant_bits()
+static void test_rt_uuid_v7_variant_bits(void)
 {
-    printf("Testing rt_uuid_v7 variant bits...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -603,14 +534,11 @@ void test_rt_uuid_v7_variant_bits()
         TEST_ASSERT_EQ(variant_bits, 0x02, "Variant bits should be 10 (binary)");
     }
 
-    printf("  All 100 UUIDs have correct variant (1 / RFC 9562)\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v7_timestamp()
+static void test_rt_uuid_v7_timestamp(void)
 {
-    printf("Testing rt_uuid_v7 timestamp extraction...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -632,16 +560,11 @@ void test_rt_uuid_v7_timestamp()
     TEST_ASSERT(uuid_timestamp >= ms_before - 1, "UUID timestamp should be >= before time");
     TEST_ASSERT(uuid_timestamp <= ms_after + 1, "UUID timestamp should be <= after time");
 
-    printf("  Timestamp extracted correctly: %lld ms\n", uuid_timestamp);
-    printf("  Time range: [%lld, %lld] ms\n", ms_before, ms_after);
-
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v7_ordering()
+static void test_rt_uuid_v7_ordering(void)
 {
-    printf("Testing rt_uuid_v7 time ordering...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -666,16 +589,13 @@ void test_rt_uuid_v7_ordering()
 
     TEST_ASSERT_EQ(ordering_errors, 0, "UUIDs should have non-decreasing timestamps");
 
-    printf("  All %d UUIDs have non-decreasing timestamps\n", NUM_ORDERED_UUIDS);
     #undef NUM_ORDERED_UUIDS
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v7_uniqueness()
+static void test_rt_uuid_v7_uniqueness(void)
 {
-    printf("Testing rt_uuid_v7 uniqueness...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -700,16 +620,13 @@ void test_rt_uuid_v7_uniqueness()
 
     TEST_ASSERT_EQ(duplicates, 0, "All UUIDs should be unique");
 
-    printf("  Generated %d unique v7 UUIDs\n", NUM_UUIDS_V7);
     #undef NUM_UUIDS_V7
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v7_randomness()
+static void test_rt_uuid_v7_randomness(void)
 {
-    printf("Testing rt_uuid_v7 randomness in non-timestamp bits...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -738,16 +655,13 @@ void test_rt_uuid_v7_randomness()
                     "Random bits should have ~50% distribution");
     }
 
-    printf("  Random bit distribution is approximately uniform\n");
     #undef NUM_SAMPLES_V7
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v7_string_format()
+static void test_rt_uuid_v7_string_format(void)
 {
-    printf("Testing rt_uuid_v7 string format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -769,15 +683,11 @@ void test_rt_uuid_v7_string_format()
                            str[19] == 'A' || str[19] == 'B');
     TEST_ASSERT(variant_digit_ok, "Variant digit should be 8, 9, a, or b");
 
-    printf("  UUIDv7 string format: %s\n", str);
-
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_create_returns_v7()
+static void test_rt_uuid_create_returns_v7(void)
 {
-    printf("Testing rt_uuid_create returns v7...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -787,8 +697,6 @@ void test_rt_uuid_create_returns_v7()
     /* rt_uuid_create should return v7 */
     long version = rt_uuid_get_version(uuid);
     TEST_ASSERT_EQ(version, 7, "rt_uuid_create should return v7");
-
-    printf("  rt_uuid_create returns version 7\n");
 
     rt_arena_destroy(arena);
 }
@@ -800,10 +708,8 @@ void test_rt_uuid_create_returns_v7()
  * UUIDv5 generates deterministic UUIDs from namespace + name.
  * ============================================================================ */
 
-void test_rt_uuid_v5_basic()
+static void test_rt_uuid_v5_basic(void)
 {
-    printf("Testing rt_uuid_v5 basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -816,14 +722,11 @@ void test_rt_uuid_v5_basic()
     /* UUID should not be all zeros */
     TEST_ASSERT(uuid->high != 0 || uuid->low != 0, "UUID should not be nil");
 
-    printf("  Created UUIDv5 successfully\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v5_version_bits()
+static void test_rt_uuid_v5_version_bits(void)
 {
-    printf("Testing rt_uuid_v5 version bits...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -840,14 +743,11 @@ void test_rt_uuid_v5_version_bits()
         TEST_ASSERT_EQ(version, 5, "UUID version should be 5");
     }
 
-    printf("  All UUIDs have correct version (5)\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v5_variant_bits()
+static void test_rt_uuid_v5_variant_bits(void)
 {
-    printf("Testing rt_uuid_v5 variant bits...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -868,14 +768,11 @@ void test_rt_uuid_v5_variant_bits()
         TEST_ASSERT_EQ(variant_bits, 0x02, "Variant bits should be 10 (binary)");
     }
 
-    printf("  All UUIDs have correct variant (1 / RFC 9562)\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v5_deterministic()
+static void test_rt_uuid_v5_deterministic(void)
 {
-    printf("Testing rt_uuid_v5 determinism (same inputs = same UUID)...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -894,18 +791,11 @@ void test_rt_uuid_v5_deterministic()
     TEST_ASSERT_NOT_NULL(uuid3, "UUID3 should be created");
     TEST_ASSERT_FALSE(rt_uuid_equals(uuid1, uuid3), "Different names should produce different UUIDs");
 
-    char *str1 = rt_uuid_to_string(arena, uuid1);
-    char *str2 = rt_uuid_to_string(arena, uuid2);
-    printf("  UUID for 'example.com': %s\n", str1);
-    printf("  Same again:             %s\n", str2);
-
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v5_different_namespaces()
+static void test_rt_uuid_v5_different_namespaces(void)
 {
-    printf("Testing rt_uuid_v5 with different namespaces...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -927,14 +817,11 @@ void test_rt_uuid_v5_different_namespaces()
     TEST_ASSERT_FALSE(rt_uuid_equals(uuid_dns, uuid_oid), "Different namespaces should produce different UUIDs");
     TEST_ASSERT_FALSE(rt_uuid_equals(uuid_url, uuid_oid), "Different namespaces should produce different UUIDs");
 
-    printf("  Different namespaces produce different UUIDs\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v5_known_vector()
+static void test_rt_uuid_v5_known_vector(void)
 {
-    printf("Testing rt_uuid_v5 against known test vector...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -956,15 +843,11 @@ void test_rt_uuid_v5_known_vector()
     /* Verify string format shows version 5 */
     TEST_ASSERT(str[14] == '5', "Version digit should be '5'");
 
-    printf("  UUIDv5(DNS, \"python.org\") = %s\n", str);
-
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v5_empty_name()
+static void test_rt_uuid_v5_empty_name(void)
 {
-    printf("Testing rt_uuid_v5 with empty name...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -982,14 +865,11 @@ void test_rt_uuid_v5_empty_name()
     RtUuid *uuid2 = rt_uuid_v5(arena, ns_dns, "");
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, uuid2), "Empty name should be deterministic");
 
-    printf("  Empty name handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_v5_null_inputs()
+static void test_rt_uuid_v5_null_inputs(void)
 {
-    printf("Testing rt_uuid_v5 with NULL inputs...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1007,7 +887,6 @@ void test_rt_uuid_v5_null_inputs()
     RtUuid *uuid3 = rt_uuid_v5(arena, ns_dns, NULL);
     TEST_ASSERT_NULL(uuid3, "NULL name should return NULL");
 
-    printf("  NULL inputs handled correctly\n");
     rt_arena_destroy(arena);
 }
 
@@ -1017,10 +896,8 @@ void test_rt_uuid_v5_null_inputs()
  * Tests for parsing UUIDs from standard 36-char format with dashes.
  * ============================================================================ */
 
-void test_rt_uuid_from_string_basic()
+static void test_rt_uuid_from_string_basic(void)
 {
-    printf("Testing rt_uuid_from_string basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1032,14 +909,11 @@ void test_rt_uuid_from_string_basic()
     RtUuid *dns = rt_uuid_namespace_dns(arena);
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, dns), "Parsed UUID should equal DNS namespace");
 
-    printf("  Parsed UUID successfully\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_roundtrip()
+static void test_rt_uuid_from_string_roundtrip(void)
 {
-    printf("Testing rt_uuid_from_string roundtrip...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1055,14 +929,11 @@ void test_rt_uuid_from_string_roundtrip()
 
     TEST_ASSERT_TRUE(rt_uuid_equals(original, parsed), "Roundtrip should preserve UUID");
 
-    printf("  Roundtrip: %s\n", str);
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_lowercase()
+static void test_rt_uuid_from_string_lowercase(void)
 {
-    printf("Testing rt_uuid_from_string with lowercase...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1073,14 +944,11 @@ void test_rt_uuid_from_string_lowercase()
     char *str = rt_uuid_to_string(arena, uuid);
     TEST_ASSERT_STR_EQ(str, "abcdef01-2345-6789-abcd-ef0123456789", "Lowercase parsed correctly");
 
-    printf("  Lowercase handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_uppercase()
+static void test_rt_uuid_from_string_uppercase(void)
 {
-    printf("Testing rt_uuid_from_string with uppercase...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1092,14 +960,11 @@ void test_rt_uuid_from_string_uppercase()
     TEST_ASSERT_NOT_NULL(uuid_lower, "Lowercase UUID should be parsed");
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, uuid_lower), "Case should not matter");
 
-    printf("  Uppercase handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_mixed_case()
+static void test_rt_uuid_from_string_mixed_case(void)
 {
-    printf("Testing rt_uuid_from_string with mixed case...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1111,14 +976,11 @@ void test_rt_uuid_from_string_mixed_case()
     TEST_ASSERT_NOT_NULL(uuid_lower, "Lowercase UUID should be parsed");
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, uuid_lower), "Mixed case should not matter");
 
-    printf("  Mixed case handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_nil()
+static void test_rt_uuid_from_string_nil(void)
 {
-    printf("Testing rt_uuid_from_string with nil UUID...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1126,14 +988,11 @@ void test_rt_uuid_from_string_nil()
     TEST_ASSERT_NOT_NULL(uuid, "UUID should be parsed");
     TEST_ASSERT_TRUE(rt_uuid_is_nil(uuid), "Parsed UUID should be nil");
 
-    printf("  Nil UUID parsed correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_max()
+static void test_rt_uuid_from_string_max(void)
 {
-    printf("Testing rt_uuid_from_string with max UUID...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1143,14 +1002,11 @@ void test_rt_uuid_from_string_max()
     RtUuid *max = rt_uuid_max(arena);
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, max), "Parsed UUID should equal max UUID");
 
-    printf("  Max UUID parsed correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_invalid_length()
+static void test_rt_uuid_from_string_invalid_length(void)
 {
-    printf("Testing rt_uuid_from_string with invalid length...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1166,14 +1022,11 @@ void test_rt_uuid_from_string_invalid_length()
     RtUuid *uuid3 = rt_uuid_from_string(arena, "");
     TEST_ASSERT_NULL(uuid3, "Empty string should return NULL");
 
-    printf("  Invalid lengths handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_invalid_dashes()
+static void test_rt_uuid_from_string_invalid_dashes(void)
 {
-    printf("Testing rt_uuid_from_string with invalid dashes...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1189,14 +1042,11 @@ void test_rt_uuid_from_string_invalid_dashes()
     RtUuid *uuid3 = rt_uuid_from_string(arena, "6ba7b8109dad11d180b400c04fd430c8ab");
     TEST_ASSERT_NULL(uuid3, "No dashes should return NULL");
 
-    printf("  Invalid dashes handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_invalid_chars()
+static void test_rt_uuid_from_string_invalid_chars(void)
 {
-    printf("Testing rt_uuid_from_string with invalid characters...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1212,14 +1062,11 @@ void test_rt_uuid_from_string_invalid_chars()
     RtUuid *uuid3 = rt_uuid_from_string(arena, "6ba7b810-9dad-11d1-80b4-00c04fd430@8");
     TEST_ASSERT_NULL(uuid3, "Special char should return NULL");
 
-    printf("  Invalid characters handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_null_inputs()
+static void test_rt_uuid_from_string_null_inputs(void)
 {
-    printf("Testing rt_uuid_from_string with NULL inputs...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1231,7 +1078,6 @@ void test_rt_uuid_from_string_null_inputs()
     RtUuid *uuid2 = rt_uuid_from_string(arena, NULL);
     TEST_ASSERT_NULL(uuid2, "NULL string should return NULL");
 
-    printf("  NULL inputs handled correctly\n");
     rt_arena_destroy(arena);
 }
 
@@ -1241,10 +1087,8 @@ void test_rt_uuid_from_string_null_inputs()
  * Tests for parsing UUIDs from 32-char hex format without dashes.
  * ============================================================================ */
 
-void test_rt_uuid_from_hex_basic()
+static void test_rt_uuid_from_hex_basic(void)
 {
-    printf("Testing rt_uuid_from_hex basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1256,14 +1100,11 @@ void test_rt_uuid_from_hex_basic()
     RtUuid *dns = rt_uuid_namespace_dns(arena);
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, dns), "Parsed UUID should equal DNS namespace");
 
-    printf("  Parsed UUID from hex successfully\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_roundtrip()
+static void test_rt_uuid_from_hex_roundtrip(void)
 {
-    printf("Testing rt_uuid_from_hex roundtrip...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1279,28 +1120,22 @@ void test_rt_uuid_from_hex_roundtrip()
 
     TEST_ASSERT_TRUE(rt_uuid_equals(original, parsed), "Roundtrip should preserve UUID");
 
-    printf("  Roundtrip: %s\n", hex);
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_lowercase()
+static void test_rt_uuid_from_hex_lowercase(void)
 {
-    printf("Testing rt_uuid_from_hex with lowercase...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     RtUuid *uuid = rt_uuid_from_hex(arena, "abcdef0123456789abcdef0123456789");
     TEST_ASSERT_NOT_NULL(uuid, "UUID should be parsed");
 
-    printf("  Lowercase handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_uppercase()
+static void test_rt_uuid_from_hex_uppercase(void)
 {
-    printf("Testing rt_uuid_from_hex with uppercase...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1311,14 +1146,11 @@ void test_rt_uuid_from_hex_uppercase()
     RtUuid *uuid_lower = rt_uuid_from_hex(arena, "abcdef0123456789abcdef0123456789");
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, uuid_lower), "Case should not matter");
 
-    printf("  Uppercase handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_mixed_case()
+static void test_rt_uuid_from_hex_mixed_case(void)
 {
-    printf("Testing rt_uuid_from_hex with mixed case...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1329,14 +1161,11 @@ void test_rt_uuid_from_hex_mixed_case()
     RtUuid *uuid_lower = rt_uuid_from_hex(arena, "abcdef0123456789abcdef0123456789");
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, uuid_lower), "Mixed case should not matter");
 
-    printf("  Mixed case handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_nil()
+static void test_rt_uuid_from_hex_nil(void)
 {
-    printf("Testing rt_uuid_from_hex with nil UUID...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1344,14 +1173,11 @@ void test_rt_uuid_from_hex_nil()
     TEST_ASSERT_NOT_NULL(uuid, "UUID should be parsed");
     TEST_ASSERT_TRUE(rt_uuid_is_nil(uuid), "Parsed UUID should be nil");
 
-    printf("  Nil UUID parsed correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_max()
+static void test_rt_uuid_from_hex_max(void)
 {
-    printf("Testing rt_uuid_from_hex with max UUID...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1361,14 +1187,11 @@ void test_rt_uuid_from_hex_max()
     RtUuid *max = rt_uuid_max(arena);
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, max), "Parsed UUID should equal max UUID");
 
-    printf("  Max UUID parsed correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_invalid_length()
+static void test_rt_uuid_from_hex_invalid_length(void)
 {
-    printf("Testing rt_uuid_from_hex with invalid length...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1388,14 +1211,11 @@ void test_rt_uuid_from_hex_invalid_length()
     RtUuid *uuid4 = rt_uuid_from_hex(arena, "6ba7b810-9dad-11d1-80b4-00c04fd430c8");
     TEST_ASSERT_NULL(uuid4, "36-char format with dashes should return NULL");
 
-    printf("  Invalid lengths handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_invalid_chars()
+static void test_rt_uuid_from_hex_invalid_chars(void)
 {
-    printf("Testing rt_uuid_from_hex with invalid characters...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1411,14 +1231,11 @@ void test_rt_uuid_from_hex_invalid_chars()
     RtUuid *uuid3 = rt_uuid_from_hex(arena, "6ba7b8109dad11d180b400c04fd430 8");
     TEST_ASSERT_NULL(uuid3, "Space should return NULL");
 
-    printf("  Invalid characters handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_hex_null_inputs()
+static void test_rt_uuid_from_hex_null_inputs(void)
 {
-    printf("Testing rt_uuid_from_hex with NULL inputs...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1430,14 +1247,11 @@ void test_rt_uuid_from_hex_null_inputs()
     RtUuid *uuid2 = rt_uuid_from_hex(arena, NULL);
     TEST_ASSERT_NULL(uuid2, "NULL string should return NULL");
 
-    printf("  NULL inputs handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_string_vs_from_hex()
+static void test_rt_uuid_from_string_vs_from_hex(void)
 {
-    printf("Testing rt_uuid_from_string vs rt_uuid_from_hex consistency...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1450,7 +1264,6 @@ void test_rt_uuid_from_string_vs_from_hex()
 
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid_str, uuid_hex), "Both formats should produce same UUID");
 
-    printf("  Both formats produce consistent results\n");
     rt_arena_destroy(arena);
 }
 
@@ -1460,10 +1273,8 @@ void test_rt_uuid_from_string_vs_from_hex()
  * Tests for creating UUIDs from 16-byte arrays.
  * ============================================================================ */
 
-void test_rt_uuid_from_bytes_basic()
+static void test_rt_uuid_from_bytes_basic(void)
 {
-    printf("Testing rt_uuid_from_bytes basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1480,14 +1291,11 @@ void test_rt_uuid_from_bytes_basic()
     RtUuid *dns = rt_uuid_namespace_dns(arena);
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, dns), "UUID from bytes should equal DNS namespace");
 
-    printf("  Created UUID from bytes successfully\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_bytes_roundtrip()
+static void test_rt_uuid_from_bytes_roundtrip(void)
 {
-    printf("Testing rt_uuid_from_bytes roundtrip (toBytes -> fromBytes)...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1503,15 +1311,11 @@ void test_rt_uuid_from_bytes_roundtrip()
 
     TEST_ASSERT_TRUE(rt_uuid_equals(original, parsed), "Roundtrip should preserve UUID");
 
-    char *str = rt_uuid_to_string(arena, original);
-    printf("  Roundtrip successful: %s\n", str);
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_bytes_nil()
+static void test_rt_uuid_from_bytes_nil(void)
 {
-    printf("Testing rt_uuid_from_bytes with nil UUID...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1521,14 +1325,11 @@ void test_rt_uuid_from_bytes_nil()
     TEST_ASSERT_NOT_NULL(uuid, "UUID should be created");
     TEST_ASSERT_TRUE(rt_uuid_is_nil(uuid), "UUID from zero bytes should be nil");
 
-    printf("  Nil UUID created correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_bytes_max()
+static void test_rt_uuid_from_bytes_max(void)
 {
-    printf("Testing rt_uuid_from_bytes with max UUID...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1543,14 +1344,11 @@ void test_rt_uuid_from_bytes_max()
     RtUuid *max = rt_uuid_max(arena);
     TEST_ASSERT_TRUE(rt_uuid_equals(uuid, max), "UUID from max bytes should equal max UUID");
 
-    printf("  Max UUID created correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_bytes_null_inputs()
+static void test_rt_uuid_from_bytes_null_inputs(void)
 {
-    printf("Testing rt_uuid_from_bytes with NULL inputs...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1564,7 +1362,6 @@ void test_rt_uuid_from_bytes_null_inputs()
     RtUuid *uuid2 = rt_uuid_from_bytes(arena, NULL);
     TEST_ASSERT_NULL(uuid2, "NULL bytes should return NULL");
 
-    printf("  NULL inputs handled correctly\n");
     rt_arena_destroy(arena);
 }
 
@@ -1574,10 +1371,8 @@ void test_rt_uuid_from_bytes_null_inputs()
  * Tests for parsing UUIDs from 22-char URL-safe base64 format.
  * ============================================================================ */
 
-void test_rt_uuid_from_base64_basic()
+static void test_rt_uuid_from_base64_basic(void)
 {
-    printf("Testing rt_uuid_from_base64 basic functionality...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1594,14 +1389,11 @@ void test_rt_uuid_from_base64_basic()
 
     TEST_ASSERT_TRUE(rt_uuid_equals(original, parsed), "Parsed UUID should equal original");
 
-    printf("  Base64: %s\n", base64);
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_base64_roundtrip()
+static void test_rt_uuid_from_base64_roundtrip(void)
 {
-    printf("Testing rt_uuid_from_base64 roundtrip...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1619,14 +1411,11 @@ void test_rt_uuid_from_base64_roundtrip()
         TEST_ASSERT_TRUE(rt_uuid_equals(original, parsed), "Roundtrip should preserve UUID");
     }
 
-    printf("  10 roundtrips successful\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_base64_nil()
+static void test_rt_uuid_from_base64_nil(void)
 {
-    printf("Testing rt_uuid_from_base64 with nil UUID...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1639,14 +1428,11 @@ void test_rt_uuid_from_base64_nil()
     TEST_ASSERT_NOT_NULL(parsed, "Parsed UUID should be created");
     TEST_ASSERT_TRUE(rt_uuid_is_nil(parsed), "Parsed UUID should be nil");
 
-    printf("  Nil UUID base64: %s\n", base64);
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_base64_url_safe_chars()
+static void test_rt_uuid_from_base64_url_safe_chars(void)
 {
-    printf("Testing rt_uuid_from_base64 handles URL-safe characters...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1672,15 +1458,11 @@ void test_rt_uuid_from_base64_url_safe_chars()
         attempts++;
     }
 
-    printf("  URL-safe chars verified (found dash: %d, underscore: %d)\n",
-           found_dash, found_underscore);
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_base64_invalid_length()
+static void test_rt_uuid_from_base64_invalid_length(void)
 {
-    printf("Testing rt_uuid_from_base64 with invalid length...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1696,14 +1478,11 @@ void test_rt_uuid_from_base64_invalid_length()
     RtUuid *uuid3 = rt_uuid_from_base64(arena, "");
     TEST_ASSERT_NULL(uuid3, "Empty string should return NULL");
 
-    printf("  Invalid lengths handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_base64_invalid_chars()
+static void test_rt_uuid_from_base64_invalid_chars(void)
 {
-    printf("Testing rt_uuid_from_base64 with invalid characters...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1723,14 +1502,11 @@ void test_rt_uuid_from_base64_invalid_chars()
     RtUuid *uuid4 = rt_uuid_from_base64(arena, "AAAAAAAAAAAAAAAAAAA@AA");
     TEST_ASSERT_NULL(uuid4, "Special char should return NULL");
 
-    printf("  Invalid characters handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_from_base64_null_inputs()
+static void test_rt_uuid_from_base64_null_inputs(void)
 {
-    printf("Testing rt_uuid_from_base64 with NULL inputs...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1742,14 +1518,11 @@ void test_rt_uuid_from_base64_null_inputs()
     RtUuid *uuid2 = rt_uuid_from_base64(arena, NULL);
     TEST_ASSERT_NULL(uuid2, "NULL string should return NULL");
 
-    printf("  NULL inputs handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_uuid_all_formats_consistency()
+static void test_rt_uuid_all_formats_consistency(void)
 {
-    printf("Testing all UUID format roundtrips are consistent...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -1775,10 +1548,6 @@ void test_rt_uuid_all_formats_consistency()
     TEST_ASSERT_TRUE(rt_uuid_equals(original, from_base64), "Base64 roundtrip");
     TEST_ASSERT_TRUE(rt_uuid_equals(original, from_bytes), "Bytes roundtrip");
 
-    printf("  All formats consistent\n");
-    printf("    String: %s\n", str);
-    printf("    Hex:    %s\n", hex);
-    printf("    Base64: %s\n", base64);
     rt_arena_destroy(arena);
 }
 
@@ -1786,103 +1555,101 @@ void test_rt_uuid_all_formats_consistency()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_uuid_main()
+void test_rt_uuid_main(void)
 {
-    printf("\n=== Runtime UUID Tests ===\n\n");
+    TEST_SECTION("Runtime UUID");
 
     /* rt_uuid_v4() tests */
-    test_rt_uuid_v4_basic();
-    test_rt_uuid_v4_version_bits();
-    test_rt_uuid_v4_variant_bits();
-    test_rt_uuid_v4_uniqueness();
-    test_rt_uuid_v4_randomness();
-    test_rt_uuid_v4_null_arena();
+    TEST_RUN("v4_basic", test_rt_uuid_v4_basic);
+    TEST_RUN("v4_version_bits", test_rt_uuid_v4_version_bits);
+    TEST_RUN("v4_variant_bits", test_rt_uuid_v4_variant_bits);
+    TEST_RUN("v4_uniqueness", test_rt_uuid_v4_uniqueness);
+    TEST_RUN("v4_randomness", test_rt_uuid_v4_randomness);
+    TEST_RUN("v4_null_arena", test_rt_uuid_v4_null_arena);
 
     /* rt_uuid_v5() tests */
-    test_rt_uuid_v5_basic();
-    test_rt_uuid_v5_version_bits();
-    test_rt_uuid_v5_variant_bits();
-    test_rt_uuid_v5_deterministic();
-    test_rt_uuid_v5_different_namespaces();
-    test_rt_uuid_v5_known_vector();
-    test_rt_uuid_v5_empty_name();
-    test_rt_uuid_v5_null_inputs();
+    TEST_RUN("v5_basic", test_rt_uuid_v5_basic);
+    TEST_RUN("v5_version_bits", test_rt_uuid_v5_version_bits);
+    TEST_RUN("v5_variant_bits", test_rt_uuid_v5_variant_bits);
+    TEST_RUN("v5_deterministic", test_rt_uuid_v5_deterministic);
+    TEST_RUN("v5_different_namespaces", test_rt_uuid_v5_different_namespaces);
+    TEST_RUN("v5_known_vector", test_rt_uuid_v5_known_vector);
+    TEST_RUN("v5_empty_name", test_rt_uuid_v5_empty_name);
+    TEST_RUN("v5_null_inputs", test_rt_uuid_v5_null_inputs);
 
     /* rt_uuid_v7() tests */
-    test_rt_uuid_v7_basic();
-    test_rt_uuid_v7_version_bits();
-    test_rt_uuid_v7_variant_bits();
-    test_rt_uuid_v7_timestamp();
-    test_rt_uuid_v7_ordering();
-    test_rt_uuid_v7_uniqueness();
-    test_rt_uuid_v7_randomness();
-    test_rt_uuid_v7_string_format();
-    test_rt_uuid_create_returns_v7();
+    TEST_RUN("v7_basic", test_rt_uuid_v7_basic);
+    TEST_RUN("v7_version_bits", test_rt_uuid_v7_version_bits);
+    TEST_RUN("v7_variant_bits", test_rt_uuid_v7_variant_bits);
+    TEST_RUN("v7_timestamp", test_rt_uuid_v7_timestamp);
+    TEST_RUN("v7_ordering", test_rt_uuid_v7_ordering);
+    TEST_RUN("v7_uniqueness", test_rt_uuid_v7_uniqueness);
+    TEST_RUN("v7_randomness", test_rt_uuid_v7_randomness);
+    TEST_RUN("v7_string_format", test_rt_uuid_v7_string_format);
+    TEST_RUN("create_returns_v7", test_rt_uuid_create_returns_v7);
 
     /* Conversion tests */
-    test_rt_uuid_to_string_format();
-    test_rt_uuid_to_hex_format();
-    test_rt_uuid_to_bytes();
-    test_rt_uuid_to_base64_format();
-    test_rt_uuid_to_base64_known_value();
+    TEST_RUN("to_string_format", test_rt_uuid_to_string_format);
+    TEST_RUN("to_hex_format", test_rt_uuid_to_hex_format);
+    TEST_RUN("to_bytes", test_rt_uuid_to_bytes);
+    TEST_RUN("to_base64_format", test_rt_uuid_to_base64_format);
+    TEST_RUN("to_base64_known_value", test_rt_uuid_to_base64_known_value);
 
     /* Comparison tests */
-    test_rt_uuid_equals();
-    test_rt_uuid_compare();
+    TEST_RUN("equals", test_rt_uuid_equals);
+    TEST_RUN("compare", test_rt_uuid_compare);
 
     /* Special UUID tests */
-    test_rt_uuid_nil();
-    test_rt_uuid_max();
+    TEST_RUN("nil", test_rt_uuid_nil);
+    TEST_RUN("max", test_rt_uuid_max);
 
     /* Namespace tests */
-    test_rt_uuid_namespaces();
+    TEST_RUN("namespaces", test_rt_uuid_namespaces);
 
     /* rt_uuid_from_string() tests */
-    test_rt_uuid_from_string_basic();
-    test_rt_uuid_from_string_roundtrip();
-    test_rt_uuid_from_string_lowercase();
-    test_rt_uuid_from_string_uppercase();
-    test_rt_uuid_from_string_mixed_case();
-    test_rt_uuid_from_string_nil();
-    test_rt_uuid_from_string_max();
-    test_rt_uuid_from_string_invalid_length();
-    test_rt_uuid_from_string_invalid_dashes();
-    test_rt_uuid_from_string_invalid_chars();
-    test_rt_uuid_from_string_null_inputs();
+    TEST_RUN("from_string_basic", test_rt_uuid_from_string_basic);
+    TEST_RUN("from_string_roundtrip", test_rt_uuid_from_string_roundtrip);
+    TEST_RUN("from_string_lowercase", test_rt_uuid_from_string_lowercase);
+    TEST_RUN("from_string_uppercase", test_rt_uuid_from_string_uppercase);
+    TEST_RUN("from_string_mixed_case", test_rt_uuid_from_string_mixed_case);
+    TEST_RUN("from_string_nil", test_rt_uuid_from_string_nil);
+    TEST_RUN("from_string_max", test_rt_uuid_from_string_max);
+    TEST_RUN("from_string_invalid_length", test_rt_uuid_from_string_invalid_length);
+    TEST_RUN("from_string_invalid_dashes", test_rt_uuid_from_string_invalid_dashes);
+    TEST_RUN("from_string_invalid_chars", test_rt_uuid_from_string_invalid_chars);
+    TEST_RUN("from_string_null_inputs", test_rt_uuid_from_string_null_inputs);
 
     /* rt_uuid_from_hex() tests */
-    test_rt_uuid_from_hex_basic();
-    test_rt_uuid_from_hex_roundtrip();
-    test_rt_uuid_from_hex_lowercase();
-    test_rt_uuid_from_hex_uppercase();
-    test_rt_uuid_from_hex_mixed_case();
-    test_rt_uuid_from_hex_nil();
-    test_rt_uuid_from_hex_max();
-    test_rt_uuid_from_hex_invalid_length();
-    test_rt_uuid_from_hex_invalid_chars();
-    test_rt_uuid_from_hex_null_inputs();
+    TEST_RUN("from_hex_basic", test_rt_uuid_from_hex_basic);
+    TEST_RUN("from_hex_roundtrip", test_rt_uuid_from_hex_roundtrip);
+    TEST_RUN("from_hex_lowercase", test_rt_uuid_from_hex_lowercase);
+    TEST_RUN("from_hex_uppercase", test_rt_uuid_from_hex_uppercase);
+    TEST_RUN("from_hex_mixed_case", test_rt_uuid_from_hex_mixed_case);
+    TEST_RUN("from_hex_nil", test_rt_uuid_from_hex_nil);
+    TEST_RUN("from_hex_max", test_rt_uuid_from_hex_max);
+    TEST_RUN("from_hex_invalid_length", test_rt_uuid_from_hex_invalid_length);
+    TEST_RUN("from_hex_invalid_chars", test_rt_uuid_from_hex_invalid_chars);
+    TEST_RUN("from_hex_null_inputs", test_rt_uuid_from_hex_null_inputs);
 
     /* Cross-format consistency test */
-    test_rt_uuid_from_string_vs_from_hex();
+    TEST_RUN("from_string_vs_from_hex", test_rt_uuid_from_string_vs_from_hex);
 
     /* rt_uuid_from_bytes() tests */
-    test_rt_uuid_from_bytes_basic();
-    test_rt_uuid_from_bytes_roundtrip();
-    test_rt_uuid_from_bytes_nil();
-    test_rt_uuid_from_bytes_max();
-    test_rt_uuid_from_bytes_null_inputs();
+    TEST_RUN("from_bytes_basic", test_rt_uuid_from_bytes_basic);
+    TEST_RUN("from_bytes_roundtrip", test_rt_uuid_from_bytes_roundtrip);
+    TEST_RUN("from_bytes_nil", test_rt_uuid_from_bytes_nil);
+    TEST_RUN("from_bytes_max", test_rt_uuid_from_bytes_max);
+    TEST_RUN("from_bytes_null_inputs", test_rt_uuid_from_bytes_null_inputs);
 
     /* rt_uuid_from_base64() tests */
-    test_rt_uuid_from_base64_basic();
-    test_rt_uuid_from_base64_roundtrip();
-    test_rt_uuid_from_base64_nil();
-    test_rt_uuid_from_base64_url_safe_chars();
-    test_rt_uuid_from_base64_invalid_length();
-    test_rt_uuid_from_base64_invalid_chars();
-    test_rt_uuid_from_base64_null_inputs();
+    TEST_RUN("from_base64_basic", test_rt_uuid_from_base64_basic);
+    TEST_RUN("from_base64_roundtrip", test_rt_uuid_from_base64_roundtrip);
+    TEST_RUN("from_base64_nil", test_rt_uuid_from_base64_nil);
+    TEST_RUN("from_base64_url_safe_chars", test_rt_uuid_from_base64_url_safe_chars);
+    TEST_RUN("from_base64_invalid_length", test_rt_uuid_from_base64_invalid_length);
+    TEST_RUN("from_base64_invalid_chars", test_rt_uuid_from_base64_invalid_chars);
+    TEST_RUN("from_base64_null_inputs", test_rt_uuid_from_base64_null_inputs);
 
     /* All formats consistency test */
-    test_rt_uuid_all_formats_consistency();
-
-    printf("\n=== All Runtime UUID Tests Passed ===\n\n");
+    TEST_RUN("all_formats_consistency", test_rt_uuid_all_formats_consistency);
 }

@@ -6,6 +6,7 @@
 #include <string.h>
 #include "../token.h"
 #include "../debug.h"
+#include "../test_harness.h"
 
 static const char *dummy_source = "example";
 static const char *empty_string_content = "";
@@ -20,11 +21,10 @@ void cleanup_temp_data(char *data)
         free(data);
 }
 
-void test_token_init_array_literal()
+static void test_token_init_array_literal(void)
 {
     DEBUG_INFO("Starting test_token_init_array_literal");
-    printf("Testing token_init for ARRAY_LITERAL...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_ARRAY_LITERAL, dummy_source, (int)strlen(dummy_source), 1, filename);
 
@@ -41,11 +41,10 @@ void test_token_init_array_literal()
     DEBUG_INFO("Finished test_token_init_array_literal");
 }
 
-void test_token_init_int_literal()
+static void test_token_init_int_literal(void)
 {
     DEBUG_INFO("Starting test_token_init_int_literal");
-    printf("Testing token_init for INT_LITERAL...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_INT_LITERAL, dummy_source, (int)strlen(dummy_source), 5, filename);
 
@@ -61,11 +60,10 @@ void test_token_init_int_literal()
     DEBUG_INFO("Finished test_token_init_int_literal");
 }
 
-void test_token_init_non_literal()
+static void test_token_init_non_literal(void)
 {
     DEBUG_INFO("Starting test_token_init_non_literal");
-    printf("Testing token_init for a non-literal token (e.g., PLUS)...\n");
-
+    
     Token token;
     const char *plus_str = "+";
     token_init(&token, TOKEN_PLUS, plus_str, 1, 10, filename);
@@ -82,11 +80,10 @@ void test_token_init_non_literal()
     DEBUG_INFO("Finished test_token_init_non_literal");
 }
 
-void test_token_init_zero_length()
+static void test_token_init_zero_length(void)
 {
     DEBUG_INFO("Starting test_token_init_zero_length");
-    printf("Testing token_init with zero length...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_EOF, NULL, 0, 0, filename);
 
@@ -102,11 +99,10 @@ void test_token_init_zero_length()
     DEBUG_INFO("Finished test_token_init_zero_length");
 }
 
-void test_token_set_array_literal_null()
+static void test_token_set_array_literal_null(void)
 {
     DEBUG_INFO("Starting test_token_set_array_literal_null");
-    printf("Testing token_set_array_literal with NULL value...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_ARRAY_LITERAL, dummy_source, (int)strlen(dummy_source), 1, filename);
     token_set_array_literal(&token, NULL);
@@ -118,11 +114,10 @@ void test_token_set_array_literal_null()
     DEBUG_INFO("Finished test_token_set_array_literal_null");
 }
 
-void test_token_set_array_literal_empty()
+static void test_token_set_array_literal_empty(void)
 {
     DEBUG_INFO("Starting test_token_set_array_literal_empty");
-    printf("Testing token_set_array_literal with empty content...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_ARRAY_LITERAL, dummy_source, (int)strlen(dummy_source), 1, filename);
     token_set_array_literal(&token, empty_string_content);
@@ -135,11 +130,10 @@ void test_token_set_array_literal_empty()
     DEBUG_INFO("Finished test_token_set_array_literal_empty");
 }
 
-void test_token_set_array_literal_single()
+static void test_token_set_array_literal_single(void)
 {
     DEBUG_INFO("Starting test_token_set_array_literal_single");
-    printf("Testing token_set_array_literal with single element...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_ARRAY_LITERAL, dummy_source, (int)strlen(dummy_source), 1, filename);
     token_set_array_literal(&token, single_element_content);
@@ -152,11 +146,10 @@ void test_token_set_array_literal_single()
     DEBUG_INFO("Finished test_token_set_array_literal_single");
 }
 
-void test_token_set_array_literal_multi()
+static void test_token_set_array_literal_multi(void)
 {
     DEBUG_INFO("Starting test_token_set_array_literal_multi");
-    printf("Testing token_set_array_literal with multi elements...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_ARRAY_LITERAL, dummy_source, (int)strlen(dummy_source), 1, filename);
     token_set_array_literal(&token, multi_element_content);
@@ -169,11 +162,10 @@ void test_token_set_array_literal_multi()
     DEBUG_INFO("Finished test_token_set_array_literal_multi");
 }
 
-void test_token_set_int_literal()
+static void test_token_set_int_literal(void)
 {
     DEBUG_INFO("Starting test_token_set_int_literal");
-    printf("Testing token_set_int_literal...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_INT_LITERAL, "42", 2, 1, filename);
     token_set_int_literal(&token, 42);
@@ -185,11 +177,10 @@ void test_token_set_int_literal()
     DEBUG_INFO("Finished test_token_set_int_literal");
 }
 
-void test_token_set_long_literal()
+static void test_token_set_long_literal(void)
 {
     DEBUG_INFO("Starting test_token_set_long_literal");
-    printf("Testing token_set_int_literal for LONG_LITERAL (uses int_value)...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_LONG_LITERAL, "42l", 3, 1, filename);
     token_set_int_literal(&token, 42LL); // Note: Uses same setter as int
@@ -201,11 +192,10 @@ void test_token_set_long_literal()
     DEBUG_INFO("Finished test_token_set_long_literal");
 }
 
-void test_token_set_double_literal()
+static void test_token_set_double_literal(void)
 {
     DEBUG_INFO("Starting test_token_set_double_literal");
-    printf("Testing token_set_double_literal...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_DOUBLE_LITERAL, "3.14", 4, 1, filename);
     token_set_double_literal(&token, 3.14);
@@ -217,11 +207,10 @@ void test_token_set_double_literal()
     DEBUG_INFO("Finished test_token_set_double_literal");
 }
 
-void test_token_set_char_literal()
+static void test_token_set_char_literal(void)
 {
     DEBUG_INFO("Starting test_token_set_char_literal");
-    printf("Testing token_set_char_literal...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_CHAR_LITERAL, "'a'", 3, 1, filename);
     token_set_char_literal(&token, 'a');
@@ -233,11 +222,10 @@ void test_token_set_char_literal()
     DEBUG_INFO("Finished test_token_set_char_literal");
 }
 
-void test_token_set_string_literal()
+static void test_token_set_string_literal(void)
 {
     DEBUG_INFO("Starting test_token_set_string_literal");
-    printf("Testing token_set_string_literal...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_STRING_LITERAL, "\"hello\"", 7, 1, filename);
     token_set_string_literal(&token, test_string);
@@ -250,11 +238,10 @@ void test_token_set_string_literal()
     DEBUG_INFO("Finished test_token_set_string_literal");
 }
 
-void test_token_set_interpol_string()
+static void test_token_set_interpol_string(void)
 {
     DEBUG_INFO("Starting test_token_set_interpol_string");
-    printf("Testing token_set_string_literal for INTERPOL_STRING...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_INTERPOL_STRING, "\"hello ${var}\"", 13, 1, filename);
     token_set_string_literal(&token, test_string);
@@ -266,11 +253,10 @@ void test_token_set_interpol_string()
     DEBUG_INFO("Finished test_token_set_interpol_string");
 }
 
-void test_token_set_bool_literal_true()
+static void test_token_set_bool_literal_true(void)
 {
     DEBUG_INFO("Starting test_token_set_bool_literal_true");
-    printf("Testing token_set_bool_literal true...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_BOOL_LITERAL, "true", 4, 1, filename);
     token_set_bool_literal(&token, 1);
@@ -282,11 +268,10 @@ void test_token_set_bool_literal_true()
     DEBUG_INFO("Finished test_token_set_bool_literal_true");
 }
 
-void test_token_set_bool_literal_false()
+static void test_token_set_bool_literal_false(void)
 {
     DEBUG_INFO("Starting test_token_set_bool_literal_false");
-    printf("Testing token_set_bool_literal false...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_BOOL_LITERAL, "false", 5, 1, filename);
     token_set_bool_literal(&token, 0);
@@ -298,11 +283,10 @@ void test_token_set_bool_literal_false()
     DEBUG_INFO("Finished test_token_set_bool_literal_false");
 }
 
-void test_token_type_to_string_array()
+static void test_token_type_to_string_array(void)
 {
     DEBUG_INFO("Starting test_token_type_to_string_array");
-    printf("Testing token_type_to_string for ARRAY_LITERAL...\n");
-
+    
     const char *result = token_type_to_string(TOKEN_ARRAY_LITERAL);
     assert(result != NULL);
     assert(strcmp(result, "ARRAY_LITERAL") == 0);
@@ -310,11 +294,10 @@ void test_token_type_to_string_array()
     DEBUG_INFO("Finished test_token_type_to_string_array");
 }
 
-void test_token_type_to_string_all_literals()
+static void test_token_type_to_string_all_literals(void)
 {
     DEBUG_INFO("Starting test_token_type_to_string_all_literals");
-    printf("Testing token_type_to_string for all literal types...\n");
-
+    
     assert(strcmp(token_type_to_string(TOKEN_EOF), "EOF") == 0);
     assert(strcmp(token_type_to_string(TOKEN_INT_LITERAL), "INT_LITERAL") == 0);
     assert(strcmp(token_type_to_string(TOKEN_LONG_LITERAL), "LONG_LITERAL") == 0);
@@ -328,11 +311,10 @@ void test_token_type_to_string_all_literals()
     DEBUG_INFO("Finished test_token_type_to_string_all_literals");
 }
 
-void test_token_type_to_string_keywords()
+static void test_token_type_to_string_keywords(void)
 {
     DEBUG_INFO("Starting test_token_type_to_string_keywords");
-    printf("Testing token_type_to_string for keywords...\n");
-
+    
     assert(strcmp(token_type_to_string(TOKEN_IDENTIFIER), "IDENTIFIER") == 0);
     assert(strcmp(token_type_to_string(TOKEN_FN), "FN") == 0);
     assert(strcmp(token_type_to_string(TOKEN_VAR), "VAR") == 0);
@@ -359,11 +341,10 @@ void test_token_type_to_string_keywords()
     DEBUG_INFO("Finished test_token_type_to_string_keywords");
 }
 
-void test_token_type_to_string_operators()
+static void test_token_type_to_string_operators(void)
 {
     DEBUG_INFO("Starting test_token_type_to_string_operators");
-    printf("Testing token_type_to_string for operators and symbols...\n");
-
+    
     assert(strcmp(token_type_to_string(TOKEN_PLUS), "PLUS") == 0);
     assert(strcmp(token_type_to_string(TOKEN_MINUS), "MINUS") == 0);
     assert(strcmp(token_type_to_string(TOKEN_STAR), "STAR") == 0);
@@ -396,11 +377,10 @@ void test_token_type_to_string_operators()
     DEBUG_INFO("Finished test_token_type_to_string_operators");
 }
 
-void test_token_type_to_string_special()
+static void test_token_type_to_string_special(void)
 {
     DEBUG_INFO("Starting test_token_type_to_string_special");
-    printf("Testing token_type_to_string for special tokens...\n");
-
+    
     assert(strcmp(token_type_to_string(TOKEN_INDENT), "INDENT") == 0);
     assert(strcmp(token_type_to_string(TOKEN_DEDENT), "DEDENT") == 0);
     assert(strcmp(token_type_to_string(TOKEN_NEWLINE), "NEWLINE") == 0);
@@ -409,11 +389,10 @@ void test_token_type_to_string_special()
     DEBUG_INFO("Finished test_token_type_to_string_special");
 }
 
-void test_token_type_to_string_invalid()
+static void test_token_type_to_string_invalid(void)
 {
     DEBUG_INFO("Starting test_token_type_to_string_invalid");
-    printf("Testing token_type_to_string for invalid type...\n");
-
+    
     const char *result = token_type_to_string((TokenType)-1);
     assert(strcmp(result, "INVALID") == 0);
 
@@ -426,11 +405,10 @@ void test_token_type_to_string_invalid()
     DEBUG_INFO("Finished test_token_type_to_string_invalid");
 }
 
-void test_token_print_array_integration()
+static void test_token_print_array_integration(void)
 {
     DEBUG_INFO("Starting test_token_print_array_integration");
-    printf("Testing token_print integration for ARRAY_LITERAL...\n");
-
+    
     Token token;
     char *lexeme = malloc(10);
     strcpy(lexeme, "{1,2}");
@@ -448,11 +426,10 @@ void test_token_print_array_integration()
     DEBUG_INFO("Finished test_token_print_array_integration");
 }
 
-void test_token_print_int_literal()
+static void test_token_print_int_literal(void)
 {
     DEBUG_INFO("Starting test_token_print_int_literal");
-    printf("Testing token_print for INT_LITERAL...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_INT_LITERAL, "42", 2, 1, filename);
     token_set_int_literal(&token, 42);
@@ -462,11 +439,10 @@ void test_token_print_int_literal()
     DEBUG_INFO("Finished test_token_print_int_literal");
 }
 
-void test_token_print_long_literal()
+static void test_token_print_long_literal(void)
 {
     DEBUG_INFO("Starting test_token_print_long_literal");
-    printf("Testing token_print for LONG_LITERAL...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_LONG_LITERAL, "42l", 3, 1, filename);
     token_set_int_literal(&token, 42LL);
@@ -476,11 +452,10 @@ void test_token_print_long_literal()
     DEBUG_INFO("Finished test_token_print_long_literal");
 }
 
-void test_token_print_double_literal()
+static void test_token_print_double_literal(void)
 {
     DEBUG_INFO("Starting test_token_print_double_literal");
-    printf("Testing token_print for DOUBLE_LITERAL...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_DOUBLE_LITERAL, "3.14", 4, 1, filename);
     token_set_double_literal(&token, 3.14);
@@ -490,11 +465,10 @@ void test_token_print_double_literal()
     DEBUG_INFO("Finished test_token_print_double_literal");
 }
 
-void test_token_print_char_literal()
+static void test_token_print_char_literal(void)
 {
     DEBUG_INFO("Starting test_token_print_char_literal");
-    printf("Testing token_print for CHAR_LITERAL...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_CHAR_LITERAL, "'a'", 3, 1, filename);
     token_set_char_literal(&token, 'a');
@@ -504,11 +478,10 @@ void test_token_print_char_literal()
     DEBUG_INFO("Finished test_token_print_char_literal");
 }
 
-void test_token_print_string_literal()
+static void test_token_print_string_literal(void)
 {
     DEBUG_INFO("Starting test_token_print_string_literal");
-    printf("Testing token_print for STRING_LITERAL...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_STRING_LITERAL, "\"hello\"", 7, 1, filename);
     token_set_string_literal(&token, test_string);
@@ -518,11 +491,10 @@ void test_token_print_string_literal()
     DEBUG_INFO("Finished test_token_print_string_literal");
 }
 
-void test_token_print_interpol_string()
+static void test_token_print_interpol_string(void)
 {
     DEBUG_INFO("Starting test_token_print_interpol_string");
-    printf("Testing token_print for INTERPOL_STRING...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_INTERPOL_STRING, "\"hello ${var}\"", 13, 1, filename);
     token_set_string_literal(&token, test_string);
@@ -532,11 +504,10 @@ void test_token_print_interpol_string()
     DEBUG_INFO("Finished test_token_print_interpol_string");
 }
 
-void test_token_print_bool_literal()
+static void test_token_print_bool_literal(void)
 {
     DEBUG_INFO("Starting test_token_print_bool_literal");
-    printf("Testing token_print for BOOL_LITERAL...\n");
-
+    
     Token token_true;
     token_init(&token_true, TOKEN_BOOL_LITERAL, "true", 4, 1, filename);
     token_set_bool_literal(&token_true, 1);
@@ -550,11 +521,10 @@ void test_token_print_bool_literal()
     DEBUG_INFO("Finished test_token_print_bool_literal");
 }
 
-void test_token_print_non_literal()
+static void test_token_print_non_literal(void)
 {
     DEBUG_INFO("Starting test_token_print_non_literal");
-    printf("Testing token_print for non-literal token...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_PLUS, "+", 1, 1, filename);
 
@@ -563,11 +533,10 @@ void test_token_print_non_literal()
     DEBUG_INFO("Finished test_token_print_non_literal");
 }
 
-void test_token_print_empty_lexeme()
+static void test_token_print_empty_lexeme(void)
 {
     DEBUG_INFO("Starting test_token_print_empty_lexeme");
-    printf("Testing token_print with empty lexeme...\n");
-
+    
     Token token;
     token_init(&token, TOKEN_NEWLINE, "", 0, 1, filename);
 
@@ -576,11 +545,10 @@ void test_token_print_empty_lexeme()
     DEBUG_INFO("Finished test_token_print_empty_lexeme");
 }
 
-void test_token_init_invalid_type()
+static void test_token_init_invalid_type(void)
 {
     DEBUG_INFO("Starting test_token_init_invalid_type");
-    printf("Testing token_init with invalid type...\n");
-
+    
     Token token;
     token_init(&token, (TokenType)999, dummy_source, (int)strlen(dummy_source), 1, filename);
 
@@ -593,11 +561,10 @@ void test_token_init_invalid_type()
     DEBUG_INFO("Finished test_token_init_invalid_type");
 }
 
-void test_token_print_invalid_type()
+static void test_token_print_invalid_type(void)
 {
     DEBUG_INFO("Starting test_token_print_invalid_type");
-    printf("Testing token_print with invalid type...\n");
-
+    
     Token token;
     token_init(&token, (TokenType)999, dummy_source, (int)strlen(dummy_source), 1, filename);
 
@@ -606,42 +573,42 @@ void test_token_print_invalid_type()
     DEBUG_INFO("Finished test_token_print_invalid_type");
 }
 
-void test_token_main() 
+void test_token_main(void)
 {
-    test_token_init_array_literal();
-    test_token_init_int_literal();
-    test_token_init_non_literal();
-    test_token_init_zero_length();
-    test_token_set_array_literal_null();
-    test_token_set_array_literal_empty();
-    test_token_set_array_literal_single();
-    test_token_set_array_literal_multi();
-    test_token_set_int_literal();
-    test_token_set_long_literal();
-    test_token_set_double_literal();
-    test_token_set_char_literal();
-    test_token_set_string_literal();
-    test_token_set_interpol_string();
-    test_token_set_bool_literal_true();
-    test_token_set_bool_literal_false();
-    test_token_type_to_string_array();
-    test_token_type_to_string_all_literals();
-    test_token_type_to_string_keywords();
-    test_token_type_to_string_operators();
-    test_token_type_to_string_special();
-    test_token_type_to_string_invalid();
-    test_token_print_array_integration();
-    test_token_print_int_literal();
-    test_token_print_long_literal();
-    test_token_print_double_literal();
-    test_token_print_char_literal();
-    test_token_print_string_literal();
-    test_token_print_interpol_string();
-    test_token_print_bool_literal();
-    test_token_print_non_literal();
-    test_token_print_empty_lexeme();
-    test_token_init_invalid_type();
-    test_token_print_invalid_type();
-    test_token_init_invalid_type();
+    TEST_SECTION("Token");
 
+    TEST_RUN("token_init_array_literal", test_token_init_array_literal);
+    TEST_RUN("token_init_int_literal", test_token_init_int_literal);
+    TEST_RUN("token_init_non_literal", test_token_init_non_literal);
+    TEST_RUN("token_init_zero_length", test_token_init_zero_length);
+    TEST_RUN("token_set_array_literal_null", test_token_set_array_literal_null);
+    TEST_RUN("token_set_array_literal_empty", test_token_set_array_literal_empty);
+    TEST_RUN("token_set_array_literal_single", test_token_set_array_literal_single);
+    TEST_RUN("token_set_array_literal_multi", test_token_set_array_literal_multi);
+    TEST_RUN("token_set_int_literal", test_token_set_int_literal);
+    TEST_RUN("token_set_long_literal", test_token_set_long_literal);
+    TEST_RUN("token_set_double_literal", test_token_set_double_literal);
+    TEST_RUN("token_set_char_literal", test_token_set_char_literal);
+    TEST_RUN("token_set_string_literal", test_token_set_string_literal);
+    TEST_RUN("token_set_interpol_string", test_token_set_interpol_string);
+    TEST_RUN("token_set_bool_literal_true", test_token_set_bool_literal_true);
+    TEST_RUN("token_set_bool_literal_false", test_token_set_bool_literal_false);
+    TEST_RUN("token_type_to_string_array", test_token_type_to_string_array);
+    TEST_RUN("token_type_to_string_all_literals", test_token_type_to_string_all_literals);
+    TEST_RUN("token_type_to_string_keywords", test_token_type_to_string_keywords);
+    TEST_RUN("token_type_to_string_operators", test_token_type_to_string_operators);
+    TEST_RUN("token_type_to_string_special", test_token_type_to_string_special);
+    TEST_RUN("token_type_to_string_invalid", test_token_type_to_string_invalid);
+    TEST_RUN("token_print_array_integration", test_token_print_array_integration);
+    TEST_RUN("token_print_int_literal", test_token_print_int_literal);
+    TEST_RUN("token_print_long_literal", test_token_print_long_literal);
+    TEST_RUN("token_print_double_literal", test_token_print_double_literal);
+    TEST_RUN("token_print_char_literal", test_token_print_char_literal);
+    TEST_RUN("token_print_string_literal", test_token_print_string_literal);
+    TEST_RUN("token_print_interpol_string", test_token_print_interpol_string);
+    TEST_RUN("token_print_bool_literal", test_token_print_bool_literal);
+    TEST_RUN("token_print_non_literal", test_token_print_non_literal);
+    TEST_RUN("token_print_empty_lexeme", test_token_print_empty_lexeme);
+    TEST_RUN("token_init_invalid_type", test_token_init_invalid_type);
+    TEST_RUN("token_print_invalid_type", test_token_print_invalid_type);
 }

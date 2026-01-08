@@ -1,9 +1,8 @@
 // tests/parser_tests_program.c
 // Full program and simple program parser tests
 
-void test_full_program_parsing()
+static void test_full_program_parsing()
 {
-    printf("Testing parser_execute full program...\n");
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -113,10 +112,8 @@ void test_full_program_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_simple_program_parsing()
+static void test_simple_program_parsing()
 {
-    printf("Testing parser_execute simple program...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -208,8 +205,9 @@ void test_simple_program_parsing()
     arena_free(&arena);
 }
 
-void test_parser_program_main()
+static void test_parser_program_main()
 {
-    test_full_program_parsing();
-    test_simple_program_parsing();
+    TEST_SECTION("Parser Program Tests");
+    TEST_RUN("full_program_parsing", test_full_program_parsing);
+    TEST_RUN("simple_program_parsing", test_simple_program_parsing);
 }

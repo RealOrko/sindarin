@@ -8,15 +8,14 @@
 #include <math.h>
 #include <float.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Long Arithmetic Tests
  * ============================================================================ */
 
-void test_rt_add_long_basic()
+static void test_rt_add_long_basic(void)
 {
-    printf("Testing rt_add_long basic operations...\n");
-
     assert(rt_add_long(1, 2) == 3);
     assert(rt_add_long(0, 0) == 0);
     assert(rt_add_long(-1, 1) == 0);
@@ -26,10 +25,8 @@ void test_rt_add_long_basic()
     assert(rt_add_long(LONG_MIN + 1, -1) == LONG_MIN);
 }
 
-void test_rt_sub_long_basic()
+static void test_rt_sub_long_basic(void)
 {
-    printf("Testing rt_sub_long basic operations...\n");
-
     assert(rt_sub_long(5, 3) == 2);
     assert(rt_sub_long(0, 0) == 0);
     assert(rt_sub_long(-1, -1) == 0);
@@ -39,10 +36,8 @@ void test_rt_sub_long_basic()
     assert(rt_sub_long(LONG_MAX - 1, -1) == LONG_MAX);
 }
 
-void test_rt_mul_long_basic()
+static void test_rt_mul_long_basic(void)
 {
-    printf("Testing rt_mul_long basic operations...\n");
-
     assert(rt_mul_long(3, 4) == 12);
     assert(rt_mul_long(0, 100) == 0);
     assert(rt_mul_long(100, 0) == 0);
@@ -54,10 +49,8 @@ void test_rt_mul_long_basic()
     assert(rt_mul_long(-1000000, -1) == 1000000);
 }
 
-void test_rt_div_long_basic()
+static void test_rt_div_long_basic(void)
 {
-    printf("Testing rt_div_long basic operations...\n");
-
     assert(rt_div_long(10, 2) == 5);
     assert(rt_div_long(10, 3) == 3);
     assert(rt_div_long(-10, 2) == -5);
@@ -68,10 +61,8 @@ void test_rt_div_long_basic()
     assert(rt_div_long(-1000000, 1) == -1000000);
 }
 
-void test_rt_mod_long_basic()
+static void test_rt_mod_long_basic(void)
 {
-    printf("Testing rt_mod_long basic operations...\n");
-
     assert(rt_mod_long(10, 3) == 1);
     assert(rt_mod_long(10, 5) == 0);
     assert(rt_mod_long(0, 5) == 0);
@@ -80,10 +71,8 @@ void test_rt_mod_long_basic()
     assert(rt_mod_long(-10, -3) == -1);
 }
 
-void test_rt_neg_long_basic()
+static void test_rt_neg_long_basic(void)
 {
-    printf("Testing rt_neg_long basic operations...\n");
-
     assert(rt_neg_long(5) == -5);
     assert(rt_neg_long(-5) == 5);
     assert(rt_neg_long(0) == 0);
@@ -94,10 +83,8 @@ void test_rt_neg_long_basic()
  * Long Comparison Tests (inline functions)
  * ============================================================================ */
 
-void test_rt_long_comparisons()
+static void test_rt_long_comparisons(void)
 {
-    printf("Testing rt_*_long comparison operations...\n");
-
     /* Equal */
     assert(rt_eq_long(5, 5) == 1);
     assert(rt_eq_long(5, 6) == 0);
@@ -133,10 +120,8 @@ void test_rt_long_comparisons()
  * Double Arithmetic Tests
  * ============================================================================ */
 
-void test_rt_add_double_basic()
+static void test_rt_add_double_basic(void)
 {
-    printf("Testing rt_add_double basic operations...\n");
-
     assert(rt_add_double(1.5, 2.5) == 4.0);
     assert(rt_add_double(0.0, 0.0) == 0.0);
     assert(rt_add_double(-1.5, 1.5) == 0.0);
@@ -147,20 +132,16 @@ void test_rt_add_double_basic()
     assert(fabs(small - 0.3) < 0.0001);
 }
 
-void test_rt_sub_double_basic()
+static void test_rt_sub_double_basic(void)
 {
-    printf("Testing rt_sub_double basic operations...\n");
-
     assert(rt_sub_double(5.0, 3.0) == 2.0);
     assert(rt_sub_double(0.0, 0.0) == 0.0);
     assert(rt_sub_double(-1.5, -1.5) == 0.0);
     assert(rt_sub_double(10.5, -5.5) == 16.0);
 }
 
-void test_rt_mul_double_basic()
+static void test_rt_mul_double_basic(void)
 {
-    printf("Testing rt_mul_double basic operations...\n");
-
     assert(rt_mul_double(3.0, 4.0) == 12.0);
     assert(rt_mul_double(0.0, 100.0) == 0.0);
     assert(rt_mul_double(-2.0, 3.0) == -6.0);
@@ -168,20 +149,16 @@ void test_rt_mul_double_basic()
     assert(rt_mul_double(0.5, 2.0) == 1.0);
 }
 
-void test_rt_div_double_basic()
+static void test_rt_div_double_basic(void)
 {
-    printf("Testing rt_div_double basic operations...\n");
-
     assert(rt_div_double(10.0, 2.0) == 5.0);
     assert(rt_div_double(10.0, 4.0) == 2.5);
     assert(rt_div_double(-10.0, 2.0) == -5.0);
     assert(rt_div_double(1.0, 3.0) - 0.333333 < 0.0001);
 }
 
-void test_rt_neg_double_basic()
+static void test_rt_neg_double_basic(void)
 {
-    printf("Testing rt_neg_double basic operations...\n");
-
     assert(rt_neg_double(5.0) == -5.0);
     assert(rt_neg_double(-5.0) == 5.0);
     assert(rt_neg_double(0.0) == 0.0);
@@ -192,10 +169,8 @@ void test_rt_neg_double_basic()
  * Double Comparison Tests (inline functions)
  * ============================================================================ */
 
-void test_rt_double_comparisons()
+static void test_rt_double_comparisons(void)
 {
-    printf("Testing rt_*_double comparison operations...\n");
-
     /* Equal */
     assert(rt_eq_double(5.0, 5.0) == 1);
     assert(rt_eq_double(5.0, 5.1) == 0);
@@ -229,10 +204,8 @@ void test_rt_double_comparisons()
  * Boolean Operation Tests
  * ============================================================================ */
 
-void test_rt_not_bool()
+static void test_rt_not_bool(void)
 {
-    printf("Testing rt_not_bool...\n");
-
     assert(rt_not_bool(0) == 1);
     assert(rt_not_bool(1) == 0);
     assert(rt_not_bool(42) == 0);  /* Any non-zero is truthy */
@@ -243,10 +216,8 @@ void test_rt_not_bool()
  * Post Increment/Decrement Tests
  * ============================================================================ */
 
-void test_rt_post_inc_long()
+static void test_rt_post_inc_long(void)
 {
-    printf("Testing rt_post_inc_long...\n");
-
     long val = 5;
     long result = rt_post_inc_long(&val);
     assert(result == 5);   /* Returns old value */
@@ -269,10 +240,8 @@ void test_rt_post_inc_long()
     assert(val == LONG_MAX);
 }
 
-void test_rt_post_dec_long()
+static void test_rt_post_dec_long(void)
 {
-    printf("Testing rt_post_dec_long...\n");
-
     long val = 5;
     long result = rt_post_dec_long(&val);
     assert(result == 5);   /* Returns old value */
@@ -299,10 +268,8 @@ void test_rt_post_dec_long()
  * String Comparison Tests (inline functions)
  * ============================================================================ */
 
-void test_rt_string_comparisons()
+static void test_rt_string_comparisons(void)
 {
-    printf("Testing rt_*_string comparison operations...\n");
-
     /* Equal */
     assert(rt_eq_string("hello", "hello") == 1);
     assert(rt_eq_string("hello", "world") == 0);
@@ -338,10 +305,8 @@ void test_rt_string_comparisons()
  * String Blank Check Tests
  * ============================================================================ */
 
-void test_rt_str_is_blank()
+static void test_rt_str_is_blank(void)
 {
-    printf("Testing rt_str_is_blank...\n");
-
     /* Blank strings */
     assert(rt_str_is_blank(NULL) == 1);
     assert(rt_str_is_blank("") == 1);
@@ -364,10 +329,8 @@ void test_rt_str_is_blank()
  * String Split Whitespace Tests
  * ============================================================================ */
 
-void test_rt_str_split_whitespace()
+static void test_rt_str_split_whitespace(void)
 {
-    printf("Testing rt_str_split_whitespace...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic split */
@@ -415,10 +378,8 @@ void test_rt_str_split_whitespace()
  * String Split Lines Tests
  * ============================================================================ */
 
-void test_rt_str_split_lines()
+static void test_rt_str_split_lines(void)
 {
-    printf("Testing rt_str_split_lines...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Unix line endings */
@@ -476,37 +437,39 @@ void test_rt_str_split_lines()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_arithmetic_main()
+void test_rt_arithmetic_main(void)
 {
+    TEST_SECTION("Runtime Arithmetic");
+
     /* Long arithmetic */
-    test_rt_add_long_basic();
-    test_rt_sub_long_basic();
-    test_rt_mul_long_basic();
-    test_rt_div_long_basic();
-    test_rt_mod_long_basic();
-    test_rt_neg_long_basic();
-    test_rt_long_comparisons();
+    TEST_RUN("rt_add_long_basic", test_rt_add_long_basic);
+    TEST_RUN("rt_sub_long_basic", test_rt_sub_long_basic);
+    TEST_RUN("rt_mul_long_basic", test_rt_mul_long_basic);
+    TEST_RUN("rt_div_long_basic", test_rt_div_long_basic);
+    TEST_RUN("rt_mod_long_basic", test_rt_mod_long_basic);
+    TEST_RUN("rt_neg_long_basic", test_rt_neg_long_basic);
+    TEST_RUN("rt_long_comparisons", test_rt_long_comparisons);
 
     /* Double arithmetic */
-    test_rt_add_double_basic();
-    test_rt_sub_double_basic();
-    test_rt_mul_double_basic();
-    test_rt_div_double_basic();
-    test_rt_neg_double_basic();
-    test_rt_double_comparisons();
+    TEST_RUN("rt_add_double_basic", test_rt_add_double_basic);
+    TEST_RUN("rt_sub_double_basic", test_rt_sub_double_basic);
+    TEST_RUN("rt_mul_double_basic", test_rt_mul_double_basic);
+    TEST_RUN("rt_div_double_basic", test_rt_div_double_basic);
+    TEST_RUN("rt_neg_double_basic", test_rt_neg_double_basic);
+    TEST_RUN("rt_double_comparisons", test_rt_double_comparisons);
 
     /* Boolean */
-    test_rt_not_bool();
+    TEST_RUN("rt_not_bool", test_rt_not_bool);
 
     /* Increment/decrement */
-    test_rt_post_inc_long();
-    test_rt_post_dec_long();
+    TEST_RUN("rt_post_inc_long", test_rt_post_inc_long);
+    TEST_RUN("rt_post_dec_long", test_rt_post_dec_long);
 
     /* String comparisons */
-    test_rt_string_comparisons();
+    TEST_RUN("rt_string_comparisons", test_rt_string_comparisons);
 
     /* String utilities */
-    test_rt_str_is_blank();
-    test_rt_str_split_whitespace();
-    test_rt_str_split_lines();
+    TEST_RUN("rt_str_is_blank", test_rt_str_is_blank);
+    TEST_RUN("rt_str_split_whitespace", test_rt_str_split_whitespace);
+    TEST_RUN("rt_str_split_lines", test_rt_str_split_lines);
 }

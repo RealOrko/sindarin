@@ -8,6 +8,7 @@
 #include "../arena.h"
 #include "../debug.h"
 #include "../file.h"
+#include "../test_harness.h"
 
 static const char *test_file_path = "test_file.txt";
 static const char *empty_file_path = "empty_file.txt";
@@ -32,10 +33,9 @@ void file_test_remove_test_file(const char *path)
     remove(path);
 }
 
-void test_file_read_null_arena()
+static void test_file_read_null_arena(void)
 {
     DEBUG_INFO("Starting test_file_read_null_arena");
-    printf("Testing file_read with NULL arena...\n");
 
     char *result = file_read(NULL, "some_path");
     assert(result == NULL);
@@ -43,10 +43,9 @@ void test_file_read_null_arena()
     DEBUG_INFO("Finished test_file_read_null_arena");
 }
 
-void test_file_read_null_path()
+static void test_file_read_null_path(void)
 {
     DEBUG_INFO("Starting test_file_read_null_path");
-    printf("Testing file_read with NULL path...\n");
 
     Arena arena;
     arena_init(&arena, 1024);
@@ -57,10 +56,9 @@ void test_file_read_null_path()
     DEBUG_INFO("Finished test_file_read_null_path");
 }
 
-void test_file_read_nonexistent_file()
+static void test_file_read_nonexistent_file(void)
 {
     DEBUG_INFO("Starting test_file_read_nonexistent_file");
-    printf("Testing file_read with nonexistent file...\n");
 
     Arena arena;
     arena_init(&arena, 1024);
@@ -71,10 +69,9 @@ void test_file_read_nonexistent_file()
     DEBUG_INFO("Finished test_file_read_nonexistent_file");
 }
 
-void test_file_read_empty_file()
+static void test_file_read_empty_file(void)
 {
     DEBUG_INFO("Starting test_file_read_empty_file");
-    printf("Testing file_read with empty file...\n");
 
     // Create empty file
     create_test_file(empty_file_path, NULL);
@@ -92,10 +89,9 @@ void test_file_read_empty_file()
     DEBUG_INFO("Finished test_file_read_empty_file");
 }
 
-void test_file_read_small_file()
+static void test_file_read_small_file(void)
 {
     DEBUG_INFO("Starting test_file_read_small_file");
-    printf("Testing file_read with small file...\n");
 
     const char *content = "Hello, world!\n";
     create_test_file(test_file_path, content);
@@ -112,10 +108,9 @@ void test_file_read_small_file()
     DEBUG_INFO("Finished test_file_read_small_file");
 }
 
-void test_file_read_large_file()
+static void test_file_read_large_file(void)
 {
     DEBUG_INFO("Starting test_file_read_large_file");
-    printf("Testing file_read with large file...\n");
 
     // Create a large file (~1MB)
     const size_t large_size = 1024 * 1024;
@@ -147,10 +142,9 @@ void test_file_read_large_file()
     DEBUG_INFO("Finished test_file_read_large_file");
 }
 
-void test_file_read_seek_failure()
+static void test_file_read_seek_failure(void)
 {
     DEBUG_INFO("Starting test_file_read_seek_failure");
-    printf("Testing file_read with simulated seek failure (manual check required)...\n");
 
     // This is hard to simulate without mocking or special files.
     // For comprehensive testing, we can note that in real scenarios like pipes or special files,
@@ -174,10 +168,9 @@ void test_file_read_seek_failure()
     DEBUG_INFO("Finished test_file_read_seek_failure");
 }
 
-void test_file_read_read_failure()
+static void test_file_read_read_failure(void)
 {
     DEBUG_INFO("Starting test_file_read_read_failure");
-    printf("Testing file_read with read failure (hard to simulate)...\n");
 
     // Hard to simulate partial read without mocking.
     // Create a file and read it successfully as placeholder.
@@ -200,10 +193,9 @@ void test_file_read_read_failure()
     DEBUG_INFO("Finished test_file_read_read_failure");
 }
 
-void test_file_read_special_characters()
+static void test_file_read_special_characters(void)
 {
     DEBUG_INFO("Starting test_file_read_special_characters");
-    printf("Testing file_read with special characters...\n");
 
     const char special_data[] = {'A', '\0', 'B', '\n', '\t', '\r', '\\', '"', '\b', 0}; // Extra null for string, but fwrite len-1
     size_t data_len = sizeof(special_data) - 1;                                         // Without trailing null
@@ -227,15 +219,17 @@ void test_file_read_special_characters()
     DEBUG_INFO("Finished test_file_read_special_characters");
 }
 
-void test_file_main()
+void test_file_main(void)
 {
-    test_file_read_null_arena();
-    test_file_read_null_path();
-    test_file_read_nonexistent_file();
-    test_file_read_empty_file();
-    test_file_read_small_file();
-    test_file_read_large_file();
-    test_file_read_seek_failure();
-    test_file_read_read_failure();
-    test_file_read_special_characters();
+    TEST_SECTION("File");
+
+    TEST_RUN("file_read_null_arena", test_file_read_null_arena);
+    TEST_RUN("file_read_null_path", test_file_read_null_path);
+    TEST_RUN("file_read_nonexistent_file", test_file_read_nonexistent_file);
+    TEST_RUN("file_read_empty_file", test_file_read_empty_file);
+    TEST_RUN("file_read_small_file", test_file_read_small_file);
+    TEST_RUN("file_read_large_file", test_file_read_large_file);
+    TEST_RUN("file_read_seek_failure", test_file_read_seek_failure);
+    TEST_RUN("file_read_read_failure", test_file_read_read_failure);
+    TEST_RUN("file_read_special_characters", test_file_read_special_characters);
 }

@@ -12,15 +12,14 @@
 #include "../../src/runtime/runtime_arena.h"
 #include "../../src/debug.h"
 #include "../test_utils.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Static Batch Generation Tests
  * ============================================================================ */
 
-void test_rt_random_static_int_many_count_and_range()
+static void test_rt_random_static_int_many_count_and_range(void)
 {
-    printf("Testing rt_random_static_int_many count and range...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -51,24 +50,17 @@ void test_rt_random_static_int_many_count_and_range()
     }
     TEST_ASSERT(empty_buckets < range_size / 4, "Distribution should cover most of range");
 
-    printf("  Generated %ld integers in [%ld, %ld]\n", count, min, max);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_int_many_null_arena()
+static void test_rt_random_static_int_many_null_arena(void)
 {
-    printf("Testing rt_random_static_int_many with NULL arena...\n");
-
     long *arr = rt_random_static_int_many(NULL, 0, 100, 10);
     TEST_ASSERT(arr == NULL, "NULL arena should return NULL");
-
-    printf("  NULL arena handled correctly\n");
 }
 
-void test_rt_random_static_int_many_zero_count()
+static void test_rt_random_static_int_many_zero_count(void)
 {
-    printf("Testing rt_random_static_int_many with zero/negative count...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -78,14 +70,11 @@ void test_rt_random_static_int_many_zero_count()
     long *arr2 = rt_random_static_int_many(arena, 0, 100, -5);
     TEST_ASSERT(arr2 == NULL, "Negative count should return NULL");
 
-    printf("  Zero/negative count handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_long_many_count_and_range()
+static void test_rt_random_static_long_many_count_and_range(void)
 {
-    printf("Testing rt_random_static_long_many count and range...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -102,24 +91,17 @@ void test_rt_random_static_long_many_count_and_range()
                    "All longs should be in range [min, max]");
     }
 
-    printf("  Generated %ld longs in [%lld, %lld]\n", count, min, max);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_long_many_null_arena()
+static void test_rt_random_static_long_many_null_arena(void)
 {
-    printf("Testing rt_random_static_long_many with NULL arena...\n");
-
     long long *arr = rt_random_static_long_many(NULL, 0, 100, 10);
     TEST_ASSERT(arr == NULL, "NULL arena should return NULL");
-
-    printf("  NULL arena handled correctly\n");
 }
 
-void test_rt_random_static_double_many_count_and_range()
+static void test_rt_random_static_double_many_count_and_range(void)
 {
-    printf("Testing rt_random_static_double_many count and range...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -144,24 +126,17 @@ void test_rt_random_static_double_many_count_and_range()
     double mean = sum / count;
     TEST_ASSERT(mean > 0.4 && mean < 0.6, "Mean should be approximately 0.5");
 
-    printf("  Generated %ld doubles in [%.1f, %.1f), mean=%.3f\n", count, min, max, mean);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_double_many_null_arena()
+static void test_rt_random_static_double_many_null_arena(void)
 {
-    printf("Testing rt_random_static_double_many with NULL arena...\n");
-
     double *arr = rt_random_static_double_many(NULL, 0.0, 1.0, 10);
     TEST_ASSERT(arr == NULL, "NULL arena should return NULL");
-
-    printf("  NULL arena handled correctly\n");
 }
 
-void test_rt_random_static_bool_many_count()
+static void test_rt_random_static_bool_many_count(void)
 {
-    printf("Testing rt_random_static_bool_many count and distribution...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -180,24 +155,17 @@ void test_rt_random_static_bool_many_count()
     TEST_ASSERT(true_count > 400 && true_count < 600,
                "Bool distribution should be roughly 50/50");
 
-    printf("  Generated %ld bools, true=%d, false=%ld\n", count, true_count, count - true_count);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_bool_many_null_arena()
+static void test_rt_random_static_bool_many_null_arena(void)
 {
-    printf("Testing rt_random_static_bool_many with NULL arena...\n");
-
     int *arr = rt_random_static_bool_many(NULL, 10);
     TEST_ASSERT(arr == NULL, "NULL arena should return NULL");
-
-    printf("  NULL arena handled correctly\n");
 }
 
-void test_rt_random_static_gaussian_many_count_and_distribution()
+static void test_rt_random_static_gaussian_many_count_and_distribution(void)
 {
-    printf("Testing rt_random_static_gaussian_many count and distribution...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -228,29 +196,21 @@ void test_rt_random_static_gaussian_many_count_and_distribution()
     double stddev_error = fabs(actual_stddev - stddev);
     TEST_ASSERT(stddev_error < 1.0, "Stddev should be close to target");
 
-    printf("  Generated %ld gaussians: mean=%.2f (expected %.2f), stddev=%.2f (expected %.2f)\n",
-           count, actual_mean, mean, actual_stddev, stddev);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_gaussian_many_null_arena()
+static void test_rt_random_static_gaussian_many_null_arena(void)
 {
-    printf("Testing rt_random_static_gaussian_many with NULL arena...\n");
-
     double *arr = rt_random_static_gaussian_many(NULL, 0.0, 1.0, 10);
     TEST_ASSERT(arr == NULL, "NULL arena should return NULL");
-
-    printf("  NULL arena handled correctly\n");
 }
 
 /* ============================================================================
  * Instance Batch Generation Tests
  * ============================================================================ */
 
-void test_rt_random_int_many_count_and_range()
+static void test_rt_random_int_many_count_and_range(void)
 {
-    printf("Testing rt_random_int_many count and range...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -270,14 +230,11 @@ void test_rt_random_int_many_count_and_range()
                    "All values should be in range [min, max]");
     }
 
-    printf("  Generated %ld integers in [%ld, %ld]\n", count, min, max);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_int_many_null_args()
+static void test_rt_random_int_many_null_args(void)
 {
-    printf("Testing rt_random_int_many with NULL args...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -290,14 +247,11 @@ void test_rt_random_int_many_null_args()
     long *arr2 = rt_random_int_many(arena, NULL, 0, 100, 10);
     TEST_ASSERT(arr2 == NULL, "NULL rng should return NULL");
 
-    printf("  NULL args handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_int_many_reproducibility()
+static void test_rt_random_int_many_reproducibility(void)
 {
-    printf("Testing rt_random_int_many reproducibility...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -316,14 +270,11 @@ void test_rt_random_int_many_reproducibility()
         TEST_ASSERT(arr1[i] == arr2[i], "Same seed should produce identical arrays");
     }
 
-    printf("  Reproducibility verified for int_many\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_long_many_count_and_range()
+static void test_rt_random_long_many_count_and_range(void)
 {
-    printf("Testing rt_random_long_many count and range...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -343,14 +294,11 @@ void test_rt_random_long_many_count_and_range()
                    "All longs should be in range [min, max]");
     }
 
-    printf("  Generated %ld longs in [%lld, %lld]\n", count, min, max);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_long_many_null_args()
+static void test_rt_random_long_many_null_args(void)
 {
-    printf("Testing rt_random_long_many with NULL args...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -363,14 +311,11 @@ void test_rt_random_long_many_null_args()
     long long *arr2 = rt_random_long_many(arena, NULL, 0, 100, 10);
     TEST_ASSERT(arr2 == NULL, "NULL rng should return NULL");
 
-    printf("  NULL args handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_long_many_reproducibility()
+static void test_rt_random_long_many_reproducibility(void)
 {
-    printf("Testing rt_random_long_many reproducibility...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -388,14 +333,11 @@ void test_rt_random_long_many_reproducibility()
         TEST_ASSERT(arr1[i] == arr2[i], "Same seed should produce identical arrays");
     }
 
-    printf("  Reproducibility verified for long_many\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_double_many_count_and_range()
+static void test_rt_random_double_many_count_and_range(void)
 {
-    printf("Testing rt_random_double_many count and range...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -415,14 +357,11 @@ void test_rt_random_double_many_count_and_range()
                    "All doubles should be in range [min, max)");
     }
 
-    printf("  Generated %ld doubles in [%.1f, %.1f)\n", count, min, max);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_double_many_null_args()
+static void test_rt_random_double_many_null_args(void)
 {
-    printf("Testing rt_random_double_many with NULL args...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -435,14 +374,11 @@ void test_rt_random_double_many_null_args()
     double *arr2 = rt_random_double_many(arena, NULL, 0.0, 1.0, 10);
     TEST_ASSERT(arr2 == NULL, "NULL rng should return NULL");
 
-    printf("  NULL args handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_double_many_reproducibility()
+static void test_rt_random_double_many_reproducibility(void)
 {
-    printf("Testing rt_random_double_many reproducibility...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -460,14 +396,11 @@ void test_rt_random_double_many_reproducibility()
         TEST_ASSERT(arr1[i] == arr2[i], "Same seed should produce identical arrays");
     }
 
-    printf("  Reproducibility verified for double_many\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_bool_many_count()
+static void test_rt_random_bool_many_count(void)
 {
-    printf("Testing rt_random_bool_many count and distribution...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -489,14 +422,11 @@ void test_rt_random_bool_many_count()
     TEST_ASSERT(true_count > 400 && true_count < 600,
                "Bool distribution should be roughly 50/50");
 
-    printf("  Generated %ld bools, true=%d, false=%ld\n", count, true_count, count - true_count);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_bool_many_null_args()
+static void test_rt_random_bool_many_null_args(void)
 {
-    printf("Testing rt_random_bool_many with NULL args...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -509,14 +439,11 @@ void test_rt_random_bool_many_null_args()
     int *arr2 = rt_random_bool_many(arena, NULL, 10);
     TEST_ASSERT(arr2 == NULL, "NULL rng should return NULL");
 
-    printf("  NULL args handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_bool_many_reproducibility()
+static void test_rt_random_bool_many_reproducibility(void)
 {
-    printf("Testing rt_random_bool_many reproducibility...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -534,14 +461,11 @@ void test_rt_random_bool_many_reproducibility()
         TEST_ASSERT(arr1[i] == arr2[i], "Same seed should produce identical arrays");
     }
 
-    printf("  Reproducibility verified for bool_many\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_gaussian_many_count_and_distribution()
+static void test_rt_random_gaussian_many_count_and_distribution(void)
 {
-    printf("Testing rt_random_gaussian_many count and distribution...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -571,15 +495,11 @@ void test_rt_random_gaussian_many_count_and_distribution()
     TEST_ASSERT(fabs(actual_mean) < 0.1, "Mean should be close to 0");
     TEST_ASSERT(fabs(actual_stddev - 1.0) < 0.1, "Stddev should be close to 1");
 
-    printf("  Generated %ld gaussians: mean=%.3f, stddev=%.3f\n",
-           count, actual_mean, actual_stddev);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_gaussian_many_null_args()
+static void test_rt_random_gaussian_many_null_args(void)
 {
-    printf("Testing rt_random_gaussian_many with NULL args...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -592,14 +512,11 @@ void test_rt_random_gaussian_many_null_args()
     double *arr2 = rt_random_gaussian_many(arena, NULL, 0.0, 1.0, 10);
     TEST_ASSERT(arr2 == NULL, "NULL rng should return NULL");
 
-    printf("  NULL args handled correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_gaussian_many_reproducibility()
+static void test_rt_random_gaussian_many_reproducibility(void)
 {
-    printf("Testing rt_random_gaussian_many reproducibility...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -617,7 +534,6 @@ void test_rt_random_gaussian_many_reproducibility()
         TEST_ASSERT(arr1[i] == arr2[i], "Same seed should produce identical arrays");
     }
 
-    printf("  Reproducibility verified for gaussian_many\n");
     rt_arena_destroy(arena);
 }
 
@@ -625,10 +541,8 @@ void test_rt_random_gaussian_many_reproducibility()
  * Performance Tests for Large Batches
  * ============================================================================ */
 
-void test_rt_random_batch_large_count()
+static void test_rt_random_batch_large_count(void)
 {
-    printf("Testing batch generation with large counts...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -666,7 +580,6 @@ void test_rt_random_batch_large_count()
     TEST_ASSERT(bools[0] == 0 || bools[0] == 1, "First bool valid");
     TEST_ASSERT(bools[large_count-1] == 0 || bools[large_count-1] == 1, "Last bool valid");
 
-    printf("  Successfully generated %ld values of each type\n", large_count);
     rt_arena_destroy(arena);
 }
 
@@ -674,47 +587,40 @@ void test_rt_random_batch_large_count()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_random_many_main()
+void test_rt_random_many_main(void)
 {
-    printf("\n");
-    printf("================================================\n");
-    printf(" Runtime Random Many Tests\n");
-    printf("================================================\n");
+    TEST_SECTION("Runtime Random Many");
 
     /* Static batch generation tests */
-    test_rt_random_static_int_many_count_and_range();
-    test_rt_random_static_int_many_null_arena();
-    test_rt_random_static_int_many_zero_count();
-    test_rt_random_static_long_many_count_and_range();
-    test_rt_random_static_long_many_null_arena();
-    test_rt_random_static_double_many_count_and_range();
-    test_rt_random_static_double_many_null_arena();
-    test_rt_random_static_bool_many_count();
-    test_rt_random_static_bool_many_null_arena();
-    test_rt_random_static_gaussian_many_count_and_distribution();
-    test_rt_random_static_gaussian_many_null_arena();
+    TEST_RUN("static_int_many_count_and_range", test_rt_random_static_int_many_count_and_range);
+    TEST_RUN("static_int_many_null_arena", test_rt_random_static_int_many_null_arena);
+    TEST_RUN("static_int_many_zero_count", test_rt_random_static_int_many_zero_count);
+    TEST_RUN("static_long_many_count_and_range", test_rt_random_static_long_many_count_and_range);
+    TEST_RUN("static_long_many_null_arena", test_rt_random_static_long_many_null_arena);
+    TEST_RUN("static_double_many_count_and_range", test_rt_random_static_double_many_count_and_range);
+    TEST_RUN("static_double_many_null_arena", test_rt_random_static_double_many_null_arena);
+    TEST_RUN("static_bool_many_count", test_rt_random_static_bool_many_count);
+    TEST_RUN("static_bool_many_null_arena", test_rt_random_static_bool_many_null_arena);
+    TEST_RUN("static_gaussian_many_count_and_distribution", test_rt_random_static_gaussian_many_count_and_distribution);
+    TEST_RUN("static_gaussian_many_null_arena", test_rt_random_static_gaussian_many_null_arena);
 
     /* Instance batch generation tests */
-    test_rt_random_int_many_count_and_range();
-    test_rt_random_int_many_null_args();
-    test_rt_random_int_many_reproducibility();
-    test_rt_random_long_many_count_and_range();
-    test_rt_random_long_many_null_args();
-    test_rt_random_long_many_reproducibility();
-    test_rt_random_double_many_count_and_range();
-    test_rt_random_double_many_null_args();
-    test_rt_random_double_many_reproducibility();
-    test_rt_random_bool_many_count();
-    test_rt_random_bool_many_null_args();
-    test_rt_random_bool_many_reproducibility();
-    test_rt_random_gaussian_many_count_and_distribution();
-    test_rt_random_gaussian_many_null_args();
-    test_rt_random_gaussian_many_reproducibility();
+    TEST_RUN("int_many_count_and_range", test_rt_random_int_many_count_and_range);
+    TEST_RUN("int_many_null_args", test_rt_random_int_many_null_args);
+    TEST_RUN("int_many_reproducibility", test_rt_random_int_many_reproducibility);
+    TEST_RUN("long_many_count_and_range", test_rt_random_long_many_count_and_range);
+    TEST_RUN("long_many_null_args", test_rt_random_long_many_null_args);
+    TEST_RUN("long_many_reproducibility", test_rt_random_long_many_reproducibility);
+    TEST_RUN("double_many_count_and_range", test_rt_random_double_many_count_and_range);
+    TEST_RUN("double_many_null_args", test_rt_random_double_many_null_args);
+    TEST_RUN("double_many_reproducibility", test_rt_random_double_many_reproducibility);
+    TEST_RUN("bool_many_count", test_rt_random_bool_many_count);
+    TEST_RUN("bool_many_null_args", test_rt_random_bool_many_null_args);
+    TEST_RUN("bool_many_reproducibility", test_rt_random_bool_many_reproducibility);
+    TEST_RUN("gaussian_many_count_and_distribution", test_rt_random_gaussian_many_count_and_distribution);
+    TEST_RUN("gaussian_many_null_args", test_rt_random_gaussian_many_null_args);
+    TEST_RUN("gaussian_many_reproducibility", test_rt_random_gaussian_many_reproducibility);
 
     /* Large batch performance test */
-    test_rt_random_batch_large_count();
-
-    printf("------------------------------------------------\n");
-    printf(" All runtime random many tests passed!\n");
-    printf("================================================\n");
+    TEST_RUN("batch_large_count", test_rt_random_batch_large_count);
 }

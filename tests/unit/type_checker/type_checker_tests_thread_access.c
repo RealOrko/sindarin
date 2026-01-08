@@ -7,11 +7,11 @@
 #include "../type_checker/type_checker_expr.h"
 #include "../type_checker/type_checker_stmt.h"
 #include "../ast/ast_expr.h"
+#include "../test_harness.h"
 
 /* Test accessing a pending variable reports error */
 static void test_pending_variable_access_error(void)
 {
-    printf("Testing accessing pending variable reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -43,7 +43,6 @@ static void test_pending_variable_access_error(void)
 /* Test accessing a synchronized variable is allowed */
 static void test_synchronized_variable_access_allowed(void)
 {
-    printf("Testing accessing synchronized variable is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -77,7 +76,6 @@ static void test_synchronized_variable_access_allowed(void)
 /* Test accessing a normal (non-thread) variable is allowed */
 static void test_normal_variable_access_allowed(void)
 {
-    printf("Testing accessing normal variable is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -110,7 +108,6 @@ static void test_normal_variable_access_allowed(void)
 /* Test all array elements become accessible after sync */
 static void test_array_sync_all_elements_accessible(void)
 {
-    printf("Testing all array elements accessible after sync...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -188,7 +185,6 @@ static void test_array_sync_all_elements_accessible(void)
 /* Test reassigning a pending variable reports error */
 static void test_pending_variable_reassign_error(void)
 {
-    printf("Testing reassigning pending variable reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -225,7 +221,6 @@ static void test_pending_variable_reassign_error(void)
 /* Test reassigning a synchronized variable is allowed */
 static void test_synchronized_variable_reassign_allowed(void)
 {
-    printf("Testing reassigning synchronized variable is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -264,7 +259,6 @@ static void test_synchronized_variable_reassign_allowed(void)
 /* Test reassigning a normal (non-thread) variable is allowed */
 static void test_normal_variable_reassign_allowed(void)
 {
-    printf("Testing reassigning normal variable is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -302,7 +296,6 @@ static void test_normal_variable_reassign_allowed(void)
 /* Test that mutating methods on frozen arrays report error */
 static void test_frozen_array_mutating_method_error(void)
 {
-    printf("Testing mutating method on frozen array reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -338,7 +331,6 @@ static void test_frozen_array_mutating_method_error(void)
 /* Test that read-only methods on frozen arrays are allowed */
 static void test_frozen_array_readonly_method_allowed(void)
 {
-    printf("Testing read-only method on frozen array is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -375,7 +367,6 @@ static void test_frozen_array_readonly_method_allowed(void)
 /* Test that incrementing a frozen variable reports error */
 static void test_frozen_variable_increment_error(void)
 {
-    printf("Testing incrementing frozen variable reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -410,7 +401,6 @@ static void test_frozen_variable_increment_error(void)
 /* Test that decrementing a frozen variable reports error */
 static void test_frozen_variable_decrement_error(void)
 {
-    printf("Testing decrementing frozen variable reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -445,7 +435,6 @@ static void test_frozen_variable_decrement_error(void)
 /* Test that incrementing a normal variable is allowed */
 static void test_normal_variable_increment_allowed(void)
 {
-    printf("Testing incrementing normal variable is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -480,7 +469,6 @@ static void test_normal_variable_increment_allowed(void)
 /* Test that decrementing a normal variable is allowed */
 static void test_normal_variable_decrement_allowed(void)
 {
-    printf("Testing decrementing normal variable is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -515,7 +503,6 @@ static void test_normal_variable_decrement_allowed(void)
 /* Test private function returning array type reports error */
 static void test_private_function_array_return_error(void)
 {
-    printf("Testing private function returning array type reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -557,7 +544,6 @@ static void test_private_function_array_return_error(void)
 /* Test private function returning string type reports error */
 static void test_private_function_string_return_error(void)
 {
-    printf("Testing private function returning string type reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -598,7 +584,6 @@ static void test_private_function_string_return_error(void)
 /* Test private function returning primitive int is allowed */
 static void test_private_function_int_return_allowed(void)
 {
-    printf("Testing private function returning int is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -640,7 +625,6 @@ static void test_private_function_int_return_allowed(void)
 /* Test private function returning void is allowed */
 static void test_private_function_void_return_allowed(void)
 {
-    printf("Testing private function returning void is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -682,7 +666,6 @@ static void test_private_function_void_return_allowed(void)
 /* Test default (non-private) function returning array is allowed */
 static void test_default_function_array_return_allowed(void)
 {
-    printf("Testing default function returning array is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -724,7 +707,6 @@ static void test_default_function_array_return_allowed(void)
 /* Test shared function returning array is allowed */
 static void test_shared_function_array_return_allowed(void)
 {
-    printf("Testing shared function returning array is allowed...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -765,27 +747,25 @@ static void test_shared_function_array_return_allowed(void)
 
 void test_type_checker_thread_access_main(void)
 {
-    printf("\n=== Running Thread Access Type Checker Tests ===\n\n");
+    TEST_SECTION("Thread Access Type Checker");
 
-    test_pending_variable_access_error();
-    test_synchronized_variable_access_allowed();
-    test_normal_variable_access_allowed();
-    test_array_sync_all_elements_accessible();
-    test_pending_variable_reassign_error();
-    test_synchronized_variable_reassign_allowed();
-    test_normal_variable_reassign_allowed();
-    test_frozen_array_mutating_method_error();
-    test_frozen_array_readonly_method_allowed();
-    test_frozen_variable_increment_error();
-    test_frozen_variable_decrement_error();
-    test_normal_variable_increment_allowed();
-    test_normal_variable_decrement_allowed();
-    test_private_function_array_return_error();
-    test_private_function_string_return_error();
-    test_private_function_int_return_allowed();
-    test_private_function_void_return_allowed();
-    test_default_function_array_return_allowed();
-    test_shared_function_array_return_allowed();
-
-    printf("\n=== All Thread Access Type Checker Tests Passed ===\n\n");
+    TEST_RUN("pending_variable_access_error", test_pending_variable_access_error);
+    TEST_RUN("synchronized_variable_access_allowed", test_synchronized_variable_access_allowed);
+    TEST_RUN("normal_variable_access_allowed", test_normal_variable_access_allowed);
+    TEST_RUN("array_sync_all_elements_accessible", test_array_sync_all_elements_accessible);
+    TEST_RUN("pending_variable_reassign_error", test_pending_variable_reassign_error);
+    TEST_RUN("synchronized_variable_reassign_allowed", test_synchronized_variable_reassign_allowed);
+    TEST_RUN("normal_variable_reassign_allowed", test_normal_variable_reassign_allowed);
+    TEST_RUN("frozen_array_mutating_method_error", test_frozen_array_mutating_method_error);
+    TEST_RUN("frozen_array_readonly_method_allowed", test_frozen_array_readonly_method_allowed);
+    TEST_RUN("frozen_variable_increment_error", test_frozen_variable_increment_error);
+    TEST_RUN("frozen_variable_decrement_error", test_frozen_variable_decrement_error);
+    TEST_RUN("normal_variable_increment_allowed", test_normal_variable_increment_allowed);
+    TEST_RUN("normal_variable_decrement_allowed", test_normal_variable_decrement_allowed);
+    TEST_RUN("private_function_array_return_error", test_private_function_array_return_error);
+    TEST_RUN("private_function_string_return_error", test_private_function_string_return_error);
+    TEST_RUN("private_function_int_return_allowed", test_private_function_int_return_allowed);
+    TEST_RUN("private_function_void_return_allowed", test_private_function_void_return_allowed);
+    TEST_RUN("default_function_array_return_allowed", test_default_function_array_return_allowed);
+    TEST_RUN("shared_function_array_return_allowed", test_shared_function_array_return_allowed);
 }

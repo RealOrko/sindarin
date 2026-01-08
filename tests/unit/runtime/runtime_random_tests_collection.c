@@ -13,6 +13,7 @@
 #include "../../src/runtime/runtime_array.h"
 #include "../../src/debug.h"
 #include "../test_utils.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Shuffle Tests - Static Methods (OS Entropy)
@@ -20,9 +21,8 @@
  * Tests for Fisher-Yates shuffle algorithm.
  * ============================================================================ */
 
-void test_rt_random_static_shuffle_long_basic()
+static void test_rt_random_static_shuffle_long_basic(void)
 {
-    printf("Testing rt_random_static_shuffle_long basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -59,14 +59,12 @@ void test_rt_random_static_shuffle_long_basic()
         TEST_ASSERT(all_found, "All elements should be present after shuffle");
     }
 
-    printf("  Shuffle preserves all elements correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_shuffle_double_basic()
+static void test_rt_random_static_shuffle_double_basic(void)
 {
-    printf("Testing rt_random_static_shuffle_double basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     double data[] = {1.1, 2.2, 3.3, 4.4, 5.5};
@@ -82,14 +80,12 @@ void test_rt_random_static_shuffle_double_basic()
 
     TEST_ASSERT(fabs(sum - original_sum) < 0.001, "Sum should be unchanged after shuffle");
 
-    printf("  Double shuffle preserves elements\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_shuffle_string_basic()
+static void test_rt_random_static_shuffle_string_basic(void)
 {
-    printf("Testing rt_random_static_shuffle_string basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     const char *data[] = {"apple", "banana", "cherry", "date", "elderberry"};
@@ -111,14 +107,12 @@ void test_rt_random_static_shuffle_string_basic()
         TEST_ASSERT(found[i], "All strings should be present after shuffle");
     }
 
-    printf("  String shuffle preserves elements\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_shuffle_bool_basic()
+static void test_rt_random_static_shuffle_bool_basic(void)
 {
-    printf("Testing rt_random_static_shuffle_bool basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     int data[] = {1, 1, 0, 0, 1};
@@ -134,14 +128,12 @@ void test_rt_random_static_shuffle_bool_basic()
 
     TEST_ASSERT(true_count == original_true_count, "Bool count should be unchanged");
 
-    printf("  Bool shuffle preserves elements\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_shuffle_byte_basic()
+static void test_rt_random_static_shuffle_byte_basic(void)
 {
-    printf("Testing rt_random_static_shuffle_byte basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     unsigned char data[] = {10, 20, 30, 40, 50};
@@ -157,14 +149,12 @@ void test_rt_random_static_shuffle_byte_basic()
 
     TEST_ASSERT(sum == original_sum, "Byte sum should be unchanged");
 
-    printf("  Byte shuffle preserves elements\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_shuffle_null_handling()
+static void test_rt_random_static_shuffle_null_handling(void)
 {
-    printf("Testing rt_random_static_shuffle NULL handling...\n");
 
     /* These should not crash */
     rt_random_static_shuffle_long(NULL);
@@ -173,12 +163,10 @@ void test_rt_random_static_shuffle_null_handling()
     rt_random_static_shuffle_bool(NULL);
     rt_random_static_shuffle_byte(NULL);
 
-    printf("  NULL arrays handled gracefully\n");
 }
 
-void test_rt_random_static_shuffle_single_element()
+static void test_rt_random_static_shuffle_single_element(void)
 {
-    printf("Testing rt_random_static_shuffle with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -189,7 +177,6 @@ void test_rt_random_static_shuffle_single_element()
 
     TEST_ASSERT(arr[0] == 42, "Single element should be unchanged");
 
-    printf("  Single element unchanged\n");
 
     rt_arena_destroy(arena);
 }
@@ -198,9 +185,8 @@ void test_rt_random_static_shuffle_single_element()
  * Shuffle Tests - Instance Methods (Seeded PRNG)
  * ============================================================================ */
 
-void test_rt_random_shuffle_long_basic()
+static void test_rt_random_shuffle_long_basic(void)
 {
-    printf("Testing rt_random_shuffle_long basic (seeded)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
@@ -225,14 +211,12 @@ void test_rt_random_shuffle_long_basic()
         TEST_ASSERT(found[i], "All elements present");
     }
 
-    printf("  Seeded shuffle preserves elements\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_shuffle_reproducible()
+static void test_rt_random_shuffle_reproducible(void)
 {
-    printf("Testing rt_random_shuffle reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -258,14 +242,12 @@ void test_rt_random_shuffle_reproducible()
 
     TEST_ASSERT(all_match, "Same seed must produce identical shuffle");
 
-    printf("  Reproducibility verified: same seed = same shuffle\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_shuffle_null_rng()
+static void test_rt_random_shuffle_null_rng(void)
 {
-    printf("Testing rt_random_shuffle with NULL rng...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     long data[] = {1, 2, 3};
@@ -277,14 +259,12 @@ void test_rt_random_shuffle_null_rng()
     /* Array should be unchanged */
     TEST_ASSERT(arr[0] == 1 && arr[1] == 2 && arr[2] == 3, "Array unchanged with NULL rng");
 
-    printf("  NULL rng handled gracefully\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_shuffle_all_types_seeded()
+static void test_rt_random_shuffle_all_types_seeded(void)
 {
-    printf("Testing all seeded shuffle types...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 54321);
@@ -309,15 +289,13 @@ void test_rt_random_shuffle_all_types_seeded()
     unsigned char *byarr = rt_array_create_byte(arena, 3, bydata);
     rt_random_shuffle_byte(rng, byarr);
 
-    printf("  All seeded shuffle types work correctly\n");
 
     rt_arena_destroy(arena);
 }
 
 /* Statistical test: Verify uniform permutation distribution */
-void test_rt_random_shuffle_distribution()
+static void test_rt_random_shuffle_distribution(void)
 {
-    printf("Testing shuffle uniform permutation distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -358,9 +336,6 @@ void test_rt_random_shuffle_distribution()
     int expected = iterations / 6;  /* ~1000 */
     int tolerance = expected / 2;   /* Allow 50% deviation */
 
-    printf("  Permutation counts: [%d, %d, %d, %d, %d, %d] (expected ~%d each)\n",
-           perm_counts[0], perm_counts[1], perm_counts[2],
-           perm_counts[3], perm_counts[4], perm_counts[5], expected);
 
     for (int i = 0; i < 6; i++) {
         int deviation = abs(perm_counts[i] - expected);
@@ -370,9 +345,8 @@ void test_rt_random_shuffle_distribution()
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_shuffle_distribution_seeded()
+static void test_rt_random_shuffle_distribution_seeded(void)
 {
-    printf("Testing seeded shuffle permutation distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -408,9 +382,6 @@ void test_rt_random_shuffle_distribution_seeded()
     int expected = iterations / 6;
     int tolerance = expected / 2;
 
-    printf("  Seeded permutation counts: [%d, %d, %d, %d, %d, %d] (expected ~%d each)\n",
-           perm_counts[0], perm_counts[1], perm_counts[2],
-           perm_counts[3], perm_counts[4], perm_counts[5], expected);
 
     for (int i = 0; i < 6; i++) {
         int deviation = abs(perm_counts[i] - expected);
@@ -426,9 +397,8 @@ void test_rt_random_shuffle_distribution_seeded()
  * Tests for Random.sample() which selects elements without replacement.
  * ============================================================================ */
 
-void test_rt_random_static_sample_long_basic()
+static void test_rt_random_static_sample_long_basic(void)
 {
-    printf("Testing rt_random_static_sample_long basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -457,14 +427,12 @@ void test_rt_random_static_sample_long_basic()
         TEST_ASSERT(found, "Sampled element should be from original array");
     }
 
-    printf("  Basic sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_long_no_duplicates()
+static void test_rt_random_static_sample_long_no_duplicates(void)
 {
-    printf("Testing rt_random_static_sample_long no duplicates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -485,14 +453,12 @@ void test_rt_random_static_sample_long_no_duplicates()
         }
     }
 
-    printf("  Sampling without replacement produces no duplicates\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_long_full_array()
+static void test_rt_random_static_sample_long_full_array(void)
 {
-    printf("Testing rt_random_static_sample_long full array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -513,14 +479,12 @@ void test_rt_random_static_sample_long_full_array()
     }
     TEST_ASSERT(sample_sum == original_sum, "Full sample should contain all original elements");
 
-    printf("  Full array sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_long_single_element()
+static void test_rt_random_static_sample_long_single_element(void)
 {
-    printf("Testing rt_random_static_sample_long single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -543,14 +507,12 @@ void test_rt_random_static_sample_long_single_element()
     }
     TEST_ASSERT(found, "Single sampled element should be from original array");
 
-    printf("  Single element sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_long_count_exceeds_length()
+static void test_rt_random_static_sample_long_count_exceeds_length(void)
 {
-    printf("Testing rt_random_static_sample_long count exceeds length...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -566,14 +528,12 @@ void test_rt_random_static_sample_long_count_exceeds_length()
     sample = rt_random_static_sample_long(arena, arr, 10);
     TEST_ASSERT(sample == NULL, "Should return NULL when count >> array length");
 
-    printf("  Invalid count correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_long_null_handling()
+static void test_rt_random_static_sample_long_null_handling(void)
 {
-    printf("Testing rt_random_static_sample_long null handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -596,14 +556,12 @@ void test_rt_random_static_sample_long_null_handling()
     sample = rt_random_static_sample_long(arena, arr, -1);
     TEST_ASSERT(sample == NULL, "Should return NULL with negative count");
 
-    printf("  NULL and invalid input handling correct\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_long_preserves_original()
+static void test_rt_random_static_sample_long_preserves_original(void)
 {
-    printf("Testing rt_random_static_sample_long preserves original...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -622,14 +580,12 @@ void test_rt_random_static_sample_long_preserves_original()
         }
     }
 
-    printf("  Original array preserved after sampling\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_long_distribution()
+static void test_rt_random_static_sample_long_distribution(void)
 {
-    printf("Testing rt_random_static_sample_long distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -658,16 +614,11 @@ void test_rt_random_static_sample_long_distribution()
     int expected = (2 * iterations) / 5;
     int tolerance = expected / 3;  /* Allow ~33% deviation */
 
-    printf("  Element counts: [%d, %d, %d, %d, %d] (expected ~%d each)\n",
-           element_counts[0], element_counts[1], element_counts[2],
-           element_counts[3], element_counts[4], expected);
-
     for (int i = 0; i < 5; i++) {
         int deviation = abs(element_counts[i] - expected);
         TEST_ASSERT(deviation < tolerance, "Sample distribution should be roughly uniform");
     }
 
-    printf("  Sample distribution is approximately uniform\n");
 
     rt_arena_destroy(arena);
 }
@@ -678,9 +629,8 @@ void test_rt_random_static_sample_long_distribution()
  * Tests for Random.sample() on double arrays.
  * ============================================================================ */
 
-void test_rt_random_static_sample_double_basic()
+static void test_rt_random_static_sample_double_basic(void)
 {
-    printf("Testing rt_random_static_sample_double basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -709,14 +659,12 @@ void test_rt_random_static_sample_double_basic()
         TEST_ASSERT(found, "Sampled element should be from original array");
     }
 
-    printf("  Basic sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_double_no_duplicates()
+static void test_rt_random_static_sample_double_no_duplicates(void)
 {
-    printf("Testing rt_random_static_sample_double no duplicates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -737,14 +685,12 @@ void test_rt_random_static_sample_double_no_duplicates()
         }
     }
 
-    printf("  Sampling without replacement produces no duplicates\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_double_full_array()
+static void test_rt_random_static_sample_double_full_array(void)
 {
-    printf("Testing rt_random_static_sample_double full array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -765,14 +711,12 @@ void test_rt_random_static_sample_double_full_array()
     }
     TEST_ASSERT(fabs(sample_sum - original_sum) < 0.001, "Full sample should contain all original elements");
 
-    printf("  Full array sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_double_count_exceeds_length()
+static void test_rt_random_static_sample_double_count_exceeds_length(void)
 {
-    printf("Testing rt_random_static_sample_double count exceeds length...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -788,14 +732,12 @@ void test_rt_random_static_sample_double_count_exceeds_length()
     sample = rt_random_static_sample_double(arena, arr, 10);
     TEST_ASSERT(sample == NULL, "Should return NULL when count >> array length");
 
-    printf("  Invalid count correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_double_null_handling()
+static void test_rt_random_static_sample_double_null_handling(void)
 {
-    printf("Testing rt_random_static_sample_double null handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -818,14 +760,12 @@ void test_rt_random_static_sample_double_null_handling()
     sample = rt_random_static_sample_double(arena, arr, -1);
     TEST_ASSERT(sample == NULL, "Should return NULL with negative count");
 
-    printf("  NULL and invalid input handling correct\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_double_preserves_original()
+static void test_rt_random_static_sample_double_preserves_original(void)
 {
-    printf("Testing rt_random_static_sample_double preserves original...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -844,7 +784,6 @@ void test_rt_random_static_sample_double_preserves_original()
         }
     }
 
-    printf("  Original array preserved after sampling\n");
 
     rt_arena_destroy(arena);
 }
@@ -855,9 +794,8 @@ void test_rt_random_static_sample_double_preserves_original()
  * Tests for Random.sample() on string arrays.
  * ============================================================================ */
 
-void test_rt_random_static_sample_string_basic()
+static void test_rt_random_static_sample_string_basic(void)
 {
-    printf("Testing rt_random_static_sample_string basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -886,14 +824,12 @@ void test_rt_random_static_sample_string_basic()
         TEST_ASSERT(found, "Sampled element should be from original array");
     }
 
-    printf("  Basic sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_string_no_duplicates()
+static void test_rt_random_static_sample_string_no_duplicates(void)
 {
-    printf("Testing rt_random_static_sample_string no duplicates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -914,14 +850,12 @@ void test_rt_random_static_sample_string_no_duplicates()
         }
     }
 
-    printf("  Sampling without replacement produces no duplicates\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_string_full_array()
+static void test_rt_random_static_sample_string_full_array(void)
 {
-    printf("Testing rt_random_static_sample_string full array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -947,14 +881,12 @@ void test_rt_random_static_sample_string_full_array()
         TEST_ASSERT(found[i], "All original elements should be in full sample");
     }
 
-    printf("  Full array sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_string_count_exceeds_length()
+static void test_rt_random_static_sample_string_count_exceeds_length(void)
 {
-    printf("Testing rt_random_static_sample_string count exceeds length...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -970,14 +902,12 @@ void test_rt_random_static_sample_string_count_exceeds_length()
     sample = rt_random_static_sample_string(arena, arr, 10);
     TEST_ASSERT(sample == NULL, "Should return NULL when count >> array length");
 
-    printf("  Invalid count correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_string_null_handling()
+static void test_rt_random_static_sample_string_null_handling(void)
 {
-    printf("Testing rt_random_static_sample_string null handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1000,14 +930,12 @@ void test_rt_random_static_sample_string_null_handling()
     sample = rt_random_static_sample_string(arena, arr, -1);
     TEST_ASSERT(sample == NULL, "Should return NULL with negative count");
 
-    printf("  NULL and invalid input handling correct\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_sample_string_preserves_original()
+static void test_rt_random_static_sample_string_preserves_original(void)
 {
-    printf("Testing rt_random_static_sample_string preserves original...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1026,7 +954,6 @@ void test_rt_random_static_sample_string_preserves_original()
         }
     }
 
-    printf("  Original array preserved after sampling\n");
 
     rt_arena_destroy(arena);
 }
@@ -1037,9 +964,8 @@ void test_rt_random_static_sample_string_preserves_original()
  * Tests for Random.sample() instance method on long arrays.
  * ============================================================================ */
 
-void test_rt_random_sample_long_basic()
+static void test_rt_random_sample_long_basic(void)
 {
-    printf("Testing rt_random_sample_long basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1071,14 +997,12 @@ void test_rt_random_sample_long_basic()
         TEST_ASSERT(found, "Sampled element should be from original array");
     }
 
-    printf("  Basic sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_long_no_duplicates()
+static void test_rt_random_sample_long_no_duplicates(void)
 {
-    printf("Testing rt_random_sample_long no duplicates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 54321);
@@ -1100,14 +1024,12 @@ void test_rt_random_sample_long_no_duplicates()
         }
     }
 
-    printf("  Sampling without replacement produces no duplicates\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_long_reproducible()
+static void test_rt_random_sample_long_reproducible(void)
 {
-    printf("Testing rt_random_sample_long reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1130,14 +1052,12 @@ void test_rt_random_sample_long_reproducible()
         TEST_ASSERT(sample1[i] == sample2[i], "Samples with same seed should be identical");
     }
 
-    printf("  Seeded sampling is reproducible\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_long_count_exceeds_length()
+static void test_rt_random_sample_long_count_exceeds_length(void)
 {
-    printf("Testing rt_random_sample_long count exceeds length...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 11111);
@@ -1150,14 +1070,12 @@ void test_rt_random_sample_long_count_exceeds_length()
     long *sample = rt_random_sample_long(arena, rng, arr, 6);
     TEST_ASSERT(sample == NULL, "Should return NULL when count > array length");
 
-    printf("  Invalid count correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_long_null_handling()
+static void test_rt_random_sample_long_null_handling(void)
 {
-    printf("Testing rt_random_sample_long null handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 22222);
@@ -1185,14 +1103,12 @@ void test_rt_random_sample_long_null_handling()
     sample = rt_random_sample_long(arena, rng, arr, -1);
     TEST_ASSERT(sample == NULL, "Should return NULL with negative count");
 
-    printf("  NULL and invalid input handling correct\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_long_preserves_original()
+static void test_rt_random_sample_long_preserves_original(void)
 {
-    printf("Testing rt_random_sample_long preserves original...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 33333);
@@ -1212,14 +1128,12 @@ void test_rt_random_sample_long_preserves_original()
         }
     }
 
-    printf("  Original array preserved after sampling\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_long_full_array()
+static void test_rt_random_sample_long_full_array(void)
 {
-    printf("Testing rt_random_sample_long full array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 44444);
@@ -1248,7 +1162,6 @@ void test_rt_random_sample_long_full_array()
         }
     }
 
-    printf("  Full array sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
@@ -1259,9 +1172,8 @@ void test_rt_random_sample_long_full_array()
  * Tests for Random.sample() instance method on double arrays.
  * ============================================================================ */
 
-void test_rt_random_sample_double_basic()
+static void test_rt_random_sample_double_basic(void)
 {
-    printf("Testing rt_random_sample_double basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1293,14 +1205,12 @@ void test_rt_random_sample_double_basic()
         TEST_ASSERT(found, "Sampled element should be from original array");
     }
 
-    printf("  Basic sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_double_no_duplicates()
+static void test_rt_random_sample_double_no_duplicates(void)
 {
-    printf("Testing rt_random_sample_double no duplicates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 54321);
@@ -1322,14 +1232,12 @@ void test_rt_random_sample_double_no_duplicates()
         }
     }
 
-    printf("  Sampling without replacement produces no duplicates\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_double_reproducible()
+static void test_rt_random_sample_double_reproducible(void)
 {
-    printf("Testing rt_random_sample_double reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1352,14 +1260,12 @@ void test_rt_random_sample_double_reproducible()
         TEST_ASSERT(fabs(sample1[i] - sample2[i]) < 0.001, "Samples with same seed should be identical");
     }
 
-    printf("  Seeded sampling is reproducible\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_double_count_exceeds_length()
+static void test_rt_random_sample_double_count_exceeds_length(void)
 {
-    printf("Testing rt_random_sample_double count exceeds length...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 11111);
@@ -1372,14 +1278,12 @@ void test_rt_random_sample_double_count_exceeds_length()
     double *sample = rt_random_sample_double(arena, rng, arr, 6);
     TEST_ASSERT(sample == NULL, "Should return NULL when count > array length");
 
-    printf("  Invalid count correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_double_null_handling()
+static void test_rt_random_sample_double_null_handling(void)
 {
-    printf("Testing rt_random_sample_double null handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 22222);
@@ -1407,14 +1311,12 @@ void test_rt_random_sample_double_null_handling()
     sample = rt_random_sample_double(arena, rng, arr, -1);
     TEST_ASSERT(sample == NULL, "Should return NULL with negative count");
 
-    printf("  NULL and invalid input handling correct\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_double_preserves_original()
+static void test_rt_random_sample_double_preserves_original(void)
 {
-    printf("Testing rt_random_sample_double preserves original...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 33333);
@@ -1434,14 +1336,12 @@ void test_rt_random_sample_double_preserves_original()
         }
     }
 
-    printf("  Original array preserved after sampling\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_double_full_array()
+static void test_rt_random_sample_double_full_array(void)
 {
-    printf("Testing rt_random_sample_double full array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 44444);
@@ -1470,7 +1370,6 @@ void test_rt_random_sample_double_full_array()
         }
     }
 
-    printf("  Full array sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
@@ -1481,9 +1380,8 @@ void test_rt_random_sample_double_full_array()
  * Tests for Random.sample() instance method on string arrays.
  * ============================================================================ */
 
-void test_rt_random_sample_string_basic()
+static void test_rt_random_sample_string_basic(void)
 {
-    printf("Testing rt_random_sample_string basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1515,14 +1413,12 @@ void test_rt_random_sample_string_basic()
         TEST_ASSERT(found, "Sampled element should be from original array");
     }
 
-    printf("  Basic sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_string_no_duplicates()
+static void test_rt_random_sample_string_no_duplicates(void)
 {
-    printf("Testing rt_random_sample_string no duplicates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 54321);
@@ -1544,14 +1440,12 @@ void test_rt_random_sample_string_no_duplicates()
         }
     }
 
-    printf("  Sampling without replacement produces no duplicates\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_string_reproducible()
+static void test_rt_random_sample_string_reproducible(void)
 {
-    printf("Testing rt_random_sample_string reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1574,14 +1468,12 @@ void test_rt_random_sample_string_reproducible()
         TEST_ASSERT(strcmp(sample1[i], sample2[i]) == 0, "Samples with same seed should be identical");
     }
 
-    printf("  Seeded sampling is reproducible\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_string_count_exceeds_length()
+static void test_rt_random_sample_string_count_exceeds_length(void)
 {
-    printf("Testing rt_random_sample_string count exceeds length...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 11111);
@@ -1594,14 +1486,12 @@ void test_rt_random_sample_string_count_exceeds_length()
     char **sample = rt_random_sample_string(arena, rng, arr, 6);
     TEST_ASSERT(sample == NULL, "Should return NULL when count > array length");
 
-    printf("  Invalid count correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_string_null_handling()
+static void test_rt_random_sample_string_null_handling(void)
 {
-    printf("Testing rt_random_sample_string null handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 22222);
@@ -1629,14 +1519,12 @@ void test_rt_random_sample_string_null_handling()
     sample = rt_random_sample_string(arena, rng, arr, -1);
     TEST_ASSERT(sample == NULL, "Should return NULL with negative count");
 
-    printf("  NULL and invalid input handling correct\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_string_preserves_original()
+static void test_rt_random_sample_string_preserves_original(void)
 {
-    printf("Testing rt_random_sample_string preserves original...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 33333);
@@ -1656,14 +1544,12 @@ void test_rt_random_sample_string_preserves_original()
         }
     }
 
-    printf("  Original array preserved after sampling\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_string_full_array()
+static void test_rt_random_sample_string_full_array(void)
 {
-    printf("Testing rt_random_sample_string full array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 44444);
@@ -1696,7 +1582,6 @@ void test_rt_random_sample_string_full_array()
         }
     }
 
-    printf("  Full array sampling works correctly\n");
 
     rt_arena_destroy(arena);
 }
@@ -1705,9 +1590,8 @@ void test_rt_random_sample_string_full_array()
  * Comprehensive Edge Case Tests - Empty Arrays
  * ============================================================================ */
 
-void test_rt_random_shuffle_empty_array()
+static void test_rt_random_shuffle_empty_array(void)
 {
-    printf("Testing shuffle with empty arrays...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
@@ -1736,14 +1620,12 @@ void test_rt_random_shuffle_empty_array()
     rt_random_shuffle_double(rng, empty_double2);
     TEST_ASSERT(rt_array_length(empty_double2) == 0, "Empty double array should remain empty after seeded shuffle");
 
-    printf("  Empty array shuffle handled correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_empty_array()
+static void test_rt_random_sample_empty_array(void)
 {
-    printf("Testing sample with empty arrays...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
@@ -1773,7 +1655,6 @@ void test_rt_random_sample_empty_array()
     sample_string = rt_random_sample_string(arena, rng, empty_string, 1);
     TEST_ASSERT(sample_string == NULL, "Seeded sampling from empty string array should return NULL");
 
-    printf("  Empty array sample handled correctly\n");
 
     rt_arena_destroy(arena);
 }
@@ -1782,9 +1663,8 @@ void test_rt_random_sample_empty_array()
  * Comprehensive Edge Case Tests - Single Element
  * ============================================================================ */
 
-void test_rt_random_sample_single_element_all_types()
+static void test_rt_random_sample_single_element_all_types(void)
 {
-    printf("Testing sample single element for all types...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 55555);
@@ -1828,14 +1708,12 @@ void test_rt_random_sample_single_element_all_types()
     TEST_ASSERT_NOT_NULL(string_sample, "Seeded single element string sample should succeed");
     TEST_ASSERT(strcmp(string_sample[0], "hello") == 0, "Seeded single element sample should be 'hello'");
 
-    printf("  Single element sample for all types works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_shuffle_single_element_all_types()
+static void test_rt_random_shuffle_single_element_all_types(void)
 {
-    printf("Testing shuffle single element for all types...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 55555);
@@ -1876,7 +1754,6 @@ void test_rt_random_shuffle_single_element_all_types()
     rt_random_shuffle_string(rng, string_arr2);
     TEST_ASSERT(strcmp(string_arr2[0], "test") == 0, "Seeded single string should remain unchanged");
 
-    printf("  Single element shuffle for all types works correctly\n");
 
     rt_arena_destroy(arena);
 }
@@ -1885,9 +1762,8 @@ void test_rt_random_shuffle_single_element_all_types()
  * Reproducibility Tests for Sample Operations
  * ============================================================================ */
 
-void test_rt_random_sample_double_reproducible_extended()
+static void test_rt_random_sample_double_reproducible_extended(void)
 {
-    printf("Testing rt_random_sample_double extended reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1911,14 +1787,12 @@ void test_rt_random_sample_double_reproducible_extended()
         }
     }
 
-    printf("  Sample double extended reproducibility verified\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_sample_string_reproducible_extended()
+static void test_rt_random_sample_string_reproducible_extended(void)
 {
-    printf("Testing rt_random_sample_string extended reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1942,7 +1816,6 @@ void test_rt_random_sample_string_reproducible_extended()
         }
     }
 
-    printf("  Sample string extended reproducibility verified\n");
 
     rt_arena_destroy(arena);
 }
@@ -1951,9 +1824,8 @@ void test_rt_random_sample_string_reproducible_extended()
  * Statistical Distribution Tests
  * ============================================================================ */
 
-void test_rt_random_sample_distribution()
+static void test_rt_random_sample_distribution(void)
 {
-    printf("Testing sample distribution uniformity...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1981,15 +1853,12 @@ void test_rt_random_sample_distribution()
             "Sample distribution should be approximately uniform");
     }
 
-    printf("  Sample distribution: [%d, %d, %d, %d, %d] (expected ~%d each)\n",
-        counts[0], counts[1], counts[2], counts[3], counts[4], expected);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_shuffle_distribution_extended()
+static void test_rt_random_shuffle_distribution_extended(void)
 {
-    printf("Testing shuffle distribution for position uniformity...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2023,7 +1892,6 @@ void test_rt_random_shuffle_distribution_extended()
 
     TEST_ASSERT(!failed, "Shuffle should produce uniform position distribution");
 
-    printf("  Shuffle distribution verified (expected ~%d per position)\n", expected);
 
     rt_arena_destroy(arena);
 }
@@ -2033,9 +1901,8 @@ void test_rt_random_shuffle_distribution_extended()
  * Integration Tests - Combining Operations
  * ============================================================================ */
 
-void test_integration_shuffle_then_sample()
+static void test_integration_shuffle_then_sample(void)
 {
-    printf("Testing shuffle then sample integration...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 99999);
@@ -2068,14 +1935,12 @@ void test_integration_shuffle_then_sample()
     TEST_ASSERT(sample[0] != sample[1] && sample[1] != sample[2] && sample[0] != sample[2],
         "Sample should have no duplicates");
 
-    printf("  Shuffle then sample integration works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_integration_sample_then_choice()
+static void test_integration_sample_then_choice(void)
 {
-    printf("Testing sample then choice integration...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 11111);
@@ -2103,14 +1968,12 @@ void test_integration_sample_then_choice()
         TEST_ASSERT(found, "Choice from sample should be from original array");
     }
 
-    printf("  Sample then choice integration works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_integration_multiple_samples_different_seeds()
+static void test_integration_multiple_samples_different_seeds(void)
 {
-    printf("Testing multiple samples with different seeds...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2136,14 +1999,12 @@ void test_integration_multiple_samples_different_seeds()
                    (strcmp(sample2[0], sample3[0]) == 0 && strcmp(sample2[1], sample3[1]) == 0);
     TEST_ASSERT(!all_same, "Different seeds should produce different samples");
 
-    printf("  Multiple samples with different seeds work correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_integration_weighted_choice_after_shuffle()
+static void test_integration_weighted_choice_after_shuffle(void)
 {
-    printf("Testing weighted choice after shuffle...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 44444);
@@ -2169,14 +2030,12 @@ void test_integration_weighted_choice_after_shuffle()
     int total = counts[0] + counts[1] + counts[2] + counts[3] + counts[4];
     TEST_ASSERT(total == 1000, "All choices should be valid");
 
-    printf("  Weighted choice after shuffle works correctly\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_integration_reproducible_workflow()
+static void test_integration_reproducible_workflow(void)
 {
-    printf("Testing reproducible workflow with multiple operations...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2222,7 +2081,6 @@ void test_integration_reproducible_workflow()
         }
     }
 
-    printf("  Reproducible workflow verified\n");
 
     rt_arena_destroy(arena);
 }
@@ -2236,107 +2094,100 @@ void test_integration_reproducible_workflow()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_random_collection_main()
+void test_rt_random_collection_main(void)
 {
-    printf("\n");
-    printf("================================================\n");
-    printf(" Runtime Random Collection Tests\n");
-    printf("================================================\n");
+    TEST_SECTION("Runtime Random Collection");
 
     /* Shuffle tests - Static (OS Entropy) */
-    test_rt_random_static_shuffle_long_basic();
-    test_rt_random_static_shuffle_double_basic();
-    test_rt_random_static_shuffle_string_basic();
-    test_rt_random_static_shuffle_bool_basic();
-    test_rt_random_static_shuffle_byte_basic();
-    test_rt_random_static_shuffle_null_handling();
-    test_rt_random_static_shuffle_single_element();
+    TEST_RUN("static_shuffle_long_basic", test_rt_random_static_shuffle_long_basic);
+    TEST_RUN("static_shuffle_double_basic", test_rt_random_static_shuffle_double_basic);
+    TEST_RUN("static_shuffle_string_basic", test_rt_random_static_shuffle_string_basic);
+    TEST_RUN("static_shuffle_bool_basic", test_rt_random_static_shuffle_bool_basic);
+    TEST_RUN("static_shuffle_byte_basic", test_rt_random_static_shuffle_byte_basic);
+    TEST_RUN("static_shuffle_null_handling", test_rt_random_static_shuffle_null_handling);
+    TEST_RUN("static_shuffle_single_element", test_rt_random_static_shuffle_single_element);
 
     /* Shuffle tests - Instance (Seeded PRNG) */
-    test_rt_random_shuffle_long_basic();
-    test_rt_random_shuffle_reproducible();
-    test_rt_random_shuffle_null_rng();
-    test_rt_random_shuffle_all_types_seeded();
-    test_rt_random_shuffle_distribution();
-    test_rt_random_shuffle_distribution_seeded();
+    TEST_RUN("shuffle_long_basic", test_rt_random_shuffle_long_basic);
+    TEST_RUN("shuffle_reproducible", test_rt_random_shuffle_reproducible);
+    TEST_RUN("shuffle_null_rng", test_rt_random_shuffle_null_rng);
+    TEST_RUN("shuffle_all_types_seeded", test_rt_random_shuffle_all_types_seeded);
+    TEST_RUN("shuffle_distribution", test_rt_random_shuffle_distribution);
+    TEST_RUN("shuffle_distribution_seeded", test_rt_random_shuffle_distribution_seeded);
 
     /* Sample tests - Static Long (OS Entropy) */
-    test_rt_random_static_sample_long_basic();
-    test_rt_random_static_sample_long_no_duplicates();
-    test_rt_random_static_sample_long_full_array();
-    test_rt_random_static_sample_long_single_element();
-    test_rt_random_static_sample_long_count_exceeds_length();
-    test_rt_random_static_sample_long_null_handling();
-    test_rt_random_static_sample_long_preserves_original();
-    test_rt_random_static_sample_long_distribution();
+    TEST_RUN("static_sample_long_basic", test_rt_random_static_sample_long_basic);
+    TEST_RUN("static_sample_long_no_duplicates", test_rt_random_static_sample_long_no_duplicates);
+    TEST_RUN("static_sample_long_full_array", test_rt_random_static_sample_long_full_array);
+    TEST_RUN("static_sample_long_single_element", test_rt_random_static_sample_long_single_element);
+    TEST_RUN("static_sample_long_count_exceeds_length", test_rt_random_static_sample_long_count_exceeds_length);
+    TEST_RUN("static_sample_long_null_handling", test_rt_random_static_sample_long_null_handling);
+    TEST_RUN("static_sample_long_preserves_original", test_rt_random_static_sample_long_preserves_original);
+    TEST_RUN("static_sample_long_distribution", test_rt_random_static_sample_long_distribution);
 
     /* Sample tests - Static Double (OS Entropy) */
-    test_rt_random_static_sample_double_basic();
-    test_rt_random_static_sample_double_no_duplicates();
-    test_rt_random_static_sample_double_full_array();
-    test_rt_random_static_sample_double_count_exceeds_length();
-    test_rt_random_static_sample_double_null_handling();
-    test_rt_random_static_sample_double_preserves_original();
+    TEST_RUN("static_sample_double_basic", test_rt_random_static_sample_double_basic);
+    TEST_RUN("static_sample_double_no_duplicates", test_rt_random_static_sample_double_no_duplicates);
+    TEST_RUN("static_sample_double_full_array", test_rt_random_static_sample_double_full_array);
+    TEST_RUN("static_sample_double_count_exceeds_length", test_rt_random_static_sample_double_count_exceeds_length);
+    TEST_RUN("static_sample_double_null_handling", test_rt_random_static_sample_double_null_handling);
+    TEST_RUN("static_sample_double_preserves_original", test_rt_random_static_sample_double_preserves_original);
 
     /* Sample tests - Static String (OS Entropy) */
-    test_rt_random_static_sample_string_basic();
-    test_rt_random_static_sample_string_no_duplicates();
-    test_rt_random_static_sample_string_full_array();
-    test_rt_random_static_sample_string_count_exceeds_length();
-    test_rt_random_static_sample_string_null_handling();
-    test_rt_random_static_sample_string_preserves_original();
+    TEST_RUN("static_sample_string_basic", test_rt_random_static_sample_string_basic);
+    TEST_RUN("static_sample_string_no_duplicates", test_rt_random_static_sample_string_no_duplicates);
+    TEST_RUN("static_sample_string_full_array", test_rt_random_static_sample_string_full_array);
+    TEST_RUN("static_sample_string_count_exceeds_length", test_rt_random_static_sample_string_count_exceeds_length);
+    TEST_RUN("static_sample_string_null_handling", test_rt_random_static_sample_string_null_handling);
+    TEST_RUN("static_sample_string_preserves_original", test_rt_random_static_sample_string_preserves_original);
 
     /* Sample tests - Instance Long (Seeded PRNG) */
-    test_rt_random_sample_long_basic();
-    test_rt_random_sample_long_no_duplicates();
-    test_rt_random_sample_long_reproducible();
-    test_rt_random_sample_long_count_exceeds_length();
-    test_rt_random_sample_long_null_handling();
-    test_rt_random_sample_long_preserves_original();
-    test_rt_random_sample_long_full_array();
+    TEST_RUN("sample_long_basic", test_rt_random_sample_long_basic);
+    TEST_RUN("sample_long_no_duplicates", test_rt_random_sample_long_no_duplicates);
+    TEST_RUN("sample_long_reproducible", test_rt_random_sample_long_reproducible);
+    TEST_RUN("sample_long_count_exceeds_length", test_rt_random_sample_long_count_exceeds_length);
+    TEST_RUN("sample_long_null_handling", test_rt_random_sample_long_null_handling);
+    TEST_RUN("sample_long_preserves_original", test_rt_random_sample_long_preserves_original);
+    TEST_RUN("sample_long_full_array", test_rt_random_sample_long_full_array);
 
     /* Sample tests - Instance Double (Seeded PRNG) */
-    test_rt_random_sample_double_basic();
-    test_rt_random_sample_double_no_duplicates();
-    test_rt_random_sample_double_reproducible();
-    test_rt_random_sample_double_count_exceeds_length();
-    test_rt_random_sample_double_null_handling();
-    test_rt_random_sample_double_preserves_original();
-    test_rt_random_sample_double_full_array();
+    TEST_RUN("sample_double_basic", test_rt_random_sample_double_basic);
+    TEST_RUN("sample_double_no_duplicates", test_rt_random_sample_double_no_duplicates);
+    TEST_RUN("sample_double_reproducible", test_rt_random_sample_double_reproducible);
+    TEST_RUN("sample_double_count_exceeds_length", test_rt_random_sample_double_count_exceeds_length);
+    TEST_RUN("sample_double_null_handling", test_rt_random_sample_double_null_handling);
+    TEST_RUN("sample_double_preserves_original", test_rt_random_sample_double_preserves_original);
+    TEST_RUN("sample_double_full_array", test_rt_random_sample_double_full_array);
 
     /* Sample tests - Instance String (Seeded PRNG) */
-    test_rt_random_sample_string_basic();
-    test_rt_random_sample_string_no_duplicates();
-    test_rt_random_sample_string_reproducible();
-    test_rt_random_sample_string_count_exceeds_length();
-    test_rt_random_sample_string_null_handling();
-    test_rt_random_sample_string_preserves_original();
-    test_rt_random_sample_string_full_array();
+    TEST_RUN("sample_string_basic", test_rt_random_sample_string_basic);
+    TEST_RUN("sample_string_no_duplicates", test_rt_random_sample_string_no_duplicates);
+    TEST_RUN("sample_string_reproducible", test_rt_random_sample_string_reproducible);
+    TEST_RUN("sample_string_count_exceeds_length", test_rt_random_sample_string_count_exceeds_length);
+    TEST_RUN("sample_string_null_handling", test_rt_random_sample_string_null_handling);
+    TEST_RUN("sample_string_preserves_original", test_rt_random_sample_string_preserves_original);
+    TEST_RUN("sample_string_full_array", test_rt_random_sample_string_full_array);
 
     /* Comprehensive edge case tests - empty arrays */
-    test_rt_random_shuffle_empty_array();
-    test_rt_random_sample_empty_array();
+    TEST_RUN("shuffle_empty_array", test_rt_random_shuffle_empty_array);
+    TEST_RUN("sample_empty_array", test_rt_random_sample_empty_array);
 
     /* Comprehensive edge case tests - single element */
-    test_rt_random_sample_single_element_all_types();
-    test_rt_random_shuffle_single_element_all_types();
+    TEST_RUN("sample_single_element_all_types", test_rt_random_sample_single_element_all_types);
+    TEST_RUN("shuffle_single_element_all_types", test_rt_random_shuffle_single_element_all_types);
 
     /* Reproducibility tests for sample operations */
-    test_rt_random_sample_double_reproducible_extended();
-    test_rt_random_sample_string_reproducible_extended();
+    TEST_RUN("sample_double_reproducible_extended", test_rt_random_sample_double_reproducible_extended);
+    TEST_RUN("sample_string_reproducible_extended", test_rt_random_sample_string_reproducible_extended);
 
     /* Statistical distribution tests */
-    test_rt_random_sample_distribution();
-    test_rt_random_shuffle_distribution_extended();
+    TEST_RUN("sample_distribution", test_rt_random_sample_distribution);
+    TEST_RUN("shuffle_distribution_extended", test_rt_random_shuffle_distribution_extended);
 
     /* Integration tests - combining operations */
-    test_integration_shuffle_then_sample();
-    test_integration_sample_then_choice();
-    test_integration_multiple_samples_different_seeds();
-    test_integration_weighted_choice_after_shuffle();
-    test_integration_reproducible_workflow();
-
-    printf("------------------------------------------------\n");
-    printf(" All runtime random collection tests passed!\n");
-    printf("================================================\n");
+    TEST_RUN("integration_shuffle_then_sample", test_integration_shuffle_then_sample);
+    TEST_RUN("integration_sample_then_choice", test_integration_sample_then_choice);
+    TEST_RUN("integration_multiple_samples_different_seeds", test_integration_multiple_samples_different_seeds);
+    TEST_RUN("integration_weighted_choice_after_shuffle", test_integration_weighted_choice_after_shuffle);
+    TEST_RUN("integration_reproducible_workflow", test_integration_reproducible_workflow);
 }

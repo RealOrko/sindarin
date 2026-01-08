@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "../test_harness.h"
 #include "../optimizer.h"
 #include "../arena.h"
 #include "../ast.h"
@@ -90,10 +91,8 @@ static Stmt *create_var_decl(Arena *arena, const char *name, Expr *init)
  * Test: stmt_is_terminator
  * ============================================================================ */
 
-void test_stmt_is_terminator_return()
+static void test_stmt_is_terminator_return(void)
 {
-    printf("Testing stmt_is_terminator for return statements...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -104,10 +103,8 @@ void test_stmt_is_terminator_return()
     DEBUG_INFO("Finished test_stmt_is_terminator_return");
 }
 
-void test_stmt_is_terminator_break_continue()
+static void test_stmt_is_terminator_break_continue(void)
 {
-    printf("Testing stmt_is_terminator for break/continue statements...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -123,10 +120,8 @@ void test_stmt_is_terminator_break_continue()
     DEBUG_INFO("Finished test_stmt_is_terminator_break_continue");
 }
 
-void test_stmt_is_terminator_non_terminator()
+static void test_stmt_is_terminator_non_terminator(void)
 {
-    printf("Testing stmt_is_terminator for non-terminator statements...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -144,10 +139,8 @@ void test_stmt_is_terminator_non_terminator()
  * Test: expr_is_noop
  * ============================================================================ */
 
-void test_expr_is_noop_add_zero()
+static void test_expr_is_noop_add_zero(void)
 {
-    printf("Testing expr_is_noop for x + 0...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -170,10 +163,8 @@ void test_expr_is_noop_add_zero()
     DEBUG_INFO("Finished test_expr_is_noop_add_zero");
 }
 
-void test_expr_is_noop_sub_zero()
+static void test_expr_is_noop_sub_zero(void)
 {
-    printf("Testing expr_is_noop for x - 0...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -190,10 +181,8 @@ void test_expr_is_noop_sub_zero()
     DEBUG_INFO("Finished test_expr_is_noop_sub_zero");
 }
 
-void test_expr_is_noop_mul_one()
+static void test_expr_is_noop_mul_one(void)
 {
-    printf("Testing expr_is_noop for x * 1...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -216,10 +205,8 @@ void test_expr_is_noop_mul_one()
     DEBUG_INFO("Finished test_expr_is_noop_mul_one");
 }
 
-void test_expr_is_noop_div_one()
+static void test_expr_is_noop_div_one(void)
 {
-    printf("Testing expr_is_noop for x / 1...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -236,10 +223,8 @@ void test_expr_is_noop_div_one()
     DEBUG_INFO("Finished test_expr_is_noop_div_one");
 }
 
-void test_expr_is_noop_double_negation()
+static void test_expr_is_noop_double_negation(void)
 {
-    printf("Testing expr_is_noop for double negation...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -265,10 +250,8 @@ void test_expr_is_noop_double_negation()
     DEBUG_INFO("Finished test_expr_is_noop_double_negation");
 }
 
-void test_expr_is_noop_not_noop()
+static void test_expr_is_noop_not_noop(void)
 {
-    printf("Testing expr_is_noop for non-noop expressions...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -289,10 +272,8 @@ void test_expr_is_noop_not_noop()
  * Test: remove_unreachable_statements
  * ============================================================================ */
 
-void test_remove_unreachable_after_return()
+static void test_remove_unreachable_after_return(void)
 {
-    printf("Testing remove_unreachable_statements after return...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -316,10 +297,8 @@ void test_remove_unreachable_after_return()
     DEBUG_INFO("Finished test_remove_unreachable_after_return");
 }
 
-void test_remove_unreachable_after_break()
+static void test_remove_unreachable_after_break(void)
 {
-    printf("Testing remove_unreachable_statements after break...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -343,10 +322,8 @@ void test_remove_unreachable_after_break()
     DEBUG_INFO("Finished test_remove_unreachable_after_break");
 }
 
-void test_no_unreachable_statements()
+static void test_no_unreachable_statements(void)
 {
-    printf("Testing remove_unreachable_statements with no unreachable code...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -373,10 +350,8 @@ void test_no_unreachable_statements()
  * Test: Variable usage tracking
  * ============================================================================ */
 
-void test_collect_used_variables()
+static void test_collect_used_variables(void)
 {
-    printf("Testing collect_used_variables...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -399,10 +374,8 @@ void test_collect_used_variables()
     DEBUG_INFO("Finished test_collect_used_variables");
 }
 
-void test_is_variable_used()
+static void test_is_variable_used(void)
 {
-    printf("Testing is_variable_used...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -425,10 +398,8 @@ void test_is_variable_used()
  * Test: Full optimization passes
  * ============================================================================ */
 
-void test_optimizer_dead_code_elimination_function()
+static void test_optimizer_dead_code_elimination_function(void)
 {
-    printf("Testing optimizer_eliminate_dead_code_function...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -474,10 +445,8 @@ void test_optimizer_dead_code_elimination_function()
     DEBUG_INFO("Finished test_optimizer_dead_code_elimination_function");
 }
 
-void test_optimizer_noop_simplification()
+static void test_optimizer_noop_simplification(void)
 {
-    printf("Testing optimizer no-op simplification...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -542,10 +511,8 @@ static Expr *create_call_expr(Arena *arena, const char *func_name, Expr **args, 
     return call;
 }
 
-void test_tail_call_detection_simple()
+static void test_tail_call_detection_simple(void)
 {
-    printf("Testing is_tail_recursive_return for simple tail calls...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -570,10 +537,8 @@ void test_tail_call_detection_simple()
     arena_free(&arena);
 }
 
-void test_tail_call_detection_not_tail()
+static void test_tail_call_detection_not_tail(void)
 {
-    printf("Testing is_tail_recursive_return for non-tail calls...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -594,10 +559,8 @@ void test_tail_call_detection_not_tail()
     arena_free(&arena);
 }
 
-void test_function_has_tail_recursion()
+static void test_function_has_tail_recursion(void)
 {
-    printf("Testing function_has_tail_recursion...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -645,10 +608,8 @@ void test_function_has_tail_recursion()
     arena_free(&arena);
 }
 
-void test_tail_call_marking()
+static void test_tail_call_marking(void)
 {
-    printf("Testing optimizer_mark_tail_calls...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -717,10 +678,8 @@ static Expr *create_string_literal(Arena *arena, const char *value)
     return expr;
 }
 
-void test_string_literal_merge_adjacent()
+static void test_string_literal_merge_adjacent(void)
 {
-    printf("Testing string literal merge for adjacent literals...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -749,10 +708,8 @@ void test_string_literal_merge_adjacent()
     arena_free(&arena);
 }
 
-void test_string_literal_merge_with_variable()
+static void test_string_literal_merge_with_variable(void)
 {
-    printf("Testing string literal merge with variable interleaved...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -786,10 +743,8 @@ void test_string_literal_merge_with_variable()
     arena_free(&arena);
 }
 
-void test_string_literal_concat_fold()
+static void test_string_literal_concat_fold(void)
 {
-    printf("Testing string literal concatenation folding...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -813,10 +768,8 @@ void test_string_literal_concat_fold()
     arena_free(&arena);
 }
 
-void test_string_no_merge_different_types()
+static void test_string_no_merge_different_types(void)
 {
-    printf("Testing no merge for non-string expressions...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -846,47 +799,45 @@ void test_string_no_merge_different_types()
  * Run all tests
  * ============================================================================ */
 
-void run_optimizer_tests()
+void run_optimizer_tests(void)
 {
-    printf("\n=== Running Optimizer Tests ===\n\n");
+    TEST_SECTION("Optimizer Tests");
 
     /* Terminator detection tests */
-    test_stmt_is_terminator_return();
-    test_stmt_is_terminator_break_continue();
-    test_stmt_is_terminator_non_terminator();
+    TEST_RUN("stmt_is_terminator_return", test_stmt_is_terminator_return);
+    TEST_RUN("stmt_is_terminator_break_continue", test_stmt_is_terminator_break_continue);
+    TEST_RUN("stmt_is_terminator_non_terminator", test_stmt_is_terminator_non_terminator);
 
     /* No-op detection tests */
-    test_expr_is_noop_add_zero();
-    test_expr_is_noop_sub_zero();
-    test_expr_is_noop_mul_one();
-    test_expr_is_noop_div_one();
-    test_expr_is_noop_double_negation();
-    test_expr_is_noop_not_noop();
+    TEST_RUN("expr_is_noop_add_zero", test_expr_is_noop_add_zero);
+    TEST_RUN("expr_is_noop_sub_zero", test_expr_is_noop_sub_zero);
+    TEST_RUN("expr_is_noop_mul_one", test_expr_is_noop_mul_one);
+    TEST_RUN("expr_is_noop_div_one", test_expr_is_noop_div_one);
+    TEST_RUN("expr_is_noop_double_negation", test_expr_is_noop_double_negation);
+    TEST_RUN("expr_is_noop_not_noop", test_expr_is_noop_not_noop);
 
     /* Unreachable code removal tests */
-    test_remove_unreachable_after_return();
-    test_remove_unreachable_after_break();
-    test_no_unreachable_statements();
+    TEST_RUN("remove_unreachable_after_return", test_remove_unreachable_after_return);
+    TEST_RUN("remove_unreachable_after_break", test_remove_unreachable_after_break);
+    TEST_RUN("no_unreachable_statements", test_no_unreachable_statements);
 
     /* Variable usage tracking tests */
-    test_collect_used_variables();
-    test_is_variable_used();
+    TEST_RUN("collect_used_variables", test_collect_used_variables);
+    TEST_RUN("is_variable_used", test_is_variable_used);
 
     /* Full optimization pass tests */
-    test_optimizer_dead_code_elimination_function();
-    test_optimizer_noop_simplification();
+    TEST_RUN("optimizer_dead_code_elimination_function", test_optimizer_dead_code_elimination_function);
+    TEST_RUN("optimizer_noop_simplification", test_optimizer_noop_simplification);
 
     /* Tail call optimization tests */
-    test_tail_call_detection_simple();
-    test_tail_call_detection_not_tail();
-    test_function_has_tail_recursion();
-    test_tail_call_marking();
+    TEST_RUN("tail_call_detection_simple", test_tail_call_detection_simple);
+    TEST_RUN("tail_call_detection_not_tail", test_tail_call_detection_not_tail);
+    TEST_RUN("function_has_tail_recursion", test_function_has_tail_recursion);
+    TEST_RUN("tail_call_marking", test_tail_call_marking);
 
     /* String literal merging tests */
-    test_string_literal_merge_adjacent();
-    test_string_literal_merge_with_variable();
-    test_string_literal_concat_fold();
-    test_string_no_merge_different_types();
-
-    printf("\n=== All Optimizer Tests Passed ===\n");
+    TEST_RUN("string_literal_merge_adjacent", test_string_literal_merge_adjacent);
+    TEST_RUN("string_literal_merge_with_variable", test_string_literal_merge_with_variable);
+    TEST_RUN("string_literal_concat_fold", test_string_literal_concat_fold);
+    TEST_RUN("string_no_merge_different_types", test_string_no_merge_different_types);
 }

@@ -16,7 +16,6 @@
 /* Test Random.intMany(min, max, count) returns int[] */
 static void test_random_intMany_returns_int_array(void)
 {
-    printf("Testing Random.intMany(int, int, int) returns int[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -64,7 +63,6 @@ static void test_random_intMany_returns_int_array(void)
 /* Test Random.intMany() with wrong argument count reports error */
 static void test_random_intMany_wrong_arg_count_error(void)
 {
-    printf("Testing Random.intMany() with wrong argument count reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -105,7 +103,6 @@ static void test_random_intMany_wrong_arg_count_error(void)
 /* Test Random.longMany(min, max, count) returns long[] */
 static void test_random_longMany_returns_long_array(void)
 {
-    printf("Testing Random.longMany(long, long, int) returns long[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -154,7 +151,6 @@ static void test_random_longMany_returns_long_array(void)
 /* Test Random.longMany() with wrong argument type reports error */
 static void test_random_longMany_wrong_type_error(void)
 {
-    printf("Testing Random.longMany() with int arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -201,7 +197,6 @@ static void test_random_longMany_wrong_type_error(void)
 /* Test Random.doubleMany(min, max, count) returns double[] */
 static void test_random_doubleMany_returns_double_array(void)
 {
-    printf("Testing Random.doubleMany(double, double, int) returns double[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -250,7 +245,6 @@ static void test_random_doubleMany_returns_double_array(void)
 /* Test Random.doubleMany() with wrong argument type reports error */
 static void test_random_doubleMany_wrong_type_error(void)
 {
-    printf("Testing Random.doubleMany() with int arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -297,7 +291,6 @@ static void test_random_doubleMany_wrong_type_error(void)
 /* Test Random.boolMany(count) returns bool[] */
 static void test_random_boolMany_returns_bool_array(void)
 {
-    printf("Testing Random.boolMany(int) returns bool[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -332,7 +325,6 @@ static void test_random_boolMany_returns_bool_array(void)
 /* Test Random.boolMany() with wrong argument count reports error */
 static void test_random_boolMany_wrong_arg_count_error(void)
 {
-    printf("Testing Random.boolMany() with no arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -357,7 +349,6 @@ static void test_random_boolMany_wrong_arg_count_error(void)
 /* Test Random.boolMany() with wrong argument type reports error */
 static void test_random_boolMany_wrong_type_error(void)
 {
-    printf("Testing Random.boolMany() with string argument reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -391,7 +382,6 @@ static void test_random_boolMany_wrong_type_error(void)
 /* Test Random.gaussianMany(mean, stddev, count) returns double[] */
 static void test_random_gaussianMany_returns_double_array(void)
 {
-    printf("Testing Random.gaussianMany(double, double, int) returns double[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -440,7 +430,6 @@ static void test_random_gaussianMany_returns_double_array(void)
 /* Test Random.gaussianMany() with wrong argument count reports error */
 static void test_random_gaussianMany_wrong_arg_count_error(void)
 {
-    printf("Testing Random.gaussianMany() with 2 arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -481,7 +470,6 @@ static void test_random_gaussianMany_wrong_arg_count_error(void)
 /* Test Random.gaussianMany() with wrong argument type reports error */
 static void test_random_gaussianMany_wrong_type_error(void)
 {
-    printf("Testing Random.gaussianMany() with int arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -533,7 +521,6 @@ static void test_random_gaussianMany_wrong_type_error(void)
 /* Test rng.intMany(min, max, count) returns int[] */
 static void test_random_instance_intMany_method(void)
 {
-    printf("Testing rng.intMany(int, int, int) instance method returns int[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -581,7 +568,6 @@ static void test_random_instance_intMany_method(void)
 /* Test rng.boolMany(count) returns bool[] */
 static void test_random_instance_boolMany_method(void)
 {
-    printf("Testing rng.boolMany(int) instance method returns bool[]...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -618,27 +604,23 @@ static void test_random_instance_boolMany_method(void)
  * Main test runner
  * ============================================================================ */
 
-void test_tc_random_many_main(void)
+static void test_tc_random_many_main(void)
 {
-    printf("\n=== Type Checker Random Many Tests ===\n");
-
     /* Static batch generation method tests */
-    test_random_intMany_returns_int_array();
-    test_random_intMany_wrong_arg_count_error();
-    test_random_longMany_returns_long_array();
-    test_random_longMany_wrong_type_error();
-    test_random_doubleMany_returns_double_array();
-    test_random_doubleMany_wrong_type_error();
-    test_random_boolMany_returns_bool_array();
-    test_random_boolMany_wrong_arg_count_error();
-    test_random_boolMany_wrong_type_error();
-    test_random_gaussianMany_returns_double_array();
-    test_random_gaussianMany_wrong_arg_count_error();
-    test_random_gaussianMany_wrong_type_error();
+    TEST_RUN("intMany_returns_int_array", test_random_intMany_returns_int_array);
+    TEST_RUN("intMany_wrong_arg_count_error", test_random_intMany_wrong_arg_count_error);
+    TEST_RUN("longMany_returns_long_array", test_random_longMany_returns_long_array);
+    TEST_RUN("longMany_wrong_type_error", test_random_longMany_wrong_type_error);
+    TEST_RUN("doubleMany_returns_double_array", test_random_doubleMany_returns_double_array);
+    TEST_RUN("doubleMany_wrong_type_error", test_random_doubleMany_wrong_type_error);
+    TEST_RUN("boolMany_returns_bool_array", test_random_boolMany_returns_bool_array);
+    TEST_RUN("boolMany_wrong_arg_count_error", test_random_boolMany_wrong_arg_count_error);
+    TEST_RUN("boolMany_wrong_type_error", test_random_boolMany_wrong_type_error);
+    TEST_RUN("gaussianMany_returns_double_array", test_random_gaussianMany_returns_double_array);
+    TEST_RUN("gaussianMany_wrong_arg_count_error", test_random_gaussianMany_wrong_arg_count_error);
+    TEST_RUN("gaussianMany_wrong_type_error", test_random_gaussianMany_wrong_type_error);
 
     /* Instance many method tests */
-    test_random_instance_intMany_method();
-    test_random_instance_boolMany_method();
-
-    printf("=== All Type Checker Random Many Tests Passed ===\n");
+    TEST_RUN("instance_intMany_method", test_random_instance_intMany_method);
+    TEST_RUN("instance_boolMany_method", test_random_instance_boolMany_method);
 }

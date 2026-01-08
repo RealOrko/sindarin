@@ -1,10 +1,8 @@
 // tests/parser_tests_control.c
 // Control flow parser tests (while, for, interpolated_string, literals, recursive)
 
-void test_while_loop_parsing()
+static void test_while_loop_parsing()
 {
-    printf("Testing parser_execute while loop...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -40,10 +38,8 @@ void test_while_loop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_for_loop_parsing()
+static void test_for_loop_parsing()
 {
-    printf("Testing parser_execute for loop...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -76,10 +72,8 @@ void test_for_loop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_parsing()
+static void test_interpolated_string_parsing()
 {
-    printf("Testing parser_execute interpolated string...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -118,10 +112,8 @@ void test_interpolated_string_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_literal_types_parsing()
+static void test_literal_types_parsing()
 {
-    printf("Testing parser_execute various literals...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -176,10 +168,8 @@ void test_literal_types_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_recursive_function_parsing()
+static void test_recursive_function_parsing()
 {
-    printf("Testing parser_execute recursive function...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -221,10 +211,8 @@ void test_recursive_function_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_postfix_decrement_parsing()
+static void test_interpolated_string_with_postfix_decrement_parsing()
 {
-    printf("Testing parser_execute interpolated string with postfix decrement...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -260,10 +248,8 @@ void test_interpolated_string_with_postfix_decrement_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_postfix_increment_parsing()
+static void test_interpolated_string_with_postfix_increment_parsing()
 {
-    printf("Testing parser_execute interpolated string with postfix increment...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -291,10 +277,8 @@ void test_interpolated_string_with_postfix_increment_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_unary_negate_parsing()
+static void test_interpolated_string_with_unary_negate_parsing()
 {
-    printf("Testing parser_execute interpolated string with unary negate operator...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -324,10 +308,8 @@ void test_interpolated_string_with_unary_negate_parsing()
 
 /* ====== Tests for escaped quotes and escape sequences in interpolation ====== */
 
-void test_interpolated_string_with_string_literal_in_braces()
+static void test_interpolated_string_with_string_literal_in_braces()
 {
-    printf("Testing parser_execute interpolated string with string literal in braces...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -356,10 +338,8 @@ void test_interpolated_string_with_string_literal_in_braces()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_func_call_string_arg()
+static void test_interpolated_string_with_func_call_string_arg()
 {
-    printf("Testing parser_execute interpolated string with function call with string arg...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -390,10 +370,8 @@ void test_interpolated_string_with_func_call_string_arg()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_newline_escape_in_braces()
+static void test_interpolated_string_with_newline_escape_in_braces()
 {
-    printf("Testing parser_execute interpolated string with \\n in nested string...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -418,10 +396,8 @@ void test_interpolated_string_with_newline_escape_in_braces()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_tab_escape_in_braces()
+static void test_interpolated_string_with_tab_escape_in_braces()
 {
-    printf("Testing parser_execute interpolated string with \\t in nested string...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -446,10 +422,8 @@ void test_interpolated_string_with_tab_escape_in_braces()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_backslash_escape_in_braces()
+static void test_interpolated_string_with_backslash_escape_in_braces()
 {
-    printf("Testing parser_execute interpolated string with \\\\ in nested string...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -474,10 +448,8 @@ void test_interpolated_string_with_backslash_escape_in_braces()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_carriage_return_escape_in_braces()
+static void test_interpolated_string_with_carriage_return_escape_in_braces()
 {
-    printf("Testing parser_execute interpolated string with \\r in nested string...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -502,10 +474,8 @@ void test_interpolated_string_with_carriage_return_escape_in_braces()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_empty_string_in_braces()
+static void test_interpolated_string_with_empty_string_in_braces()
 {
-    printf("Testing parser_execute interpolated string with empty string in braces...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -530,10 +500,8 @@ void test_interpolated_string_with_empty_string_in_braces()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_nested_parens()
+static void test_interpolated_string_with_nested_parens()
 {
-    printf("Testing parser_execute interpolated string with nested parentheses...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -561,10 +529,8 @@ void test_interpolated_string_with_nested_parens()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_multiple_string_literals()
+static void test_interpolated_string_with_multiple_string_literals()
 {
-    printf("Testing parser_execute interpolated string with multiple string literals...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -589,10 +555,8 @@ void test_interpolated_string_with_multiple_string_literals()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_string_method_on_literal()
+static void test_interpolated_string_with_string_method_on_literal()
 {
-    printf("Testing parser_execute interpolated string with method on string literal...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -621,10 +585,8 @@ void test_interpolated_string_with_string_method_on_literal()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_complex_escape_sequence()
+static void test_interpolated_string_with_complex_escape_sequence()
 {
-    printf("Testing parser_execute interpolated string with complex escape sequences...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -649,10 +611,8 @@ void test_interpolated_string_with_complex_escape_sequence()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_braces_escape()
+static void test_interpolated_string_with_braces_escape()
 {
-    printf("Testing parser_execute interpolated string with braces escape sequence...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -679,10 +639,8 @@ void test_interpolated_string_with_braces_escape()
 
 /* ====== Tests for nested interpolated strings ====== */
 
-void test_nested_interpolated_string_basic()
+static void test_nested_interpolated_string_basic()
 {
-    printf("Testing parser_execute nested interpolated string basic...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -716,10 +674,8 @@ void test_nested_interpolated_string_basic()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_nested_interpolated_string_with_expression()
+static void test_nested_interpolated_string_with_expression()
 {
-    printf("Testing parser_execute nested interpolated string with expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -747,10 +703,8 @@ void test_nested_interpolated_string_with_expression()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_nested_interpolated_string_double_nested()
+static void test_nested_interpolated_string_double_nested()
 {
-    printf("Testing parser_execute double nested interpolated string...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -783,10 +737,8 @@ void test_nested_interpolated_string_double_nested()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_nested_interpolated_string_with_func_call()
+static void test_nested_interpolated_string_with_func_call()
 {
-    printf("Testing parser_execute nested interpolated string with function call...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -814,10 +766,8 @@ void test_nested_interpolated_string_with_func_call()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_nested_interpolated_string_adjacent()
+static void test_nested_interpolated_string_adjacent()
 {
-    printf("Testing parser_execute adjacent nested interpolated strings...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -849,10 +799,8 @@ void test_nested_interpolated_string_adjacent()
 
 /* ====== Tests for format specifiers in interpolation ====== */
 
-void test_interpolated_string_with_format_specifier()
+static void test_interpolated_string_with_format_specifier()
 {
-    printf("Testing parser_execute interpolated string with format specifier...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -881,10 +829,8 @@ void test_interpolated_string_with_format_specifier()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_format_specifier_float()
+static void test_interpolated_string_with_format_specifier_float()
 {
-    printf("Testing parser_execute interpolated string with float format specifier...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -910,10 +856,8 @@ void test_interpolated_string_with_format_specifier_float()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_interpolated_string_with_format_specifier_and_expr()
+static void test_interpolated_string_with_format_specifier_and_expr()
 {
-    printf("Testing parser_execute interpolated string with format on expression...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -939,10 +883,8 @@ void test_interpolated_string_with_format_specifier_and_expr()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_format_specifier_not_detected_in_nested()
+static void test_format_specifier_not_detected_in_nested()
 {
-    printf("Testing format specifier not detected inside nested interp string...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -971,36 +913,35 @@ void test_format_specifier_not_detected_in_nested()
 
 void test_parser_control_main()
 {
-    test_while_loop_parsing();
-    test_for_loop_parsing();
-    test_interpolated_string_parsing();
-    test_interpolated_string_with_postfix_decrement_parsing();
-    test_interpolated_string_with_postfix_increment_parsing();
-    test_interpolated_string_with_unary_negate_parsing();
-    test_literal_types_parsing();
-    test_recursive_function_parsing();
-    /* New tests for escaped quotes and escape sequences in interpolation */
-    test_interpolated_string_with_string_literal_in_braces();
-    test_interpolated_string_with_func_call_string_arg();
-    test_interpolated_string_with_newline_escape_in_braces();
-    test_interpolated_string_with_tab_escape_in_braces();
-    test_interpolated_string_with_backslash_escape_in_braces();
-    test_interpolated_string_with_carriage_return_escape_in_braces();
-    test_interpolated_string_with_empty_string_in_braces();
-    test_interpolated_string_with_nested_parens();
-    test_interpolated_string_with_multiple_string_literals();
-    test_interpolated_string_with_string_method_on_literal();
-    test_interpolated_string_with_complex_escape_sequence();
-    test_interpolated_string_with_braces_escape();
-    /* New tests for nested interpolated strings */
-    test_nested_interpolated_string_basic();
-    test_nested_interpolated_string_with_expression();
-    test_nested_interpolated_string_double_nested();
-    test_nested_interpolated_string_with_func_call();
-    test_nested_interpolated_string_adjacent();
-    /* New tests for format specifiers */
-    test_interpolated_string_with_format_specifier();
-    test_interpolated_string_with_format_specifier_float();
-    test_interpolated_string_with_format_specifier_and_expr();
-    test_format_specifier_not_detected_in_nested();
+    TEST_SECTION("Parser Control Flow Tests");
+
+    TEST_RUN("while_loop_parsing", test_while_loop_parsing);
+    TEST_RUN("for_loop_parsing", test_for_loop_parsing);
+    TEST_RUN("interpolated_string_parsing", test_interpolated_string_parsing);
+    TEST_RUN("interpolated_string_with_postfix_decrement_parsing", test_interpolated_string_with_postfix_decrement_parsing);
+    TEST_RUN("interpolated_string_with_postfix_increment_parsing", test_interpolated_string_with_postfix_increment_parsing);
+    TEST_RUN("interpolated_string_with_unary_negate_parsing", test_interpolated_string_with_unary_negate_parsing);
+    TEST_RUN("literal_types_parsing", test_literal_types_parsing);
+    TEST_RUN("recursive_function_parsing", test_recursive_function_parsing);
+    TEST_RUN("interpolated_string_with_string_literal_in_braces", test_interpolated_string_with_string_literal_in_braces);
+    TEST_RUN("interpolated_string_with_func_call_string_arg", test_interpolated_string_with_func_call_string_arg);
+    TEST_RUN("interpolated_string_with_newline_escape_in_braces", test_interpolated_string_with_newline_escape_in_braces);
+    TEST_RUN("interpolated_string_with_tab_escape_in_braces", test_interpolated_string_with_tab_escape_in_braces);
+    TEST_RUN("interpolated_string_with_backslash_escape_in_braces", test_interpolated_string_with_backslash_escape_in_braces);
+    TEST_RUN("interpolated_string_with_carriage_return_escape_in_braces", test_interpolated_string_with_carriage_return_escape_in_braces);
+    TEST_RUN("interpolated_string_with_empty_string_in_braces", test_interpolated_string_with_empty_string_in_braces);
+    TEST_RUN("interpolated_string_with_nested_parens", test_interpolated_string_with_nested_parens);
+    TEST_RUN("interpolated_string_with_multiple_string_literals", test_interpolated_string_with_multiple_string_literals);
+    TEST_RUN("interpolated_string_with_string_method_on_literal", test_interpolated_string_with_string_method_on_literal);
+    TEST_RUN("interpolated_string_with_complex_escape_sequence", test_interpolated_string_with_complex_escape_sequence);
+    TEST_RUN("interpolated_string_with_braces_escape", test_interpolated_string_with_braces_escape);
+    TEST_RUN("nested_interpolated_string_basic", test_nested_interpolated_string_basic);
+    TEST_RUN("nested_interpolated_string_with_expression", test_nested_interpolated_string_with_expression);
+    TEST_RUN("nested_interpolated_string_double_nested", test_nested_interpolated_string_double_nested);
+    TEST_RUN("nested_interpolated_string_with_func_call", test_nested_interpolated_string_with_func_call);
+    TEST_RUN("nested_interpolated_string_adjacent", test_nested_interpolated_string_adjacent);
+    TEST_RUN("interpolated_string_with_format_specifier", test_interpolated_string_with_format_specifier);
+    TEST_RUN("interpolated_string_with_format_specifier_float", test_interpolated_string_with_format_specifier_float);
+    TEST_RUN("interpolated_string_with_format_specifier_and_expr", test_interpolated_string_with_format_specifier_and_expr);
+    TEST_RUN("format_specifier_not_detected_in_nested", test_format_specifier_not_detected_in_nested);
 }

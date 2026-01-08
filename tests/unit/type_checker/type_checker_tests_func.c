@@ -1,10 +1,9 @@
 // tests/type_checker_tests_func.c
 // Function return array and complex type checker tests
 
-void test_type_check_function_return_array()
+static void test_type_check_function_return_array()
 {
     DEBUG_INFO("Starting test_type_check_function_return_array");
-    printf("Testing type check for function returning array, assigned to var...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -87,10 +86,9 @@ void test_type_check_function_return_array()
     DEBUG_INFO("Finished test_type_check_function_return_array");
 }
 
-void test_type_check_var_decl_function_call_array()
+static void test_type_check_var_decl_function_call_array()
 {
     DEBUG_INFO("Starting test_type_check_var_decl_function_call_array");
-    printf("Testing type check for variable declaration with function call returning array...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -245,6 +243,8 @@ void test_type_check_var_decl_function_call_array()
 
 void test_type_checker_func_main()
 {
-    test_type_check_function_return_array();
-    test_type_check_var_decl_function_call_array();
+    TEST_SECTION("Type Checker Functions");
+
+    TEST_RUN("function_return_array", test_type_check_function_return_array);
+    TEST_RUN("var_decl_function_call_array", test_type_check_var_decl_function_call_array);
 }

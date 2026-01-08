@@ -1,6 +1,7 @@
 // tests/unit/type_checker/type_checker_tests_native_context.c
 // Tests for native function context tracking
 
+#include "../test_harness.h"
 #include "../type_checker/type_checker_util.h"
 #include "../type_checker.h"
 #include <assert.h>
@@ -9,7 +10,6 @@
 /* Test that native_context_is_active returns false by default */
 static void test_native_context_default_inactive(void)
 {
-    printf("Testing native_context_is_active default state...\n");
     /* Ensure we're starting fresh - exit any leftover context */
     while (native_context_is_active())
     {
@@ -21,7 +21,6 @@ static void test_native_context_default_inactive(void)
 /* Test that native_context_enter activates the context */
 static void test_native_context_enter(void)
 {
-    printf("Testing native_context_enter...\n");
     /* Start from inactive state */
     while (native_context_is_active())
     {
@@ -40,7 +39,6 @@ static void test_native_context_enter(void)
 /* Test that native_context_exit deactivates the context */
 static void test_native_context_exit(void)
 {
-    printf("Testing native_context_exit...\n");
     /* Start from inactive state */
     while (native_context_is_active())
     {
@@ -57,7 +55,6 @@ static void test_native_context_exit(void)
 /* Test nested native contexts (native function calling another native function) */
 static void test_native_context_nesting(void)
 {
-    printf("Testing native_context nesting...\n");
     /* Start from inactive state */
     while (native_context_is_active())
     {
@@ -84,7 +81,6 @@ static void test_native_context_nesting(void)
 /* Test that excessive exits don't go negative */
 static void test_native_context_excessive_exit(void)
 {
-    printf("Testing native_context excessive exit safety...\n");
     /* Start from inactive state */
     while (native_context_is_active())
     {
@@ -107,7 +103,6 @@ static void test_native_context_excessive_exit(void)
 /* Test multiple enter/exit cycles */
 static void test_native_context_multiple_cycles(void)
 {
-    printf("Testing native_context multiple enter/exit cycles...\n");
     /* Start from inactive state */
     while (native_context_is_active())
     {
@@ -130,14 +125,12 @@ static void test_native_context_multiple_cycles(void)
 
 void test_type_checker_native_context_main(void)
 {
-    printf("\n=== Native Context Tests ===\n");
+    TEST_SECTION("Native Context");
 
-    test_native_context_default_inactive();
-    test_native_context_enter();
-    test_native_context_exit();
-    test_native_context_nesting();
-    test_native_context_excessive_exit();
-    test_native_context_multiple_cycles();
-
-    printf("All native context tests passed!\n");
+    TEST_RUN("native_context_default_inactive", test_native_context_default_inactive);
+    TEST_RUN("native_context_enter", test_native_context_enter);
+    TEST_RUN("native_context_exit", test_native_context_exit);
+    TEST_RUN("native_context_nesting", test_native_context_nesting);
+    TEST_RUN("native_context_excessive_exit", test_native_context_excessive_exit);
+    TEST_RUN("native_context_multiple_cycles", test_native_context_multiple_cycles);
 }

@@ -6,15 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Date.format() Tests
  * ============================================================================ */
 
-void test_rt_date_format_iso()
+static void test_rt_date_format_iso(void)
 {
-    printf("Testing rt_date_format ISO format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test YYYY-MM-DD produces ISO format */
@@ -30,10 +29,8 @@ void test_rt_date_format_iso()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_us()
+static void test_rt_date_format_us(void)
 {
-    printf("Testing rt_date_format US format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test M/D/YYYY produces US format */
@@ -54,10 +51,8 @@ void test_rt_date_format_us()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_full_readable()
+static void test_rt_date_format_full_readable(void)
 {
-    printf("Testing rt_date_format full readable format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test MMMM D, YYYY produces full readable format */
@@ -83,10 +78,8 @@ void test_rt_date_format_full_readable()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_abbreviated()
+static void test_rt_date_format_abbreviated(void)
 {
-    printf("Testing rt_date_format abbreviated format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test ddd, MMM D produces abbreviated format */
@@ -108,10 +101,8 @@ void test_rt_date_format_abbreviated()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_short_european()
+static void test_rt_date_format_short_european(void)
 {
-    printf("Testing rt_date_format short European format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test DD/MM/YY produces short European format */
@@ -132,10 +123,8 @@ void test_rt_date_format_short_european()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_edge_cases()
+static void test_rt_date_format_edge_cases(void)
 {
-    printf("Testing rt_date_format edge cases...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Consecutive tokens: YYYYMMDD */
@@ -170,10 +159,8 @@ void test_rt_date_format_edge_cases()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_all_tokens()
+static void test_rt_date_format_all_tokens(void)
 {
-    printf("Testing rt_date_format with all token types...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* June 15, 2025 is a Sunday */
@@ -194,10 +181,8 @@ void test_rt_date_format_all_tokens()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_various_dates()
+static void test_rt_date_format_various_dates(void)
 {
-    printf("Testing rt_date_format with various dates...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Leap year day */
@@ -227,10 +212,8 @@ void test_rt_date_format_various_dates()
  * Error Handling and Edge Cases Tests
  * ============================================================================ */
 
-void test_rt_date_format_null_date()
+static void test_rt_date_format_null_date(void)
 {
-    printf("Testing rt_date_format with NULL date...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* NULL date should return NULL (error indicator) */
@@ -240,10 +223,8 @@ void test_rt_date_format_null_date()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_null_pattern()
+static void test_rt_date_format_null_pattern(void)
 {
-    printf("Testing rt_date_format with NULL pattern...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -254,10 +235,8 @@ void test_rt_date_format_null_pattern()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_null_arena()
+static void test_rt_date_format_null_arena(void)
 {
-    printf("Testing rt_date_format with NULL arena...\n");
-
     /* Create a valid date first using a temp arena */
     RtArena *temp_arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(temp_arena, 2025, 6, 15);
@@ -269,10 +248,8 @@ void test_rt_date_format_null_arena()
     rt_arena_destroy(temp_arena);
 }
 
-void test_rt_date_to_iso_null_handling()
+static void test_rt_date_to_iso_null_handling(void)
 {
-    printf("Testing rt_date_to_iso with NULL handling...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -287,10 +264,8 @@ void test_rt_date_to_iso_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_to_string_null_handling()
+static void test_rt_date_to_string_null_handling(void)
 {
-    printf("Testing rt_date_to_string with NULL handling...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -305,10 +280,8 @@ void test_rt_date_to_string_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_empty_pattern()
+static void test_rt_date_format_empty_pattern(void)
 {
-    printf("Testing rt_date_format with empty pattern...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -321,10 +294,8 @@ void test_rt_date_format_empty_pattern()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_no_tokens()
+static void test_rt_date_format_no_tokens(void)
 {
-    printf("Testing rt_date_format with pattern containing no tokens...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -347,10 +318,8 @@ void test_rt_date_format_no_tokens()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_very_long_pattern()
+static void test_rt_date_format_very_long_pattern(void)
 {
-    printf("Testing rt_date_format with very long patterns...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -383,10 +352,8 @@ void test_rt_date_format_very_long_pattern()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_buffer_overflow_protection()
+static void test_rt_date_format_buffer_overflow_protection(void)
 {
-    printf("Testing rt_date_format buffer overflow protection...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 9, 10); /* September = longest month name */
 
@@ -412,10 +379,8 @@ void test_rt_date_format_buffer_overflow_protection()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_boundary_dates()
+static void test_rt_date_format_boundary_dates(void)
 {
-    printf("Testing rt_date_format with boundary dates...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Earliest supported date */
@@ -451,10 +416,8 @@ void test_rt_date_format_boundary_dates()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_token_boundaries()
+static void test_rt_date_format_token_boundaries(void)
 {
-    printf("Testing rt_date_format token boundaries...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -483,10 +446,8 @@ void test_rt_date_format_token_boundaries()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_partial_token_like_strings()
+static void test_rt_date_format_partial_token_like_strings(void)
 {
-    printf("Testing rt_date_format with partial token-like strings...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -517,33 +478,31 @@ void test_rt_date_format_partial_token_like_strings()
  * Main entry point for format tests
  * ============================================================================ */
 
-void test_rt_date_format_main()
+void test_rt_date_format_main(void)
 {
-    printf("\n=== Date Format Tests ===\n");
+    TEST_SECTION("Date Format");
 
     /* Basic format tests */
-    test_rt_date_format_iso();
-    test_rt_date_format_us();
-    test_rt_date_format_full_readable();
-    test_rt_date_format_abbreviated();
-    test_rt_date_format_short_european();
-    test_rt_date_format_edge_cases();
-    test_rt_date_format_all_tokens();
-    test_rt_date_format_various_dates();
+    TEST_RUN("date_format_iso", test_rt_date_format_iso);
+    TEST_RUN("date_format_us", test_rt_date_format_us);
+    TEST_RUN("date_format_full_readable", test_rt_date_format_full_readable);
+    TEST_RUN("date_format_abbreviated", test_rt_date_format_abbreviated);
+    TEST_RUN("date_format_short_european", test_rt_date_format_short_european);
+    TEST_RUN("date_format_edge_cases", test_rt_date_format_edge_cases);
+    TEST_RUN("date_format_all_tokens", test_rt_date_format_all_tokens);
+    TEST_RUN("date_format_various_dates", test_rt_date_format_various_dates);
 
     /* Error handling and edge cases */
-    test_rt_date_format_null_date();
-    test_rt_date_format_null_pattern();
-    test_rt_date_format_null_arena();
-    test_rt_date_to_iso_null_handling();
-    test_rt_date_to_string_null_handling();
-    test_rt_date_format_empty_pattern();
-    test_rt_date_format_no_tokens();
-    test_rt_date_format_very_long_pattern();
-    test_rt_date_format_buffer_overflow_protection();
-    test_rt_date_format_boundary_dates();
-    test_rt_date_format_token_boundaries();
-    test_rt_date_format_partial_token_like_strings();
-
-    printf("All Date format tests passed!\n");
+    TEST_RUN("date_format_null_date", test_rt_date_format_null_date);
+    TEST_RUN("date_format_null_pattern", test_rt_date_format_null_pattern);
+    TEST_RUN("date_format_null_arena", test_rt_date_format_null_arena);
+    TEST_RUN("date_to_iso_null_handling", test_rt_date_to_iso_null_handling);
+    TEST_RUN("date_to_string_null_handling", test_rt_date_to_string_null_handling);
+    TEST_RUN("date_format_empty_pattern", test_rt_date_format_empty_pattern);
+    TEST_RUN("date_format_no_tokens", test_rt_date_format_no_tokens);
+    TEST_RUN("date_format_very_long_pattern", test_rt_date_format_very_long_pattern);
+    TEST_RUN("date_format_buffer_overflow_protection", test_rt_date_format_buffer_overflow_protection);
+    TEST_RUN("date_format_boundary_dates", test_rt_date_format_boundary_dates);
+    TEST_RUN("date_format_token_boundaries", test_rt_date_format_token_boundaries);
+    TEST_RUN("date_format_partial_token_like_strings", test_rt_date_format_partial_token_like_strings);
 }

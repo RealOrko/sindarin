@@ -6,15 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * String Concatenation Tests
  * ============================================================================ */
 
-void test_rt_str_concat_basic()
+static void test_rt_str_concat_basic(void)
 {
-    printf("Testing rt_str_concat basic operations...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_str_concat(arena, "hello", " world");
@@ -32,10 +31,8 @@ void test_rt_str_concat_basic()
     rt_arena_destroy(arena);
 }
 
-void test_rt_str_concat_null()
+static void test_rt_str_concat_null(void)
 {
-    printf("Testing rt_str_concat with NULL...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_str_concat(arena, NULL, "world");
@@ -54,10 +51,8 @@ void test_rt_str_concat_null()
  * String Length Tests
  * ============================================================================ */
 
-void test_rt_str_length()
+static void test_rt_str_length(void)
 {
-    printf("Testing rt_str_length...\n");
-
     assert(rt_str_length("hello") == 5);
     assert(rt_str_length("") == 0);
     assert(rt_str_length("a") == 1);
@@ -69,10 +64,8 @@ void test_rt_str_length()
  * String Index Of Tests
  * ============================================================================ */
 
-void test_rt_str_indexOf()
+static void test_rt_str_indexOf(void)
 {
-    printf("Testing rt_str_indexOf...\n");
-
     assert(rt_str_indexOf("hello world", "world") == 6);
     assert(rt_str_indexOf("hello world", "hello") == 0);
     assert(rt_str_indexOf("hello world", "o") == 4);  /* First occurrence */
@@ -87,10 +80,8 @@ void test_rt_str_indexOf()
  * String Contains Tests
  * ============================================================================ */
 
-void test_rt_str_contains()
+static void test_rt_str_contains(void)
 {
-    printf("Testing rt_str_contains...\n");
-
     assert(rt_str_contains("hello world", "world") == 1);
     assert(rt_str_contains("hello world", "hello") == 1);
     assert(rt_str_contains("hello world", "xyz") == 0);
@@ -104,10 +95,8 @@ void test_rt_str_contains()
  * String CharAt Tests
  * ============================================================================ */
 
-void test_rt_str_charAt()
+static void test_rt_str_charAt(void)
 {
-    printf("Testing rt_str_charAt...\n");
-
     assert(rt_str_charAt("hello", 0) == 'h');
     assert(rt_str_charAt("hello", 1) == 'e');
     assert(rt_str_charAt("hello", 4) == 'o');
@@ -131,10 +120,8 @@ void test_rt_str_charAt()
  * String Substring Tests
  * ============================================================================ */
 
-void test_rt_str_substring()
+static void test_rt_str_substring(void)
 {
-    printf("Testing rt_str_substring...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_str_substring(arena, "hello world", 0, 5);
@@ -176,10 +163,8 @@ void test_rt_str_substring()
  * String Case Conversion Tests
  * ============================================================================ */
 
-void test_rt_str_toUpper()
+static void test_rt_str_toUpper(void)
 {
-    printf("Testing rt_str_toUpper...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_str_toUpper(arena, "hello");
@@ -203,10 +188,8 @@ void test_rt_str_toUpper()
     rt_arena_destroy(arena);
 }
 
-void test_rt_str_toLower()
+static void test_rt_str_toLower(void)
 {
-    printf("Testing rt_str_toLower...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_str_toLower(arena, "HELLO");
@@ -234,10 +217,8 @@ void test_rt_str_toLower()
  * String StartsWith/EndsWith Tests
  * ============================================================================ */
 
-void test_rt_str_startsWith()
+static void test_rt_str_startsWith(void)
 {
-    printf("Testing rt_str_startsWith...\n");
-
     assert(rt_str_startsWith("hello world", "hello") == 1);
     assert(rt_str_startsWith("hello world", "") == 1);
     assert(rt_str_startsWith("hello world", "world") == 0);
@@ -248,10 +229,8 @@ void test_rt_str_startsWith()
     assert(rt_str_startsWith("test", NULL) == 0);
 }
 
-void test_rt_str_endsWith()
+static void test_rt_str_endsWith(void)
 {
-    printf("Testing rt_str_endsWith...\n");
-
     assert(rt_str_endsWith("hello world", "world") == 1);
     assert(rt_str_endsWith("hello world", "") == 1);
     assert(rt_str_endsWith("hello world", "hello") == 0);
@@ -266,10 +245,8 @@ void test_rt_str_endsWith()
  * String Trim Tests
  * ============================================================================ */
 
-void test_rt_str_trim()
+static void test_rt_str_trim(void)
 {
-    printf("Testing rt_str_trim...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_str_trim(arena, "  hello  ");
@@ -300,10 +277,8 @@ void test_rt_str_trim()
  * String Replace Tests
  * ============================================================================ */
 
-void test_rt_str_replace()
+static void test_rt_str_replace(void)
 {
-    printf("Testing rt_str_replace...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic replacement */
@@ -351,10 +326,8 @@ void test_rt_str_replace()
  * String Split Tests
  * ============================================================================ */
 
-void test_rt_str_split()
+static void test_rt_str_split(void)
 {
-    printf("Testing rt_str_split...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic split */
@@ -405,10 +378,8 @@ void test_rt_str_split()
  * Type to String Conversion Tests
  * ============================================================================ */
 
-void test_rt_to_string_long()
+static void test_rt_to_string_long(void)
 {
-    printf("Testing rt_to_string_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_to_string_long(arena, 42);
@@ -423,10 +394,8 @@ void test_rt_to_string_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_to_string_double()
+static void test_rt_to_string_double(void)
 {
-    printf("Testing rt_to_string_double...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_to_string_double(arena, 3.14159);
@@ -441,10 +410,8 @@ void test_rt_to_string_double()
     rt_arena_destroy(arena);
 }
 
-void test_rt_to_string_char()
+static void test_rt_to_string_char(void)
 {
-    printf("Testing rt_to_string_char...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_to_string_char(arena, 'a');
@@ -459,10 +426,8 @@ void test_rt_to_string_char()
     rt_arena_destroy(arena);
 }
 
-void test_rt_to_string_bool()
+static void test_rt_to_string_bool(void)
 {
-    printf("Testing rt_to_string_bool...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_to_string_bool(arena, 1);
@@ -477,10 +442,8 @@ void test_rt_to_string_bool()
     rt_arena_destroy(arena);
 }
 
-void test_rt_to_string_byte()
+static void test_rt_to_string_byte(void)
 {
-    printf("Testing rt_to_string_byte...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_to_string_byte(arena, 0x00);
@@ -495,10 +458,8 @@ void test_rt_to_string_byte()
     rt_arena_destroy(arena);
 }
 
-void test_rt_to_string_string()
+static void test_rt_to_string_string(void)
 {
-    printf("Testing rt_to_string_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_to_string_string(arena, "hello");
@@ -513,10 +474,8 @@ void test_rt_to_string_string()
     rt_arena_destroy(arena);
 }
 
-void test_rt_to_string_pointer()
+static void test_rt_to_string_pointer(void)
 {
-    printf("Testing rt_to_string_pointer...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *result = rt_to_string_pointer(arena, NULL);
@@ -534,10 +493,8 @@ void test_rt_to_string_pointer()
  * Format Long Tests
  * ============================================================================ */
 
-void test_rt_format_long()
+static void test_rt_format_long(void)
 {
-    printf("Testing rt_format_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Default format */
@@ -582,10 +539,8 @@ void test_rt_format_long()
  * Format Double Tests
  * ============================================================================ */
 
-void test_rt_format_double()
+static void test_rt_format_double(void)
 {
-    printf("Testing rt_format_double...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Default format */
@@ -617,10 +572,8 @@ void test_rt_format_double()
  * Format String Tests
  * ============================================================================ */
 
-void test_rt_format_string()
+static void test_rt_format_string(void)
 {
-    printf("Testing rt_format_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Default format */
@@ -654,10 +607,8 @@ void test_rt_format_string()
  * Mutable String Tests
  * ============================================================================ */
 
-void test_rt_string_from()
+static void test_rt_string_from(void)
 {
-    printf("Testing rt_string_from...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *str = rt_string_from(arena, "hello");
@@ -679,10 +630,8 @@ void test_rt_string_from()
     rt_arena_destroy(arena);
 }
 
-void test_rt_string_ensure_mutable()
+static void test_rt_string_ensure_mutable(void)
 {
-    printf("Testing rt_string_ensure_mutable...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Already mutable string should return same pointer */
@@ -704,49 +653,51 @@ void test_rt_string_ensure_mutable()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_string_main()
+void test_rt_string_main(void)
 {
+    TEST_SECTION("Runtime String");
+
     /* Concatenation */
-    test_rt_str_concat_basic();
-    test_rt_str_concat_null();
+    TEST_RUN("rt_str_concat_basic", test_rt_str_concat_basic);
+    TEST_RUN("rt_str_concat_null", test_rt_str_concat_null);
 
     /* Query functions */
-    test_rt_str_length();
-    test_rt_str_indexOf();
-    test_rt_str_contains();
-    test_rt_str_charAt();
-    test_rt_str_substring();
+    TEST_RUN("rt_str_length", test_rt_str_length);
+    TEST_RUN("rt_str_indexOf", test_rt_str_indexOf);
+    TEST_RUN("rt_str_contains", test_rt_str_contains);
+    TEST_RUN("rt_str_charAt", test_rt_str_charAt);
+    TEST_RUN("rt_str_substring", test_rt_str_substring);
 
     /* Case conversion */
-    test_rt_str_toUpper();
-    test_rt_str_toLower();
+    TEST_RUN("rt_str_toUpper", test_rt_str_toUpper);
+    TEST_RUN("rt_str_toLower", test_rt_str_toLower);
 
     /* Prefix/suffix */
-    test_rt_str_startsWith();
-    test_rt_str_endsWith();
+    TEST_RUN("rt_str_startsWith", test_rt_str_startsWith);
+    TEST_RUN("rt_str_endsWith", test_rt_str_endsWith);
 
     /* Trim and replace */
-    test_rt_str_trim();
-    test_rt_str_replace();
+    TEST_RUN("rt_str_trim", test_rt_str_trim);
+    TEST_RUN("rt_str_replace", test_rt_str_replace);
 
     /* Split */
-    test_rt_str_split();
+    TEST_RUN("rt_str_split", test_rt_str_split);
 
     /* Type to string conversions */
-    test_rt_to_string_long();
-    test_rt_to_string_double();
-    test_rt_to_string_char();
-    test_rt_to_string_bool();
-    test_rt_to_string_byte();
-    test_rt_to_string_string();
-    test_rt_to_string_pointer();
+    TEST_RUN("rt_to_string_long", test_rt_to_string_long);
+    TEST_RUN("rt_to_string_double", test_rt_to_string_double);
+    TEST_RUN("rt_to_string_char", test_rt_to_string_char);
+    TEST_RUN("rt_to_string_bool", test_rt_to_string_bool);
+    TEST_RUN("rt_to_string_byte", test_rt_to_string_byte);
+    TEST_RUN("rt_to_string_string", test_rt_to_string_string);
+    TEST_RUN("rt_to_string_pointer", test_rt_to_string_pointer);
 
     /* Format functions */
-    test_rt_format_long();
-    test_rt_format_double();
-    test_rt_format_string();
+    TEST_RUN("rt_format_long", test_rt_format_long);
+    TEST_RUN("rt_format_double", test_rt_format_double);
+    TEST_RUN("rt_format_string", test_rt_format_string);
 
     /* Mutable strings */
-    test_rt_string_from();
-    test_rt_string_ensure_mutable();
+    TEST_RUN("rt_string_from", test_rt_string_from);
+    TEST_RUN("rt_string_ensure_mutable", test_rt_string_ensure_mutable);
 }

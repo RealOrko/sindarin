@@ -6,15 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Date add_months Tests
  * ============================================================================ */
 
-void test_rt_date_add_months_simple()
+static void test_rt_date_add_months_simple(void)
 {
-    printf("Testing rt_date_add_months with simple cases within same year...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* (2025, 3, 15) + 1 month = (2025, 4, 15) - no clamping, day preserved */
@@ -77,10 +76,8 @@ void test_rt_date_add_months_simple()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_months_null_handling()
+static void test_rt_date_add_months_null_handling(void)
 {
-    printf("Testing rt_date_add_months with NULL handling...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -95,10 +92,8 @@ void test_rt_date_add_months_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_months_clamping()
+static void test_rt_date_add_months_clamping(void)
 {
-    printf("Testing rt_date_add_months with month-end clamping...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -256,10 +251,8 @@ void test_rt_date_add_months_clamping()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_months_year_boundary()
+static void test_rt_date_add_months_year_boundary(void)
 {
-    printf("Testing rt_date_add_months with year boundary crossing...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -345,10 +338,8 @@ void test_rt_date_add_months_year_boundary()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_months_edge_cases()
+static void test_rt_date_add_months_edge_cases(void)
 {
-    printf("Testing rt_date_add_months with edge cases and large values...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -450,10 +441,8 @@ void test_rt_date_add_months_edge_cases()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_months_negative()
+static void test_rt_date_add_months_negative(void)
 {
-    printf("Testing rt_date_add_months with negative month values...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -511,10 +500,8 @@ void test_rt_date_add_months_negative()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_months_leap_year_feb()
+static void test_rt_date_add_months_leap_year_feb(void)
 {
-    printf("Testing rt_date_add_months with February leap year edge cases...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -572,10 +559,8 @@ void test_rt_date_add_months_leap_year_feb()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_months_roundtrip_symmetry()
+static void test_rt_date_add_months_roundtrip_symmetry(void)
 {
-    printf("Testing rt_date_add_months round-trip and symmetry properties...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -696,10 +681,8 @@ void test_rt_date_add_months_roundtrip_symmetry()
  * Date add_years Tests
  * ============================================================================ */
 
-void test_rt_date_add_years_basic()
+static void test_rt_date_add_years_basic(void)
 {
-    printf("Testing rt_date_add_years with basic cases...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -765,10 +748,8 @@ void test_rt_date_add_years_basic()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_years_leap_clamping()
+static void test_rt_date_add_years_leap_clamping(void)
 {
-    printf("Testing rt_date_add_years with leap year clamping...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -805,10 +786,8 @@ void test_rt_date_add_years_leap_clamping()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_years_negative()
+static void test_rt_date_add_years_negative(void)
 {
-    printf("Testing rt_date_add_years with negative years...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
     RtDate *result;
@@ -852,10 +831,8 @@ void test_rt_date_add_years_negative()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_add_years_null_handling()
+static void test_rt_date_add_years_null_handling(void)
 {
-    printf("Testing rt_date_add_years with NULL handling...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
 
@@ -874,25 +851,23 @@ void test_rt_date_add_years_null_handling()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_date_months_main()
+void test_rt_date_months_main(void)
 {
-    printf("\n=== Running Date Months/Years Arithmetic Tests ===\n\n");
+    TEST_SECTION("Date Months/Years Arithmetic");
 
     /* add_months tests */
-    test_rt_date_add_months_simple();
-    test_rt_date_add_months_null_handling();
-    test_rt_date_add_months_clamping();
-    test_rt_date_add_months_year_boundary();
-    test_rt_date_add_months_edge_cases();
-    test_rt_date_add_months_negative();
-    test_rt_date_add_months_leap_year_feb();
-    test_rt_date_add_months_roundtrip_symmetry();
+    TEST_RUN("date_add_months_simple", test_rt_date_add_months_simple);
+    TEST_RUN("date_add_months_null_handling", test_rt_date_add_months_null_handling);
+    TEST_RUN("date_add_months_clamping", test_rt_date_add_months_clamping);
+    TEST_RUN("date_add_months_year_boundary", test_rt_date_add_months_year_boundary);
+    TEST_RUN("date_add_months_edge_cases", test_rt_date_add_months_edge_cases);
+    TEST_RUN("date_add_months_negative", test_rt_date_add_months_negative);
+    TEST_RUN("date_add_months_leap_year_feb", test_rt_date_add_months_leap_year_feb);
+    TEST_RUN("date_add_months_roundtrip_symmetry", test_rt_date_add_months_roundtrip_symmetry);
 
     /* add_years tests */
-    test_rt_date_add_years_basic();
-    test_rt_date_add_years_leap_clamping();
-    test_rt_date_add_years_negative();
-    test_rt_date_add_years_null_handling();
-
-    printf("\n=== Date Months/Years Arithmetic Tests Complete ===\n\n");
+    TEST_RUN("date_add_years_basic", test_rt_date_add_years_basic);
+    TEST_RUN("date_add_years_leap_clamping", test_rt_date_add_years_leap_clamping);
+    TEST_RUN("date_add_years_negative", test_rt_date_add_years_negative);
+    TEST_RUN("date_add_years_null_handling", test_rt_date_add_years_null_handling);
 }

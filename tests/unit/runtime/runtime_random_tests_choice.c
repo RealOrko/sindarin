@@ -13,14 +13,14 @@
 #include "../../src/runtime/runtime_array.h"
 #include "../../src/debug.h"
 #include "../test_utils.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Static Choice Tests
  * ============================================================================ */
 
-void test_rt_random_static_choice_long_basic()
+static void test_rt_random_static_choice_long_basic(void)
 {
-    printf("Testing rt_random_static_choice_long basic functionality...\n");
 
     long arr[] = {10, 20, 30, 40, 50};
     long len = 5;
@@ -38,12 +38,10 @@ void test_rt_random_static_choice_long_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Static choice_long returns elements from array\n");
 }
 
-void test_rt_random_static_choice_long_single_element()
+static void test_rt_random_static_choice_long_single_element(void)
 {
-    printf("Testing rt_random_static_choice_long with single element...\n");
 
     long arr[] = {42};
     for (int i = 0; i < 10; i++) {
@@ -51,12 +49,10 @@ void test_rt_random_static_choice_long_single_element()
         TEST_ASSERT(val == 42, "Single element should always return that element");
     }
 
-    printf("  Single element array always returns that element\n");
 }
 
-void test_rt_random_static_choice_long_null_empty()
+static void test_rt_random_static_choice_long_null_empty(void)
 {
-    printf("Testing rt_random_static_choice_long with NULL/empty...\n");
 
     long arr[] = {1, 2, 3};
 
@@ -71,12 +67,10 @@ void test_rt_random_static_choice_long_null_empty()
     long val3 = rt_random_static_choice_long(arr, -1);
     TEST_ASSERT(val3 == 0, "Negative length should return 0");
 
-    printf("  NULL/empty handling correct\n");
 }
 
-void test_rt_random_static_choice_long_distribution()
+static void test_rt_random_static_choice_long_distribution(void)
 {
-    printf("Testing rt_random_static_choice_long distribution...\n");
 
     long arr[] = {0, 1, 2, 3, 4};
     long len = 5;
@@ -98,13 +92,10 @@ void test_rt_random_static_choice_long_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], counts[4], expected);
 }
 
-void test_rt_random_static_choice_double_basic()
+static void test_rt_random_static_choice_double_basic(void)
 {
-    printf("Testing rt_random_static_choice_double basic functionality...\n");
 
     double arr[] = {1.1, 2.2, 3.3, 4.4, 5.5};
     long len = 5;
@@ -121,12 +112,10 @@ void test_rt_random_static_choice_double_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Static choice_double returns elements from array\n");
 }
 
-void test_rt_random_static_choice_double_null_empty()
+static void test_rt_random_static_choice_double_null_empty(void)
 {
-    printf("Testing rt_random_static_choice_double with NULL/empty...\n");
 
     double arr[] = {1.0, 2.0, 3.0};
 
@@ -136,12 +125,10 @@ void test_rt_random_static_choice_double_null_empty()
     double val2 = rt_random_static_choice_double(arr, 0);
     TEST_ASSERT(val2 == 0.0, "Empty array should return 0.0");
 
-    printf("  NULL/empty handling correct\n");
 }
 
-void test_rt_random_static_choice_string_basic()
+static void test_rt_random_static_choice_string_basic(void)
 {
-    printf("Testing rt_random_static_choice_string basic functionality...\n");
 
     char *arr[] = {"red", "green", "blue", "yellow"};
     long len = 4;
@@ -158,12 +145,10 @@ void test_rt_random_static_choice_string_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Static choice_string returns elements from array\n");
 }
 
-void test_rt_random_static_choice_string_null_empty()
+static void test_rt_random_static_choice_string_null_empty(void)
 {
-    printf("Testing rt_random_static_choice_string with NULL/empty...\n");
 
     char *arr[] = {"a", "b", "c"};
 
@@ -173,12 +158,10 @@ void test_rt_random_static_choice_string_null_empty()
     char *val2 = rt_random_static_choice_string(arr, 0);
     TEST_ASSERT(val2 == NULL, "Empty array should return NULL");
 
-    printf("  NULL/empty handling correct\n");
 }
 
-void test_rt_random_static_choice_bool_basic()
+static void test_rt_random_static_choice_bool_basic(void)
 {
-    printf("Testing rt_random_static_choice_bool basic functionality...\n");
 
     int arr[] = {0, 1, 0, 1, 1};
     long len = 5;
@@ -188,12 +171,10 @@ void test_rt_random_static_choice_bool_basic()
         TEST_ASSERT(val == 0 || val == 1, "Choice should be 0 or 1");
     }
 
-    printf("  Static choice_bool returns valid booleans\n");
 }
 
-void test_rt_random_static_choice_bool_null_empty()
+static void test_rt_random_static_choice_bool_null_empty(void)
 {
-    printf("Testing rt_random_static_choice_bool with NULL/empty...\n");
 
     int arr[] = {1, 0, 1};
 
@@ -203,12 +184,10 @@ void test_rt_random_static_choice_bool_null_empty()
     int val2 = rt_random_static_choice_bool(arr, 0);
     TEST_ASSERT(val2 == 0, "Empty array should return 0");
 
-    printf("  NULL/empty handling correct\n");
 }
 
-void test_rt_random_static_choice_byte_basic()
+static void test_rt_random_static_choice_byte_basic(void)
 {
-    printf("Testing rt_random_static_choice_byte basic functionality...\n");
 
     unsigned char arr[] = {0x10, 0x20, 0x30, 0x40, 0x50};
     long len = 5;
@@ -225,12 +204,10 @@ void test_rt_random_static_choice_byte_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Static choice_byte returns elements from array\n");
 }
 
-void test_rt_random_static_choice_byte_null_empty()
+static void test_rt_random_static_choice_byte_null_empty(void)
 {
-    printf("Testing rt_random_static_choice_byte with NULL/empty...\n");
 
     unsigned char arr[] = {0xAA, 0xBB, 0xCC};
 
@@ -240,16 +217,14 @@ void test_rt_random_static_choice_byte_null_empty()
     unsigned char val2 = rt_random_static_choice_byte(arr, 0);
     TEST_ASSERT(val2 == 0, "Empty array should return 0");
 
-    printf("  NULL/empty handling correct\n");
 }
 
 /* ============================================================================
  * Instance Choice Tests
  * ============================================================================ */
 
-void test_rt_random_choice_long_basic()
+static void test_rt_random_choice_long_basic(void)
 {
-    printf("Testing rt_random_choice_long basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -272,13 +247,11 @@ void test_rt_random_choice_long_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Instance choice_long returns elements from array\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_long_reproducibility()
+static void test_rt_random_choice_long_reproducibility(void)
 {
-    printf("Testing rt_random_choice_long reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -295,13 +268,11 @@ void test_rt_random_choice_long_reproducibility()
         TEST_ASSERT(v1 == v2, "Same seed should produce same choices");
     }
 
-    printf("  Reproducibility verified for choice_long\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_long_null_args()
+static void test_rt_random_choice_long_null_args(void)
 {
-    printf("Testing rt_random_choice_long with NULL args...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -318,13 +289,11 @@ void test_rt_random_choice_long_null_args()
     long val3 = rt_random_choice_long(rng, arr, 0);
     TEST_ASSERT(val3 == 0, "Empty array should return 0");
 
-    printf("  NULL args handling correct\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_long_distribution()
+static void test_rt_random_choice_long_distribution(void)
 {
-    printf("Testing rt_random_choice_long distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -350,14 +319,11 @@ void test_rt_random_choice_long_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], counts[4], expected);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_double_basic()
+static void test_rt_random_choice_double_basic(void)
 {
-    printf("Testing rt_random_choice_double basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -378,13 +344,11 @@ void test_rt_random_choice_double_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Instance choice_double returns elements from array\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_double_null_args()
+static void test_rt_random_choice_double_null_args(void)
 {
-    printf("Testing rt_random_choice_double with NULL args...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -398,13 +362,11 @@ void test_rt_random_choice_double_null_args()
     double val2 = rt_random_choice_double(rng, NULL, 3);
     TEST_ASSERT(val2 == 0.0, "NULL array should return 0.0");
 
-    printf("  NULL args handling correct\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_string_basic()
+static void test_rt_random_choice_string_basic(void)
 {
-    printf("Testing rt_random_choice_string basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -425,13 +387,11 @@ void test_rt_random_choice_string_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Instance choice_string returns elements from array\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_string_null_args()
+static void test_rt_random_choice_string_null_args(void)
 {
-    printf("Testing rt_random_choice_string with NULL args...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -445,13 +405,11 @@ void test_rt_random_choice_string_null_args()
     char *val2 = rt_random_choice_string(rng, NULL, 3);
     TEST_ASSERT(val2 == NULL, "NULL array should return NULL");
 
-    printf("  NULL args handling correct\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_bool_basic()
+static void test_rt_random_choice_bool_basic(void)
 {
-    printf("Testing rt_random_choice_bool basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -465,13 +423,11 @@ void test_rt_random_choice_bool_basic()
         TEST_ASSERT(val == 0 || val == 1, "Choice should be 0 or 1");
     }
 
-    printf("  Instance choice_bool returns valid booleans\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_bool_null_args()
+static void test_rt_random_choice_bool_null_args(void)
 {
-    printf("Testing rt_random_choice_bool with NULL args...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -485,13 +441,11 @@ void test_rt_random_choice_bool_null_args()
     int val2 = rt_random_choice_bool(rng, NULL, 3);
     TEST_ASSERT(val2 == 0, "NULL array should return 0");
 
-    printf("  NULL args handling correct\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_byte_basic()
+static void test_rt_random_choice_byte_basic(void)
 {
-    printf("Testing rt_random_choice_byte basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -512,13 +466,11 @@ void test_rt_random_choice_byte_basic()
         TEST_ASSERT(found, "Choice should be from array");
     }
 
-    printf("  Instance choice_byte returns elements from array\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_byte_null_args()
+static void test_rt_random_choice_byte_null_args(void)
 {
-    printf("Testing rt_random_choice_byte with NULL args...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -532,7 +484,6 @@ void test_rt_random_choice_byte_null_args()
     unsigned char val2 = rt_random_choice_byte(rng, NULL, 3);
     TEST_ASSERT(val2 == 0, "NULL array should return 0");
 
-    printf("  NULL args handling correct\n");
     rt_arena_destroy(arena);
 }
 
@@ -540,9 +491,8 @@ void test_rt_random_choice_byte_null_args()
  * Statistical Distribution Tests for Choice Functions
  * ============================================================================ */
 
-void test_rt_random_static_choice_double_distribution()
+static void test_rt_random_static_choice_double_distribution(void)
 {
-    printf("Testing rt_random_static_choice_double distribution...\n");
 
     double arr[] = {0.0, 1.0, 2.0, 3.0};
     long len = 4;
@@ -564,13 +514,10 @@ void test_rt_random_static_choice_double_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 }
 
-void test_rt_random_static_choice_string_distribution()
+static void test_rt_random_static_choice_string_distribution(void)
 {
-    printf("Testing rt_random_static_choice_string distribution...\n");
 
     char *arr[] = {"a", "b", "c", "d"};
     long len = 4;
@@ -595,13 +542,10 @@ void test_rt_random_static_choice_string_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 }
 
-void test_rt_random_static_choice_byte_distribution()
+static void test_rt_random_static_choice_byte_distribution(void)
 {
-    printf("Testing rt_random_static_choice_byte distribution...\n");
 
     unsigned char arr[] = {0x00, 0x55, 0xAA, 0xFF};
     long len = 4;
@@ -626,13 +570,10 @@ void test_rt_random_static_choice_byte_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 }
 
-void test_rt_random_choice_double_distribution()
+static void test_rt_random_choice_double_distribution(void)
 {
-    printf("Testing rt_random_choice_double distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -659,14 +600,11 @@ void test_rt_random_choice_double_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_string_distribution()
+static void test_rt_random_choice_string_distribution(void)
 {
-    printf("Testing rt_random_choice_string distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -696,14 +634,11 @@ void test_rt_random_choice_string_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_choice_byte_distribution()
+static void test_rt_random_choice_byte_distribution(void)
 {
-    printf("Testing rt_random_choice_byte distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -733,8 +668,6 @@ void test_rt_random_choice_byte_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
     rt_arena_destroy(arena);
 }
 
@@ -744,9 +677,8 @@ void test_rt_random_choice_byte_distribution()
  * Tests for rt_random_validate_weights() function.
  * ============================================================================ */
 
-void test_rt_random_validate_weights_valid()
+static void test_rt_random_validate_weights_valid(void)
 {
-    printf("Testing rt_random_validate_weights with valid weights...\n");
 
     /* Basic valid weights */
     double weights1[] = {1.0, 2.0, 3.0};
@@ -764,12 +696,10 @@ void test_rt_random_validate_weights_valid()
     double weights4[] = {1000000.0, 2000000.0};
     TEST_ASSERT(rt_random_validate_weights(weights4, 2) == 1, "Large weights should pass");
 
-    printf("  Valid weights correctly accepted\n");
 }
 
-void test_rt_random_validate_weights_negative()
+static void test_rt_random_validate_weights_negative(void)
 {
-    printf("Testing rt_random_validate_weights with negative weights...\n");
 
     /* Single negative weight */
     double weights1[] = {-1.0, 2.0, 3.0};
@@ -787,12 +717,10 @@ void test_rt_random_validate_weights_negative()
     double weights4[] = {-1.0, -2.0, -3.0};
     TEST_ASSERT(rt_random_validate_weights(weights4, 3) == 0, "All negative weights should fail");
 
-    printf("  Negative weights correctly rejected\n");
 }
 
-void test_rt_random_validate_weights_zero()
+static void test_rt_random_validate_weights_zero(void)
 {
-    printf("Testing rt_random_validate_weights with zero weights...\n");
 
     /* Zero weight in array */
     double weights1[] = {0.0, 2.0, 3.0};
@@ -810,12 +738,10 @@ void test_rt_random_validate_weights_zero()
     double weights4[] = {0.0, 0.0, 0.0};
     TEST_ASSERT(rt_random_validate_weights(weights4, 3) == 0, "All zero weights should fail");
 
-    printf("  Zero weights correctly rejected\n");
 }
 
-void test_rt_random_validate_weights_empty()
+static void test_rt_random_validate_weights_empty(void)
 {
-    printf("Testing rt_random_validate_weights with empty array...\n");
 
     double weights[] = {1.0, 2.0, 3.0};  /* dummy, won't be accessed */
 
@@ -825,17 +751,14 @@ void test_rt_random_validate_weights_empty()
     /* Negative length */
     TEST_ASSERT(rt_random_validate_weights(weights, -1) == 0, "Negative length should fail");
 
-    printf("  Empty array correctly rejected\n");
 }
 
-void test_rt_random_validate_weights_null()
+static void test_rt_random_validate_weights_null(void)
 {
-    printf("Testing rt_random_validate_weights with NULL pointer...\n");
 
     TEST_ASSERT(rt_random_validate_weights(NULL, 3) == 0, "NULL pointer should fail");
     TEST_ASSERT(rt_random_validate_weights(NULL, 0) == 0, "NULL with zero length should fail");
 
-    printf("  NULL pointer correctly rejected\n");
 }
 
 /* ============================================================================
@@ -844,9 +767,8 @@ void test_rt_random_validate_weights_null()
  * Tests for rt_random_build_cumulative() function.
  * ============================================================================ */
 
-void test_rt_random_build_cumulative_basic()
+static void test_rt_random_build_cumulative_basic(void)
 {
-    printf("Testing rt_random_build_cumulative basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -865,14 +787,12 @@ void test_rt_random_build_cumulative_basic()
     /* cumulative[2] = 1.0 (guaranteed) */
     TEST_ASSERT(cumulative[2] == 1.0, "Last cumulative should be exactly 1.0");
 
-    printf("  Cumulative: [%.4f, %.4f, %.4f]\n", cumulative[0], cumulative[1], cumulative[2]);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_build_cumulative_normalization()
+static void test_rt_random_build_cumulative_normalization(void)
 {
-    printf("Testing rt_random_build_cumulative normalizes weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -888,14 +808,12 @@ void test_rt_random_build_cumulative_normalization()
     TEST_ASSERT(fabs(cumulative[1] - 0.6) < 0.0001, "Second cumulative should be ~0.6");
     TEST_ASSERT(cumulative[2] == 1.0, "Last cumulative should be exactly 1.0");
 
-    printf("  Normalized cumulative: [%.4f, %.4f, %.4f]\n", cumulative[0], cumulative[1], cumulative[2]);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_build_cumulative_single_element()
+static void test_rt_random_build_cumulative_single_element(void)
 {
-    printf("Testing rt_random_build_cumulative with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -907,14 +825,12 @@ void test_rt_random_build_cumulative_single_element()
     TEST_ASSERT_NOT_NULL(cumulative, "Cumulative array should be created");
     TEST_ASSERT(cumulative[0] == 1.0, "Single element cumulative should be 1.0");
 
-    printf("  Single element cumulative: [%.4f]\n", cumulative[0]);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_build_cumulative_two_elements()
+static void test_rt_random_build_cumulative_two_elements(void)
 {
-    printf("Testing rt_random_build_cumulative with two elements...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -927,26 +843,22 @@ void test_rt_random_build_cumulative_two_elements()
     TEST_ASSERT(fabs(cumulative[0] - 0.5) < 0.0001, "First cumulative should be ~0.5");
     TEST_ASSERT(cumulative[1] == 1.0, "Second cumulative should be exactly 1.0");
 
-    printf("  Two element cumulative: [%.4f, %.4f]\n", cumulative[0], cumulative[1]);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_build_cumulative_null_arena()
+static void test_rt_random_build_cumulative_null_arena(void)
 {
-    printf("Testing rt_random_build_cumulative with NULL arena...\n");
 
     double weights[] = {1.0, 2.0, 3.0};
     double *cumulative = rt_random_build_cumulative(NULL, weights, 3);
 
     TEST_ASSERT(cumulative == NULL, "Should return NULL with NULL arena");
 
-    printf("  NULL arena correctly rejected\n");
 }
 
-void test_rt_random_build_cumulative_null_weights()
+static void test_rt_random_build_cumulative_null_weights(void)
 {
-    printf("Testing rt_random_build_cumulative with NULL weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -955,14 +867,12 @@ void test_rt_random_build_cumulative_null_weights()
 
     TEST_ASSERT(cumulative == NULL, "Should return NULL with NULL weights");
 
-    printf("  NULL weights correctly rejected\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_build_cumulative_empty_array()
+static void test_rt_random_build_cumulative_empty_array(void)
 {
-    printf("Testing rt_random_build_cumulative with empty array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -977,14 +887,12 @@ void test_rt_random_build_cumulative_empty_array()
     double *cumulative2 = rt_random_build_cumulative(arena, weights, -1);
     TEST_ASSERT(cumulative2 == NULL, "Should return NULL with negative length");
 
-    printf("  Empty array correctly rejected\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_build_cumulative_large_weights()
+static void test_rt_random_build_cumulative_large_weights(void)
 {
-    printf("Testing rt_random_build_cumulative with large weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1001,9 +909,6 @@ void test_rt_random_build_cumulative_large_weights()
     TEST_ASSERT(fabs(cumulative[2] - 0.6) < 0.0001, "Third cumulative should be ~0.6");
     TEST_ASSERT(cumulative[3] == 1.0, "Last cumulative should be exactly 1.0");
 
-    printf("  Large weights cumulative: [%.4f, %.4f, %.4f, %.4f]\n",
-           cumulative[0], cumulative[1], cumulative[2], cumulative[3]);
-
     rt_arena_destroy(arena);
 }
 
@@ -1013,9 +918,8 @@ void test_rt_random_build_cumulative_large_weights()
  * Tests for rt_random_select_weighted_index() function.
  * ============================================================================ */
 
-void test_rt_random_select_weighted_index_basic()
+static void test_rt_random_select_weighted_index_basic(void)
 {
-    printf("Testing rt_random_select_weighted_index basic functionality...\n");
 
     /* Cumulative distribution: [0.7, 0.95, 1.0] */
     double cumulative[] = {0.7, 0.95, 1.0};
@@ -1035,12 +939,10 @@ void test_rt_random_select_weighted_index_basic()
     TEST_ASSERT(rt_random_select_weighted_index(0.95, cumulative, len) == 2, "0.95 should select index 2");
     TEST_ASSERT(rt_random_select_weighted_index(0.99, cumulative, len) == 2, "0.99 should select index 2");
 
-    printf("  Basic selection works correctly\n");
 }
 
-void test_rt_random_select_weighted_index_edge_zero()
+static void test_rt_random_select_weighted_index_edge_zero(void)
 {
-    printf("Testing rt_random_select_weighted_index with 0.0...\n");
 
     double cumulative[] = {0.25, 0.5, 0.75, 1.0};
     long len = 4;
@@ -1051,12 +953,10 @@ void test_rt_random_select_weighted_index_edge_zero()
     /* Negative value should also select first element (safety) */
     TEST_ASSERT(rt_random_select_weighted_index(-0.1, cumulative, len) == 0, "Negative should select index 0");
 
-    printf("  Edge value 0.0 handled correctly\n");
 }
 
-void test_rt_random_select_weighted_index_edge_near_one()
+static void test_rt_random_select_weighted_index_edge_near_one(void)
 {
-    printf("Testing rt_random_select_weighted_index with values near 1.0...\n");
 
     double cumulative[] = {0.25, 0.5, 0.75, 1.0};
     long len = 4;
@@ -1071,12 +971,10 @@ void test_rt_random_select_weighted_index_edge_near_one()
     /* Values > 1.0 should select last element (safety) */
     TEST_ASSERT(rt_random_select_weighted_index(1.5, cumulative, len) == 3, ">1.0 should select index 3");
 
-    printf("  Edge values near 1.0 handled correctly\n");
 }
 
-void test_rt_random_select_weighted_index_single_element()
+static void test_rt_random_select_weighted_index_single_element(void)
 {
-    printf("Testing rt_random_select_weighted_index with single element...\n");
 
     double cumulative[] = {1.0};
     long len = 1;
@@ -1086,12 +984,10 @@ void test_rt_random_select_weighted_index_single_element()
     TEST_ASSERT(rt_random_select_weighted_index(0.5, cumulative, len) == 0, "0.5 should select index 0");
     TEST_ASSERT(rt_random_select_weighted_index(0.99, cumulative, len) == 0, "0.99 should select index 0");
 
-    printf("  Single element handled correctly\n");
 }
 
-void test_rt_random_select_weighted_index_two_elements()
+static void test_rt_random_select_weighted_index_two_elements(void)
 {
-    printf("Testing rt_random_select_weighted_index with two elements...\n");
 
     /* Equal weights -> [0.5, 1.0] */
     double cumulative[] = {0.5, 1.0};
@@ -1105,12 +1001,10 @@ void test_rt_random_select_weighted_index_two_elements()
     TEST_ASSERT(rt_random_select_weighted_index(0.5, cumulative, len) == 1, "0.5 should select index 1");
     TEST_ASSERT(rt_random_select_weighted_index(0.99, cumulative, len) == 1, "0.99 should select index 1");
 
-    printf("  Two elements handled correctly\n");
 }
 
-void test_rt_random_select_weighted_index_boundary_values()
+static void test_rt_random_select_weighted_index_boundary_values(void)
 {
-    printf("Testing rt_random_select_weighted_index at exact boundaries...\n");
 
     /* Cumulative distribution: [0.25, 0.50, 0.75, 1.0] */
     double cumulative[] = {0.25, 0.50, 0.75, 1.0};
@@ -1126,33 +1020,27 @@ void test_rt_random_select_weighted_index_boundary_values()
     TEST_ASSERT(rt_random_select_weighted_index(0.49, cumulative, len) == 1, "0.49 should select index 1");
     TEST_ASSERT(rt_random_select_weighted_index(0.74, cumulative, len) == 2, "0.74 should select index 2");
 
-    printf("  Boundary values handled correctly\n");
 }
 
-void test_rt_random_select_weighted_index_null()
+static void test_rt_random_select_weighted_index_null(void)
 {
-    printf("Testing rt_random_select_weighted_index with NULL cumulative...\n");
 
     TEST_ASSERT(rt_random_select_weighted_index(0.5, NULL, 3) == 0, "NULL cumulative should return 0");
 
-    printf("  NULL cumulative handled correctly\n");
 }
 
-void test_rt_random_select_weighted_index_invalid_len()
+static void test_rt_random_select_weighted_index_invalid_len(void)
 {
-    printf("Testing rt_random_select_weighted_index with invalid length...\n");
 
     double cumulative[] = {1.0};
 
     TEST_ASSERT(rt_random_select_weighted_index(0.5, cumulative, 0) == 0, "Zero length should return 0");
     TEST_ASSERT(rt_random_select_weighted_index(0.5, cumulative, -1) == 0, "Negative length should return 0");
 
-    printf("  Invalid length handled correctly\n");
 }
 
-void test_rt_random_select_weighted_index_large_array()
+static void test_rt_random_select_weighted_index_large_array(void)
 {
-    printf("Testing rt_random_select_weighted_index with larger array...\n");
 
     /* 10-element cumulative distribution [0.1, 0.2, 0.3, ..., 1.0] */
     double cumulative[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
@@ -1165,7 +1053,6 @@ void test_rt_random_select_weighted_index_large_array()
     TEST_ASSERT(rt_random_select_weighted_index(0.85, cumulative, len) == 8, "0.85 should select index 8");
     TEST_ASSERT(rt_random_select_weighted_index(0.95, cumulative, len) == 9, "0.95 should select index 9");
 
-    printf("  Large array handled correctly with binary search\n");
 }
 
 /* ============================================================================
@@ -1174,9 +1061,8 @@ void test_rt_random_select_weighted_index_large_array()
  * Tests for rt_random_static_weighted_choice_long() function.
  * ============================================================================ */
 
-void test_rt_random_static_weighted_choice_long_basic()
+static void test_rt_random_static_weighted_choice_long_basic(void)
 {
-    printf("Testing rt_random_static_weighted_choice_long basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1206,14 +1092,12 @@ void test_rt_random_static_weighted_choice_long_basic()
     /* With weights {0.7, 0.25, 0.05}, 10 should appear most often */
     TEST_ASSERT(found_10 > found_30, "10 (weight 0.7) should appear more than 30 (weight 0.05)");
 
-    printf("  Distribution: 10=%d, 20=%d, 30=%d\n", found_10, found_20, found_30);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_long_single_element()
+static void test_rt_random_static_weighted_choice_long_single_element(void)
 {
-    printf("Testing rt_random_static_weighted_choice_long with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1230,14 +1114,12 @@ void test_rt_random_static_weighted_choice_long_single_element()
         TEST_ASSERT(result == 42, "Should always return single element");
     }
 
-    printf("  Single element correctly returns 42\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_long_null_arr()
+static void test_rt_random_static_weighted_choice_long_null_arr(void)
 {
-    printf("Testing rt_random_static_weighted_choice_long with NULL array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     double weight_data[] = {1.0, 2.0};
@@ -1246,14 +1128,12 @@ void test_rt_random_static_weighted_choice_long_null_arr()
     long result = rt_random_static_weighted_choice_long(NULL, weights);
     TEST_ASSERT(result == 0, "Should return 0 for NULL array");
 
-    printf("  NULL array correctly returns 0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_long_null_weights()
+static void test_rt_random_static_weighted_choice_long_null_weights(void)
 {
-    printf("Testing rt_random_static_weighted_choice_long with NULL weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     long data[] = {10, 20, 30};
@@ -1262,14 +1142,12 @@ void test_rt_random_static_weighted_choice_long_null_weights()
     long result = rt_random_static_weighted_choice_long(arr, NULL);
     TEST_ASSERT(result == 0, "Should return 0 for NULL weights");
 
-    printf("  NULL weights correctly returns 0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_long_invalid_weights()
+static void test_rt_random_static_weighted_choice_long_invalid_weights(void)
 {
-    printf("Testing rt_random_static_weighted_choice_long with invalid weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1288,14 +1166,12 @@ void test_rt_random_static_weighted_choice_long_invalid_weights()
     long result2 = rt_random_static_weighted_choice_long(arr, zero_weights);
     TEST_ASSERT(result2 == 0, "Should return 0 for zero weight");
 
-    printf("  Invalid weights correctly return 0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_long_distribution()
+static void test_rt_random_static_weighted_choice_long_distribution(void)
 {
-    printf("Testing rt_random_static_weighted_choice_long distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1327,8 +1203,6 @@ void test_rt_random_static_weighted_choice_long_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 
     rt_arena_destroy(arena);
 }
@@ -1339,9 +1213,8 @@ void test_rt_random_static_weighted_choice_long_distribution()
  * Tests for rt_random_static_weighted_choice_double() function.
  * ============================================================================ */
 
-void test_rt_random_static_weighted_choice_double_basic()
+static void test_rt_random_static_weighted_choice_double_basic(void)
 {
-    printf("Testing rt_random_static_weighted_choice_double basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1371,14 +1244,12 @@ void test_rt_random_static_weighted_choice_double_basic()
     /* With weights {0.7, 0.25, 0.05}, 1.5 should appear most often */
     TEST_ASSERT(found_1_5 > found_3_5, "1.5 (weight 0.7) should appear more than 3.5 (weight 0.05)");
 
-    printf("  Distribution: 1.5=%d, 2.5=%d, 3.5=%d\n", found_1_5, found_2_5, found_3_5);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_double_single_element()
+static void test_rt_random_static_weighted_choice_double_single_element(void)
 {
-    printf("Testing rt_random_static_weighted_choice_double with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1395,14 +1266,12 @@ void test_rt_random_static_weighted_choice_double_single_element()
         TEST_ASSERT(fabs(result - 3.14159) < 0.00001, "Should always return single element");
     }
 
-    printf("  Single element correctly returns 3.14159\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_double_null_arr()
+static void test_rt_random_static_weighted_choice_double_null_arr(void)
 {
-    printf("Testing rt_random_static_weighted_choice_double with NULL array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     double weight_data[] = {1.0, 2.0};
@@ -1411,14 +1280,12 @@ void test_rt_random_static_weighted_choice_double_null_arr()
     double result = rt_random_static_weighted_choice_double(NULL, weights);
     TEST_ASSERT(result == 0.0, "Should return 0.0 for NULL array");
 
-    printf("  NULL array correctly returns 0.0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_double_null_weights()
+static void test_rt_random_static_weighted_choice_double_null_weights(void)
 {
-    printf("Testing rt_random_static_weighted_choice_double with NULL weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     double data[] = {1.0, 2.0, 3.0};
@@ -1427,14 +1294,12 @@ void test_rt_random_static_weighted_choice_double_null_weights()
     double result = rt_random_static_weighted_choice_double(arr, NULL);
     TEST_ASSERT(result == 0.0, "Should return 0.0 for NULL weights");
 
-    printf("  NULL weights correctly returns 0.0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_double_invalid_weights()
+static void test_rt_random_static_weighted_choice_double_invalid_weights(void)
 {
-    printf("Testing rt_random_static_weighted_choice_double with invalid weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1453,14 +1318,12 @@ void test_rt_random_static_weighted_choice_double_invalid_weights()
     double result2 = rt_random_static_weighted_choice_double(arr, zero_weights);
     TEST_ASSERT(result2 == 0.0, "Should return 0.0 for zero weight");
 
-    printf("  Invalid weights correctly return 0.0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_double_distribution()
+static void test_rt_random_static_weighted_choice_double_distribution(void)
 {
-    printf("Testing rt_random_static_weighted_choice_double distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1493,8 +1356,6 @@ void test_rt_random_static_weighted_choice_double_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 
     rt_arena_destroy(arena);
 }
@@ -1505,9 +1366,8 @@ void test_rt_random_static_weighted_choice_double_distribution()
  * Tests for rt_random_static_weighted_choice_string() function.
  * ============================================================================ */
 
-void test_rt_random_static_weighted_choice_string_basic()
+static void test_rt_random_static_weighted_choice_string_basic(void)
 {
-    printf("Testing rt_random_static_weighted_choice_string basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1538,14 +1398,12 @@ void test_rt_random_static_weighted_choice_string_basic()
     /* With weights {0.7, 0.25, 0.05}, apple should appear most often */
     TEST_ASSERT(found_apple > found_cherry, "apple (weight 0.7) should appear more than cherry (weight 0.05)");
 
-    printf("  Distribution: apple=%d, banana=%d, cherry=%d\n", found_apple, found_banana, found_cherry);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_string_single_element()
+static void test_rt_random_static_weighted_choice_string_single_element(void)
 {
-    printf("Testing rt_random_static_weighted_choice_string with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1563,14 +1421,12 @@ void test_rt_random_static_weighted_choice_string_single_element()
         TEST_ASSERT(strcmp(result, "only_one") == 0, "Should always return single element");
     }
 
-    printf("  Single element correctly returns 'only_one'\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_string_null_arr()
+static void test_rt_random_static_weighted_choice_string_null_arr(void)
 {
-    printf("Testing rt_random_static_weighted_choice_string with NULL array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     double weight_data[] = {1.0, 2.0};
@@ -1579,14 +1435,12 @@ void test_rt_random_static_weighted_choice_string_null_arr()
     char *result = rt_random_static_weighted_choice_string(NULL, weights);
     TEST_ASSERT(result == NULL, "Should return NULL for NULL array");
 
-    printf("  NULL array correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_string_null_weights()
+static void test_rt_random_static_weighted_choice_string_null_weights(void)
 {
-    printf("Testing rt_random_static_weighted_choice_string with NULL weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     const char *data[] = {"a", "b", "c"};
@@ -1595,14 +1449,12 @@ void test_rt_random_static_weighted_choice_string_null_weights()
     char *result = rt_random_static_weighted_choice_string(arr, NULL);
     TEST_ASSERT(result == NULL, "Should return NULL for NULL weights");
 
-    printf("  NULL weights correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_string_invalid_weights()
+static void test_rt_random_static_weighted_choice_string_invalid_weights(void)
 {
-    printf("Testing rt_random_static_weighted_choice_string with invalid weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1621,14 +1473,12 @@ void test_rt_random_static_weighted_choice_string_invalid_weights()
     char *result2 = rt_random_static_weighted_choice_string(arr, zero_weights);
     TEST_ASSERT(result2 == NULL, "Should return NULL for zero weight");
 
-    printf("  Invalid weights correctly return NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_static_weighted_choice_string_distribution()
+static void test_rt_random_static_weighted_choice_string_distribution(void)
 {
-    printf("Testing rt_random_static_weighted_choice_string distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1662,8 +1512,6 @@ void test_rt_random_static_weighted_choice_string_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 
     rt_arena_destroy(arena);
 }
@@ -1674,9 +1522,8 @@ void test_rt_random_static_weighted_choice_string_distribution()
  * Tests for rt_random_weighted_choice_long() function.
  * ============================================================================ */
 
-void test_rt_random_weighted_choice_long_basic()
+static void test_rt_random_weighted_choice_long_basic(void)
 {
-    printf("Testing rt_random_weighted_choice_long basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1710,14 +1557,12 @@ void test_rt_random_weighted_choice_long_basic()
     /* With weights {0.7, 0.25, 0.05}, 10 should appear most often */
     TEST_ASSERT(found_10 > found_30, "10 (weight 0.7) should appear more than 30 (weight 0.05)");
 
-    printf("  Distribution: 10=%d, 20=%d, 30=%d\n", found_10, found_20, found_30);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_long_single_element()
+static void test_rt_random_weighted_choice_long_single_element(void)
 {
-    printf("Testing rt_random_weighted_choice_long with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1737,14 +1582,12 @@ void test_rt_random_weighted_choice_long_single_element()
         TEST_ASSERT(result == 42, "Should always return single element");
     }
 
-    printf("  Single element correctly returns 42\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_long_null_rng()
+static void test_rt_random_weighted_choice_long_null_rng(void)
 {
-    printf("Testing rt_random_weighted_choice_long with NULL rng...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     long data[] = {10, 20, 30};
@@ -1755,14 +1598,12 @@ void test_rt_random_weighted_choice_long_null_rng()
     long result = rt_random_weighted_choice_long(NULL, arr, weights);
     TEST_ASSERT(result == 0, "Should return 0 for NULL rng");
 
-    printf("  NULL rng correctly returns 0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_long_null_arr()
+static void test_rt_random_weighted_choice_long_null_arr(void)
 {
-    printf("Testing rt_random_weighted_choice_long with NULL array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -1772,14 +1613,12 @@ void test_rt_random_weighted_choice_long_null_arr()
     long result = rt_random_weighted_choice_long(rng, NULL, weights);
     TEST_ASSERT(result == 0, "Should return 0 for NULL array");
 
-    printf("  NULL array correctly returns 0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_long_null_weights()
+static void test_rt_random_weighted_choice_long_null_weights(void)
 {
-    printf("Testing rt_random_weighted_choice_long with NULL weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -1789,14 +1628,12 @@ void test_rt_random_weighted_choice_long_null_weights()
     long result = rt_random_weighted_choice_long(rng, arr, NULL);
     TEST_ASSERT(result == 0, "Should return 0 for NULL weights");
 
-    printf("  NULL weights correctly returns 0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_long_invalid_weights()
+static void test_rt_random_weighted_choice_long_invalid_weights(void)
 {
-    printf("Testing rt_random_weighted_choice_long with invalid weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -1816,14 +1653,12 @@ void test_rt_random_weighted_choice_long_invalid_weights()
     long result2 = rt_random_weighted_choice_long(rng, arr, zero_weights);
     TEST_ASSERT(result2 == 0, "Should return 0 for zero weight");
 
-    printf("  Invalid weights correctly return 0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_long_reproducible()
+static void test_rt_random_weighted_choice_long_reproducible(void)
 {
-    printf("Testing rt_random_weighted_choice_long reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1847,14 +1682,12 @@ void test_rt_random_weighted_choice_long_reproducible()
 
     TEST_ASSERT(matches == 20, "Same seed should produce same sequence");
 
-    printf("  Reproducibility verified: %d/20 matches\n", matches);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_long_distribution()
+static void test_rt_random_weighted_choice_long_distribution(void)
 {
-    printf("Testing rt_random_weighted_choice_long distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1889,8 +1722,6 @@ void test_rt_random_weighted_choice_long_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 
     rt_arena_destroy(arena);
 }
@@ -1899,9 +1730,8 @@ void test_rt_random_weighted_choice_long_distribution()
  * Instance Weighted Choice Double Tests
  * ============================================================================ */
 
-void test_rt_random_weighted_choice_double_basic()
+static void test_rt_random_weighted_choice_double_basic(void)
 {
-    printf("Testing rt_random_weighted_choice_double basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1935,14 +1765,12 @@ void test_rt_random_weighted_choice_double_basic()
     /* With weights {0.7, 0.25, 0.05}, 1.5 should appear most often */
     TEST_ASSERT(found_1_5 > found_3_5, "1.5 (weight 0.7) should appear more than 3.5 (weight 0.05)");
 
-    printf("  Distribution: 1.5=%d, 2.5=%d, 3.5=%d\n", found_1_5, found_2_5, found_3_5);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_double_single_element()
+static void test_rt_random_weighted_choice_double_single_element(void)
 {
-    printf("Testing rt_random_weighted_choice_double with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -1962,14 +1790,12 @@ void test_rt_random_weighted_choice_double_single_element()
         TEST_ASSERT(result == 3.14159, "Should always return single element");
     }
 
-    printf("  Single element correctly returns 3.14159\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_double_null_rng()
+static void test_rt_random_weighted_choice_double_null_rng(void)
 {
-    printf("Testing rt_random_weighted_choice_double with NULL rng...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     double data[] = {1.0, 2.0, 3.0};
@@ -1980,14 +1806,12 @@ void test_rt_random_weighted_choice_double_null_rng()
     double result = rt_random_weighted_choice_double(NULL, arr, weights);
     TEST_ASSERT(result == 0.0, "Should return 0.0 for NULL rng");
 
-    printf("  NULL rng correctly returns 0.0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_double_null_arr()
+static void test_rt_random_weighted_choice_double_null_arr(void)
 {
-    printf("Testing rt_random_weighted_choice_double with NULL array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -1997,14 +1821,12 @@ void test_rt_random_weighted_choice_double_null_arr()
     double result = rt_random_weighted_choice_double(rng, NULL, weights);
     TEST_ASSERT(result == 0.0, "Should return 0.0 for NULL array");
 
-    printf("  NULL array correctly returns 0.0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_double_null_weights()
+static void test_rt_random_weighted_choice_double_null_weights(void)
 {
-    printf("Testing rt_random_weighted_choice_double with NULL weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -2014,14 +1836,12 @@ void test_rt_random_weighted_choice_double_null_weights()
     double result = rt_random_weighted_choice_double(rng, arr, NULL);
     TEST_ASSERT(result == 0.0, "Should return 0.0 for NULL weights");
 
-    printf("  NULL weights correctly returns 0.0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_double_invalid_weights()
+static void test_rt_random_weighted_choice_double_invalid_weights(void)
 {
-    printf("Testing rt_random_weighted_choice_double with invalid weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -2041,14 +1861,12 @@ void test_rt_random_weighted_choice_double_invalid_weights()
     double result2 = rt_random_weighted_choice_double(rng, arr, zero_weights);
     TEST_ASSERT(result2 == 0.0, "Should return 0.0 for zero weight");
 
-    printf("  Invalid weights correctly return 0.0\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_double_reproducible()
+static void test_rt_random_weighted_choice_double_reproducible(void)
 {
-    printf("Testing rt_random_weighted_choice_double reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2072,14 +1890,12 @@ void test_rt_random_weighted_choice_double_reproducible()
 
     TEST_ASSERT(matches == 20, "Same seed should produce same sequence");
 
-    printf("  Reproducibility verified: %d/20 matches\n", matches);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_double_distribution()
+static void test_rt_random_weighted_choice_double_distribution(void)
 {
-    printf("Testing rt_random_weighted_choice_double distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2115,8 +1931,6 @@ void test_rt_random_weighted_choice_double_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 
     rt_arena_destroy(arena);
 }
@@ -2125,9 +1939,8 @@ void test_rt_random_weighted_choice_double_distribution()
  * Instance Weighted Choice String Tests
  * ============================================================================ */
 
-void test_rt_random_weighted_choice_string_basic()
+static void test_rt_random_weighted_choice_string_basic(void)
 {
-    printf("Testing rt_random_weighted_choice_string basic functionality...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2162,14 +1975,12 @@ void test_rt_random_weighted_choice_string_basic()
     /* With weights {0.7, 0.25, 0.05}, apple should appear most often */
     TEST_ASSERT(found_apple > found_cherry, "apple (weight 0.7) should appear more than cherry (weight 0.05)");
 
-    printf("  Distribution: apple=%d, banana=%d, cherry=%d\n", found_apple, found_banana, found_cherry);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_string_single_element()
+static void test_rt_random_weighted_choice_string_single_element(void)
 {
-    printf("Testing rt_random_weighted_choice_string with single element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2189,14 +2000,12 @@ void test_rt_random_weighted_choice_string_single_element()
         TEST_ASSERT(strcmp(result, "only_one") == 0, "Should always return single element");
     }
 
-    printf("  Single element correctly returns 'only_one'\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_string_null_rng()
+static void test_rt_random_weighted_choice_string_null_rng(void)
 {
-    printf("Testing rt_random_weighted_choice_string with NULL rng...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     const char *data[] = {"a", "b", "c"};
@@ -2207,14 +2016,12 @@ void test_rt_random_weighted_choice_string_null_rng()
     char *result = rt_random_weighted_choice_string(NULL, arr, weights);
     TEST_ASSERT(result == NULL, "Should return NULL for NULL rng");
 
-    printf("  NULL rng correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_string_null_arr()
+static void test_rt_random_weighted_choice_string_null_arr(void)
 {
-    printf("Testing rt_random_weighted_choice_string with NULL array...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -2224,14 +2031,12 @@ void test_rt_random_weighted_choice_string_null_arr()
     char *result = rt_random_weighted_choice_string(rng, NULL, weights);
     TEST_ASSERT(result == NULL, "Should return NULL for NULL array");
 
-    printf("  NULL array correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_string_null_weights()
+static void test_rt_random_weighted_choice_string_null_weights(void)
 {
-    printf("Testing rt_random_weighted_choice_string with NULL weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -2241,14 +2046,12 @@ void test_rt_random_weighted_choice_string_null_weights()
     char *result = rt_random_weighted_choice_string(rng, arr, NULL);
     TEST_ASSERT(result == NULL, "Should return NULL for NULL weights");
 
-    printf("  NULL weights correctly returns NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_string_invalid_weights()
+static void test_rt_random_weighted_choice_string_invalid_weights(void)
 {
-    printf("Testing rt_random_weighted_choice_string with invalid weights...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
@@ -2268,14 +2071,12 @@ void test_rt_random_weighted_choice_string_invalid_weights()
     char *result2 = rt_random_weighted_choice_string(rng, arr, zero_weights);
     TEST_ASSERT(result2 == NULL, "Should return NULL for zero weight");
 
-    printf("  Invalid weights correctly return NULL\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_string_reproducible()
+static void test_rt_random_weighted_choice_string_reproducible(void)
 {
-    printf("Testing rt_random_weighted_choice_string reproducibility...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2299,14 +2100,12 @@ void test_rt_random_weighted_choice_string_reproducible()
 
     TEST_ASSERT(matches == 20, "Same seed should produce same sequence");
 
-    printf("  Reproducibility verified: %d/20 matches\n", matches);
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_weighted_choice_string_distribution()
+static void test_rt_random_weighted_choice_string_distribution(void)
 {
-    printf("Testing rt_random_weighted_choice_string distribution...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2342,8 +2141,6 @@ void test_rt_random_weighted_choice_string_distribution()
         TEST_ASSERT(deviation < tolerance, "Distribution should be roughly uniform");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], expected);
 
     rt_arena_destroy(arena);
 }
@@ -2354,9 +2151,8 @@ void test_rt_random_weighted_choice_string_distribution()
  * Comprehensive tests for weighted random selection distribution accuracy.
  * ============================================================================ */
 
-void test_weighted_distribution_equal_weights_uniform()
+static void test_weighted_distribution_equal_weights_uniform(void)
 {
-    printf("Testing weighted distribution with equal weights produces uniform...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2392,15 +2188,12 @@ void test_weighted_distribution_equal_weights_uniform()
         TEST_ASSERT(deviation < tolerance, "Equal weights should produce uniform distribution");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d, %d] (expected ~%d each)\n",
-           counts[0], counts[1], counts[2], counts[3], counts[4], expected);
 
     rt_arena_destroy(arena);
 }
 
-void test_weighted_distribution_extreme_ratio()
+static void test_weighted_distribution_extreme_ratio(void)
 {
-    printf("Testing weighted distribution with extreme weight ratio (1000:1)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2427,7 +2220,7 @@ void test_weighted_distribution_extreme_ratio()
     /* With 1000:1 ratio, expect ~99.9% vs ~0.1% */
     /* Expected: 100 should appear ~10000 times, 200 should appear ~10 times */
     int expected_100 = (int)(iterations * 1000.0 / 1001.0);  /* ~9990 */
-    int expected_200 = iterations - expected_100;            /* ~10 */
+    (void)iterations;  /* Mark as used */
 
     /* Verify 100 appears much more often */
     TEST_ASSERT(count_100 > count_200 * 100, "High-weight element should dominate");
@@ -2437,17 +2230,11 @@ void test_weighted_distribution_extreme_ratio()
     int deviation_100 = abs(count_100 - expected_100);
     TEST_ASSERT(deviation_100 < tolerance_100, "High-weight element should be near expected");
 
-    printf("  Count: 100=%d (expected ~%d), 200=%d (expected ~%d)\n",
-           count_100, expected_100, count_200, expected_200);
-    printf("  Ratio: %.1f:1 (expected 1000:1)\n",
-           count_200 > 0 ? (double)count_100 / count_200 : (double)count_100);
-
     rt_arena_destroy(arena);
 }
 
-void test_weighted_distribution_single_element()
+static void test_weighted_distribution_single_element(void)
 {
-    printf("Testing weighted distribution single element always returns that element...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2474,14 +2261,12 @@ void test_weighted_distribution_single_element()
         TEST_ASSERT(result == 42, "Single element should always be returned (static)");
     }
 
-    printf("  Single element correctly returned 200 times\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_weighted_distribution_large_sample_accuracy()
+static void test_weighted_distribution_large_sample_accuracy(void)
 {
-    printf("Testing weighted distribution large sample accuracy...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2518,22 +2303,11 @@ void test_weighted_distribution_large_sample_accuracy()
         TEST_ASSERT(deviation < tolerance, "Distribution should match weights within tolerance");
     }
 
-    printf("  Distribution: [%d, %d, %d, %d]\n", counts[0], counts[1], counts[2], counts[3]);
-    printf("  Expected:     [%d, %d, %d, %d]\n", expected[0], expected[1], expected[2], expected[3]);
-
-    /* Calculate actual percentages */
-    printf("  Actual %%:     [%.1f%%, %.1f%%, %.1f%%, %.1f%%]\n",
-           100.0 * counts[0] / iterations,
-           100.0 * counts[1] / iterations,
-           100.0 * counts[2] / iterations,
-           100.0 * counts[3] / iterations);
-
     rt_arena_destroy(arena);
 }
 
-void test_weighted_distribution_seeded_prng_reproducible()
+static void test_weighted_distribution_seeded_prng_reproducible(void)
 {
-    printf("Testing weighted distribution seeded PRNG is reproducible...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2559,14 +2333,12 @@ void test_weighted_distribution_seeded_prng_reproducible()
 
     TEST_ASSERT(matches == iterations, "Same seed must produce identical sequence");
 
-    printf("  Reproducibility: %d/%d matches (expected 100%%)\n", matches, iterations);
 
     rt_arena_destroy(arena);
 }
 
-void test_weighted_distribution_os_entropy_varies()
+static void test_weighted_distribution_os_entropy_varies(void)
 {
-    printf("Testing weighted distribution OS entropy (static) varies...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2600,14 +2372,12 @@ void test_weighted_distribution_os_entropy_varies()
     /* With equal weights and 100 samples, should see most values */
     TEST_ASSERT(unique_count >= 5, "OS entropy should produce varied results");
 
-    printf("  Unique values seen: %d/10\n", unique_count);
 
     rt_arena_destroy(arena);
 }
 
-void test_weighted_distribution_static_vs_instance()
+static void test_weighted_distribution_static_vs_instance(void)
 {
-    printf("Testing weighted distribution static vs instance methods...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2642,12 +2412,6 @@ void test_weighted_distribution_static_vs_instance()
     /* Expected distribution: 1/6, 2/6, 3/6 = ~1000, ~2000, ~3000 */
     int expected[] = {1000, 2000, 3000};
     int tolerance = 400;  /* Allow reasonable variance */
-
-    printf("  Static (OS entropy):  [%d, %d, %d]\n",
-           static_counts[0], static_counts[1], static_counts[2]);
-    printf("  Instance (seeded):    [%d, %d, %d]\n",
-           instance_counts[0], instance_counts[1], instance_counts[2]);
-    printf("  Expected:             [%d, %d, %d]\n", expected[0], expected[1], expected[2]);
 
     /* Both should roughly match expected distribution */
     for (int i = 0; i < 3; i++) {
@@ -2686,10 +2450,8 @@ void test_weighted_distribution_static_vs_instance()
  * 4. Distribution matches expected probabilities within tolerance
  * ============================================================================ */
 
-void test_integration_weighted_loot_drop_static()
+static void test_integration_weighted_loot_drop_static(void)
 {
-    printf("Testing integration: Weighted loot drop (static method)...\n");
-    printf("  Scenario: Game loot system with common=70%%, rare=25%%, legendary=5%%\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2744,21 +2506,11 @@ void test_integration_weighted_loot_drop_static()
     TEST_ASSERT(abs(legendary_count - expected_legendary) < tolerance_legendary,
                "Legendary drop rate should be ~5%");
 
-    printf("  Results (static/OS entropy):\n");
-    printf("    common_sword:    %d (expected ~%d, %.1f%%)\n",
-           common_count, expected_common, 100.0 * common_count / total_drops);
-    printf("    rare_shield:     %d (expected ~%d, %.1f%%)\n",
-           rare_count, expected_rare, 100.0 * rare_count / total_drops);
-    printf("    legendary_helm:  %d (expected ~%d, %.1f%%)\n",
-           legendary_count, expected_legendary, 100.0 * legendary_count / total_drops);
-
     rt_arena_destroy(arena);
 }
 
-void test_integration_weighted_loot_drop_seeded()
+static void test_integration_weighted_loot_drop_seeded(void)
 {
-    printf("Testing integration: Weighted loot drop (seeded instance)...\n");
-    printf("  Scenario: Reproducible loot with seed for testing/replay\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2812,39 +2564,25 @@ void test_integration_weighted_loot_drop_seeded()
     TEST_ASSERT(abs(legendary_count - expected_legendary) < tolerance_legendary,
                "Legendary drop rate should be ~5%");
 
-    printf("  Results (seeded PRNG, seed=%ld):\n", player_seed);
-    printf("    common_sword:    %d (expected ~%d, %.1f%%)\n",
-           common_count, expected_common, 100.0 * common_count / total_drops);
-    printf("    rare_shield:     %d (expected ~%d, %.1f%%)\n",
-           rare_count, expected_rare, 100.0 * rare_count / total_drops);
-    printf("    legendary_helm:  %d (expected ~%d, %.1f%%)\n",
-           legendary_count, expected_legendary, 100.0 * legendary_count / total_drops);
-
     /*
      * Verify reproducibility: same seed should give same sequence
      */
     RtRandom *rng2 = rt_random_create_with_seed(arena, player_seed);
     RtRandom *rng_orig = rt_random_create_with_seed(arena, player_seed);
 
-    printf("  Reproducibility test (10 drops with same seed):\n");
-    printf("    ");
     int matches = 0;
     for (int i = 0; i < 10; i++) {
         char *drop1 = rt_random_weighted_choice_string(rng2, items, weights);
         char *drop2 = rt_random_weighted_choice_string(rng_orig, items, weights);
         if (strcmp(drop1, drop2) == 0) matches++;
-        printf("%s ", drop1);
     }
-    printf("\n");
     TEST_ASSERT(matches == 10, "Same seed must produce identical loot sequence");
-    printf("    All 10 drops matched between two RNGs with same seed\n");
 
     rt_arena_destroy(arena);
 }
 
-void test_integration_weighted_loot_drop_all_tiers()
+static void test_integration_weighted_loot_drop_all_tiers(void)
 {
-    printf("Testing integration: Verify all loot tiers are reachable...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
@@ -2876,13 +2614,11 @@ void test_integration_weighted_loot_drop_all_tiers()
     TEST_ASSERT(found_rare, "Rare tier must be reachable");
     TEST_ASSERT(found_legendary, "Legendary tier must be reachable");
 
-    printf("  All three tiers (common, rare, legendary) verified reachable\n");
 
     rt_arena_destroy(arena);
 }
-void test_rt_random_choice_statistical_chi_squared()
+static void test_rt_random_choice_statistical_chi_squared(void)
 {
-    printf("Testing choice statistical properties (chi-squared)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2913,7 +2649,6 @@ void test_rt_random_choice_statistical_chi_squared()
     /* Chi-squared with 4 degrees of freedom: p=0.01 critical value is ~13.28 */
     TEST_ASSERT(chi_squared < 15.0, "Choice should pass chi-squared test for uniformity");
 
-    printf("  Chi-squared statistic: %.2f (critical value ~13.28 at p=0.01)\n", chi_squared);
 
     rt_arena_destroy(arena);
 }
@@ -2922,141 +2657,134 @@ void test_rt_random_choice_statistical_chi_squared()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_random_choice_main()
+void test_rt_random_choice_main(void)
 {
-    printf("\n");
-    printf("================================================\n");
-    printf(" Runtime Random Choice Tests\n");
-    printf("================================================\n");
+    TEST_SECTION("Runtime Random Choice");
 
     /* Static choice tests */
-    test_rt_random_static_choice_long_basic();
-    test_rt_random_static_choice_long_single_element();
-    test_rt_random_static_choice_long_null_empty();
-    test_rt_random_static_choice_long_distribution();
-    test_rt_random_static_choice_double_basic();
-    test_rt_random_static_choice_double_null_empty();
-    test_rt_random_static_choice_string_basic();
-    test_rt_random_static_choice_string_null_empty();
-    test_rt_random_static_choice_bool_basic();
-    test_rt_random_static_choice_bool_null_empty();
-    test_rt_random_static_choice_byte_basic();
-    test_rt_random_static_choice_byte_null_empty();
+    TEST_RUN("static_choice_long_basic", test_rt_random_static_choice_long_basic);
+    TEST_RUN("static_choice_long_single_element", test_rt_random_static_choice_long_single_element);
+    TEST_RUN("static_choice_long_null_empty", test_rt_random_static_choice_long_null_empty);
+    TEST_RUN("static_choice_long_distribution", test_rt_random_static_choice_long_distribution);
+    TEST_RUN("static_choice_double_basic", test_rt_random_static_choice_double_basic);
+    TEST_RUN("static_choice_double_null_empty", test_rt_random_static_choice_double_null_empty);
+    TEST_RUN("static_choice_string_basic", test_rt_random_static_choice_string_basic);
+    TEST_RUN("static_choice_string_null_empty", test_rt_random_static_choice_string_null_empty);
+    TEST_RUN("static_choice_bool_basic", test_rt_random_static_choice_bool_basic);
+    TEST_RUN("static_choice_bool_null_empty", test_rt_random_static_choice_bool_null_empty);
+    TEST_RUN("static_choice_byte_basic", test_rt_random_static_choice_byte_basic);
+    TEST_RUN("static_choice_byte_null_empty", test_rt_random_static_choice_byte_null_empty);
 
     /* Instance choice tests */
-    test_rt_random_choice_long_basic();
-    test_rt_random_choice_long_reproducibility();
-    test_rt_random_choice_long_null_args();
-    test_rt_random_choice_long_distribution();
-    test_rt_random_choice_double_basic();
-    test_rt_random_choice_double_null_args();
-    test_rt_random_choice_string_basic();
-    test_rt_random_choice_string_null_args();
-    test_rt_random_choice_bool_basic();
-    test_rt_random_choice_bool_null_args();
-    test_rt_random_choice_byte_basic();
-    test_rt_random_choice_byte_null_args();
+    TEST_RUN("choice_long_basic", test_rt_random_choice_long_basic);
+    TEST_RUN("choice_long_reproducibility", test_rt_random_choice_long_reproducibility);
+    TEST_RUN("choice_long_null_args", test_rt_random_choice_long_null_args);
+    TEST_RUN("choice_long_distribution", test_rt_random_choice_long_distribution);
+    TEST_RUN("choice_double_basic", test_rt_random_choice_double_basic);
+    TEST_RUN("choice_double_null_args", test_rt_random_choice_double_null_args);
+    TEST_RUN("choice_string_basic", test_rt_random_choice_string_basic);
+    TEST_RUN("choice_string_null_args", test_rt_random_choice_string_null_args);
+    TEST_RUN("choice_bool_basic", test_rt_random_choice_bool_basic);
+    TEST_RUN("choice_bool_null_args", test_rt_random_choice_bool_null_args);
+    TEST_RUN("choice_byte_basic", test_rt_random_choice_byte_basic);
+    TEST_RUN("choice_byte_null_args", test_rt_random_choice_byte_null_args);
 
     /* Statistical distribution tests for choice */
-    test_rt_random_static_choice_double_distribution();
-    test_rt_random_static_choice_string_distribution();
-    test_rt_random_static_choice_byte_distribution();
-    test_rt_random_choice_double_distribution();
-    test_rt_random_choice_string_distribution();
-    test_rt_random_choice_byte_distribution();
+    TEST_RUN("static_choice_double_distribution", test_rt_random_static_choice_double_distribution);
+    TEST_RUN("static_choice_string_distribution", test_rt_random_static_choice_string_distribution);
+    TEST_RUN("static_choice_byte_distribution", test_rt_random_static_choice_byte_distribution);
+    TEST_RUN("choice_double_distribution", test_rt_random_choice_double_distribution);
+    TEST_RUN("choice_string_distribution", test_rt_random_choice_string_distribution);
+    TEST_RUN("choice_byte_distribution", test_rt_random_choice_byte_distribution);
 
     /* Weight validation helper tests */
-    test_rt_random_validate_weights_valid();
-    test_rt_random_validate_weights_negative();
-    test_rt_random_validate_weights_zero();
-    test_rt_random_validate_weights_empty();
-    test_rt_random_validate_weights_null();
+    TEST_RUN("validate_weights_valid", test_rt_random_validate_weights_valid);
+    TEST_RUN("validate_weights_negative", test_rt_random_validate_weights_negative);
+    TEST_RUN("validate_weights_zero", test_rt_random_validate_weights_zero);
+    TEST_RUN("validate_weights_empty", test_rt_random_validate_weights_empty);
+    TEST_RUN("validate_weights_null", test_rt_random_validate_weights_null);
 
     /* Cumulative distribution helper tests */
-    test_rt_random_build_cumulative_basic();
-    test_rt_random_build_cumulative_normalization();
-    test_rt_random_build_cumulative_single_element();
-    test_rt_random_build_cumulative_two_elements();
-    test_rt_random_build_cumulative_null_arena();
-    test_rt_random_build_cumulative_null_weights();
-    test_rt_random_build_cumulative_empty_array();
-    test_rt_random_build_cumulative_large_weights();
+    TEST_RUN("build_cumulative_basic", test_rt_random_build_cumulative_basic);
+    TEST_RUN("build_cumulative_normalization", test_rt_random_build_cumulative_normalization);
+    TEST_RUN("build_cumulative_single_element", test_rt_random_build_cumulative_single_element);
+    TEST_RUN("build_cumulative_two_elements", test_rt_random_build_cumulative_two_elements);
+    TEST_RUN("build_cumulative_null_arena", test_rt_random_build_cumulative_null_arena);
+    TEST_RUN("build_cumulative_null_weights", test_rt_random_build_cumulative_null_weights);
+    TEST_RUN("build_cumulative_empty_array", test_rt_random_build_cumulative_empty_array);
+    TEST_RUN("build_cumulative_large_weights", test_rt_random_build_cumulative_large_weights);
 
     /* Weighted index selection helper tests */
-    test_rt_random_select_weighted_index_basic();
-    test_rt_random_select_weighted_index_edge_zero();
-    test_rt_random_select_weighted_index_edge_near_one();
-    test_rt_random_select_weighted_index_single_element();
-    test_rt_random_select_weighted_index_two_elements();
-    test_rt_random_select_weighted_index_boundary_values();
-    test_rt_random_select_weighted_index_null();
-    test_rt_random_select_weighted_index_invalid_len();
-    test_rt_random_select_weighted_index_large_array();
+    TEST_RUN("select_weighted_index_basic", test_rt_random_select_weighted_index_basic);
+    TEST_RUN("select_weighted_index_edge_zero", test_rt_random_select_weighted_index_edge_zero);
+    TEST_RUN("select_weighted_index_edge_near_one", test_rt_random_select_weighted_index_edge_near_one);
+    TEST_RUN("select_weighted_index_single_element", test_rt_random_select_weighted_index_single_element);
+    TEST_RUN("select_weighted_index_two_elements", test_rt_random_select_weighted_index_two_elements);
+    TEST_RUN("select_weighted_index_boundary_values", test_rt_random_select_weighted_index_boundary_values);
+    TEST_RUN("select_weighted_index_null", test_rt_random_select_weighted_index_null);
+    TEST_RUN("select_weighted_index_invalid_len", test_rt_random_select_weighted_index_invalid_len);
+    TEST_RUN("select_weighted_index_large_array", test_rt_random_select_weighted_index_large_array);
 
     /* Static weighted choice tests */
-    test_rt_random_static_weighted_choice_long_basic();
-    test_rt_random_static_weighted_choice_long_single_element();
-    test_rt_random_static_weighted_choice_long_null_arr();
-    test_rt_random_static_weighted_choice_long_null_weights();
-    test_rt_random_static_weighted_choice_long_invalid_weights();
-    test_rt_random_static_weighted_choice_long_distribution();
-    test_rt_random_static_weighted_choice_double_basic();
-    test_rt_random_static_weighted_choice_double_single_element();
-    test_rt_random_static_weighted_choice_double_null_arr();
-    test_rt_random_static_weighted_choice_double_null_weights();
-    test_rt_random_static_weighted_choice_double_invalid_weights();
-    test_rt_random_static_weighted_choice_double_distribution();
-    test_rt_random_static_weighted_choice_string_basic();
-    test_rt_random_static_weighted_choice_string_single_element();
-    test_rt_random_static_weighted_choice_string_null_arr();
-    test_rt_random_static_weighted_choice_string_null_weights();
-    test_rt_random_static_weighted_choice_string_invalid_weights();
-    test_rt_random_static_weighted_choice_string_distribution();
+    TEST_RUN("static_weighted_choice_long_basic", test_rt_random_static_weighted_choice_long_basic);
+    TEST_RUN("static_weighted_choice_long_single_element", test_rt_random_static_weighted_choice_long_single_element);
+    TEST_RUN("static_weighted_choice_long_null_arr", test_rt_random_static_weighted_choice_long_null_arr);
+    TEST_RUN("static_weighted_choice_long_null_weights", test_rt_random_static_weighted_choice_long_null_weights);
+    TEST_RUN("static_weighted_choice_long_invalid_weights", test_rt_random_static_weighted_choice_long_invalid_weights);
+    TEST_RUN("static_weighted_choice_long_distribution", test_rt_random_static_weighted_choice_long_distribution);
+    TEST_RUN("static_weighted_choice_double_basic", test_rt_random_static_weighted_choice_double_basic);
+    TEST_RUN("static_weighted_choice_double_single_element", test_rt_random_static_weighted_choice_double_single_element);
+    TEST_RUN("static_weighted_choice_double_null_arr", test_rt_random_static_weighted_choice_double_null_arr);
+    TEST_RUN("static_weighted_choice_double_null_weights", test_rt_random_static_weighted_choice_double_null_weights);
+    TEST_RUN("static_weighted_choice_double_invalid_weights", test_rt_random_static_weighted_choice_double_invalid_weights);
+    TEST_RUN("static_weighted_choice_double_distribution", test_rt_random_static_weighted_choice_double_distribution);
+    TEST_RUN("static_weighted_choice_string_basic", test_rt_random_static_weighted_choice_string_basic);
+    TEST_RUN("static_weighted_choice_string_single_element", test_rt_random_static_weighted_choice_string_single_element);
+    TEST_RUN("static_weighted_choice_string_null_arr", test_rt_random_static_weighted_choice_string_null_arr);
+    TEST_RUN("static_weighted_choice_string_null_weights", test_rt_random_static_weighted_choice_string_null_weights);
+    TEST_RUN("static_weighted_choice_string_invalid_weights", test_rt_random_static_weighted_choice_string_invalid_weights);
+    TEST_RUN("static_weighted_choice_string_distribution", test_rt_random_static_weighted_choice_string_distribution);
 
     /* Instance weighted choice tests */
-    test_rt_random_weighted_choice_long_basic();
-    test_rt_random_weighted_choice_long_single_element();
-    test_rt_random_weighted_choice_long_null_rng();
-    test_rt_random_weighted_choice_long_null_arr();
-    test_rt_random_weighted_choice_long_null_weights();
-    test_rt_random_weighted_choice_long_invalid_weights();
-    test_rt_random_weighted_choice_long_reproducible();
-    test_rt_random_weighted_choice_long_distribution();
-    test_rt_random_weighted_choice_double_basic();
-    test_rt_random_weighted_choice_double_single_element();
-    test_rt_random_weighted_choice_double_null_rng();
-    test_rt_random_weighted_choice_double_null_arr();
-    test_rt_random_weighted_choice_double_null_weights();
-    test_rt_random_weighted_choice_double_invalid_weights();
-    test_rt_random_weighted_choice_double_reproducible();
-    test_rt_random_weighted_choice_double_distribution();
-    test_rt_random_weighted_choice_string_basic();
-    test_rt_random_weighted_choice_string_single_element();
-    test_rt_random_weighted_choice_string_null_rng();
-    test_rt_random_weighted_choice_string_null_arr();
-    test_rt_random_weighted_choice_string_null_weights();
-    test_rt_random_weighted_choice_string_invalid_weights();
-    test_rt_random_weighted_choice_string_reproducible();
-    test_rt_random_weighted_choice_string_distribution();
+    TEST_RUN("weighted_choice_long_basic", test_rt_random_weighted_choice_long_basic);
+    TEST_RUN("weighted_choice_long_single_element", test_rt_random_weighted_choice_long_single_element);
+    TEST_RUN("weighted_choice_long_null_rng", test_rt_random_weighted_choice_long_null_rng);
+    TEST_RUN("weighted_choice_long_null_arr", test_rt_random_weighted_choice_long_null_arr);
+    TEST_RUN("weighted_choice_long_null_weights", test_rt_random_weighted_choice_long_null_weights);
+    TEST_RUN("weighted_choice_long_invalid_weights", test_rt_random_weighted_choice_long_invalid_weights);
+    TEST_RUN("weighted_choice_long_reproducible", test_rt_random_weighted_choice_long_reproducible);
+    TEST_RUN("weighted_choice_long_distribution", test_rt_random_weighted_choice_long_distribution);
+    TEST_RUN("weighted_choice_double_basic", test_rt_random_weighted_choice_double_basic);
+    TEST_RUN("weighted_choice_double_single_element", test_rt_random_weighted_choice_double_single_element);
+    TEST_RUN("weighted_choice_double_null_rng", test_rt_random_weighted_choice_double_null_rng);
+    TEST_RUN("weighted_choice_double_null_arr", test_rt_random_weighted_choice_double_null_arr);
+    TEST_RUN("weighted_choice_double_null_weights", test_rt_random_weighted_choice_double_null_weights);
+    TEST_RUN("weighted_choice_double_invalid_weights", test_rt_random_weighted_choice_double_invalid_weights);
+    TEST_RUN("weighted_choice_double_reproducible", test_rt_random_weighted_choice_double_reproducible);
+    TEST_RUN("weighted_choice_double_distribution", test_rt_random_weighted_choice_double_distribution);
+    TEST_RUN("weighted_choice_string_basic", test_rt_random_weighted_choice_string_basic);
+    TEST_RUN("weighted_choice_string_single_element", test_rt_random_weighted_choice_string_single_element);
+    TEST_RUN("weighted_choice_string_null_rng", test_rt_random_weighted_choice_string_null_rng);
+    TEST_RUN("weighted_choice_string_null_arr", test_rt_random_weighted_choice_string_null_arr);
+    TEST_RUN("weighted_choice_string_null_weights", test_rt_random_weighted_choice_string_null_weights);
+    TEST_RUN("weighted_choice_string_invalid_weights", test_rt_random_weighted_choice_string_invalid_weights);
+    TEST_RUN("weighted_choice_string_reproducible", test_rt_random_weighted_choice_string_reproducible);
+    TEST_RUN("weighted_choice_string_distribution", test_rt_random_weighted_choice_string_distribution);
 
     /* Weighted distribution tests */
-    test_weighted_distribution_equal_weights_uniform();
-    test_weighted_distribution_extreme_ratio();
-    test_weighted_distribution_single_element();
-    test_weighted_distribution_large_sample_accuracy();
-    test_weighted_distribution_seeded_prng_reproducible();
-    test_weighted_distribution_os_entropy_varies();
-    test_weighted_distribution_static_vs_instance();
+    TEST_RUN("weighted_distribution_equal_weights_uniform", test_weighted_distribution_equal_weights_uniform);
+    TEST_RUN("weighted_distribution_extreme_ratio", test_weighted_distribution_extreme_ratio);
+    TEST_RUN("weighted_distribution_single_element", test_weighted_distribution_single_element);
+    TEST_RUN("weighted_distribution_large_sample_accuracy", test_weighted_distribution_large_sample_accuracy);
+    TEST_RUN("weighted_distribution_seeded_prng_reproducible", test_weighted_distribution_seeded_prng_reproducible);
+    TEST_RUN("weighted_distribution_os_entropy_varies", test_weighted_distribution_os_entropy_varies);
+    TEST_RUN("weighted_distribution_static_vs_instance", test_weighted_distribution_static_vs_instance);
 
     /* Integration tests for weighted loot */
-    test_integration_weighted_loot_drop_static();
-    test_integration_weighted_loot_drop_seeded();
-    test_integration_weighted_loot_drop_all_tiers();
+    TEST_RUN("integration_weighted_loot_drop_static", test_integration_weighted_loot_drop_static);
+    TEST_RUN("integration_weighted_loot_drop_seeded", test_integration_weighted_loot_drop_seeded);
+    TEST_RUN("integration_weighted_loot_drop_all_tiers", test_integration_weighted_loot_drop_all_tiers);
 
     /* Statistical tests */
-    test_rt_random_choice_statistical_chi_squared();
-
-    printf("------------------------------------------------\n");
-    printf(" All runtime random choice tests passed!\n");
-    printf("================================================\n");
+    TEST_RUN("choice_statistical_chi_squared", test_rt_random_choice_statistical_chi_squared);
 }

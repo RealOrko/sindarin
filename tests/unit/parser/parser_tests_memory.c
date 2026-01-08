@@ -1,10 +1,8 @@
 // tests/parser_tests_memory.c
 // Parser tests for memory management syntax (as val, as ref, shared, private)
 
-void test_var_decl_as_val_parsing()
+static void test_var_decl_as_val_parsing()
 {
-    printf("Testing parser_execute var declaration with 'as val'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -24,10 +22,8 @@ void test_var_decl_as_val_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_var_decl_as_ref_parsing()
+static void test_var_decl_as_ref_parsing()
 {
-    printf("Testing parser_execute var declaration with 'as ref'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -47,10 +43,8 @@ void test_var_decl_as_ref_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_var_decl_default_qualifier_parsing()
+static void test_var_decl_default_qualifier_parsing()
 {
-    printf("Testing parser_execute var declaration with default qualifier...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -69,10 +63,8 @@ void test_var_decl_default_qualifier_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_function_param_as_val_parsing()
+static void test_function_param_as_val_parsing()
 {
-    printf("Testing parser_execute function param with 'as val'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -95,10 +87,8 @@ void test_function_param_as_val_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_function_shared_modifier_parsing()
+static void test_function_shared_modifier_parsing()
 {
-    printf("Testing parser_execute function with 'shared' modifier...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -120,10 +110,8 @@ void test_function_shared_modifier_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_function_private_modifier_parsing()
+static void test_function_private_modifier_parsing()
 {
-    printf("Testing parser_execute function with 'private' modifier...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -145,10 +133,8 @@ void test_function_private_modifier_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_function_default_modifier_parsing()
+static void test_function_default_modifier_parsing()
 {
-    printf("Testing parser_execute function with default modifier...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -169,10 +155,8 @@ void test_function_default_modifier_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_shared_block_parsing()
+static void test_shared_block_parsing()
 {
-    printf("Testing parser_execute shared block...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -197,10 +181,8 @@ void test_shared_block_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_private_block_parsing()
+static void test_private_block_parsing()
 {
-    printf("Testing parser_execute private block...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -225,10 +207,8 @@ void test_private_block_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_shared_while_loop_parsing()
+static void test_shared_while_loop_parsing()
 {
-    printf("Testing parser_execute shared while loop...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -254,10 +234,8 @@ void test_shared_while_loop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_shared_for_each_loop_parsing()
+static void test_shared_for_each_loop_parsing()
 {
-    printf("Testing parser_execute shared for-each loop...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -283,10 +261,8 @@ void test_shared_for_each_loop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_regular_while_loop_not_shared_parsing()
+static void test_regular_while_loop_not_shared_parsing()
 {
-    printf("Testing parser_execute regular while loop is not shared...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -312,10 +288,8 @@ void test_regular_while_loop_not_shared_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_regular_for_each_loop_not_shared_parsing()
+static void test_regular_for_each_loop_not_shared_parsing()
 {
-    printf("Testing parser_execute regular for-each loop is not shared...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -341,10 +315,8 @@ void test_regular_for_each_loop_not_shared_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_shared_cstyle_for_loop_parsing()
+static void test_shared_cstyle_for_loop_parsing()
 {
-    printf("Testing parser_execute shared C-style for loop...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -376,10 +348,8 @@ void test_shared_cstyle_for_loop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_regular_cstyle_for_loop_not_shared_parsing()
+static void test_regular_cstyle_for_loop_not_shared_parsing()
 {
-    printf("Testing parser_execute regular C-style for loop is not shared...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -410,10 +380,8 @@ void test_regular_cstyle_for_loop_not_shared_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_import_without_namespace_parsing()
+static void test_import_without_namespace_parsing()
 {
-    printf("Testing parser_execute import without namespace...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -433,10 +401,8 @@ void test_import_without_namespace_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_import_with_namespace_parsing()
+static void test_import_with_namespace_parsing()
 {
-    printf("Testing parser_execute import with namespace...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -458,10 +424,8 @@ void test_import_with_namespace_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_import_with_underscore_namespace_parsing()
+static void test_import_with_underscore_namespace_parsing()
 {
-    printf("Testing parser_execute import with underscore namespace...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -481,10 +445,8 @@ void test_import_with_underscore_namespace_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_multiple_imports_mixed_parsing()
+static void test_multiple_imports_mixed_parsing()
 {
-    printf("Testing parser_execute multiple imports with mixed styles...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -522,10 +484,8 @@ void test_multiple_imports_mixed_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_import_keyword_as_namespace_error()
+static void test_import_keyword_as_namespace_error()
 {
-    printf("Testing parser_execute import with keyword as namespace (should error)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -542,10 +502,8 @@ void test_import_keyword_as_namespace_error()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_import_missing_namespace_after_as_error()
+static void test_import_missing_namespace_after_as_error()
 {
-    printf("Testing parser_execute import with missing namespace after 'as' (should error)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -562,27 +520,28 @@ void test_import_missing_namespace_after_as_error()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_parser_memory_main()
+static void test_parser_memory_main()
 {
-    test_var_decl_as_val_parsing();
-    test_var_decl_as_ref_parsing();
-    test_var_decl_default_qualifier_parsing();
-    test_function_param_as_val_parsing();
-    test_function_shared_modifier_parsing();
-    test_function_private_modifier_parsing();
-    test_function_default_modifier_parsing();
-    test_shared_block_parsing();
-    test_private_block_parsing();
-    test_shared_while_loop_parsing();
-    test_shared_for_each_loop_parsing();
-    test_shared_cstyle_for_loop_parsing();
-    test_regular_while_loop_not_shared_parsing();
-    test_regular_for_each_loop_not_shared_parsing();
-    test_regular_cstyle_for_loop_not_shared_parsing();
-    test_import_without_namespace_parsing();
-    test_import_with_namespace_parsing();
-    test_import_with_underscore_namespace_parsing();
-    test_multiple_imports_mixed_parsing();
-    test_import_keyword_as_namespace_error();
-    test_import_missing_namespace_after_as_error();
+    TEST_SECTION("Parser Memory Management Tests");
+    TEST_RUN("var_decl_as_val_parsing", test_var_decl_as_val_parsing);
+    TEST_RUN("var_decl_as_ref_parsing", test_var_decl_as_ref_parsing);
+    TEST_RUN("var_decl_default_qualifier_parsing", test_var_decl_default_qualifier_parsing);
+    TEST_RUN("function_param_as_val_parsing", test_function_param_as_val_parsing);
+    TEST_RUN("function_shared_modifier_parsing", test_function_shared_modifier_parsing);
+    TEST_RUN("function_private_modifier_parsing", test_function_private_modifier_parsing);
+    TEST_RUN("function_default_modifier_parsing", test_function_default_modifier_parsing);
+    TEST_RUN("shared_block_parsing", test_shared_block_parsing);
+    TEST_RUN("private_block_parsing", test_private_block_parsing);
+    TEST_RUN("shared_while_loop_parsing", test_shared_while_loop_parsing);
+    TEST_RUN("shared_for_each_loop_parsing", test_shared_for_each_loop_parsing);
+    TEST_RUN("shared_cstyle_for_loop_parsing", test_shared_cstyle_for_loop_parsing);
+    TEST_RUN("regular_while_loop_not_shared_parsing", test_regular_while_loop_not_shared_parsing);
+    TEST_RUN("regular_for_each_loop_not_shared_parsing", test_regular_for_each_loop_not_shared_parsing);
+    TEST_RUN("regular_cstyle_for_loop_not_shared_parsing", test_regular_cstyle_for_loop_not_shared_parsing);
+    TEST_RUN("import_without_namespace_parsing", test_import_without_namespace_parsing);
+    TEST_RUN("import_with_namespace_parsing", test_import_with_namespace_parsing);
+    TEST_RUN("import_with_underscore_namespace_parsing", test_import_with_underscore_namespace_parsing);
+    TEST_RUN("multiple_imports_mixed_parsing", test_multiple_imports_mixed_parsing);
+    TEST_RUN("import_keyword_as_namespace_error", test_import_keyword_as_namespace_error);
+    TEST_RUN("import_missing_namespace_after_as_error", test_import_missing_namespace_after_as_error);
 }

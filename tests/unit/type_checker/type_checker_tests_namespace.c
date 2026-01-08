@@ -10,7 +10,6 @@
 /* Test that namespaced import creates namespace correctly */
 static void test_namespace_import_creates_namespace(void)
 {
-    printf("Testing namespaced import creates namespace correctly...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -46,7 +45,6 @@ static void test_namespace_import_creates_namespace(void)
 /* Test that namespace identifier validation rejects keywords */
 static void test_namespace_rejects_keywords(void)
 {
-    printf("Testing namespace identifier validation rejects keywords...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -70,7 +68,6 @@ static void test_namespace_rejects_keywords(void)
 /* Test that namespace doesn't conflict with existing variable names */
 static void test_namespace_no_variable_conflict(void)
 {
-    printf("Testing namespace doesn't conflict with existing variable names...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -104,7 +101,6 @@ static void test_namespace_no_variable_conflict(void)
 /* Test that using namespace as variable triggers error check */
 static void test_namespace_as_variable_detected(void)
 {
-    printf("Testing namespace as variable is detected...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -131,7 +127,6 @@ static void test_namespace_as_variable_detected(void)
 /* Test undefined namespace in member access detection */
 static void test_undefined_namespace_detected(void)
 {
-    printf("Testing undefined namespace in member access is detected...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -154,7 +149,6 @@ static void test_undefined_namespace_detected(void)
 /* Test same module imported both ways (direct and namespaced) */
 static void test_same_module_both_import_styles(void)
 {
-    printf("Testing same module imported both ways works correctly...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -195,7 +189,6 @@ static void test_same_module_both_import_styles(void)
 /* Test namespace symbol lookup fails for non-existent symbol */
 static void test_namespace_symbol_not_found(void)
 {
-    printf("Testing namespace symbol lookup fails for non-existent symbol...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -225,7 +218,6 @@ static void test_namespace_symbol_not_found(void)
 /* Test get_module_symbols helper function */
 static void test_get_module_symbols_empty(void)
 {
-    printf("Testing get_module_symbols with empty module...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -255,7 +247,6 @@ static void test_get_module_symbols_empty(void)
 /* Test get_module_symbols with NULL input */
 static void test_get_module_symbols_null(void)
 {
-    printf("Testing get_module_symbols with NULL module...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -279,15 +270,15 @@ static void test_get_module_symbols_null(void)
 /* Main entry point for namespace type checker tests */
 void test_type_checker_namespace_main(void)
 {
-    printf("\n=== Type Checker Namespace Tests ===\n");
-    test_namespace_import_creates_namespace();
-    test_namespace_rejects_keywords();
-    test_namespace_no_variable_conflict();
-    test_namespace_as_variable_detected();
-    test_undefined_namespace_detected();
-    test_same_module_both_import_styles();
-    test_namespace_symbol_not_found();
-    test_get_module_symbols_empty();
-    test_get_module_symbols_null();
-    printf("All namespace type checker tests passed!\n\n");
+    TEST_SECTION("Type Checker Namespaces");
+
+    TEST_RUN("namespace_import_creates_namespace", test_namespace_import_creates_namespace);
+    TEST_RUN("namespace_rejects_keywords", test_namespace_rejects_keywords);
+    TEST_RUN("namespace_no_variable_conflict", test_namespace_no_variable_conflict);
+    TEST_RUN("namespace_as_variable_detected", test_namespace_as_variable_detected);
+    TEST_RUN("undefined_namespace_detected", test_undefined_namespace_detected);
+    TEST_RUN("same_module_both_import_styles", test_same_module_both_import_styles);
+    TEST_RUN("namespace_symbol_not_found", test_namespace_symbol_not_found);
+    TEST_RUN("get_module_symbols_empty", test_get_module_symbols_empty);
+    TEST_RUN("get_module_symbols_null", test_get_module_symbols_null);
 }

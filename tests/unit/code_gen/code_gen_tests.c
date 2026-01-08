@@ -2,6 +2,8 @@
 // Code generation tests - main entry point
 // This file includes all code gen test modules
 
+#include "../test_harness.h"
+
 #include "code_gen_tests_util.c"
 #include "code_gen_tests_expr.c"
 #include "code_gen_tests_stmt.c"

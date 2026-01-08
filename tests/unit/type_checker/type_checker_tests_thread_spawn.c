@@ -7,11 +7,11 @@
 #include "../type_checker/type_checker_expr.h"
 #include "../type_checker/type_checker_stmt.h"
 #include "../ast/ast_expr.h"
+#include "../test_harness.h"
 
 /* Test spawn with non-call expression reports error */
 static void test_thread_spawn_non_call_error(void)
 {
-    printf("Testing thread spawn with non-call expression reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -43,7 +43,6 @@ static void test_thread_spawn_non_call_error(void)
 /* Test spawn with non-function callee reports error */
 static void test_thread_spawn_non_function_error(void)
 {
-    printf("Testing thread spawn with non-function callee reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -77,7 +76,6 @@ static void test_thread_spawn_non_function_error(void)
 /* Test void spawn assignment reports error */
 static void test_void_spawn_assignment_error(void)
 {
-    printf("Testing void spawn assignment reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -126,7 +124,6 @@ static void test_void_spawn_assignment_error(void)
 /* Test valid non-void spawn returns correct type */
 static void test_valid_spawn_returns_correct_type(void)
 {
-    printf("Testing valid non-void spawn returns correct type...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -164,7 +161,6 @@ static void test_valid_spawn_returns_correct_type(void)
 /* Test pending state is marked on result variable */
 static void test_pending_state_marked_on_spawn_assignment(void)
 {
-    printf("Testing pending state is marked on result variable...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -212,7 +208,6 @@ static void test_pending_state_marked_on_spawn_assignment(void)
 /* Test array argument is frozen after spawn */
 static void test_array_arg_frozen_after_spawn(void)
 {
-    printf("Testing array argument is frozen after spawn...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -273,7 +268,6 @@ static void test_array_arg_frozen_after_spawn(void)
 /* Test frozen args stored in pending variable symbol after spawn */
 static void test_frozen_args_stored_in_pending_symbol(void)
 {
-    printf("Testing frozen args stored in pending variable symbol...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -357,7 +351,6 @@ static void test_frozen_args_stored_in_pending_symbol(void)
 /* Test 'as ref' primitive is frozen after spawn */
 static void test_as_ref_primitive_frozen_after_spawn(void)
 {
-    printf("Testing 'as ref' primitive is frozen after spawn...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -429,7 +422,6 @@ static void test_as_ref_primitive_frozen_after_spawn(void)
 /* Test spawn with wrong return type for variable declaration */
 static void test_spawn_type_mismatch_error(void)
 {
-    printf("Testing spawn return type mismatch with variable reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -472,17 +464,15 @@ static void test_spawn_type_mismatch_error(void)
 
 void test_type_checker_thread_spawn_main(void)
 {
-    printf("\n=== Running Thread Spawn Type Checker Tests ===\n\n");
+    TEST_SECTION("Thread Spawn Type Checker");
 
-    test_thread_spawn_non_call_error();
-    test_thread_spawn_non_function_error();
-    test_void_spawn_assignment_error();
-    test_valid_spawn_returns_correct_type();
-    test_pending_state_marked_on_spawn_assignment();
-    test_array_arg_frozen_after_spawn();
-    test_frozen_args_stored_in_pending_symbol();
-    test_as_ref_primitive_frozen_after_spawn();
-    test_spawn_type_mismatch_error();
-
-    printf("\n=== All Thread Spawn Type Checker Tests Passed ===\n\n");
+    TEST_RUN("spawn_non_call_error", test_thread_spawn_non_call_error);
+    TEST_RUN("spawn_non_function_error", test_thread_spawn_non_function_error);
+    TEST_RUN("void_spawn_assignment_error", test_void_spawn_assignment_error);
+    TEST_RUN("valid_spawn_returns_correct_type", test_valid_spawn_returns_correct_type);
+    TEST_RUN("pending_state_marked_on_spawn_assignment", test_pending_state_marked_on_spawn_assignment);
+    TEST_RUN("array_arg_frozen_after_spawn", test_array_arg_frozen_after_spawn);
+    TEST_RUN("frozen_args_stored_in_pending_symbol", test_frozen_args_stored_in_pending_symbol);
+    TEST_RUN("as_ref_primitive_frozen_after_spawn", test_as_ref_primitive_frozen_after_spawn);
+    TEST_RUN("spawn_type_mismatch_error", test_spawn_type_mismatch_error);
 }

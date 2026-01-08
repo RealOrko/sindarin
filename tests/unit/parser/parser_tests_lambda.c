@@ -1,10 +1,8 @@
 // tests/parser_tests_lambda.c
 // Lambda parser tests - single-line and multi-line lambdas
 
-void test_single_line_lambda_parsing()
+static void test_single_line_lambda_parsing()
 {
-    printf("Testing parser_execute single-line lambda...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -30,10 +28,8 @@ void test_single_line_lambda_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_multi_line_lambda_parsing()
+static void test_multi_line_lambda_parsing()
 {
-    printf("Testing parser_execute multi-line lambda...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -64,10 +60,8 @@ void test_multi_line_lambda_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_multi_line_lambda_with_loop_parsing()
+static void test_multi_line_lambda_with_loop_parsing()
 {
-    printf("Testing parser_execute multi-line lambda with loop...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -99,10 +93,8 @@ void test_multi_line_lambda_with_loop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_parenthesized_function_type_array()
+static void test_parenthesized_function_type_array()
 {
-    printf("Testing parser_execute parenthesized function type array...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -135,10 +127,8 @@ void test_parenthesized_function_type_array()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_function_returning_array_vs_array_of_functions()
+static void test_function_returning_array_vs_array_of_functions()
 {
-    printf("Testing parser_execute function returning array vs array of functions...\n");
-
     /* Test 1: fn(int): int[] should parse as function returning array */
     {
         Arena arena;
@@ -184,11 +174,12 @@ void test_function_returning_array_vs_array_of_functions()
     }
 }
 
-void test_parser_lambda_main()
+static void test_parser_lambda_main()
 {
-    test_single_line_lambda_parsing();
-    test_multi_line_lambda_parsing();
-    test_multi_line_lambda_with_loop_parsing();
-    test_parenthesized_function_type_array();
-    test_function_returning_array_vs_array_of_functions();
+    TEST_SECTION("Parser Lambda Tests");
+    TEST_RUN("single_line_lambda_parsing", test_single_line_lambda_parsing);
+    TEST_RUN("multi_line_lambda_parsing", test_multi_line_lambda_parsing);
+    TEST_RUN("multi_line_lambda_with_loop_parsing", test_multi_line_lambda_with_loop_parsing);
+    TEST_RUN("parenthesized_function_type_array", test_parenthesized_function_type_array);
+    TEST_RUN("function_returning_array_vs_array_of_functions", test_function_returning_array_vs_array_of_functions);
 }

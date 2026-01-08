@@ -1,10 +1,8 @@
 // tests/parser_tests_static.c
 // Parser tests for static method call syntax (TypeName.method())
 
-void test_static_call_no_args_parsing()
+static void test_static_call_no_args_parsing()
 {
-    printf("Testing parser_execute static method call with no args...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -27,10 +25,8 @@ void test_static_call_no_args_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_static_call_one_arg_parsing()
+static void test_static_call_one_arg_parsing()
 {
-    printf("Testing parser_execute static method call with one arg...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -55,10 +51,8 @@ void test_static_call_one_arg_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_static_call_multiple_args_parsing()
+static void test_static_call_multiple_args_parsing()
 {
-    printf("Testing parser_execute static method call with multiple args...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -81,10 +75,8 @@ void test_static_call_multiple_args_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_static_call_in_var_decl_parsing()
+static void test_static_call_in_var_decl_parsing()
 {
-    printf("Testing parser_execute static method call in var declaration...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -105,10 +97,8 @@ void test_static_call_in_var_decl_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_static_call_bytes_from_hex_parsing()
+static void test_static_call_bytes_from_hex_parsing()
 {
-    printf("Testing parser_execute Bytes.fromHex static call...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -129,10 +119,8 @@ void test_static_call_bytes_from_hex_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_static_call_directory_list_parsing()
+static void test_static_call_directory_list_parsing()
 {
-    printf("Testing parser_execute Directory.list static call...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -153,10 +141,8 @@ void test_static_call_directory_list_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_static_call_vs_instance_call_parsing()
+static void test_static_call_vs_instance_call_parsing()
 {
-    printf("Testing parser distinguishes static calls from instance method calls...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -181,17 +167,14 @@ void test_static_call_vs_instance_call_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_parser_static_main()
+static void test_parser_static_main()
 {
-    printf("\n=== Running Static Method Parser Tests ===\n\n");
-
-    test_static_call_no_args_parsing();
-    test_static_call_one_arg_parsing();
-    test_static_call_multiple_args_parsing();
-    test_static_call_in_var_decl_parsing();
-    test_static_call_bytes_from_hex_parsing();
-    test_static_call_directory_list_parsing();
-    test_static_call_vs_instance_call_parsing();
-
-    printf("\n=== All Static Method Parser Tests Passed ===\n");
+    TEST_SECTION("Parser Static Method Tests");
+    TEST_RUN("static_call_no_args_parsing", test_static_call_no_args_parsing);
+    TEST_RUN("static_call_one_arg_parsing", test_static_call_one_arg_parsing);
+    TEST_RUN("static_call_multiple_args_parsing", test_static_call_multiple_args_parsing);
+    TEST_RUN("static_call_in_var_decl_parsing", test_static_call_in_var_decl_parsing);
+    TEST_RUN("static_call_bytes_from_hex_parsing", test_static_call_bytes_from_hex_parsing);
+    TEST_RUN("static_call_directory_list_parsing", test_static_call_directory_list_parsing);
+    TEST_RUN("static_call_vs_instance_call_parsing", test_static_call_vs_instance_call_parsing);
 }
