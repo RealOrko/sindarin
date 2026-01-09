@@ -84,7 +84,7 @@ void parser_advance(Parser *parser)
     }
 }
 
-void parser_consume(Parser *parser, TokenType type, const char *message)
+void parser_consume(Parser *parser, SnTokenType type, const char *message)
 {
     if (parser->current.type == type)
     {
@@ -94,12 +94,12 @@ void parser_consume(Parser *parser, TokenType type, const char *message)
     parser_error_at_current(parser, message);
 }
 
-int parser_check(Parser *parser, TokenType type)
+int parser_check(Parser *parser, SnTokenType type)
 {
     return parser->current.type == type;
 }
 
-int parser_match(Parser *parser, TokenType type)
+int parser_match(Parser *parser, SnTokenType type)
 {
     if (!parser_check(parser, type))
         return 0;
@@ -432,7 +432,7 @@ int parser_check_method_name(Parser *parser)
         return 1;
     }
     /* Allow type keywords as method names (for Random.int, rng.int, etc.) */
-    TokenType type = parser->current.type;
+    SnTokenType type = parser->current.type;
     if (type == TOKEN_INT || type == TOKEN_LONG || type == TOKEN_DOUBLE ||
         type == TOKEN_BOOL || type == TOKEN_BYTE)
     {

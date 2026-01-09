@@ -376,11 +376,11 @@ fn main(): int =>
     // ============================================================
     print("\n--- Child Process Environment ---\n")
 
-    // Test 19: Child process inherits environment variables
+    // Test 19: Child process inherits environment variables (cross-platform using Python)
     print("Test 19 - Child process inherits env vars:\n")
 
     Environment.set("SN_CHILD_TEST", "inherited_value")
-    var proc: Process = Process.run("sh", {"-c", "echo $SN_CHILD_TEST"})
+    var proc: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_CHILD_TEST',''))"})
     var childOutput: str = proc.stdout.trim()
 
     if childOutput == "inherited_value" =>
@@ -394,7 +394,7 @@ fn main(): int =>
 
     Environment.set("SN_MODIFY_TEST", "original")
     Environment.set("SN_MODIFY_TEST", "modified")
-    var proc2: Process = Process.run("sh", {"-c", "echo $SN_MODIFY_TEST"})
+    var proc2: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_MODIFY_TEST',''))"})
     var modOutput: str = proc2.stdout.trim()
 
     if modOutput == "modified" =>
@@ -408,7 +408,7 @@ fn main(): int =>
 
     Environment.set("SN_MULTI_A", "alpha")
     Environment.set("SN_MULTI_B", "beta")
-    var proc3: Process = Process.run("sh", {"-c", "echo $SN_MULTI_A-$SN_MULTI_B"})
+    var proc3: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_MULTI_A','')+'-'+os.environ.get('SN_MULTI_B',''))"})
     var multiOutput: str = proc3.stdout.trim()
 
     if multiOutput == "alpha-beta" =>
@@ -422,7 +422,7 @@ fn main(): int =>
 
     Environment.set("SN_REMOVE_TEST", "will_be_gone")
     Environment.remove("SN_REMOVE_TEST")
-    var proc4: Process = Process.run("sh", {"-c", "echo \"${SN_REMOVE_TEST:-unset}\""})
+    var proc4: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_REMOVE_TEST','unset'))"})
     var removeOutput: str = proc4.stdout.trim()
 
     if removeOutput == "unset" =>
@@ -435,8 +435,8 @@ fn main(): int =>
     print("\nTest 23 - Empty string visible to child:\n")
 
     Environment.set("SN_EMPTY_CHILD", "")
-    // Use parameter expansion to distinguish empty from unset
-    var proc5: Process = Process.run("sh", {"-c", "[ -z \"${SN_EMPTY_CHILD+x}\" ] && echo unset || echo set"})
+    // Use Python to distinguish empty from unset
+    var proc5: Process = Process.run("python", {"-c", "import os;print('set' if 'SN_EMPTY_CHILD' in os.environ else 'unset')"})
     var emptyOutput: str = proc5.stdout.trim()
 
     if emptyOutput == "set" =>

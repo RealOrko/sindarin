@@ -7,7 +7,7 @@
 
 static char error_buffer[128];
 
-TokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *rest, TokenType type)
+SnTokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *rest, SnTokenType type)
 {
     int lexeme_length = (int)(lexer->current - lexer->start);
     if (lexeme_length == start + length &&
@@ -18,7 +18,7 @@ TokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *r
     return TOKEN_IDENTIFIER;
 }
 
-TokenType lexer_identifier_type(Lexer *lexer)
+SnTokenType lexer_identifier_type(Lexer *lexer)
 {
     switch (lexer->start[0])
     {
@@ -154,7 +154,7 @@ TokenType lexer_identifier_type(Lexer *lexer)
             case 'r':
                 return lexer_check_keyword(lexer, 2, 2, "ue", TOKEN_BOOL_LITERAL);
             case 'y':
-                return lexer_check_keyword(lexer, 2, 2, "pe", TOKEN_TYPE);
+                return lexer_check_keyword(lexer, 2, 2, "pe", TOKEN_KEYWORD_TYPE);
             }
         }
         break;
@@ -213,7 +213,7 @@ Token lexer_scan_identifier(Lexer *lexer)
     {
         lexer_advance(lexer);
     }
-    TokenType type = lexer_identifier_type(lexer);
+    SnTokenType type = lexer_identifier_type(lexer);
     if (type == TOKEN_BOOL_LITERAL)
     {
         Token token = lexer_make_token(lexer, type);

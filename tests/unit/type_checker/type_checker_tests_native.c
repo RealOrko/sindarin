@@ -14,7 +14,7 @@
 #include <string.h>
 
 /* Helper to set up a token for testing */
-static void setup_test_token(Token *tok, TokenType type, const char *lexeme, int line, const char *filename, Arena *arena)
+static void setup_test_token(Token *tok, SnTokenType type, const char *lexeme, int line, const char *filename, Arena *arena)
 {
     tok->type = type;
     tok->line = line;

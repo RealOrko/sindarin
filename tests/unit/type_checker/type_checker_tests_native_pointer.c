@@ -91,7 +91,7 @@ static void test_pointer_var_accepted_in_native_function(void)
 }
 
 /* Test helper: create a binary expression with pointer and int */
-static Stmt *create_pointer_arithmetic_stmt(Arena *arena, Type *ptr_type, Type *int_type, TokenType op)
+static Stmt *create_pointer_arithmetic_stmt(Arena *arena, Type *ptr_type, Type *int_type, SnTokenType op)
 {
     /* Create a pointer variable reference */
     Token p_tok;
@@ -120,7 +120,7 @@ static void test_pointer_arithmetic_rejected(void)
     printf("Testing pointer arithmetic rejected for all operators...\n");
 
     /* Test each arithmetic operator */
-    TokenType operators[] = {TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_MODULO};
+    SnTokenType operators[] = {TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_MODULO};
     const char *op_names[] = {"+", "-", "*", "/", "%%"};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
 
@@ -176,7 +176,7 @@ static void test_pointer_arithmetic_rejected(void)
 }
 
 /* Test helper: create a comparison expression with two pointers */
-static Stmt *create_pointer_comparison_stmt(Arena *arena, Type *ptr_type, TokenType op, bool use_nil_as_right)
+static Stmt *create_pointer_comparison_stmt(Arena *arena, Type *ptr_type, SnTokenType op, bool use_nil_as_right)
 {
     /* Create a pointer variable reference */
     Token p1_tok;
@@ -218,7 +218,7 @@ static void test_pointer_nil_comparison_allowed(void)
 {
     printf("Testing pointer nil comparison (== and !=) allowed...\n");
 
-    TokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
+    SnTokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
     const char *op_names[] = {"==", "!="};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
 
@@ -278,7 +278,7 @@ static void test_pointer_pointer_comparison_allowed(void)
 {
     printf("Testing pointer-to-pointer comparison (== and !=) allowed...\n");
 
-    TokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
+    SnTokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
     const char *op_names[] = {"==", "!="};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
 

@@ -31,7 +31,7 @@ static Expr *create_variable_expr(Arena *arena, const char *name)
 }
 
 /* Helper to create a binary expression */
-static Expr *create_binary_expr(Arena *arena, Expr *left, TokenType op, Expr *right)
+static Expr *create_binary_expr(Arena *arena, Expr *left, SnTokenType op, Expr *right)
 {
     Expr *expr = arena_alloc(arena, sizeof(Expr));
     expr->type = EXPR_BINARY;
@@ -43,7 +43,7 @@ static Expr *create_binary_expr(Arena *arena, Expr *left, TokenType op, Expr *ri
 }
 
 /* Helper to create a unary expression */
-static Expr *create_unary_expr(Arena *arena, TokenType op, Expr *operand)
+static Expr *create_unary_expr(Arena *arena, SnTokenType op, Expr *operand)
 {
     Expr *expr = arena_alloc(arena, sizeof(Expr));
     expr->type = EXPR_UNARY;

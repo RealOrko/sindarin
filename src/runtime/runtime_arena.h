@@ -3,7 +3,12 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+
+#ifdef _WIN32
+#include "../platform/compat_pthread.h"
+#else
 #include <pthread.h>
+#endif
 
 /* ============================================================================
  * Arena Memory Management

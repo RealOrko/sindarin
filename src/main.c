@@ -6,8 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include "platform/platform.h"
+#else
 #include <unistd.h>
 #include <sys/stat.h>
+#endif
 
 int main(int argc, char **argv)
 {

@@ -17,7 +17,15 @@ TEST_TYPE="${1:-integration}"
 SN="${2:-bin/sn}"
 
 # Directories
-TEMP_DIR="/tmp/sn_test_runner_$$"
+# Use SN_TEST_DIR if set, otherwise try /tmp. If /tmp has noexec, fall back to ./build/test_runner
+if [ -n "$SN_TEST_DIR" ]; then
+    TEMP_DIR="$SN_TEST_DIR/sn_test_runner_$$"
+elif mount | grep -q "on /tmp.*noexec"; then
+    # /tmp is mounted noexec, use a directory within the project
+    TEMP_DIR="$(pwd)/build/test_runner_$$"
+else
+    TEMP_DIR="/tmp/sn_test_runner_$$"
+fi
 mkdir -p "$TEMP_DIR"
 
 # Cleanup on exit

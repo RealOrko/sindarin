@@ -18,8 +18,15 @@
 #include "../code_gen/code_gen_expr.h"
 #include "../symbol_table.h"
 
+/* Cross-platform null device */
+#ifdef _WIN32
+#define NULL_DEVICE "NUL"
+#else
+#define NULL_DEVICE "/dev/null"
+#endif
+
 /* Helper to set up a token */
-static void init_token(Token *tok, TokenType type, const char *lexeme)
+static void init_token(Token *tok, SnTokenType type, const char *lexeme)
 {
     tok->type = type;
     tok->start = lexeme;
@@ -77,7 +84,7 @@ static Expr *make_bool_literal(Arena *arena, bool value)
 }
 
 /* Helper to create a binary expression */
-static Expr *make_binary_expr(Arena *arena, Expr *left, TokenType op, Expr *right)
+static Expr *make_binary_expr(Arena *arena, Expr *left, SnTokenType op, Expr *right)
 {
     Token tok;
     init_token(&tok, op, "+");
@@ -85,7 +92,7 @@ static Expr *make_binary_expr(Arena *arena, Expr *left, TokenType op, Expr *righ
 }
 
 /* Helper to create a unary expression */
-static Expr *make_unary_expr(Arena *arena, TokenType op, Expr *operand)
+static Expr *make_unary_expr(Arena *arena, SnTokenType op, Expr *operand)
 {
     Token tok;
     init_token(&tok, op, "-");
@@ -541,7 +548,7 @@ static void test_gen_native_arithmetic_unchecked(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
     gen.arithmetic_mode = ARITH_UNCHECKED;
 
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
@@ -587,7 +594,7 @@ static void test_gen_native_arithmetic_checked(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
     gen.arithmetic_mode = ARITH_CHECKED;  /* Default mode */
 
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
@@ -618,7 +625,7 @@ static void test_gen_native_unary(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
     gen.arithmetic_mode = ARITH_UNCHECKED;
 
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
@@ -876,7 +883,7 @@ static void test_try_constant_fold_binary_output(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Test integer folding produces correct literal */
     Expr *left = make_int_literal(&arena, 5);
@@ -925,7 +932,7 @@ static void test_try_constant_fold_unary_output(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Test integer negation */
     Expr *operand = make_int_literal(&arena, 42);
@@ -975,7 +982,7 @@ static void test_loop_counter_push_pop(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Initially empty - nothing tracked */
     assert(is_tracked_loop_counter(&gen, "__idx_0__") == false);
@@ -1025,7 +1032,7 @@ static void test_loop_counter_stack_growth(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Initial capacity should be 0 */
     assert(gen.loop_counter_capacity == 0);
@@ -1075,7 +1082,7 @@ static void test_loop_counter_null_check(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* NULL should always return false */
     assert(is_tracked_loop_counter(&gen, NULL) == false);
@@ -1107,7 +1114,7 @@ static void test_is_provably_non_negative_int_literals(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Zero should be non-negative */
     Expr *zero = make_int_literal(&arena, 0);
@@ -1141,7 +1148,7 @@ static void test_is_provably_non_negative_long_literals(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Zero should be non-negative */
     Expr *zero = make_long_literal(&arena, 0L);
@@ -1175,7 +1182,7 @@ static void test_is_provably_non_negative_negative_literals(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Negative integers should NOT be non-negative */
     Expr *neg_int = make_int_literal(&arena, -1);
@@ -1215,7 +1222,7 @@ static void test_is_provably_non_negative_untracked_variables(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Untracked variable should NOT be non-negative */
     Token var_tok;
@@ -1245,7 +1252,7 @@ static void test_is_provably_non_negative_tracked_loop_counters(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Push a loop counter */
     push_loop_counter(&gen, "__idx_0__");
@@ -1282,7 +1289,7 @@ static void test_is_provably_non_negative_other_expressions(void)
     symbol_table_init(&arena, &sym_table);
 
     CodeGen gen;
-    code_gen_init(&arena, &gen, &sym_table, "/dev/null");
+    code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Double literals should return false (not valid array indices) */
     Expr *dbl = make_double_literal(&arena, 3.14);

@@ -30,8 +30,8 @@ const char *find_similar_method(Type *type, const char *method_name);
 
 /* Type predicates */
 bool is_numeric_type(Type *type);
-bool is_comparison_operator(TokenType op);
-bool is_arithmetic_operator(TokenType op);
+bool is_comparison_operator(SnTokenType op);
+bool is_arithmetic_operator(SnTokenType op);
 bool is_printable_type(Type *type);
 bool is_variadic_compatible_type(Type *type);
 

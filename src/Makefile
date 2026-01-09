@@ -2,6 +2,24 @@
 # Use BACKEND=gcc|clang|tinycc to select which backend to build runtime for
 BACKEND ?= gcc
 
+#------------------------------------------------------------------------------
+# Platform Detection (can be passed from parent Makefile)
+#------------------------------------------------------------------------------
+PLATFORM ?= $(if $(filter Windows_NT,$(OS)),windows,$(if $(filter MINGW% MSYS% CYGWIN%,$(shell uname -s 2>/dev/null)),windows,linux))
+
+# Platform-specific settings
+ifeq ($(PLATFORM),windows)
+    EXE_EXT ?= .exe
+    # Windows doesn't have -lpthread (use -pthread instead or nothing for MinGW)
+    PTHREAD_FLAG := -pthread
+    # Windows uses ws2_32 for sockets
+    SOCKET_LIBS := -lws2_32
+else
+    EXE_EXT ?=
+    PTHREAD_FLAG := -lpthread
+    SOCKET_LIBS :=
+endif
+
 # Backend-specific compiler and flags
 # Note: Don't use -flto for runtime objects - they need to link in both release and debug modes
 ifeq ($(BACKEND),gcc)
@@ -24,12 +42,12 @@ CC = gcc
 
 # Release build (default): optimized, no sanitizer
 CFLAGS = -Wall -Wextra -std=c99 -O3 -flto -MMD -MP -D_GNU_SOURCE -I. -Iruntime
-LDFLAGS = -flto -O3 -lpthread
+LDFLAGS = -flto -O3 $(PTHREAD_FLAG) $(SOCKET_LIBS)
 
 # Debug build: use 'make DEBUG=1' for sanitizer and debug symbols
 ifdef DEBUG
 CFLAGS = -Wall -Wextra -std=c99 -g -fsanitize=address -fno-omit-frame-pointer -MMD -MP -D_GNU_SOURCE -I. -Iruntime
-LDFLAGS = -fsanitize=address -lpthread -lm
+LDFLAGS = -fsanitize=address $(PTHREAD_FLAG) -lm $(SOCKET_LIBS)
 endif
 
 SRCDIR = .
@@ -94,13 +112,13 @@ DEPS = $(OBJS:.o=.d)
 
 # Backend-specific compiler binary name
 ifeq ($(BACKEND),gcc)
-TARGET = $(BIN_DIR)/sn-gcc
+TARGET = $(BIN_DIR)/sn-gcc$(EXE_EXT)
 else ifeq ($(BACKEND),clang)
-TARGET = $(BIN_DIR)/sn-clang
+TARGET = $(BIN_DIR)/sn-clang$(EXE_EXT)
 else ifeq ($(BACKEND),tinycc)
-TARGET = $(BIN_DIR)/sn-tcc
+TARGET = $(BIN_DIR)/sn-tcc$(EXE_EXT)
 else
-TARGET = $(BIN_DIR)/sn-gcc
+TARGET = $(BIN_DIR)/sn-gcc$(EXE_EXT)
 endif
 
 # Runtime source files (compiled per-backend to LIB_DIR)
@@ -120,11 +138,17 @@ VPATH = $(SRCDIR) ast lexer parser type_checker optimizer code_gen runtime symbo
 
 all: create-bin-dir $(TARGET) copy-runtime-header runtime create-symlink
 
-# Create sn symlink pointing to the backend-specific binary
+# Create sn symlink/copy pointing to the backend-specific binary
 create-symlink:
+ifeq ($(PLATFORM),windows)
+	@rm -f $(BIN_DIR)/sn$(EXE_EXT)
+	@cp -f $(TARGET) $(BIN_DIR)/sn$(EXE_EXT)
+	@echo "Created copy: sn$(EXE_EXT) -> $(notdir $(TARGET))"
+else
 	@rm -f $(BIN_DIR)/sn
 	@ln -s $(notdir $(TARGET)) $(BIN_DIR)/sn
 	@echo "Created symlink: sn -> $(notdir $(TARGET))"
+endif
 
 create-bin-dir:
 	@mkdir -p $(BIN_DIR)
@@ -169,7 +193,7 @@ $(BIN_DIR)/%.o: %.c
 TEST_SRCDIR = ../tests/unit
 TEST_SRCS = $(TEST_SRCDIR)/_all_.c
 TEST_OBJS = $(addprefix $(BIN_DIR)/, $(notdir $(TEST_SRCS:.c=.o)))
-TEST_TARGET = $(BIN_DIR)/tests
+TEST_TARGET = $(BIN_DIR)/tests$(EXE_EXT)
 
 # Common test dependencies (compiler objects)
 TEST_COMPILER_OBJS = $(BIN_DIR)/arena.o $(BIN_DIR)/debug.o $(BIN_DIR)/diagnostic.o $(BIN_DIR)/ast.o $(BIN_DIR)/ast_type.o $(BIN_DIR)/ast_expr.o $(BIN_DIR)/ast_stmt.o $(BIN_DIR)/ast_print.o $(BIN_DIR)/code_gen.o $(BIN_DIR)/code_gen_util.o $(BIN_DIR)/code_gen_expr.o $(BIN_DIR)/code_gen_expr_core.o $(BIN_DIR)/code_gen_expr_binary.o $(BIN_DIR)/code_gen_expr_lambda.o $(BIN_DIR)/code_gen_expr_call.o $(BIN_DIR)/code_gen_expr_call_array.o $(BIN_DIR)/code_gen_expr_call_file.o $(BIN_DIR)/code_gen_expr_call_string.o $(BIN_DIR)/code_gen_expr_call_time.o $(BIN_DIR)/code_gen_expr_call_random.o $(BIN_DIR)/code_gen_expr_call_uuid.o $(BIN_DIR)/code_gen_expr_thread.o $(BIN_DIR)/code_gen_expr_array.o $(BIN_DIR)/code_gen_expr_static.o $(BIN_DIR)/code_gen_expr_string.o $(BIN_DIR)/code_gen_stmt_core.o $(BIN_DIR)/code_gen_stmt_loop.o $(BIN_DIR)/code_gen_stmt_capture.o $(BIN_DIR)/optimizer.o $(BIN_DIR)/optimizer_util.o $(BIN_DIR)/optimizer_tail_call.o $(BIN_DIR)/optimizer_string.o $(BIN_DIR)/lexer.o $(BIN_DIR)/lexer_util.o $(BIN_DIR)/lexer_scan.o $(BIN_DIR)/parser.o $(BIN_DIR)/parser_util.o $(BIN_DIR)/parser_expr.o $(BIN_DIR)/parser_stmt.o $(BIN_DIR)/parser_stmt_decl.o $(BIN_DIR)/parser_stmt_control.o $(BIN_DIR)/symbol_table.o $(BIN_DIR)/symbol_table_core.o $(BIN_DIR)/symbol_table_namespace.o $(BIN_DIR)/symbol_table_thread.o $(BIN_DIR)/type_checker.o $(BIN_DIR)/type_checker_util.o $(BIN_DIR)/type_checker_expr.o $(BIN_DIR)/type_checker_expr_call.o $(BIN_DIR)/type_checker_expr_call_core.o $(BIN_DIR)/type_checker_expr_call_array.o $(BIN_DIR)/type_checker_expr_call_string.o $(BIN_DIR)/type_checker_expr_call_file.o $(BIN_DIR)/type_checker_expr_call_time.o $(BIN_DIR)/type_checker_expr_call_net.o $(BIN_DIR)/type_checker_expr_call_random.o $(BIN_DIR)/type_checker_expr_array.o $(BIN_DIR)/type_checker_expr_lambda.o $(BIN_DIR)/type_checker_stmt.o $(BIN_DIR)/token.o $(BIN_DIR)/file.o
@@ -189,16 +213,16 @@ $(TEST_TARGET): $(TEST_OBJS) $(TEST_COMPILER_OBJS) $(TEST_RUNTIME_GCC)
 	$(CC) -o $@ $^ $(LDFLAGS) -lm
 
 # tests-clang: Unit tests linked with Clang-compiled runtime
-tests-clang: create-bin-dir $(BIN_DIR)/tests-clang
+tests-clang: create-bin-dir $(BIN_DIR)/tests-clang$(EXE_EXT)
 
-$(BIN_DIR)/tests-clang: $(TEST_OBJS) $(TEST_COMPILER_OBJS) $(TEST_RUNTIME_CLANG)
-	$(CC) -o $@ $^ -lpthread -lm
+$(BIN_DIR)/tests-clang$(EXE_EXT): $(TEST_OBJS) $(TEST_COMPILER_OBJS) $(TEST_RUNTIME_CLANG)
+	$(CC) -o $@ $^ $(PTHREAD_FLAG) -lm $(SOCKET_LIBS)
 
 # tests-tcc: Unit tests linked with TinyCC-compiled runtime
-tests-tcc: create-bin-dir $(BIN_DIR)/tests-tcc
+tests-tcc: create-bin-dir $(BIN_DIR)/tests-tcc$(EXE_EXT)
 
-$(BIN_DIR)/tests-tcc: $(TEST_OBJS) $(TEST_COMPILER_OBJS) $(TEST_RUNTIME_TCC)
-	$(CC) -o $@ $^ -lpthread -lm
+$(BIN_DIR)/tests-tcc$(EXE_EXT): $(TEST_OBJS) $(TEST_COMPILER_OBJS) $(TEST_RUNTIME_TCC)
+	$(CC) -o $@ $^ $(PTHREAD_FLAG) -lm $(SOCKET_LIBS)
 
 $(BIN_DIR)/%.o: $(TEST_SRCDIR)/%.c
 	@mkdir -p $(@D)

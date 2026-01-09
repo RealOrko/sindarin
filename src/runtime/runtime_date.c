@@ -2,6 +2,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+#ifdef _WIN32
+#include "../platform/compat_windows.h"
+#endif
+
 #include "runtime_date.h"
 #include "runtime_time.h"
 

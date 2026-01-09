@@ -1,0 +1,196 @@
+# GitHub Actions CI workflow for Windows (MSVC)
+# Builds and tests the Sn compiler on Windows using Visual Studio
+
+name: Windows Build
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Verify MSVC tools
+      shell: cmd
+      run: |
+        echo Checking cl.exe...
+        where cl.exe
+        cl.exe 2>&1 | findstr /C:"Microsoft"
+        echo.
+        echo Checking nmake...
+        where nmake.exe
+
+    - name: Configure CMake
+      shell: cmd
+      run: |
+        cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+        if errorlevel 1 exit /b 1
+
+    - name: Build compiler
+      shell: cmd
+      run: |
+        cmake --build build
+        if errorlevel 1 exit /b 1
+
+    - name: Verify build outputs
+      shell: cmd
+      run: |
+        echo Checking for compiler executable...
+        if not exist "bin\sn.exe" (
+          echo ERROR: bin\sn.exe not found
+          exit /b 1
+        )
+        echo Found: bin\sn.exe
+
+        echo Checking for test executable...
+        if not exist "bin\tests.exe" (
+          echo ERROR: bin\tests.exe not found
+          exit /b 1
+        )
+        echo Found: bin\tests.exe
+
+        echo.
+        echo Build outputs verified successfully!
+
+    - name: Run unit tests
+      shell: cmd
+      run: |
+        echo Running unit tests...
+        bin\tests.exe
+        if errorlevel 1 (
+          echo Unit tests failed!
+          exit /b 1
+        )
+        echo Unit tests passed!
+
+    - name: Run integration tests
+      shell: pwsh
+      run: |
+        # Note: For local testing, use scripts/run_integration_test.ps1 -All
+        Write-Host "Running integration tests..."
+
+        # Create test output directory
+        $testDir = "build\test_output"
+        New-Item -ItemType Directory -Force -Path $testDir | Out-Null
+
+        # Get all .sn test files
+        $testFiles = Get-ChildItem -Path "tests\integration" -Filter "*.sn" -File
+        $passed = 0
+        $failed = 0
+        $skipped = 0
+
+        foreach ($testFile in $testFiles) {
+            $testName = $testFile.BaseName
+            $expectedFile = Join-Path $testFile.DirectoryName "$testName.expected"
+            $exePath = Join-Path $testDir "$testName.exe"
+            $outputFile = Join-Path $testDir "$testName.out"
+
+            Write-Host -NoNewline "  $testName... "
+
+            # Skip if no expected file
+            if (-not (Test-Path $expectedFile)) {
+                Write-Host "SKIP (no .expected)" -ForegroundColor Yellow
+                $skipped++
+                continue
+            }
+
+            # Compile the test
+            $compileResult = & bin\sn.exe $testFile.FullName -o $exePath 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "FAIL (compile error)" -ForegroundColor Red
+                Write-Host "    $compileResult"
+                $failed++
+                continue
+            }
+
+            # Run the test
+            $output = & $exePath 2>&1
+            $output | Out-File -FilePath $outputFile -Encoding utf8
+
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "FAIL (runtime error, exit code: $LASTEXITCODE)" -ForegroundColor Red
+                $failed++
+                continue
+            }
+
+            # Compare output
+            $expected = Get-Content $expectedFile -Raw
+            $actual = Get-Content $outputFile -Raw
+
+            # Normalize line endings for comparison
+            $expected = $expected -replace "`r`n", "`n"
+            $actual = $actual -replace "`r`n", "`n"
+
+            if ($expected.Trim() -eq $actual.Trim()) {
+                Write-Host "PASS" -ForegroundColor Green
+                $passed++
+            } else {
+                Write-Host "FAIL (output mismatch)" -ForegroundColor Red
+                Write-Host "    Expected: $($expected.Substring(0, [Math]::Min(50, $expected.Length)))..."
+                Write-Host "    Got:      $($actual.Substring(0, [Math]::Min(50, $actual.Length)))..."
+                $failed++
+            }
+        }
+
+        Write-Host ""
+        Write-Host "============================================================"
+        Write-Host "Results: $passed passed, $failed failed, $skipped skipped"
+
+        if ($failed -gt 0) {
+            Write-Host "Some integration tests failed!" -ForegroundColor Red
+            exit 1
+        }
+
+        Write-Host "All integration tests passed!" -ForegroundColor Green
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: sn-windows-x64
+        path: |
+          bin/sn.exe
+          bin/tests.exe
+        retention-days: 7
+
+  # Debug build job (optional, can be enabled for troubleshooting)
+  build-debug:
+    runs-on: windows-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSVC environment
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    - name: Configure CMake (Debug)
+      shell: cmd
+      run: |
+        cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Debug -DSN_DEBUG=ON
+
+    - name: Build compiler (Debug)
+      shell: cmd
+      run: |
+        cmake --build build
+
+    - name: Run unit tests (Debug)
+      shell: cmd
+      run: |
+        bin\tests.exe

@@ -1,6 +1,7 @@
 // Test: Parallel TCP connections using & operator
 // Demonstrates making concurrent requests and getting string results
 // Uses wrapper functions that connect, read, and close internally
+// Cross-platform: works on Windows and Linux
 
 fn fetchData(addr: str): str =>
     var conn: TcpStream = TcpStream.connect(addr)
@@ -11,20 +12,25 @@ fn fetchData(addr: str): str =>
 fn main(): void =>
     print("Testing parallel TCP connections\n")
 
+    // Get cross-platform temp directory and normalize path
+    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+    var portFilePath: str = $"{tempDir}/tcp_par2"
+
     // Clean up temp file if it exists
-    var preclean: Process = Process.run("rm", {"-f", "/tmp/tcp_par2"})
+    if Path.exists(portFilePath) =>
+        TextFile.delete(portFilePath)
 
     // Start a Python server that accepts 3 connections (OS-assigned port)
-    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));p=s.getsockname()[1];s.listen(5);open('/tmp/tcp_par2','w').write(str(p));c1,a1=s.accept();c1.send(b'DATA1');c1.close();c2,a2=s.accept();c2.send(b'DATA2');c2.close();c3,a3=s.accept();c3.send(b'DATA3');c3.close();s.close()"})
+    var pythonCode: str = $"import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));p=s.getsockname()[1];s.listen(5);open('{portFilePath}','w').write(str(p));c1,a1=s.accept();c1.send(b'DATA1');c1.close();c2,a2=s.accept();c2.send(b'DATA2');c2.close();c3,a3=s.accept();c3.send(b'DATA3');c3.close();s.close()"
+    var server: Process = &Process.run("python", {"-c", pythonCode})
 
     // Wait for server to be ready
     var attempts: int = 0
     while attempts < 100 =>
-        var check: Process = Process.run("test", {"-f", "/tmp/tcp_par2"})
-        if check.exitCode == 0 =>
+        if Path.exists(portFilePath) =>
             attempts = 200
         else =>
-            var wait: Process = Process.run("sleep", {"0.05"})
+            Time.sleep(50)
             attempts = attempts + 1
 
     if attempts < 200 =>
@@ -32,8 +38,7 @@ fn main(): void =>
         return
 
     // Read the port number from the temp file
-    var portReader: Process = Process.run("cat", {"/tmp/tcp_par2"})
-    var port: str = portReader.stdout.trim()
+    var port: str = TextFile.readAll(portFilePath).trim()
 
     print("Server ready\n")
 
@@ -66,5 +71,7 @@ fn main(): void =>
 
     server!
 
-    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_par2"})
+    // Cleanup
+    if Path.exists(portFilePath) =>
+        TextFile.delete(portFilePath)
     print("Test complete\n")

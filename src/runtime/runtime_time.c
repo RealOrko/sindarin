@@ -2,7 +2,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+#ifdef _WIN32
+#include "../platform/compat_windows.h"  /* Must come first - includes winsock2.h */
+#include "../platform/compat_time.h"
+#else
 #include <sys/time.h>
+#endif
+
 #include "runtime_time.h"
 #include "runtime_date.h"
 
@@ -34,24 +41,103 @@ static RtTime *rt_time_create(RtArena *arena, long long milliseconds)
     return time;
 }
 
-/* Helper function to decompose RtTime into struct tm components */
+/* Helper function to perform floor division (toward negative infinity) */
+static long long floor_div(long long a, long long b)
+{
+    return a / b - (a % b != 0 && (a ^ b) < 0);
+}
+
+/* Helper function to perform floor modulo (result has same sign as divisor) */
+static long long floor_mod(long long a, long long b)
+{
+    return a - floor_div(a, b) * b;
+}
+
+/* Convert days since Unix epoch to year/month/day using civil calendar algorithm.
+ * This correctly handles negative day counts (dates before 1970).
+ * Based on Howard Hinnant's date algorithms: http://howardhinnant.github.io/date_algorithms.html */
+static void days_to_ymd(long long days, int *year, int *month, int *day)
+{
+    /* Shift epoch from 1970-01-01 to 0000-03-01 for easier leap year handling */
+    days += 719468;
+
+    /* Calculate era (400-year period) */
+    long long era = (days >= 0 ? days : days - 146096) / 146097;
+
+    /* Day of era [0, 146096] */
+    long long doe = days - era * 146097;
+
+    /* Year of era [0, 399] */
+    long long yoe = (doe - doe/1460 + doe/36524 - doe/146096) / 365;
+
+    /* Year */
+    long long y = yoe + era * 400;
+
+    /* Day of year [0, 365] */
+    long long doy = doe - (365*yoe + yoe/4 - yoe/100);
+
+    /* Month [0, 11] where March = 0 */
+    long long mp = (5*doy + 2) / 153;
+
+    /* Day [1, 31] */
+    *day = (int)(doy - (153*mp + 2)/5 + 1);
+
+    /* Month [1, 12] where January = 1 */
+    *month = (int)(mp < 10 ? mp + 3 : mp - 9);
+
+    /* Adjust year for months Jan-Feb */
+    *year = (int)(y + (*month <= 2));
+}
+
+/* Helper function to decompose RtTime into struct tm components.
+ * This implementation handles negative timestamps correctly on all platforms,
+ * unlike the standard localtime() which fails on Windows for dates before 1970. */
 static void rt_time_to_tm(RtTime *time, struct tm *tm_result)
 {
     if (time == NULL) {
         fprintf(stderr, "rt_time_to_tm: NULL time\n");
         exit(1);
     }
-    /* Use floor division for negative milliseconds
-     * C's integer division truncates toward zero, but we need floor */
+
+    memset(tm_result, 0, sizeof(struct tm));
+
     long long ms = time->milliseconds;
-    time_t secs;
-    if (ms >= 0) {
-        secs = ms / 1000;
-    } else {
-        /* Floor division: (ms - 999) / 1000 for negative ms */
-        secs = (ms - 999) / 1000;
-    }
-    localtime_r(&secs, tm_result);
+
+    /* Convert to seconds using floor division */
+    long long secs = floor_div(ms, 1000);
+
+    /* Extract time of day using floor modulo (always positive) */
+    long long time_of_day = floor_mod(secs, 86400);
+
+    /* Convert to days since epoch using floor division */
+    long long days = floor_div(secs, 86400);
+
+    /* Convert days to year/month/day */
+    int year, month, day;
+    days_to_ymd(days, &year, &month, &day);
+
+    /* Fill in struct tm */
+    tm_result->tm_year = year - 1900;
+    tm_result->tm_mon = month - 1;
+    tm_result->tm_mday = day;
+    tm_result->tm_hour = (int)(time_of_day / 3600);
+    tm_result->tm_min = (int)((time_of_day % 3600) / 60);
+    tm_result->tm_sec = (int)(time_of_day % 60);
+
+    /* Calculate day of week (0 = Sunday) */
+    /* 1970-01-01 was a Thursday (day 4) */
+    long long dow = floor_mod(days + 4, 7);
+    tm_result->tm_wday = (int)dow;
+
+    /* Calculate day of year [0, 365] */
+    /* Days from Jan 1 to start of each month (non-leap year) */
+    static const int days_before_month[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    int is_leap = (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0));
+    int yday = days_before_month[month - 1] + day - 1;
+    if (is_leap && month > 2) yday++;
+    tm_result->tm_yday = yday;
+
+    tm_result->tm_isdst = -1;  /* Unknown DST status */
 }
 
 /* ============================================================================

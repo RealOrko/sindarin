@@ -577,7 +577,7 @@ Stmt *parser_type_declaration(Parser *parser)
     {
         if (!parser_check(parser, TOKEN_DEDENT) && !parser_check(parser, TOKEN_FN) &&
             !parser_check(parser, TOKEN_NATIVE) && !parser_check(parser, TOKEN_VAR) &&
-            !parser_check(parser, TOKEN_TYPE))
+            !parser_check(parser, TOKEN_KEYWORD_TYPE))
         {
             parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after type declaration");
         }

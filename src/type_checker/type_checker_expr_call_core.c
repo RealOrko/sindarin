@@ -1339,9 +1339,11 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
             if (call->arg_count == 2)
             {
                 Type *args_type = call->arguments[1]->expr_type;
+                /* Allow str[] (TYPE_STRING) or empty array {} (TYPE_NIL) */
                 if (args_type == NULL || args_type->kind != TYPE_ARRAY ||
                     args_type->as.array.element_type == NULL ||
-                    args_type->as.array.element_type->kind != TYPE_STRING)
+                    (args_type->as.array.element_type->kind != TYPE_STRING &&
+                     args_type->as.array.element_type->kind != TYPE_NIL))
                 {
                     type_error(&method_name, "Process.run requires a str[] as second argument");
                     return NULL;

@@ -1,7 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include "../platform/compat_pthread.h"
+#else
 #include <pthread.h>
+#endif
 #include <setjmp.h>
 #include "runtime_thread.h"
 #include "runtime_array.h"

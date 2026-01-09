@@ -1,8 +1,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include "../platform/compat_windows.h"
+#else
 #include <unistd.h>
 #include <sys/wait.h>
+#endif
+
 #include "runtime_process.h"
 #include "runtime_array.h"
 
@@ -11,8 +17,9 @@
  * ============================================================================
  *
  * This module provides process execution for the Sindarin runtime.
- * Processes are spawned using fork/exec on POSIX systems and capture
- * stdout/stderr output along with the exit code.
+ * On POSIX systems, processes are spawned using fork/exec.
+ * On Windows, processes are spawned using CreateProcess.
+ * Both implementations capture stdout/stderr output along with the exit code.
  */
 
 /* ============================================================================
@@ -21,6 +28,249 @@
 
 /* Initial buffer size for reading from file descriptors */
 #define READ_BUFFER_INITIAL_SIZE 4096
+
+/* Helper function to create RtProcess with given values */
+static RtProcess *rt_process_create(RtArena *arena, int exit_code,
+                                     const char *stdout_str, const char *stderr_str)
+{
+    if (arena == NULL) {
+        fprintf(stderr, "rt_process_create: NULL arena\n");
+        return NULL;
+    }
+
+    RtProcess *proc = rt_arena_alloc(arena, sizeof(RtProcess));
+    if (proc == NULL) {
+        fprintf(stderr, "rt_process_create: allocation failed\n");
+        exit(1);
+    }
+
+    proc->exit_code = exit_code;
+    proc->stdout_data = rt_arena_strdup(arena, stdout_str ? stdout_str : "");
+    proc->stderr_data = rt_arena_strdup(arena, stderr_str ? stderr_str : "");
+
+    return proc;
+}
+
+#ifdef _WIN32
+/* ============================================================================
+ * Windows Implementation using CreateProcess
+ * ============================================================================ */
+
+/* Read all data from a Windows HANDLE until EOF.
+ * Returns a null-terminated string allocated in the arena.
+ * Closes the handle after reading.
+ */
+static char *read_handle_to_string(RtArena *arena, HANDLE handle)
+{
+    if (arena == NULL || handle == NULL || handle == INVALID_HANDLE_VALUE) {
+        if (handle != NULL && handle != INVALID_HANDLE_VALUE) {
+            CloseHandle(handle);
+        }
+        return rt_arena_strdup(arena, "");
+    }
+
+    size_t capacity = READ_BUFFER_INITIAL_SIZE;
+    size_t length = 0;
+    char *buffer = rt_arena_alloc(arena, capacity);
+    if (buffer == NULL) {
+        CloseHandle(handle);
+        return rt_arena_strdup(arena, "");
+    }
+
+    while (1) {
+        if (length + 1 >= capacity) {
+            size_t new_capacity = capacity * 2;
+            char *new_buffer = rt_arena_alloc(arena, new_capacity);
+            if (new_buffer == NULL) {
+                buffer[length] = '\0';
+                CloseHandle(handle);
+                return buffer;
+            }
+            memcpy(new_buffer, buffer, length);
+            buffer = new_buffer;
+            capacity = new_capacity;
+        }
+
+        DWORD bytes_read = 0;
+        BOOL success = ReadFile(handle, buffer + length,
+                                (DWORD)(capacity - length - 1), &bytes_read, NULL);
+
+        if (!success || bytes_read == 0) {
+            break;
+        }
+
+        length += bytes_read;
+    }
+
+    buffer[length] = '\0';
+    CloseHandle(handle);
+    return buffer;
+}
+
+/* Build a command line string from command and args for CreateProcess.
+ * Windows uses a single command line string, not argv.
+ * Returns malloc'd string (caller must free).
+ */
+static char *build_command_line(const char *cmd, char **args)
+{
+    /* Calculate required buffer size */
+    size_t total_len = strlen(cmd) + 3; /* cmd + quotes + space + null */
+
+    if (args != NULL) {
+        size_t args_len = rt_array_length(args);
+        for (size_t i = 0; i < args_len; i++) {
+            total_len += strlen(args[i]) + 3; /* arg + quotes + space */
+        }
+    }
+
+    char *cmdline = malloc(total_len);
+    if (cmdline == NULL) {
+        return NULL;
+    }
+
+    /* Build the command line */
+    char *ptr = cmdline;
+
+    /* Add command (quote if contains spaces) */
+    if (strchr(cmd, ' ') != NULL) {
+        ptr += sprintf(ptr, "\"%s\"", cmd);
+    } else {
+        ptr += sprintf(ptr, "%s", cmd);
+    }
+
+    /* Add arguments */
+    if (args != NULL) {
+        size_t args_len = rt_array_length(args);
+        for (size_t i = 0; i < args_len; i++) {
+            /* Quote arguments that contain spaces */
+            if (strchr(args[i], ' ') != NULL) {
+                ptr += sprintf(ptr, " \"%s\"", args[i]);
+            } else {
+                ptr += sprintf(ptr, " %s", args[i]);
+            }
+        }
+    }
+
+    return cmdline;
+}
+
+/* Windows implementation of process execution */
+RtProcess *rt_process_run_with_args(RtArena *arena, const char *cmd, char **args)
+{
+    if (arena == NULL) {
+        fprintf(stderr, "rt_process_run_with_args: NULL arena\n");
+        return NULL;
+    }
+    if (cmd == NULL) {
+        fprintf(stderr, "rt_process_run_with_args: NULL command\n");
+        return NULL;
+    }
+
+    /* Build command line string */
+    char *cmdline = build_command_line(cmd, args);
+    if (cmdline == NULL) {
+        fprintf(stderr, "rt_process_run_with_args: failed to build command line\n");
+        return rt_process_create(arena, 127, "", "");
+    }
+
+    /* Create pipes for stdout and stderr */
+    SECURITY_ATTRIBUTES sa;
+    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sa.bInheritHandle = TRUE;
+    sa.lpSecurityDescriptor = NULL;
+
+    HANDLE stdout_read = NULL, stdout_write = NULL;
+    HANDLE stderr_read = NULL, stderr_write = NULL;
+
+    if (!CreatePipe(&stdout_read, &stdout_write, &sa, 0)) {
+        free(cmdline);
+        fprintf(stderr, "rt_process_run_with_args: stdout pipe failed\n");
+        return rt_process_create(arena, 127, "", "");
+    }
+    SetHandleInformation(stdout_read, HANDLE_FLAG_INHERIT, 0);
+
+    if (!CreatePipe(&stderr_read, &stderr_write, &sa, 0)) {
+        CloseHandle(stdout_read);
+        CloseHandle(stdout_write);
+        free(cmdline);
+        fprintf(stderr, "rt_process_run_with_args: stderr pipe failed\n");
+        return rt_process_create(arena, 127, "", "");
+    }
+    SetHandleInformation(stderr_read, HANDLE_FLAG_INHERIT, 0);
+
+    /* Set up process startup info */
+    STARTUPINFOA si;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    si.hStdOutput = stdout_write;
+    si.hStdError = stderr_write;
+    si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    si.dwFlags |= STARTF_USESTDHANDLES;
+
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&pi, sizeof(pi));
+
+    /* Create the child process */
+    BOOL success = CreateProcessA(
+        NULL,           /* No module name (use command line) */
+        cmdline,        /* Command line */
+        NULL,           /* Process handle not inheritable */
+        NULL,           /* Thread handle not inheritable */
+        TRUE,           /* Inherit handles */
+        0,              /* No creation flags */
+        NULL,           /* Use parent's environment */
+        NULL,           /* Use parent's current directory */
+        &si,            /* Pointer to STARTUPINFO */
+        &pi             /* Pointer to PROCESS_INFORMATION */
+    );
+
+    /* Close write ends of pipes - we only read from them */
+    CloseHandle(stdout_write);
+    CloseHandle(stderr_write);
+
+    if (!success) {
+        /* CreateProcess failed */
+        DWORD error = GetLastError();
+        CloseHandle(stdout_read);
+        CloseHandle(stderr_read);
+        free(cmdline);
+
+        /* Format error message for stderr */
+        char error_msg[256];
+        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND) {
+            snprintf(error_msg, sizeof(error_msg), "%s: command not found\n", cmd);
+            return rt_process_create(arena, 127, "", error_msg);
+        } else {
+            snprintf(error_msg, sizeof(error_msg),
+                     "CreateProcess failed with error %lu\n", error);
+            return rt_process_create(arena, 127, "", error_msg);
+        }
+    }
+
+    free(cmdline);
+
+    /* Read stdout and stderr from child */
+    char *stdout_data = read_handle_to_string(arena, stdout_read);
+    char *stderr_data = read_handle_to_string(arena, stderr_read);
+
+    /* Wait for child process to complete */
+    WaitForSingleObject(pi.hProcess, INFINITE);
+
+    /* Get exit code */
+    DWORD exit_code = 0;
+    GetExitCodeProcess(pi.hProcess, &exit_code);
+
+    /* Clean up handles */
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+
+    return rt_process_create(arena, (int)exit_code, stdout_data, stderr_data);
+}
+
+#else
+/* ============================================================================
+ * POSIX Implementation using fork/exec
+ * ============================================================================ */
 
 /* Read all data from a file descriptor until EOF.
  * Returns a null-terminated string allocated in the arena.
@@ -126,28 +376,6 @@ static char **build_argv(const char *cmd, char **args)
     argv[argc] = NULL;
 
     return argv;
-}
-
-/* Helper function to create RtProcess with given values */
-static RtProcess *rt_process_create(RtArena *arena, int exit_code,
-                                     const char *stdout_str, const char *stderr_str)
-{
-    if (arena == NULL) {
-        fprintf(stderr, "rt_process_create: NULL arena\n");
-        return NULL;
-    }
-
-    RtProcess *proc = rt_arena_alloc(arena, sizeof(RtProcess));
-    if (proc == NULL) {
-        fprintf(stderr, "rt_process_create: allocation failed\n");
-        exit(1);
-    }
-
-    proc->exit_code = exit_code;
-    proc->stdout_data = rt_arena_strdup(arena, stdout_str ? stdout_str : "");
-    proc->stderr_data = rt_arena_strdup(arena, stderr_str ? stderr_str : "");
-
-    return proc;
 }
 
 /* ============================================================================
@@ -273,6 +501,12 @@ RtProcess *rt_process_run_with_args(RtArena *arena, const char *cmd, char **args
 
     return rt_process_create(arena, exit_code, stdout_data, stderr_data);
 }
+
+#endif /* _WIN32 / POSIX */
+
+/* ============================================================================
+ * Common Functions (both platforms)
+ * ============================================================================ */
 
 /* Run a command with no arguments.
  * Delegates to rt_process_run_with_args with NULL args.

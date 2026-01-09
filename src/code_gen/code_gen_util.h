@@ -27,7 +27,7 @@ char *get_var_name(Arena *arena, Token name);
 
 /* Code generation helpers */
 void indented_fprintf(CodeGen *gen, int indent, const char *fmt, ...);
-char *code_gen_binary_op_str(TokenType op);
+char *code_gen_binary_op_str(SnTokenType op);
 char *code_gen_type_suffix(Type *type);
 
 /* Helper macro to get arena var for formatting - returns "NULL" if no arena context */
@@ -53,20 +53,20 @@ char *try_constant_fold_unary(CodeGen *gen, UnaryExpr *expr);
 
 /* Get the native C operator string for a token type.
    Returns NULL if the operator doesn't have a direct C equivalent. */
-const char *get_native_c_operator(TokenType op);
+const char *get_native_c_operator(SnTokenType op);
 
 /* Check if an operator can use native C operators in unchecked mode.
    Division and modulo still need runtime functions for zero-check. */
-bool can_use_native_operator(TokenType op);
+bool can_use_native_operator(SnTokenType op);
 
 /* Generate native C arithmetic expression for unchecked mode.
    Returns the expression string, or NULL if runtime function is required. */
 char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *right_str,
-                            TokenType op, Type *type);
+                            SnTokenType op, Type *type);
 
 /* Generate native C unary expression for unchecked mode.
    Returns the expression string, or NULL if runtime function is required. */
-char *gen_native_unary(CodeGen *gen, const char *operand_str, TokenType op, Type *type);
+char *gen_native_unary(CodeGen *gen, const char *operand_str, SnTokenType op, Type *type);
 
 /* Arena requirement analysis */
 

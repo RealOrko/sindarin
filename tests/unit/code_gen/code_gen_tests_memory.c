@@ -17,7 +17,7 @@
 static const char *test_output_path_mem = "test_output_mem.c";
 static const char *expected_output_path_mem = "expected_output_mem.c";
 
-static void setup_token_mem(Token *token, TokenType type, const char *lexeme)
+static void setup_token_mem(Token *token, SnTokenType type, const char *lexeme)
 {
     token_init(token, type, lexeme, (int)strlen(lexeme), 1, "test.sn");
 }

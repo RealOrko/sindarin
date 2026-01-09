@@ -1,27 +1,39 @@
 // Test: UDP sendTo and receiveFrom operations
 // Uses Python as UDP echo server to test datagram exchange
 // Python server verifies and reports sender address
+// Cross-platform: works on Windows and Linux
 
 fn main(): void =>
-    // Clean up ready file from any previous run
-    var cleanup_before: Process = Process.run("rm", {"-f", "/tmp/udp_ready"})
+    // Get cross-platform temp directory and normalize to forward slashes
+    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+    var readyFile: str = $"{tempDir}/udp_ready"
+
+    // Clean up ready file from any previous run (cross-platform)
+    if Path.exists(readyFile) =>
+        TextFile.delete(readyFile)
+
+    // Set ready file path for Python to use
+    Environment.set("SN_READY_FILE", readyFile)
 
     // Start a Python UDP server that echoes data and reports sender
-    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.bind(('127.0.0.1',45687));open('/tmp/udp_ready','w').write('1');data,addr=s.recvfrom(1024);print(f'From:{addr[0]}:{addr[1]}');s.sendto(b'ECHO:'+data,addr);s.close()"})
+    // Uses port 0 for dynamic port assignment, writes port to file
+    var server: Process = &Process.run("python", {"-c", "import socket,os;f=os.environ.get('SN_READY_FILE','/tmp/udp_ready');s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.bind(('127.0.0.1',0));p=s.getsockname()[1];open(f,'w').write(str(p));data,addr=s.recvfrom(1024);print(f'From:{addr[0]}:{addr[1]}');s.sendto(b'ECHO:'+data,addr);s.close()"})
 
-    // Wait for server to be ready
+    // Wait for server to be ready using cross-platform methods
     var attempts: int = 0
     while attempts < 50 =>
-        var check: Process = Process.run("test", {"-f", "/tmp/udp_ready"})
-        if check.exitCode == 0 =>
+        if Path.exists(readyFile) =>
             attempts = 100
         else =>
-            var wait: Process = Process.run("sleep", {"0.05"})
+            Time.sleep(50)  // 50ms
             attempts = attempts + 1
 
     if attempts < 100 =>
         print("Timeout waiting for server\n")
         return
+
+    // Read the server port from the ready file
+    var serverPort: str = TextFile.readAll(readyFile).trim()
 
     // Create client socket with OS-assigned port
     var client: UdpSocket = UdpSocket.bind("127.0.0.1:0")
@@ -30,7 +42,7 @@ fn main(): void =>
 
     // Test 1: Send datagram to server
     var message: byte[] = "Hello UDP".toBytes()
-    client.sendTo(message, "127.0.0.1:45687")
+    client.sendTo(message, $"127.0.0.1:{serverPort}")
     print("Test 1 PASS: Datagram sent\n")
 
     // Test 2: Receive echo response
@@ -66,7 +78,8 @@ fn main(): void =>
     else =>
         print("Test 5 FAIL: Server did not see correct port\n")
 
-    // Clean up
-    var cleanup: Process = Process.run("rm", {"-f", "/tmp/udp_ready"})
+    // Clean up (cross-platform)
+    if Path.exists(readyFile) =>
+        TextFile.delete(readyFile)
 
     print("All UDP echo tests complete\n")

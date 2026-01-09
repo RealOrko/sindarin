@@ -1,17 +1,24 @@
 #ifndef RUNTIME_THREAD_H
 #define RUNTIME_THREAD_H
 
+#ifdef _WIN32
+#include "../platform/compat_pthread.h"
+#else
 #include <pthread.h>
+#endif
 #include <stdbool.h>
 #include <setjmp.h>
 #include "runtime_arena.h"
 
 /* Thread-local storage compatibility:
+ * - MSVC: use __declspec(thread)
  * - GCC/Clang: use __thread
  * - TinyCC: no TLS support, falls back to global (NOT thread-safe)
  */
 #ifdef __TINYC__
 #define RT_THREAD_LOCAL /* TinyCC: no TLS, threading features limited */
+#elif defined(_MSC_VER)
+#define RT_THREAD_LOCAL __declspec(thread)
 #else
 #define RT_THREAD_LOCAL __thread
 #endif

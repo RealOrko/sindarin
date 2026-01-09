@@ -2,8 +2,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+
+#ifdef _WIN32
+#include "../platform/compat_windows.h"
+#else
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+
 #include "runtime_file.h"
 #include "runtime_arena.h"
 #include "runtime_array.h"

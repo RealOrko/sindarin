@@ -28,12 +28,12 @@ void test_rt_random_static_shuffle_long_basic()
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     /* Create array {1, 2, 3, 4, 5} */
-    long data[] = {1, 2, 3, 4, 5};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {1, 2, 3, 4, 5};
+    long long *arr = rt_array_create_long(arena, 5, data);
     TEST_ASSERT_NOT_NULL(arr, "Array should be created");
 
     /* Calculate original sum */
-    long original_sum = 0;
+    long long original_sum = 0;
     for (int i = 0; i < 5; i++) original_sum += arr[i];
 
     /* Shuffle multiple times and verify all elements present */
@@ -182,8 +182,8 @@ void test_rt_random_static_shuffle_single_element()
 
     RtArena *arena = rt_arena_create(NULL);
 
-    long data[] = {42};
-    long *arr = rt_array_create_long(arena, 1, data);
+    long long data[] = {42};
+    long long *arr = rt_array_create_long(arena, 1, data);
 
     rt_random_static_shuffle_long(arr);
 
@@ -205,10 +205,10 @@ void test_rt_random_shuffle_long_basic()
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
 
-    long data[] = {1, 2, 3, 4, 5};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {1, 2, 3, 4, 5};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
-    long original_sum = 0;
+    long long original_sum = 0;
     for (int i = 0; i < 5; i++) original_sum += arr[i];
 
     rt_random_shuffle_long(rng, arr);
@@ -239,8 +239,8 @@ void test_rt_random_shuffle_reproducible()
     /* Two identical arrays with same seed should produce same shuffle */
     long data1[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     long data2[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    long *arr1 = rt_array_create_long(arena, 10, data1);
-    long *arr2 = rt_array_create_long(arena, 10, data2);
+    long long *arr1 = rt_array_create_long(arena, 10, data1);
+    long long *arr2 = rt_array_create_long(arena, 10, data2);
 
     RtRandom *rng1 = rt_random_create_with_seed(arena, 99999);
     RtRandom *rng2 = rt_random_create_with_seed(arena, 99999);
@@ -268,8 +268,8 @@ void test_rt_random_shuffle_null_rng()
     printf("Testing rt_random_shuffle with NULL rng...\n");
 
     RtArena *arena = rt_arena_create(NULL);
-    long data[] = {1, 2, 3};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] = {1, 2, 3};
+    long long *arr = rt_array_create_long(arena, 3, data);
 
     /* Should not crash */
     rt_random_shuffle_long(NULL, arr);
@@ -330,8 +330,8 @@ void test_rt_random_shuffle_distribution()
     int iterations = 6000;
 
     for (int iter = 0; iter < iterations; iter++) {
-        long data[] = {1, 2, 3};
-        long *arr = rt_array_create_long(arena, 3, data);
+        long long data[] = {1, 2, 3};
+        long long *arr = rt_array_create_long(arena, 3, data);
 
         rt_random_static_shuffle_long(arr);
 
@@ -383,8 +383,8 @@ void test_rt_random_shuffle_distribution_seeded()
     for (int iter = 0; iter < iterations; iter++) {
         RtRandom *rng = rt_random_create_with_seed(arena, (long)(iter * 7919));  /* Different seed each time */
 
-        long data[] = {1, 2, 3};
-        long *arr = rt_array_create_long(arena, 3, data);
+        long long data[] = {1, 2, 3};
+        long long *arr = rt_array_create_long(arena, 3, data);
 
         rt_random_shuffle_long(rng, arr);
 
@@ -434,12 +434,12 @@ void test_rt_random_static_sample_long_basic()
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     /* Create array {10, 20, 30, 40, 50} */
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {10, 20, 30, 40, 50};
+    long long *arr = rt_array_create_long(arena, 5, data);
     TEST_ASSERT_NOT_NULL(arr, "Array should be created");
 
     /* Sample 3 elements */
-    long *sample = rt_random_static_sample_long(arena, arr, 3);
+    long long *sample = rt_random_static_sample_long(arena, arr, 3);
     TEST_ASSERT_NOT_NULL(sample, "Sample should be created");
 
     /* Verify sample has correct length */
@@ -469,12 +469,12 @@ void test_rt_random_static_sample_long_no_duplicates()
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create array with unique values */
-    long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    long *arr = rt_array_create_long(arena, 10, data);
+    long long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    long long *arr = rt_array_create_long(arena, 10, data);
 
     /* Sample 5 elements multiple times */
     for (int trial = 0; trial < 20; trial++) {
-        long *sample = rt_random_static_sample_long(arena, arr, 5);
+        long long *sample = rt_random_static_sample_long(arena, arr, 5);
         TEST_ASSERT_NOT_NULL(sample, "Sample should be created");
 
         /* Check for duplicates */
@@ -497,17 +497,17 @@ void test_rt_random_static_sample_long_full_array()
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create array */
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {10, 20, 30, 40, 50};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Sample entire array (count == length) */
-    long *sample = rt_random_static_sample_long(arena, arr, 5);
+    long long *sample = rt_random_static_sample_long(arena, arr, 5);
     TEST_ASSERT_NOT_NULL(sample, "Sample should be created when count equals array length");
     TEST_ASSERT(rt_array_length(sample) == 5, "Sample should have all 5 elements");
 
     /* Verify all original elements are present */
-    long original_sum = 10 + 20 + 30 + 40 + 50;
-    long sample_sum = 0;
+    long long original_sum = 10 + 20 + 30 + 40 + 50;
+    long long sample_sum = 0;
     for (int i = 0; i < 5; i++) {
         sample_sum += sample[i];
     }
@@ -525,11 +525,11 @@ void test_rt_random_static_sample_long_single_element()
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create array */
-    long data[] = {100, 200, 300, 400, 500};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {100, 200, 300, 400, 500};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Sample single element */
-    long *sample = rt_random_static_sample_long(arena, arr, 1);
+    long long *sample = rt_random_static_sample_long(arena, arr, 1);
     TEST_ASSERT_NOT_NULL(sample, "Single element sample should be created");
     TEST_ASSERT(rt_array_length(sample) == 1, "Sample should have 1 element");
 
@@ -555,11 +555,11 @@ void test_rt_random_static_sample_long_count_exceeds_length()
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create array with 5 elements */
-    long data[] = {1, 2, 3, 4, 5};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {1, 2, 3, 4, 5};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Try to sample 6 elements (should return NULL) */
-    long *sample = rt_random_static_sample_long(arena, arr, 6);
+    long long *sample = rt_random_static_sample_long(arena, arr, 6);
     TEST_ASSERT(sample == NULL, "Should return NULL when count > array length");
 
     /* Try to sample 10 elements (should return NULL) */
@@ -577,11 +577,11 @@ void test_rt_random_static_sample_long_null_handling()
 
     RtArena *arena = rt_arena_create(NULL);
 
-    long data[] = {1, 2, 3};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] = {1, 2, 3};
+    long long *arr = rt_array_create_long(arena, 3, data);
 
     /* NULL arena */
-    long *sample = rt_random_static_sample_long(NULL, arr, 2);
+    long long *sample = rt_random_static_sample_long(NULL, arr, 2);
     TEST_ASSERT(sample == NULL, "Should return NULL with NULL arena");
 
     /* NULL array */
@@ -608,12 +608,12 @@ void test_rt_random_static_sample_long_preserves_original()
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create array */
-    long data[] = {100, 200, 300, 400, 500};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {100, 200, 300, 400, 500};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Sample multiple times */
     for (int trial = 0; trial < 10; trial++) {
-        long *sample = rt_random_static_sample_long(arena, arr, 3);
+        long long *sample = rt_random_static_sample_long(arena, arr, 3);
         TEST_ASSERT_NOT_NULL(sample, "Sample should be created");
 
         /* Verify original array is unchanged */
@@ -634,15 +634,15 @@ void test_rt_random_static_sample_long_distribution()
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create array {1, 2, 3, 4, 5} */
-    long data[] = {1, 2, 3, 4, 5};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {1, 2, 3, 4, 5};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Track how often each element appears in samples */
     int element_counts[5] = {0, 0, 0, 0, 0};
     int iterations = 1000;
 
     for (int iter = 0; iter < iterations; iter++) {
-        long *sample = rt_random_static_sample_long(arena, arr, 2);
+        long long *sample = rt_random_static_sample_long(arena, arr, 2);
         TEST_ASSERT_NOT_NULL(sample, "Sample should be created");
 
         for (int i = 0; i < 2; i++) {
@@ -1048,12 +1048,12 @@ void test_rt_random_sample_long_basic()
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Create array {10, 20, 30, 40, 50} */
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {10, 20, 30, 40, 50};
+    long long *arr = rt_array_create_long(arena, 5, data);
     TEST_ASSERT_NOT_NULL(arr, "Array should be created");
 
     /* Sample 3 elements */
-    long *sample = rt_random_sample_long(arena, rng, arr, 3);
+    long long *sample = rt_random_sample_long(arena, rng, arr, 3);
     TEST_ASSERT_NOT_NULL(sample, "Sample should be created");
 
     /* Verify sample has correct length */
@@ -1084,12 +1084,12 @@ void test_rt_random_sample_long_no_duplicates()
     RtRandom *rng = rt_random_create_with_seed(arena, 54321);
 
     /* Create array with unique values */
-    long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    long *arr = rt_array_create_long(arena, 10, data);
+    long long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    long long *arr = rt_array_create_long(arena, 10, data);
 
     /* Sample 5 elements multiple times */
     for (int trial = 0; trial < 20; trial++) {
-        long *sample = rt_random_sample_long(arena, rng, arr, 5);
+        long long *sample = rt_random_sample_long(arena, rng, arr, 5);
         TEST_ASSERT_NOT_NULL(sample, "Sample should be created");
 
         /* Check for duplicates */
@@ -1112,15 +1112,15 @@ void test_rt_random_sample_long_reproducible()
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create array */
-    long data[] = {100, 200, 300, 400, 500};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {100, 200, 300, 400, 500};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Sample with same seed twice */
     RtRandom *rng1 = rt_random_create_with_seed(arena, 99999);
-    long *sample1 = rt_random_sample_long(arena, rng1, arr, 3);
+    long long *sample1 = rt_random_sample_long(arena, rng1, arr, 3);
 
     RtRandom *rng2 = rt_random_create_with_seed(arena, 99999);
-    long *sample2 = rt_random_sample_long(arena, rng2, arr, 3);
+    long long *sample2 = rt_random_sample_long(arena, rng2, arr, 3);
 
     TEST_ASSERT_NOT_NULL(sample1, "First sample should be created");
     TEST_ASSERT_NOT_NULL(sample2, "Second sample should be created");
@@ -1143,11 +1143,11 @@ void test_rt_random_sample_long_count_exceeds_length()
     RtRandom *rng = rt_random_create_with_seed(arena, 11111);
 
     /* Create array with 5 elements */
-    long data[] = {1, 2, 3, 4, 5};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {1, 2, 3, 4, 5};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Try to sample 6 elements (should return NULL) */
-    long *sample = rt_random_sample_long(arena, rng, arr, 6);
+    long long *sample = rt_random_sample_long(arena, rng, arr, 6);
     TEST_ASSERT(sample == NULL, "Should return NULL when count > array length");
 
     printf("  Invalid count correctly returns NULL\n");
@@ -1162,11 +1162,11 @@ void test_rt_random_sample_long_null_handling()
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 22222);
 
-    long data[] = {1, 2, 3};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] = {1, 2, 3};
+    long long *arr = rt_array_create_long(arena, 3, data);
 
     /* NULL arena */
-    long *sample = rt_random_sample_long(NULL, rng, arr, 2);
+    long long *sample = rt_random_sample_long(NULL, rng, arr, 2);
     TEST_ASSERT(sample == NULL, "Should return NULL with NULL arena");
 
     /* NULL rng */
@@ -1198,12 +1198,12 @@ void test_rt_random_sample_long_preserves_original()
     RtRandom *rng = rt_random_create_with_seed(arena, 33333);
 
     /* Create array */
-    long data[] = {100, 200, 300, 400, 500};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {100, 200, 300, 400, 500};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Sample multiple times */
     for (int trial = 0; trial < 10; trial++) {
-        long *sample = rt_random_sample_long(arena, rng, arr, 3);
+        long long *sample = rt_random_sample_long(arena, rng, arr, 3);
         TEST_ASSERT_NOT_NULL(sample, "Sample should be created");
 
         /* Verify original array is unchanged */
@@ -1225,17 +1225,17 @@ void test_rt_random_sample_long_full_array()
     RtRandom *rng = rt_random_create_with_seed(arena, 44444);
 
     /* Create array */
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {10, 20, 30, 40, 50};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Sample entire array (count == length) */
-    long *sample = rt_random_sample_long(arena, rng, arr, 5);
+    long long *sample = rt_random_sample_long(arena, rng, arr, 5);
     TEST_ASSERT_NOT_NULL(sample, "Sample should be created when count equals array length");
     TEST_ASSERT(rt_array_length(sample) == 5, "Sample should have all 5 elements");
 
     /* Verify all original elements are present (sum should match) */
-    long original_sum = 10 + 20 + 30 + 40 + 50;
-    long sample_sum = 0;
+    long long original_sum = 10 + 20 + 30 + 40 + 50;
+    long long sample_sum = 0;
     for (int i = 0; i < 5; i++) {
         sample_sum += sample[i];
     }
@@ -1754,7 +1754,7 @@ void test_rt_random_sample_empty_array()
     char **empty_string = rt_array_alloc_string(arena, 0, NULL);
 
     /* Static sample from empty arrays - should return NULL */
-    long *sample_long = rt_random_static_sample_long(arena, empty_long, 1);
+    long long *sample_long = rt_random_static_sample_long(arena, empty_long, 1);
     TEST_ASSERT(sample_long == NULL, "Sampling from empty long array should return NULL");
 
     double *sample_double = rt_random_static_sample_double(arena, empty_double, 1);
@@ -1957,15 +1957,15 @@ void test_rt_random_sample_distribution()
 
     RtArena *arena = rt_arena_create(NULL);
 
-    long data[] = {0, 1, 2, 3, 4};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {0, 1, 2, 3, 4};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Count how often each element appears in samples */
     int counts[5] = {0, 0, 0, 0, 0};
     int num_samples = 10000;
 
     for (int trial = 0; trial < num_samples; trial++) {
-        long *sample = rt_random_static_sample_long(arena, arr, 2);
+        long long *sample = rt_random_static_sample_long(arena, arr, 2);
         TEST_ASSERT_NOT_NULL(sample, "Sample should succeed");
         counts[sample[0]]++;
         counts[sample[1]]++;
@@ -1998,8 +1998,8 @@ void test_rt_random_shuffle_distribution_extended()
     int num_trials = 10000;
 
     for (int trial = 0; trial < num_trials; trial++) {
-        long data[] = {0, 1, 2, 3, 4};
-        long *arr = rt_array_create_long(arena, 5, data);
+        long long data[] = {0, 1, 2, 3, 4};
+        long long *arr = rt_array_create_long(arena, 5, data);
         rt_random_static_shuffle_long(arr);
 
         for (int pos = 0; pos < 5; pos++) {
@@ -2041,14 +2041,14 @@ void test_integration_shuffle_then_sample()
     RtRandom *rng = rt_random_create_with_seed(arena, 99999);
 
     /* Create array, shuffle it, then sample */
-    long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    long *arr = rt_array_create_long(arena, 10, data);
+    long long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    long long *arr = rt_array_create_long(arena, 10, data);
 
     /* Shuffle in place */
     rt_random_shuffle_long(rng, arr);
 
     /* Sample from shuffled array */
-    long *sample = rt_random_sample_long(arena, rng, arr, 3);
+    long long *sample = rt_random_sample_long(arena, rng, arr, 3);
     TEST_ASSERT_NOT_NULL(sample, "Sample from shuffled array should succeed");
     TEST_ASSERT(rt_array_length(sample) == 3, "Sample should have 3 elements");
 
@@ -2081,11 +2081,11 @@ void test_integration_sample_then_choice()
     RtRandom *rng = rt_random_create_with_seed(arena, 11111);
 
     /* Create array, sample from it, then choose from sample */
-    long data[] = {100, 200, 300, 400, 500};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {100, 200, 300, 400, 500};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     /* Sample 3 elements */
-    long *sample = rt_random_sample_long(arena, rng, arr, 3);
+    long long *sample = rt_random_sample_long(arena, rng, arr, 3);
     TEST_ASSERT_NOT_NULL(sample, "Sample should succeed");
 
     /* Choose from the sample multiple times */
@@ -2149,8 +2149,8 @@ void test_integration_weighted_choice_after_shuffle()
     RtRandom *rng = rt_random_create_with_seed(arena, 44444);
 
     /* Create array with values and corresponding weights */
-    long data[] = {1, 2, 3, 4, 5};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {1, 2, 3, 4, 5};
+    long long *arr = rt_array_create_long(arena, 5, data);
     double weights_data[] = {5.0, 4.0, 3.0, 2.0, 1.0};
     double *weights = rt_array_create_double(arena, 5, weights_data);
 
@@ -2180,8 +2180,8 @@ void test_integration_reproducible_workflow()
 
     RtArena *arena = rt_arena_create(NULL);
 
-    long data[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
-    long *arr = rt_array_create_long(arena, 10, data);
+    long long data[] = {10, 20, 30, 40, 50, 60, 70, 80, 90, 100};
+    long long *arr = rt_array_create_long(arena, 10, data);
 
     /* Run same workflow twice with same seed */
     for (int run = 0; run < 2; run++) {
@@ -2192,7 +2192,7 @@ void test_integration_reproducible_workflow()
         long choice2 = rt_random_choice_long(rng, arr, 10);
 
         /* 2. Sample from array */
-        long *sample = rt_random_sample_long(arena, rng, arr, 3);
+        long long *sample = rt_random_sample_long(arena, rng, arr, 3);
 
         /* 3. Shuffle a copy */
         long copy_data[] = {1, 2, 3, 4, 5};

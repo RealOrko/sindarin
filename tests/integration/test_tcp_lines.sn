@@ -1,34 +1,41 @@
 // Test: TCP line-based protocol (readLine, writeLine)
 // Uses Python as a server for line-based communication
+// Cross-platform: works on Windows and Linux
 
 fn main(): void =>
-    // Clean up temp file if it exists
-    var preclean: Process = Process.run("rm", {"-f", "/tmp/tcp_lines_ready"})
+    // Get cross-platform temp directory and normalize to forward slashes
+    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+    var readyFile: str = $"{tempDir}/tcp_lines_ready"
+
+    // Clean up temp file if it exists (cross-platform)
+    if Path.exists(readyFile) =>
+        TextFile.delete(readyFile)
+
+    // Set ready file path for Python to use
+    Environment.set("SN_READY_FILE", readyFile)
 
     // Start a Python server that:
     // 1. Sends "GREETING\n"
     // 2. Receives a line
     // 3. Sends back "ECHO:<received>\n"
     // 4. Waits for client to close, then closes
-    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open('/tmp/tcp_lines_ready','w').write(str(p));c,a=s.accept();c.send(b'GREETING\\n');d=c.recv(1024).decode().strip();c.send(f'ECHO:{d}\\n'.encode());c.recv(1);c.close();s.close()"})
+    var server: Process = &Process.run("python", {"-c", "import socket,os;f=os.environ.get('SN_READY_FILE','/tmp/tcp_lines_ready');s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open(f,'w').write(str(p));c,a=s.accept();c.send(b'GREETING\\n');d=c.recv(1024).decode().strip();c.send(f'ECHO:{d}\\n'.encode());c.recv(1);c.close();s.close()"})
 
-    // Wait for server to be ready
+    // Wait for server to be ready using cross-platform methods
     var attempts: int = 0
     while attempts < 100 =>
-        var check: Process = Process.run("test", {"-f", "/tmp/tcp_lines_ready"})
-        if check.exitCode == 0 =>
+        if Path.exists(readyFile) =>
             attempts = 200
         else =>
-            var wait: Process = Process.run("sleep", {"0.05"})
+            Time.sleep(50)  // 50ms
             attempts = attempts + 1
 
     if attempts < 200 =>
         print("Timeout waiting for server\n")
         return
 
-    // Read the port number from the temp file
-    var portReader: Process = Process.run("cat", {"/tmp/tcp_lines_ready"})
-    var port: str = portReader.stdout.trim()
+    // Read the port number from the temp file (cross-platform)
+    var port: str = TextFile.readAll(readyFile).trim()
 
     // Connect to the Python server
     var client: TcpStream = TcpStream.connect($"127.0.0.1:{port}")
@@ -62,6 +69,7 @@ fn main(): void =>
     // Wait for server to finish
     server!
 
-    // Clean up
-    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_lines_ready"})
+    // Clean up (cross-platform)
+    if Path.exists(readyFile) =>
+        TextFile.delete(readyFile)
     print("Test complete\n")

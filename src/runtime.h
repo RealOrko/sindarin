@@ -51,21 +51,21 @@
  * Arithmetic operations
  * ============================================================================ */
 
-/* Long arithmetic (with overflow checking) */
-long rt_add_long(long a, long b);
-long rt_sub_long(long a, long b);
-long rt_mul_long(long a, long b);
-long rt_div_long(long a, long b);
-long rt_mod_long(long a, long b);
-long rt_neg_long(long a);
+/* Long arithmetic (with overflow checking) - uses long long for 64-bit on all platforms */
+long long rt_add_long(long long a, long long b);
+long long rt_sub_long(long long a, long long b);
+long long rt_mul_long(long long a, long long b);
+long long rt_div_long(long long a, long long b);
+long long rt_mod_long(long long a, long long b);
+long long rt_neg_long(long long a);
 
-/* Long comparisons - inlined for performance */
-static inline int rt_eq_long(long a, long b) { return a == b; }
-static inline int rt_ne_long(long a, long b) { return a != b; }
-static inline int rt_lt_long(long a, long b) { return a < b; }
-static inline int rt_le_long(long a, long b) { return a <= b; }
-static inline int rt_gt_long(long a, long b) { return a > b; }
-static inline int rt_ge_long(long a, long b) { return a >= b; }
+/* Long comparisons - inlined for performance (use long long for 64-bit on all platforms) */
+static inline int rt_eq_long(long long a, long long b) { return a == b; }
+static inline int rt_ne_long(long long a, long long b) { return a != b; }
+static inline int rt_lt_long(long long a, long long b) { return a < b; }
+static inline int rt_le_long(long long a, long long b) { return a <= b; }
+static inline int rt_gt_long(long long a, long long b) { return a > b; }
+static inline int rt_ge_long(long long a, long long b) { return a >= b; }
 
 /* Double arithmetic (with overflow checking) */
 double rt_add_double(double a, double b);
@@ -86,16 +86,38 @@ static inline int rt_ge_double(double a, double b) { return a >= b; }
 static inline int rt_not_bool(int a) { return !a; }
 
 /* Increment/decrement */
-long rt_post_inc_long(long *p);
-long rt_post_dec_long(long *p);
+long long rt_post_inc_long(long long *p);
+long long rt_post_dec_long(long long *p);
 
-/* String comparisons - inlined for performance */
-static inline int rt_eq_string(const char *a, const char *b) { return strcmp(a, b) == 0; }
-static inline int rt_ne_string(const char *a, const char *b) { return strcmp(a, b) != 0; }
-static inline int rt_lt_string(const char *a, const char *b) { return strcmp(a, b) < 0; }
-static inline int rt_le_string(const char *a, const char *b) { return strcmp(a, b) <= 0; }
-static inline int rt_gt_string(const char *a, const char *b) { return strcmp(a, b) > 0; }
-static inline int rt_ge_string(const char *a, const char *b) { return strcmp(a, b) >= 0; }
+/* String comparisons - inlined for performance, NULL-safe */
+static inline int rt_eq_string(const char *a, const char *b) {
+    if (a == NULL && b == NULL) return 1;
+    if (a == NULL || b == NULL) return 0;
+    return strcmp(a, b) == 0;
+}
+static inline int rt_ne_string(const char *a, const char *b) {
+    if (a == NULL && b == NULL) return 0;
+    if (a == NULL || b == NULL) return 1;
+    return strcmp(a, b) != 0;
+}
+static inline int rt_lt_string(const char *a, const char *b) {
+    if (a == NULL || b == NULL) return 0;
+    return strcmp(a, b) < 0;
+}
+static inline int rt_le_string(const char *a, const char *b) {
+    if (a == NULL && b == NULL) return 1;
+    if (a == NULL || b == NULL) return 0;
+    return strcmp(a, b) <= 0;
+}
+static inline int rt_gt_string(const char *a, const char *b) {
+    if (a == NULL || b == NULL) return 0;
+    return strcmp(a, b) > 0;
+}
+static inline int rt_ge_string(const char *a, const char *b) {
+    if (a == NULL && b == NULL) return 1;
+    if (a == NULL || b == NULL) return 0;
+    return strcmp(a, b) >= 0;
+}
 
 /* Check if string is empty or contains only whitespace */
 int rt_str_is_blank(const char *str);

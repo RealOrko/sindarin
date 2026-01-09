@@ -1,9 +1,10 @@
 // Test fire-and-forget pattern with Process
+// Cross-platform using Python
 // Process runs in background, arena cleanup joins thread
 
 fn main(): int =>
     // Fire and forget - spawn but don't sync
-    var p: Process = &Process.run("true")
+    var p: Process = &Process.run("python", {"-c", "pass"})
 
     // Continue immediately without waiting
     print("fired\n")

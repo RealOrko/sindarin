@@ -1,27 +1,23 @@
 // Test multiple concurrent processes
-// Verifies that processes run in parallel
+// Cross-platform using Python
 
 fn main(): int =>
-    // Spawn three processes in parallel
-    var p1: Process = &Process.run("echo", {"first"})
-    var p2: Process = &Process.run("echo", {"second"})
-    var p3: Process = &Process.run("echo", {"third"})
+    var p1: Process = &Process.run("python", {"-c", "print('first')"})
+    var p2: Process = &Process.run("python", {"-c", "print('second')"})
+    var p3: Process = &Process.run("python", {"-c", "print('third')"})
 
     print("all spawned\n")
 
-    // Wait for each
     p1!
     p2!
     p3!
 
     print("all done\n")
 
-    // Check results
-    print($"p1: {p1.stdout}")
-    print($"p2: {p2.stdout}")
-    print($"p3: {p3.stdout}")
+    print($"p1: {p1.stdout.trim()}\n")
+    print($"p2: {p2.stdout.trim()}\n")
+    print($"p3: {p3.stdout.trim()}\n")
 
-    // All should succeed
     var total: int = p1.exitCode + p2.exitCode + p3.exitCode
     print($"total exit: {total}\n")
 

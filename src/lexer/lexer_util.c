@@ -65,7 +65,7 @@ int lexer_match(Lexer *lexer, char expected)
     return 1;
 }
 
-Token lexer_make_token(Lexer *lexer, TokenType type)
+Token lexer_make_token(Lexer *lexer, SnTokenType type)
 {
     int length = (int)(lexer->current - lexer->start);
     char *dup_start = arena_strndup(lexer->arena, lexer->start, length);

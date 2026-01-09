@@ -61,7 +61,7 @@ bool expr_is_noop(Expr *expr, Expr **simplified)
     {
     case EXPR_BINARY:
     {
-        TokenType op = expr->as.binary.operator;
+        SnTokenType op = expr->as.binary.operator;
         Expr *left = expr->as.binary.left;
         Expr *right = expr->as.binary.right;
 
@@ -309,6 +309,16 @@ void collect_used_variables(Expr *expr, Token **used_vars, int *used_count,
         {
             collect_used_variables(expr->as.sized_array_alloc.default_value, used_vars, used_count, used_capacity, arena);
         }
+        break;
+
+    case EXPR_THREAD_SPAWN:
+        /* Thread spawn wraps a function call - collect variables from the call */
+        collect_used_variables(expr->as.thread_spawn.call, used_vars, used_count, used_capacity, arena);
+        break;
+
+    case EXPR_THREAD_SYNC:
+        /* Thread sync uses the handle expression */
+        collect_used_variables(expr->as.thread_sync.handle, used_vars, used_count, used_capacity, arena);
         break;
 
     case EXPR_LITERAL:

@@ -5,10 +5,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include <time.h>
+
+#ifdef _WIN32
+#include "../platform/compat_windows.h"
+#include "../platform/compat_pthread.h"
+#else
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#endif
+
 #include "../runtime.h"
 #include "../debug.h"
 
@@ -530,6 +537,9 @@ void test_rt_tcp_stream_connect_basic()
     rt_arena_destroy(server_arena);
 }
 
+/* Skip these tests on Windows - they use GCC nested functions which MSVC doesn't support */
+#ifndef _WIN32
+
 void test_rt_tcp_stream_connect_has_valid_fd()
 {
     printf("Testing rt_tcp_stream_connect returns stream with valid fd...\n");
@@ -823,6 +833,8 @@ void test_rt_tcp_stream_close_multiple_times()
     rt_arena_destroy(client_arena);
     rt_arena_destroy(server_arena);
 }
+
+#endif /* !_WIN32 - end of nested function tests */
 
 /* ============================================================================
  * TcpStream Read/Write Tests
@@ -1702,13 +1714,17 @@ void test_rt_net_main()
 
     /* TcpStream connect tests */
     test_rt_tcp_stream_connect_basic();
+#ifndef _WIN32
     test_rt_tcp_stream_connect_has_valid_fd();
     test_rt_tcp_stream_connect_has_remote_address();
     test_rt_tcp_stream_connect_localhost_hostname();
+#endif
 
     /* TcpStream close tests */
+#ifndef _WIN32
     test_rt_tcp_stream_close_basic();
     test_rt_tcp_stream_close_multiple_times();
+#endif
 
     /* TcpStream read/write tests */
     test_rt_tcp_stream_write_basic();

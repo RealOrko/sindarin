@@ -23,13 +23,14 @@
 
 /*
  * Instance: Array of random integers in range [min, max] inclusive.
+ * Uses long long for 64-bit portability on Windows.
  */
-long *rt_random_int_many(RtArena *arena, RtRandom *rng, long min, long max, long count) {
+long long *rt_random_int_many(RtArena *arena, RtRandom *rng, long long min, long long max, long count) {
     if (arena == NULL || rng == NULL || count <= 0) {
         return NULL;
     }
 
-    long *result = rt_arena_alloc(arena, (size_t)count * sizeof(long));
+    long long *result = rt_arena_alloc(arena, (size_t)count * sizeof(long long));
 
     for (long i = 0; i < count; i++) {
         result[i] = rt_random_int(rng, min, max);
@@ -116,8 +117,9 @@ double *rt_random_gaussian_many(RtArena *arena, RtRandom *rng, double mean, doub
 
 /*
  * Instance: Shuffle long array in-place using Fisher-Yates algorithm.
+ * Uses long long for 64-bit portability on Windows.
  */
-void rt_random_shuffle_long(RtRandom *rng, long *arr) {
+void rt_random_shuffle_long(RtRandom *rng, long long *arr) {
     if (rng == NULL || arr == NULL) {
         return;
     }
@@ -130,7 +132,7 @@ void rt_random_shuffle_long(RtRandom *rng, long *arr) {
     for (size_t i = n - 1; i > 0; i--) {
         size_t j = (size_t)rt_random_int(rng, 0, (long)i);
 
-        long temp = arr[i];
+        long long temp = arr[i];
         arr[i] = arr[j];
         arr[j] = temp;
     }
@@ -242,8 +244,9 @@ void rt_random_shuffle_byte(RtRandom *rng, unsigned char *arr) {
  *   - count > array length (invalid sample size)
  *
  * Returns: Arena-allocated array of `count` randomly selected elements.
+ * Uses long long for 64-bit portability on Windows.
  */
-long *rt_random_sample_long(RtArena *arena, RtRandom *rng, long *arr, long count) {
+long long *rt_random_sample_long(RtArena *arena, RtRandom *rng, long long *arr, long count) {
     /* Validate inputs */
     if (arena == NULL || rng == NULL || arr == NULL) {
         return NULL;
@@ -268,11 +271,11 @@ long *rt_random_sample_long(RtArena *arena, RtRandom *rng, long *arr, long count
         return NULL;
     }
 
-    long *temp = rt_arena_alloc(temp_arena, n * sizeof(long));
-    memcpy(temp, arr, n * sizeof(long));
+    long long *temp = rt_arena_alloc(temp_arena, n * sizeof(long long));
+    memcpy(temp, arr, n * sizeof(long long));
 
     /* Allocate result array using arena */
-    long *result = rt_array_create_long(arena, count, NULL);
+    long long *result = rt_array_create_long(arena, count, NULL);
     if (result == NULL) {
         rt_arena_destroy(temp_arena);
         return NULL;
@@ -284,7 +287,7 @@ long *rt_random_sample_long(RtArena *arena, RtRandom *rng, long *arr, long count
         size_t j = (size_t)rt_random_int(rng, (long)i, (long)(n - 1));
 
         /* Swap temp[i] and temp[j] */
-        long swap = temp[i];
+        long long swap = temp[i];
         temp[i] = temp[j];
         temp[j] = swap;
 

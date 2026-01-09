@@ -24,8 +24,9 @@
 /*
  * Instance: Random element from long array.
  * Returns 0 if array is NULL or empty.
+ * Uses long long for 64-bit portability on Windows.
  */
-long rt_random_choice_long(RtRandom *rng, long *arr, long len) {
+long long rt_random_choice_long(RtRandom *rng, long long *arr, long len) {
     if (rng == NULL || arr == NULL || len <= 0) {
         return 0;
     }
@@ -98,8 +99,9 @@ unsigned char rt_random_choice_byte(RtRandom *rng, unsigned char *arr, long len)
  * Instance: Weighted random choice from long array.
  * Returns a random element with probability proportional to its weight.
  * Returns 0 if inputs are invalid (NULL rng, NULL arrays, invalid weights).
+ * Uses long long for 64-bit portability on Windows.
  */
-long rt_random_weighted_choice_long(RtRandom *rng, long *arr, double *weights) {
+long long rt_random_weighted_choice_long(RtRandom *rng, long long *arr, double *weights) {
     /* Handle NULL inputs */
     if (rng == NULL || arr == NULL || weights == NULL) {
         return 0;
@@ -136,7 +138,7 @@ long rt_random_weighted_choice_long(RtRandom *rng, long *arr, double *weights) {
     long index = rt_random_select_weighted_index(random_val, cumulative, len);
 
     /* Get the selected value */
-    long result = arr[index];
+    long long result = arr[index];
 
     /* Clean up temporary arena */
     rt_arena_destroy(temp_arena);

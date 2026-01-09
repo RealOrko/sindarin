@@ -6,7 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+
+#ifdef _WIN32
+#include "../platform/compat_windows.h"
+#include "../platform/compat_time.h"
+#else
 #include <sys/time.h>
+#endif
+
 #include "../../src/runtime/runtime_uuid.h"
 #include "../../src/runtime/runtime_arena.h"
 #include "../test_utils.h"

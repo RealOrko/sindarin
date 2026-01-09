@@ -4,34 +4,40 @@
 #include <math.h>
 #include <limits.h>
 #include <errno.h>
+#include <time.h>
+
+#ifdef _WIN32
+#include "platform/compat_windows.h"
+#else
 #include <sys/stat.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <time.h>
+#endif
+
 #include "runtime.h"
 #include "runtime/runtime_string.h"
 #include "runtime/runtime_file.h"
 #include "runtime/runtime_thread.h"
 
-long rt_add_long(long a, long b)
+long long rt_add_long(long long a, long long b)
 {
-    if ((b > 0 && a > LONG_MAX - b) || (b < 0 && a < LONG_MIN - b))
+    if ((b > 0 && a > LLONG_MAX - b) || (b < 0 && a < LLONG_MIN - b))
     {
         rt_thread_panic("rt_add_long: overflow detected");
     }
     return a + b;
 }
 
-long rt_sub_long(long a, long b)
+long long rt_sub_long(long long a, long long b)
 {
-    if ((b > 0 && a < LONG_MIN + b) || (b < 0 && a > LONG_MAX + b))
+    if ((b > 0 && a < LLONG_MIN + b) || (b < 0 && a > LLONG_MAX + b))
     {
         rt_thread_panic("rt_sub_long: overflow detected");
     }
     return a - b;
 }
 
-long rt_mul_long(long a, long b)
+long long rt_mul_long(long long a, long long b)
 {
     if (a == 0 || b == 0)
     {
@@ -40,23 +46,23 @@ long rt_mul_long(long a, long b)
 
     if ((a > 0 && b > 0) || (a < 0 && b < 0))
     {
-        /* Result will be positive, check against LONG_MAX */
+        /* Result will be positive, check against LLONG_MAX */
         if (a > 0)
         {
-            if (a > LONG_MAX / b)
+            if (a > LLONG_MAX / b)
             {
                 rt_thread_panic("rt_mul_long: overflow detected");
             }
         }
         else
         {
-            /* Both negative: need (-a) * (-b) <= LONG_MAX */
-            /* Special case: LONG_MIN cannot be negated */
-            if (a == LONG_MIN || b == LONG_MIN)
+            /* Both negative: need (-a) * (-b) <= LLONG_MAX */
+            /* Special case: LLONG_MIN cannot be negated */
+            if (a == LLONG_MIN || b == LLONG_MIN)
             {
                 rt_thread_panic("rt_mul_long: overflow detected");
             }
-            if ((-a) > LONG_MAX / (-b))
+            if ((-a) > LLONG_MAX / (-b))
             {
                 rt_thread_panic("rt_mul_long: overflow detected");
             }
@@ -64,11 +70,11 @@ long rt_mul_long(long a, long b)
     }
     else
     {
-        /* Result will be negative, check against LONG_MIN */
+        /* Result will be negative, check against LLONG_MIN */
         if (a > 0)
         {
             /* a > 0, b < 0 */
-            if (b < LONG_MIN / a)
+            if (b < LLONG_MIN / a)
             {
                 rt_thread_panic("rt_mul_long: overflow detected");
             }
@@ -76,7 +82,7 @@ long rt_mul_long(long a, long b)
         else
         {
             /* a < 0, b > 0 */
-            if (a < LONG_MIN / b)
+            if (a < LLONG_MIN / b)
             {
                 rt_thread_panic("rt_mul_long: overflow detected");
             }
@@ -86,28 +92,28 @@ long rt_mul_long(long a, long b)
     return a * b;
 }
 
-long rt_div_long(long a, long b)
+long long rt_div_long(long long a, long long b)
 {
     if (b == 0)
     {
         rt_thread_panic("Division by zero");
     }
-    if (a == LONG_MIN && b == -1)
+    if (a == LLONG_MIN && b == -1)
     {
-        rt_thread_panic("rt_div_long: overflow detected (LONG_MIN / -1)");
+        rt_thread_panic("rt_div_long: overflow detected (LLONG_MIN / -1)");
     }
     return a / b;
 }
 
-long rt_mod_long(long a, long b)
+long long rt_mod_long(long long a, long long b)
 {
     if (b == 0)
     {
         rt_thread_panic("Modulo by zero");
     }
-    if (a == LONG_MIN && b == -1)
+    if (a == LLONG_MIN && b == -1)
     {
-        rt_thread_panic("rt_mod_long: overflow detected (LONG_MIN % -1)");
+        rt_thread_panic("rt_mod_long: overflow detected (LLONG_MIN % -1)");
     }
     return a % b;
 }
@@ -162,11 +168,11 @@ double rt_div_double(double a, double b)
 /* rt_eq_double, rt_ne_double, rt_lt_double, rt_le_double, rt_gt_double, rt_ge_double
  * are defined as static inline in runtime.h for inlining optimization */
 
-long rt_neg_long(long a)
+long long rt_neg_long(long long a)
 {
-    if (a == LONG_MIN)
+    if (a == LLONG_MIN)
     {
-        rt_thread_panic("rt_neg_long: overflow detected (-LONG_MIN)");
+        rt_thread_panic("rt_neg_long: overflow detected (-LLONG_MIN)");
     }
     return -a;
 }
@@ -175,14 +181,14 @@ double rt_neg_double(double a) { return -a; }
 
 /* rt_not_bool is defined as static inline in runtime.h */
 
-long rt_post_inc_long(long *p)
+long long rt_post_inc_long(long long *p)
 {
     if (p == NULL)
     {
         fprintf(stderr, "rt_post_inc_long: NULL pointer\n");
         exit(1);
     }
-    if (*p == LONG_MAX)
+    if (*p == LLONG_MAX)
     {
         fprintf(stderr, "rt_post_inc_long: overflow detected\n");
         exit(1);
@@ -190,14 +196,14 @@ long rt_post_inc_long(long *p)
     return (*p)++;
 }
 
-long rt_post_dec_long(long *p)
+long long rt_post_dec_long(long long *p)
 {
     if (p == NULL)
     {
         fprintf(stderr, "rt_post_dec_long: NULL pointer\n");
         exit(1);
     }
-    if (*p == LONG_MIN)
+    if (*p == LLONG_MIN)
     {
         fprintf(stderr, "rt_post_dec_long: overflow detected\n");
         exit(1);

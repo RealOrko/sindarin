@@ -1,26 +1,22 @@
 // Test Process stdout and stderr capture
-// Verifies that output streams are captured correctly
+// Cross-platform using Python
 
 fn main(): int =>
-    // Capture stdout
-    var p1: Process = Process.run("echo", {"stdout test"})
-    print($"stdout: {p1.stdout}")
+    var p1: Process = Process.run("python", {"-c", "print('stdout test')"})
+    print($"stdout: {p1.stdout.trim()}\n")
 
-    // Capture stderr
-    var p2: Process = Process.run("sh", {"-c", "echo stderr test >&2"})
-    print($"stderr: {p2.stderr}")
+    var p2: Process = Process.run("python", {"-c", "import sys; sys.stderr.write('stderr test\\n')"})
+    print($"stderr: {p2.stderr.trim()}\n")
 
-    // Both streams at once
-    var p3: Process = Process.run("sh", {"-c", "echo out; echo err >&2"})
-    print($"both stdout: {p3.stdout}")
-    print($"both stderr: {p3.stderr}")
+    var p3: Process = Process.run("python", {"-c", "import sys; print('out'); sys.stderr.write('err\\n')"})
+    print($"both stdout: {p3.stdout.trim()}\n")
+    print($"both stderr: {p3.stderr.trim()}\n")
 
-    // Multiline output
-    var p4: Process = Process.run("sh", {"-c", "echo line1; echo line2; echo line3"})
-    print($"multiline:\n{p4.stdout}")
+    var p4: Process = Process.run("python", {"-c", "print('line1'); print('line2'); print('line3')"})
+    var multi: str = p4.stdout.replace("\r", "").trim()
+    print($"multiline:\n{multi}\n")
 
-    // Empty output
-    var p5: Process = Process.run("true")
+    var p5: Process = Process.run("python", {"-c", "pass"})
     if p5.stdout == "" =>
         print("empty stdout: true\n")
     else =>

@@ -1,20 +1,21 @@
 // Test Process exit code handling
+// Cross-platform using Python
 // Verifies that exit codes are captured correctly
 
 fn main(): int =>
     // Exit code 0 (success)
-    var p0: Process = Process.run("true")
+    var p0: Process = Process.run("python", {"-c", "pass"})
     print($"true: {p0.exitCode}\n")
 
     // Exit code 1 (general error)
-    var p1: Process = Process.run("false")
+    var p1: Process = Process.run("python", {"-c", "import sys; sys.exit(1)"})
     print($"false: {p1.exitCode}\n")
 
-    // Custom exit codes via shell
-    var p42: Process = Process.run("sh", {"-c", "exit 42"})
+    // Custom exit codes
+    var p42: Process = Process.run("python", {"-c", "import sys; sys.exit(42)"})
     print($"exit 42: {p42.exitCode}\n")
 
-    var p255: Process = Process.run("sh", {"-c", "exit 255"})
+    var p255: Process = Process.run("python", {"-c", "import sys; sys.exit(255)"})
     print($"exit 255: {p255.exitCode}\n")
 
     // Exit code 127 (command not found)
@@ -22,7 +23,7 @@ fn main(): int =>
     print($"not found: {p127.exitCode}\n")
 
     // Test exit code in conditional
-    var p: Process = Process.run("true")
+    var p: Process = Process.run("python", {"-c", "pass"})
     if p.exitCode == 0 =>
         print("success check: pass\n")
     else =>

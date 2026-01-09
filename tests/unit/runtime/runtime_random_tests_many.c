@@ -25,10 +25,10 @@ void test_rt_random_static_int_many_count_and_range()
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     long count = 1000;
-    long min = 10;
-    long max = 100;
+    long long min = 10;
+    long long max = 100;
 
-    long *arr = rt_random_static_int_many(arena, min, max, count);
+    long long *arr = rt_random_static_int_many(arena, min, max, count);
     TEST_ASSERT_NOT_NULL(arr, "Array should be created");
 
     /* Verify all values are in range */
@@ -59,7 +59,7 @@ void test_rt_random_static_int_many_null_arena()
 {
     printf("Testing rt_random_static_int_many with NULL arena...\n");
 
-    long *arr = rt_random_static_int_many(NULL, 0, 100, 10);
+    long long *arr = rt_random_static_int_many(NULL, 0, 100, 10);
     TEST_ASSERT(arr == NULL, "NULL arena should return NULL");
 
     printf("  NULL arena handled correctly\n");
@@ -72,10 +72,10 @@ void test_rt_random_static_int_many_zero_count()
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
-    long *arr1 = rt_random_static_int_many(arena, 0, 100, 0);
+    long long *arr1 = rt_random_static_int_many(arena, 0, 100, 0);
     TEST_ASSERT(arr1 == NULL, "Zero count should return NULL");
 
-    long *arr2 = rt_random_static_int_many(arena, 0, 100, -5);
+    long long *arr2 = rt_random_static_int_many(arena, 0, 100, -5);
     TEST_ASSERT(arr2 == NULL, "Negative count should return NULL");
 
     printf("  Zero/negative count handled correctly\n");
@@ -258,10 +258,10 @@ void test_rt_random_int_many_count_and_range()
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     long count = 1000;
-    long min = 10;
-    long max = 100;
+    long long min = 10;
+    long long max = 100;
 
-    long *arr = rt_random_int_many(arena, rng, min, max, count);
+    long long *arr = rt_random_int_many(arena, rng, min, max, count);
     TEST_ASSERT_NOT_NULL(arr, "Array should be created");
 
     /* Verify all values are in range */
@@ -284,10 +284,10 @@ void test_rt_random_int_many_null_args()
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
-    long *arr1 = rt_random_int_many(NULL, rng, 0, 100, 10);
+    long long *arr1 = rt_random_int_many(NULL, rng, 0, 100, 10);
     TEST_ASSERT(arr1 == NULL, "NULL arena should return NULL");
 
-    long *arr2 = rt_random_int_many(arena, NULL, 0, 100, 10);
+    long long *arr2 = rt_random_int_many(arena, NULL, 0, 100, 10);
     TEST_ASSERT(arr2 == NULL, "NULL rng should return NULL");
 
     printf("  NULL args handled correctly\n");
@@ -305,8 +305,8 @@ void test_rt_random_int_many_reproducibility()
     RtRandom *rng2 = rt_random_create_with_seed(arena, 42);
 
     long count = 100;
-    long *arr1 = rt_random_int_many(arena, rng1, 0, 1000, count);
-    long *arr2 = rt_random_int_many(arena, rng2, 0, 1000, count);
+    long long *arr1 = rt_random_int_many(arena, rng1, 0, 1000, count);
+    long long *arr2 = rt_random_int_many(arena, rng2, 0, 1000, count);
 
     TEST_ASSERT_NOT_NULL(arr1, "arr1 should be created");
     TEST_ASSERT_NOT_NULL(arr2, "arr2 should be created");

@@ -47,6 +47,10 @@ void test_rt_env_get_missing_variable()
 
 void test_rt_env_get_empty_value()
 {
+#ifdef _WIN32
+    /* Skip on Windows - SetEnvironmentVariableA with empty string removes the variable */
+    printf("Testing rt_env_get with empty value... (skipped on Windows)\n");
+#else
     printf("Testing rt_env_get with empty value...\n");
 
     RtArena *arena = rt_arena_create(NULL);
@@ -61,6 +65,7 @@ void test_rt_env_get_empty_value()
     /* Clean up */
     rt_env_remove("TEST_ENV_EMPTY");
     rt_arena_destroy(arena);
+#endif
 }
 
 /* ============================================================================

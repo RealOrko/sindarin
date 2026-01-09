@@ -4,7 +4,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include "../platform/compat_windows.h"
+#include "../platform/compat_time.h"
+#else
 #include <sys/time.h>
+#endif
+
 #include "runtime_uuid.h"
 #include "runtime_random.h"
 #include "runtime_arena.h"

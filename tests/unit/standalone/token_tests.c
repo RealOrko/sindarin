@@ -414,10 +414,10 @@ void test_token_type_to_string_invalid()
     DEBUG_INFO("Starting test_token_type_to_string_invalid");
     printf("Testing token_type_to_string for invalid type...\n");
 
-    const char *result = token_type_to_string((TokenType)-1);
+    const char *result = token_type_to_string((SnTokenType)-1);
     assert(strcmp(result, "INVALID") == 0);
 
-    result = token_type_to_string((TokenType)999);
+    result = token_type_to_string((SnTokenType)999);
     assert(strcmp(result, "INVALID") == 0); // Out of range
 
     result = token_type_to_string(TOKEN_ERROR);
@@ -582,9 +582,9 @@ void test_token_init_invalid_type()
     printf("Testing token_init with invalid type...\n");
 
     Token token;
-    token_init(&token, (TokenType)999, dummy_source, (int)strlen(dummy_source), 1, filename);
+    token_init(&token, (SnTokenType)999, dummy_source, (int)strlen(dummy_source), 1, filename);
 
-    assert(token.type == (TokenType)999);
+    assert(token.type == (SnTokenType)999);
     const char *type_str = token_type_to_string(token.type);
     assert(strcmp(type_str, "INVALID") == 0);
 
@@ -599,7 +599,7 @@ void test_token_print_invalid_type()
     printf("Testing token_print with invalid type...\n");
 
     Token token;
-    token_init(&token, (TokenType)999, dummy_source, (int)strlen(dummy_source), 1, filename);
+    token_init(&token, (SnTokenType)999, dummy_source, (int)strlen(dummy_source), 1, filename);
 
     token_print(&token); // type: INVALID, no value
 

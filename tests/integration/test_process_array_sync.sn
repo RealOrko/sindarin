@@ -1,25 +1,21 @@
 // Test sync list synchronization with Process variables
-// Verifies [p1, p2, p3]! syntax
+// Cross-platform using Python
 
 fn main(): int =>
-    // Spawn multiple processes
-    var p1: Process = &Process.run("echo", {"one"})
-    var p2: Process = &Process.run("echo", {"two"})
-    var p3: Process = &Process.run("echo", {"three"})
+    var p1: Process = &Process.run("python", {"-c", "print('one')"})
+    var p2: Process = &Process.run("python", {"-c", "print('two')"})
+    var p3: Process = &Process.run("python", {"-c", "print('three')"})
 
     print("spawned all\n")
 
-    // Sync list - wait for all at once
     [p1, p2, p3]!
 
     print("synced all\n")
 
-    // All results available
-    print($"p1: {p1.stdout}")
-    print($"p2: {p2.stdout}")
-    print($"p3: {p3.stdout}")
+    print($"p1: {p1.stdout.trim()}\n")
+    print($"p2: {p2.stdout.trim()}\n")
+    print($"p3: {p3.stdout.trim()}\n")
 
-    // Check exit codes
     print($"exits: {p1.exitCode}, {p2.exitCode}, {p3.exitCode}\n")
 
     return 0

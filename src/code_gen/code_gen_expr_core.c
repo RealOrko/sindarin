@@ -17,8 +17,9 @@ char *code_gen_literal_expression(CodeGen *gen, LiteralExpr *expr)
     switch (type->kind)
     {
     case TYPE_INT:
+        return arena_sprintf(gen->arena, "%lldLL", (long long)expr->value.int_value);
     case TYPE_LONG:
-        return arena_sprintf(gen->arena, "%ldL", expr->value.int_value);
+        return arena_sprintf(gen->arena, "%lldLL", (long long)expr->value.int_value);
     case TYPE_DOUBLE:
     {
         char *str = arena_sprintf(gen->arena, "%.17g", expr->value.double_value);

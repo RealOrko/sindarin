@@ -1,4 +1,5 @@
 // Test Process stderr capture
+// Cross-platform using Python
 // Expected output:
 // stdout is empty: true
 // stderr captured: error_message
@@ -6,7 +7,7 @@
 
 fn main(): int =>
     // Run command that writes to stderr
-    var p: Process = Process.run("sh", {"-c", "echo error_message >&2"})
+    var p: Process = Process.run("python", {"-c", "import sys; sys.stderr.write('error_message\\n')"})
 
     // stdout should be empty
     var empty: str = ""
