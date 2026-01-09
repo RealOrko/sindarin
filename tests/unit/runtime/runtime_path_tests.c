@@ -14,15 +14,14 @@
 #endif
 
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Path Component Extraction Tests
  * ============================================================================ */
 
-void test_rt_path_directory()
+static void test_rt_path_directory(void)
 {
-    printf("Testing rt_path_directory...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Unix-style paths */
@@ -58,10 +57,8 @@ void test_rt_path_directory()
     rt_arena_destroy(arena);
 }
 
-void test_rt_path_filename()
+static void test_rt_path_filename(void)
 {
-    printf("Testing rt_path_filename...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic filename extraction */
@@ -97,10 +94,8 @@ void test_rt_path_filename()
     rt_arena_destroy(arena);
 }
 
-void test_rt_path_extension()
+static void test_rt_path_extension(void)
 {
-    printf("Testing rt_path_extension...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic extension extraction */
@@ -143,10 +138,8 @@ void test_rt_path_extension()
  * Path Join Tests
  * ============================================================================ */
 
-void test_rt_path_join2()
+static void test_rt_path_join2(void)
 {
-    printf("Testing rt_path_join2...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic join */
@@ -185,10 +178,8 @@ void test_rt_path_join2()
     rt_arena_destroy(arena);
 }
 
-void test_rt_path_join3()
+static void test_rt_path_join3(void)
 {
-    printf("Testing rt_path_join3...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic three-component join */
@@ -209,10 +200,8 @@ void test_rt_path_join3()
  * Path Query Tests
  * ============================================================================ */
 
-void test_rt_path_exists()
+static void test_rt_path_exists(void)
 {
-    printf("Testing rt_path_exists...\n");
-
     /* Current directory should exist */
     assert(rt_path_exists(".") == 1);
 
@@ -229,10 +218,8 @@ void test_rt_path_exists()
     assert(rt_path_exists("") == 0);
 }
 
-void test_rt_path_is_file()
+static void test_rt_path_is_file(void)
 {
-    printf("Testing rt_path_is_file...\n");
-
     /* Create a temporary file for testing */
     const char *test_file = "/tmp/rt_path_test_file.txt";
     FILE *f = fopen(test_file, "w");
@@ -258,10 +245,8 @@ void test_rt_path_is_file()
     assert(rt_path_is_file(NULL) == 0);
 }
 
-void test_rt_path_is_directory()
+static void test_rt_path_is_directory(void)
 {
-    printf("Testing rt_path_is_directory...\n");
-
     /* Known directories */
     assert(rt_path_is_directory("/tmp") == 1);
     assert(rt_path_is_directory(".") == 1);
@@ -274,10 +259,8 @@ void test_rt_path_is_directory()
     assert(rt_path_is_directory(NULL) == 0);
 }
 
-void test_rt_path_absolute()
+static void test_rt_path_absolute(void)
 {
-    printf("Testing rt_path_absolute...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Relative path should become absolute */
@@ -297,10 +280,8 @@ void test_rt_path_absolute()
  * Directory Operation Tests
  * ============================================================================ */
 
-void test_rt_directory_list()
+static void test_rt_directory_list(void)
 {
-    printf("Testing rt_directory_list...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* List /tmp - should work */
@@ -315,10 +296,8 @@ void test_rt_directory_list()
     rt_arena_destroy(arena);
 }
 
-void test_rt_directory_create_and_delete()
+static void test_rt_directory_create_and_delete(void)
 {
-    printf("Testing rt_directory_create and rt_directory_delete...\n");
-
     const char *test_dir = "/tmp/rt_path_test_dir_12345";
 
     /* Ensure it doesn't exist first */
@@ -336,10 +315,8 @@ void test_rt_directory_create_and_delete()
     assert(rt_path_exists(test_dir) == 0);
 }
 
-void test_rt_directory_list_recursive()
+static void test_rt_directory_list_recursive(void)
 {
-    printf("Testing rt_directory_list_recursive...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test with /tmp - should return some entries */
@@ -354,25 +331,27 @@ void test_rt_directory_list_recursive()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_path_main()
+void test_rt_path_main(void)
 {
+    TEST_SECTION("Runtime Path");
+
     /* Component extraction */
-    test_rt_path_directory();
-    test_rt_path_filename();
-    test_rt_path_extension();
+    TEST_RUN("rt_path_directory", test_rt_path_directory);
+    TEST_RUN("rt_path_filename", test_rt_path_filename);
+    TEST_RUN("rt_path_extension", test_rt_path_extension);
 
     /* Path joining */
-    test_rt_path_join2();
-    test_rt_path_join3();
+    TEST_RUN("rt_path_join2", test_rt_path_join2);
+    TEST_RUN("rt_path_join3", test_rt_path_join3);
 
     /* Path queries */
-    test_rt_path_exists();
-    test_rt_path_is_file();
-    test_rt_path_is_directory();
-    test_rt_path_absolute();
+    TEST_RUN("rt_path_exists", test_rt_path_exists);
+    TEST_RUN("rt_path_is_file", test_rt_path_is_file);
+    TEST_RUN("rt_path_is_directory", test_rt_path_is_directory);
+    TEST_RUN("rt_path_absolute", test_rt_path_absolute);
 
     /* Directory operations */
-    test_rt_directory_list();
-    test_rt_directory_create_and_delete();
-    test_rt_directory_list_recursive();
+    TEST_RUN("rt_directory_list", test_rt_directory_list);
+    TEST_RUN("rt_directory_create_and_delete", test_rt_directory_create_and_delete);
+    TEST_RUN("rt_directory_list_recursive", test_rt_directory_list_recursive);
 }

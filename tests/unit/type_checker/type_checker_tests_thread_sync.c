@@ -7,11 +7,11 @@
 #include "../type_checker/type_checker_expr.h"
 #include "../type_checker/type_checker_stmt.h"
 #include "../ast/ast_expr.h"
+#include "../test_harness.h"
 
 /* Test sync on non-variable expression reports error */
 static void test_sync_non_variable_error(void)
 {
-    printf("Testing sync on non-variable expression reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -43,7 +43,6 @@ static void test_sync_non_variable_error(void)
 /* Test sync on unknown variable reports error */
 static void test_sync_unknown_variable_error(void)
 {
-    printf("Testing sync on unknown variable reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -72,7 +71,6 @@ static void test_sync_unknown_variable_error(void)
 /* Test sync on non-pending variable reports error */
 static void test_sync_non_pending_variable_error(void)
 {
-    printf("Testing sync on non-pending variable reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -109,7 +107,6 @@ static void test_sync_non_pending_variable_error(void)
 /* Test valid sync on pending variable returns correct type */
 static void test_valid_sync_returns_correct_type(void)
 {
-    printf("Testing valid sync on pending variable returns correct type...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -155,7 +152,6 @@ static void test_valid_sync_returns_correct_type(void)
 /* Test that sync transitions symbol from PENDING to SYNCHRONIZED state */
 static void test_sync_state_transition(void)
 {
-    printf("Testing sync transitions from PENDING to SYNCHRONIZED state...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -204,7 +200,6 @@ static void test_sync_state_transition(void)
 /* Test that sync unfreezes captured arguments */
 static void test_sync_unfreezes_arguments(void)
 {
-    printf("Testing sync unfreezes captured arguments...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -259,7 +254,6 @@ static void test_sync_unfreezes_arguments(void)
 /* Test that frozen argument becomes writable after sync */
 static void test_frozen_arg_writable_after_sync(void)
 {
-    printf("Testing frozen arg becomes writable after sync...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -336,7 +330,6 @@ static void test_frozen_arg_writable_after_sync(void)
 /* Test sync handles case with no frozen arguments */
 static void test_sync_handles_no_frozen_args(void)
 {
-    printf("Testing sync handles no frozen arguments...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -373,7 +366,6 @@ static void test_sync_handles_no_frozen_args(void)
 /* Test that multiple freezes are decremented correctly */
 static void test_sync_multiple_freezes_decremented(void)
 {
-    printf("Testing multiple freezes are decremented correctly...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -448,7 +440,6 @@ static void test_sync_multiple_freezes_decremented(void)
 /* Test array sync with is_array flag true validates array handle */
 static void test_array_sync_validates_array_handle(void)
 {
-    printf("Testing array sync validates array handle...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -502,7 +493,6 @@ static void test_array_sync_validates_array_handle(void)
 /* Test array sync with non-array expression reports error */
 static void test_array_sync_non_array_error(void)
 {
-    printf("Testing array sync with non-array expression reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -537,7 +527,6 @@ static void test_array_sync_non_array_error(void)
 /* Test array sync with non-variable element reports error */
 static void test_array_sync_non_variable_element_error(void)
 {
-    printf("Testing array sync with non-variable element reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -576,7 +565,6 @@ static void test_array_sync_non_variable_element_error(void)
 /* Test array sync with non-pending element reports error */
 static void test_array_sync_non_pending_element_error(void)
 {
-    printf("Testing array sync with non-pending element reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -616,7 +604,6 @@ static void test_array_sync_non_pending_element_error(void)
 /* Test array sync returns void type */
 static void test_array_sync_returns_void(void)
 {
-    printf("Testing array sync returns void type...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -656,7 +643,6 @@ static void test_array_sync_returns_void(void)
 /* Test array sync handles mixed states (some pending, some synchronized) */
 static void test_array_sync_mixed_states(void)
 {
-    printf("Testing array sync handles mixed states gracefully...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -723,7 +709,6 @@ static void test_array_sync_mixed_states(void)
 /* Test array sync unfreezes arguments for all synced threads */
 static void test_array_sync_unfreezes_all_arguments(void)
 {
-    printf("Testing array sync unfreezes all arguments...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -801,7 +786,6 @@ static void test_array_sync_unfreezes_all_arguments(void)
 /* Test array sync with same variable frozen by multiple threads */
 static void test_array_sync_shared_frozen_variable(void)
 {
-    printf("Testing array sync with shared frozen variable...\n");
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable table;
@@ -891,25 +875,23 @@ static void test_array_sync_shared_frozen_variable(void)
 
 void test_type_checker_thread_sync_main(void)
 {
-    printf("\n=== Running Thread Sync Type Checker Tests ===\n\n");
+    TEST_SECTION("Thread Sync Type Checker");
 
-    test_sync_non_variable_error();
-    test_sync_unknown_variable_error();
-    test_sync_non_pending_variable_error();
-    test_valid_sync_returns_correct_type();
-    test_sync_state_transition();
-    test_sync_unfreezes_arguments();
-    test_frozen_arg_writable_after_sync();
-    test_sync_handles_no_frozen_args();
-    test_sync_multiple_freezes_decremented();
-    test_array_sync_validates_array_handle();
-    test_array_sync_non_array_error();
-    test_array_sync_non_variable_element_error();
-    test_array_sync_non_pending_element_error();
-    test_array_sync_returns_void();
-    test_array_sync_mixed_states();
-    test_array_sync_unfreezes_all_arguments();
-    test_array_sync_shared_frozen_variable();
-
-    printf("\n=== All Thread Sync Type Checker Tests Passed ===\n\n");
+    TEST_RUN("sync_non_variable_error", test_sync_non_variable_error);
+    TEST_RUN("sync_unknown_variable_error", test_sync_unknown_variable_error);
+    TEST_RUN("sync_non_pending_variable_error", test_sync_non_pending_variable_error);
+    TEST_RUN("valid_sync_returns_correct_type", test_valid_sync_returns_correct_type);
+    TEST_RUN("sync_state_transition", test_sync_state_transition);
+    TEST_RUN("sync_unfreezes_arguments", test_sync_unfreezes_arguments);
+    TEST_RUN("frozen_arg_writable_after_sync", test_frozen_arg_writable_after_sync);
+    TEST_RUN("sync_handles_no_frozen_args", test_sync_handles_no_frozen_args);
+    TEST_RUN("sync_multiple_freezes_decremented", test_sync_multiple_freezes_decremented);
+    TEST_RUN("array_sync_validates_array_handle", test_array_sync_validates_array_handle);
+    TEST_RUN("array_sync_non_array_error", test_array_sync_non_array_error);
+    TEST_RUN("array_sync_non_variable_element_error", test_array_sync_non_variable_element_error);
+    TEST_RUN("array_sync_non_pending_element_error", test_array_sync_non_pending_element_error);
+    TEST_RUN("array_sync_returns_void", test_array_sync_returns_void);
+    TEST_RUN("array_sync_mixed_states", test_array_sync_mixed_states);
+    TEST_RUN("array_sync_unfreezes_all_arguments", test_array_sync_unfreezes_all_arguments);
+    TEST_RUN("array_sync_shared_frozen_variable", test_array_sync_shared_frozen_variable);
 }

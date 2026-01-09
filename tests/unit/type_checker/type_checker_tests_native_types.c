@@ -2,14 +2,14 @@
 // Tests for native opaque types and interop primitive types
 // Note: setup_test_token helper is defined in type_checker_tests_native.c
 
+#include "../test_harness.h"
+
 /* ==========================================================================
  * Opaque Type Tests
  * ========================================================================== */
 
-void test_opaque_type_declaration(void)
+static void test_opaque_type_declaration(void)
 {
-    printf("Testing opaque type declaration...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -39,17 +39,13 @@ void test_opaque_type_declaration(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  Opaque type declaration correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that opaque pointer type is valid in native function */
-void test_opaque_pointer_in_native_function(void)
+static void test_opaque_pointer_in_native_function(void)
 {
-    printf("Testing opaque pointer type in native function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -100,17 +96,13 @@ void test_opaque_pointer_in_native_function(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  Opaque pointer type in native function correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that dereferencing opaque pointer is rejected */
-void test_opaque_dereference_rejected(void)
+static void test_opaque_dereference_rejected(void)
 {
-    printf("Testing opaque pointer dereference is rejected...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -172,17 +164,13 @@ void test_opaque_dereference_rejected(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL - cannot dereference opaque pointer */
 
-    printf("  Opaque pointer dereference correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that opaque type is C-compatible (can be used in native callback) */
-void test_opaque_type_c_compatible(void)
+static void test_opaque_type_c_compatible(void)
 {
-    printf("Testing opaque type is C-compatible in native callback...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -228,8 +216,6 @@ void test_opaque_type_c_compatible(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass - *FILE is C-compatible */
 
-    printf("  Opaque type in native callback correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -239,10 +225,8 @@ void test_opaque_type_c_compatible(void)
  * ========================================================================== */
 
 /* Test int32 type in native function */
-void test_int32_type_in_native_function(void)
+static void test_int32_type_in_native_function(void)
 {
-    printf("Testing int32 type in native function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -272,17 +256,13 @@ void test_int32_type_in_native_function(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  int32 type in native function correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test uint type in native function */
-void test_uint_type_in_native_function(void)
+static void test_uint_type_in_native_function(void)
 {
-    printf("Testing uint type in native function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -312,17 +292,13 @@ void test_uint_type_in_native_function(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  uint type in native function correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test uint32 type in native function */
-void test_uint32_type_in_native_function(void)
+static void test_uint32_type_in_native_function(void)
 {
-    printf("Testing uint32 type in native function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -352,17 +328,13 @@ void test_uint32_type_in_native_function(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  uint32 type in native function correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test float type in native function */
-void test_float_type_in_native_function(void)
+static void test_float_type_in_native_function(void)
 {
-    printf("Testing float type in native function...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -392,17 +364,13 @@ void test_float_type_in_native_function(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  float type in native function correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test interop types are C-compatible in native callback */
-void test_interop_types_c_compatible(void)
+static void test_interop_types_c_compatible(void)
 {
-    printf("Testing interop types are C-compatible in native callback...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -441,17 +409,13 @@ void test_interop_types_c_compatible(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass - int32, uint, float are C-compatible */
 
-    printf("  Interop types in native callback correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test pointer to interop type */
-void test_pointer_to_interop_type(void)
+static void test_pointer_to_interop_type(void)
 {
-    printf("Testing pointer to interop type (*int32)...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -482,8 +446,6 @@ void test_pointer_to_interop_type(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass */
 
-    printf("  Pointer to interop type correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -494,20 +456,16 @@ void test_pointer_to_interop_type(void)
 
 void test_type_checker_native_types_main(void)
 {
-    printf("\n=== Native Types Tests ===\n");
+    TEST_SECTION("Native Types");
 
-    // Opaque type tests
-    test_opaque_type_declaration();
-    test_opaque_pointer_in_native_function();
-    test_opaque_dereference_rejected();
-    test_opaque_type_c_compatible();
-    // Interop primitive type tests
-    test_int32_type_in_native_function();
-    test_uint_type_in_native_function();
-    test_uint32_type_in_native_function();
-    test_float_type_in_native_function();
-    test_interop_types_c_compatible();
-    test_pointer_to_interop_type();
-
-    printf("All native types tests passed!\n");
+    TEST_RUN("opaque_type_declaration", test_opaque_type_declaration);
+    TEST_RUN("opaque_pointer_in_native_function", test_opaque_pointer_in_native_function);
+    TEST_RUN("opaque_dereference_rejected", test_opaque_dereference_rejected);
+    TEST_RUN("opaque_type_c_compatible", test_opaque_type_c_compatible);
+    TEST_RUN("int32_type_in_native_function", test_int32_type_in_native_function);
+    TEST_RUN("uint_type_in_native_function", test_uint_type_in_native_function);
+    TEST_RUN("uint32_type_in_native_function", test_uint32_type_in_native_function);
+    TEST_RUN("float_type_in_native_function", test_float_type_in_native_function);
+    TEST_RUN("interop_types_c_compatible", test_interop_types_c_compatible);
+    TEST_RUN("pointer_to_interop_type", test_pointer_to_interop_type);
 }

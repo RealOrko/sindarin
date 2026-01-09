@@ -6,14 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Date Month/Year Boundary Tests
  * ============================================================================ */
 
-void test_rt_date_start_of_month()
+static void test_rt_date_start_of_month(void)
 {
-    printf("Testing rt_date_start_of_month...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -63,9 +63,8 @@ void test_rt_date_start_of_month()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_start_of_month_null_handling()
+static void test_rt_date_start_of_month_null_handling(void)
 {
-    printf("Testing rt_date_start_of_month with NULL handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
@@ -81,9 +80,8 @@ void test_rt_date_start_of_month_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_end_of_month()
+static void test_rt_date_end_of_month(void)
 {
-    printf("Testing rt_date_end_of_month...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -140,9 +138,8 @@ void test_rt_date_end_of_month()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_end_of_month_null_handling()
+static void test_rt_date_end_of_month_null_handling(void)
 {
-    printf("Testing rt_date_end_of_month with NULL handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
@@ -158,9 +155,8 @@ void test_rt_date_end_of_month_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_start_of_year()
+static void test_rt_date_start_of_year(void)
 {
-    printf("Testing rt_date_start_of_year...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -210,9 +206,8 @@ void test_rt_date_start_of_year()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_start_of_year_null_handling()
+static void test_rt_date_start_of_year_null_handling(void)
 {
-    printf("Testing rt_date_start_of_year with NULL handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
@@ -228,9 +223,8 @@ void test_rt_date_start_of_year_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_end_of_year()
+static void test_rt_date_end_of_year(void)
 {
-    printf("Testing rt_date_end_of_year...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -280,9 +274,8 @@ void test_rt_date_end_of_year()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_end_of_year_null_handling()
+static void test_rt_date_end_of_year_null_handling(void)
 {
-    printf("Testing rt_date_end_of_year with NULL handling...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 6, 15);
@@ -298,9 +291,8 @@ void test_rt_date_end_of_year_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_calculate_target_year_month_positive()
+static void test_rt_date_calculate_target_year_month_positive(void)
 {
-    printf("Testing rt_date_calculate_target_year_month with positive months...\n");
 
     int out_year, out_month;
 
@@ -325,9 +317,8 @@ void test_rt_date_calculate_target_year_month_positive()
     assert(out_month == 6);
 }
 
-void test_rt_date_calculate_target_year_month_negative()
+static void test_rt_date_calculate_target_year_month_negative(void)
 {
-    printf("Testing rt_date_calculate_target_year_month with negative months...\n");
 
     int out_year, out_month;
 
@@ -352,9 +343,8 @@ void test_rt_date_calculate_target_year_month_negative()
     assert(out_month == 12);
 }
 
-void test_rt_date_calculate_target_year_month_zero()
+static void test_rt_date_calculate_target_year_month_zero(void)
 {
-    printf("Testing rt_date_calculate_target_year_month with zero months...\n");
 
     int out_year, out_month;
 
@@ -373,9 +363,8 @@ void test_rt_date_calculate_target_year_month_zero()
     assert(out_month == 12);
 }
 
-void test_rt_date_clamp_day_to_month()
+static void test_rt_date_clamp_day_to_month(void)
 {
-    printf("Testing rt_date_clamp_day_to_month...\n");
 
     /* clamp_day_to_month(31, 2025, 2) returns 28 (non-leap year February) */
     assert(rt_date_clamp_day_to_month(31, 2025, 2) == 28);
@@ -408,9 +397,8 @@ void test_rt_date_clamp_day_to_month()
  * Comprehensive Edge Case Tests
  * ============================================================================ */
 
-void test_rt_date_epoch_boundaries()
+static void test_rt_date_epoch_boundaries(void)
 {
-    printf("Testing epoch boundary dates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -454,9 +442,8 @@ void test_rt_date_epoch_boundaries()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_year_boundary_transitions()
+static void test_rt_date_year_boundary_transitions(void)
 {
-    printf("Testing year boundary transitions...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -500,9 +487,8 @@ void test_rt_date_year_boundary_transitions()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_leap_year_transitions()
+static void test_rt_date_leap_year_transitions(void)
 {
-    printf("Testing leap year transitions...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -572,9 +558,8 @@ void test_rt_date_leap_year_transitions()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_large_arithmetic_values()
+static void test_rt_date_large_arithmetic_values(void)
 {
-    printf("Testing large arithmetic values...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -632,9 +617,8 @@ void test_rt_date_large_arithmetic_values()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_far_future_dates()
+static void test_rt_date_far_future_dates(void)
 {
-    printf("Testing far future dates (year 3000, 5000)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -683,9 +667,8 @@ void test_rt_date_far_future_dates()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_far_past_dates()
+static void test_rt_date_far_past_dates(void)
 {
-    printf("Testing far past dates (year 1000, 1500)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -734,9 +717,8 @@ void test_rt_date_far_past_dates()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_all_methods_with_edge_dates()
+static void test_rt_date_all_methods_with_edge_dates(void)
 {
-    printf("Testing all methods handle edge dates without crashes...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -828,9 +810,8 @@ void test_rt_date_all_methods_with_edge_dates()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_boundary_conditions()
+static void test_rt_date_boundary_conditions(void)
 {
-    printf("Testing boundary conditions (month 0/13, day 0/32)...\n");
 
     /* Note: rt_date_from_ymd with invalid dates calls exit(1) in the runtime,
      * so we cannot test those cases directly. Instead, we test the validation
@@ -879,9 +860,8 @@ void test_rt_date_boundary_conditions()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_month_end_clamping_all_months()
+static void test_rt_date_month_end_clamping_all_months(void)
 {
-    printf("Testing month-end clamping for all months...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d;
@@ -953,9 +933,8 @@ void test_rt_date_month_end_clamping_all_months()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_diff_days_symmetry()
+static void test_rt_date_diff_days_symmetry(void)
 {
-    printf("Testing diffDays symmetry...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1000,9 +979,8 @@ void test_rt_date_diff_days_symmetry()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_roundtrip_add_days()
+static void test_rt_date_roundtrip_add_days(void)
 {
-    printf("Testing round-trip addDays...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *original;
@@ -1043,9 +1021,8 @@ void test_rt_date_roundtrip_add_days()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_roundtrip_add_weeks()
+static void test_rt_date_roundtrip_add_weeks(void)
 {
-    printf("Testing round-trip addWeeks...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *original;
@@ -1070,9 +1047,8 @@ void test_rt_date_roundtrip_add_weeks()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_consistency_weeks_days()
+static void test_rt_date_consistency_weeks_days(void)
 {
-    printf("Testing consistency between weeks and days...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *original;
@@ -1101,9 +1077,8 @@ void test_rt_date_consistency_weeks_days()
  * Date Comparison Tests
  * ============================================================================ */
 
-void test_rt_date_is_before()
+static void test_rt_date_is_before(void)
 {
-    printf("Testing rt_date_is_before...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1135,9 +1110,8 @@ void test_rt_date_is_before()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_is_before_null_handling()
+static void test_rt_date_is_before_null_handling(void)
 {
-    printf("Testing rt_date_is_before with NULL...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 1, 1);
@@ -1150,9 +1124,8 @@ void test_rt_date_is_before_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_is_after()
+static void test_rt_date_is_after(void)
 {
-    printf("Testing rt_date_is_after...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1178,9 +1151,8 @@ void test_rt_date_is_after()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_is_after_null_handling()
+static void test_rt_date_is_after_null_handling(void)
 {
-    printf("Testing rt_date_is_after with NULL...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 1, 1);
@@ -1193,9 +1165,8 @@ void test_rt_date_is_after_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_equals()
+static void test_rt_date_equals(void)
 {
-    printf("Testing rt_date_equals...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1222,9 +1193,8 @@ void test_rt_date_equals()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_equals_null_handling()
+static void test_rt_date_equals_null_handling(void)
 {
-    printf("Testing rt_date_equals with NULL...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 1, 1);
@@ -1237,9 +1207,8 @@ void test_rt_date_equals_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_comparison_consistency()
+static void test_rt_date_comparison_consistency(void)
 {
-    printf("Testing comparison method consistency...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1311,9 +1280,8 @@ void test_rt_date_comparison_consistency()
  * Date/Time Conversion Tests
  * ============================================================================ */
 
-void test_rt_date_to_time()
+static void test_rt_date_to_time(void)
 {
-    printf("Testing rt_date_to_time...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1367,9 +1335,8 @@ void test_rt_date_to_time()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_to_time_null_handling()
+static void test_rt_date_to_time_null_handling(void)
 {
-    printf("Testing rt_date_to_time with NULL...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtDate *d = rt_date_from_ymd(arena, 2025, 1, 1);
@@ -1381,9 +1348,8 @@ void test_rt_date_to_time_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_get_date()
+static void test_rt_time_get_date(void)
 {
-    printf("Testing rt_time_get_date...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1428,9 +1394,8 @@ void test_rt_time_get_date()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_get_date_null_handling()
+static void test_rt_time_get_date_null_handling(void)
 {
-    printf("Testing rt_time_get_date with NULL...\n");
 
     RtArena *arena = rt_arena_create(NULL);
     RtTime *t = rt_time_from_millis(arena, 0);
@@ -1442,9 +1407,8 @@ void test_rt_time_get_date_null_handling()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_time_roundtrip()
+static void test_rt_date_time_roundtrip(void)
 {
-    printf("Testing Date <-> Time round-trip conversions...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1460,13 +1424,11 @@ void test_rt_date_time_roundtrip()
     result = rt_time_get_date(arena, time);
     assert(rt_date_equals(original, result) == 1);
 
-#ifndef _WIN32
     /* Test with date before epoch - Skip on Windows where mktime doesn't support pre-1970 dates */
     original = rt_date_from_ymd(arena, 1969, 12, 31);
     time = rt_date_to_time(arena, original);
     result = rt_time_get_date(arena, time);
     assert(rt_date_equals(original, result) == 1);
-#endif
 
     /* Test with leap year date */
     original = rt_date_from_ymd(arena, 2024, 2, 29);
@@ -1486,23 +1448,17 @@ void test_rt_date_time_roundtrip()
         assert(rt_date_equals(dates[i], result) == 1);
     }
 
-#ifndef _WIN32
     /* Test with pre-1970 date - Unix only */
     original = rt_date_from_ymd(arena, 1900, 1, 1);
     time = rt_date_to_time(arena, original);
     result = rt_time_get_date(arena, time);
     assert(rt_date_equals(original, result) == 1);
-#endif
 
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_get_date_negative_times()
+static void test_rt_time_get_date_negative_times(void)
 {
-#ifdef _WIN32
-    /* Skip on Windows - negative time_t values not supported by Windows time functions */
-    printf("Testing rt_time_get_date with negative times... (skipped on Windows)\n");
-#else
     printf("Testing rt_time_get_date with negative times...\n");
 
     RtArena *arena = rt_arena_create(NULL);
@@ -1532,16 +1488,14 @@ void test_rt_time_get_date_negative_times()
     assert(rt_date_get_day(d) == 30);
 
     rt_arena_destroy(arena);
-#endif
 }
 
 /* ============================================================================
  * Date Static Constructor Tests
  * ============================================================================ */
 
-void test_rt_date_today()
+static void test_rt_date_today(void)
 {
-    printf("Testing rt_date_today...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1568,18 +1522,16 @@ void test_rt_date_today()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_today_null_arena()
+static void test_rt_date_today_null_arena(void)
 {
-    printf("Testing rt_date_today null arena...\n");
 
     /* Should handle null arena gracefully (returns NULL) */
     RtDate *result = rt_date_today(NULL);
     assert(result == NULL);
 }
 
-void test_rt_date_from_ymd_valid()
+static void test_rt_date_from_ymd_valid(void)
 {
-    printf("Testing rt_date_from_ymd with valid dates...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1633,18 +1585,16 @@ void test_rt_date_from_ymd_valid()
 /* Note: rt_date_from_ymd with invalid dates calls exit(1), so we can't test that in unit tests.
  * The runtime design is to fail fast on invalid dates, which is validated at runtime. */
 
-void test_rt_date_from_ymd_null_arena()
+static void test_rt_date_from_ymd_null_arena(void)
 {
-    printf("Testing rt_date_from_ymd null arena...\n");
 
     /* Should handle null arena gracefully */
     RtDate *result = rt_date_from_ymd(NULL, 2025, 1, 15);
     assert(result == NULL);
 }
 
-void test_rt_date_from_string_valid()
+static void test_rt_date_from_string_valid(void)
 {
-    printf("Testing rt_date_from_string with valid ISO format...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1695,18 +1645,16 @@ void test_rt_date_from_string_valid()
 /* Note: rt_date_from_string with invalid formats calls exit(1), so we can't test that in unit tests.
  * The runtime design is to fail fast on invalid dates/formats, which is validated at runtime. */
 
-void test_rt_date_from_string_null_arena()
+static void test_rt_date_from_string_null_arena(void)
 {
-    printf("Testing rt_date_from_string null arena...\n");
 
     /* Should handle null arena gracefully */
     RtDate *result = rt_date_from_string(NULL, "2025-01-15");
     assert(result == NULL);
 }
 
-void test_rt_date_from_epoch_days_valid()
+static void test_rt_date_from_epoch_days_valid(void)
 {
-    printf("Testing rt_date_from_epoch_days with various values...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1758,18 +1706,16 @@ void test_rt_date_from_epoch_days_valid()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_from_epoch_days_null_arena()
+static void test_rt_date_from_epoch_days_null_arena(void)
 {
-    printf("Testing rt_date_from_epoch_days null arena...\n");
 
     /* Should handle null arena gracefully */
     RtDate *result = rt_date_from_epoch_days(NULL, 0);
     assert(result == NULL);
 }
 
-void test_rt_date_from_epoch_days_roundtrip()
+static void test_rt_date_from_epoch_days_roundtrip(void)
 {
-    printf("Testing rt_date_from_epoch_days roundtrip...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1797,9 +1743,8 @@ void test_rt_date_from_epoch_days_roundtrip()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_is_leap_year_static()
+static void test_rt_date_is_leap_year_static(void)
 {
-    printf("Testing rt_date_is_leap_year static function...\n");
 
     /* Standard leap years (divisible by 4) */
     assert(rt_date_is_leap_year(2024) == 1);
@@ -1824,9 +1769,8 @@ void test_rt_date_is_leap_year_static()
     assert(rt_date_is_leap_year(2400) == 1);
 }
 
-void test_rt_date_days_in_month_static()
+static void test_rt_date_days_in_month_static(void)
 {
-    printf("Testing rt_date_days_in_month static function...\n");
 
     /* 31-day months */
     assert(rt_date_days_in_month(2025, 1) == 31);  /* January */
@@ -1859,9 +1803,8 @@ void test_rt_date_days_in_month_static()
     assert(rt_date_days_in_month(2025, 100) == 0); /* Large month is invalid */
 }
 
-void test_rt_date_is_valid_ymd()
+static void test_rt_date_is_valid_ymd(void)
 {
-    printf("Testing rt_date_is_valid_ymd...\n");
 
     /* Valid dates */
     assert(rt_date_is_valid_ymd(2025, 1, 1) == 1);
@@ -1886,9 +1829,8 @@ void test_rt_date_is_valid_ymd()
  * Date Getter Tests
  * ============================================================================ */
 
-void test_rt_date_get_year_month_day()
+static void test_rt_date_get_year_month_day(void)
 {
-    printf("Testing rt_date_get_year/month/day...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1925,9 +1867,8 @@ void test_rt_date_get_year_month_day()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_get_weekday()
+static void test_rt_date_get_weekday(void)
 {
-    printf("Testing rt_date_get_weekday...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -1966,9 +1907,8 @@ void test_rt_date_get_weekday()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_get_day_of_year()
+static void test_rt_date_get_day_of_year(void)
 {
-    printf("Testing rt_date_get_day_of_year...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2003,9 +1943,8 @@ void test_rt_date_get_day_of_year()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_get_epoch_days()
+static void test_rt_date_get_epoch_days(void)
 {
-    printf("Testing rt_date_get_epoch_days...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2035,9 +1974,8 @@ void test_rt_date_get_epoch_days()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_is_weekend()
+static void test_rt_date_is_weekend(void)
 {
-    printf("Testing rt_date_is_weekend...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2072,9 +2010,8 @@ void test_rt_date_is_weekend()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_is_weekday()
+static void test_rt_date_is_weekday(void)
 {
-    printf("Testing rt_date_is_weekday...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2109,9 +2046,8 @@ void test_rt_date_is_weekday()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_instance_days_in_month()
+static void test_rt_date_instance_days_in_month(void)
 {
-    printf("Testing rt_date_get_days_in_month (instance)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2145,9 +2081,8 @@ void test_rt_date_instance_days_in_month()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_instance_is_leap_year()
+static void test_rt_date_instance_is_leap_year(void)
 {
-    printf("Testing rt_date_is_leap (instance)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2185,9 +2120,8 @@ void test_rt_date_instance_is_leap_year()
  * Date toIso and toString Tests
  * ============================================================================ */
 
-void test_rt_date_to_iso_format()
+static void test_rt_date_to_iso_format(void)
 {
-    printf("Testing rt_date_to_iso format...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2244,9 +2178,8 @@ void test_rt_date_to_iso_format()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_to_string_format()
+static void test_rt_date_to_string_format(void)
 {
-    printf("Testing rt_date_to_string format...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2353,9 +2286,8 @@ void test_rt_date_to_string_format()
  * Date format() Numeric Token Tests
  * ============================================================================ */
 
-void test_rt_date_format_yyyy_token()
+static void test_rt_date_format_yyyy_token(void)
 {
-    printf("Testing rt_date_format YYYY token...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2384,9 +2316,8 @@ void test_rt_date_format_yyyy_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_yy_token()
+static void test_rt_date_format_yy_token(void)
 {
-    printf("Testing rt_date_format YY token...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2415,9 +2346,8 @@ void test_rt_date_format_yy_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_mm_token()
+static void test_rt_date_format_mm_token(void)
 {
-    printf("Testing rt_date_format MM token...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2453,9 +2383,8 @@ void test_rt_date_format_mm_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_m_token()
+static void test_rt_date_format_m_token(void)
 {
-    printf("Testing rt_date_format M token...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2492,9 +2421,8 @@ void test_rt_date_format_m_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_dd_token()
+static void test_rt_date_format_dd_token(void)
 {
-    printf("Testing rt_date_format DD token...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2530,9 +2458,8 @@ void test_rt_date_format_dd_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_d_token()
+static void test_rt_date_format_d_token(void)
 {
-    printf("Testing rt_date_format D token...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2569,9 +2496,8 @@ void test_rt_date_format_d_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_yyyy_mm_dd_combined()
+static void test_rt_date_format_yyyy_mm_dd_combined(void)
 {
-    printf("Testing rt_date_format YYYY-MM-DD combined...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2599,9 +2525,8 @@ void test_rt_date_format_yyyy_mm_dd_combined()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_m_d_yyyy_combined()
+static void test_rt_date_format_m_d_yyyy_combined(void)
 {
-    printf("Testing rt_date_format M/D/YYYY combined...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2637,9 +2562,8 @@ void test_rt_date_format_m_d_yyyy_combined()
  * Date format() Name Token Tests
  * ============================================================================ */
 
-void test_rt_date_format_mmm_token()
+static void test_rt_date_format_mmm_token(void)
 {
-    printf("Testing rt_date_format MMM token (short month names)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2711,9 +2635,8 @@ void test_rt_date_format_mmm_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_mmmm_token()
+static void test_rt_date_format_mmmm_token(void)
 {
-    printf("Testing rt_date_format MMMM token (full month names)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2785,9 +2708,8 @@ void test_rt_date_format_mmmm_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_ddd_token()
+static void test_rt_date_format_ddd_token(void)
 {
-    printf("Testing rt_date_format ddd token (short weekday names)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2835,9 +2757,8 @@ void test_rt_date_format_ddd_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_dddd_token()
+static void test_rt_date_format_dddd_token(void)
 {
-    printf("Testing rt_date_format dddd token (full weekday names)...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2885,9 +2806,8 @@ void test_rt_date_format_dddd_token()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_mmmm_d_yyyy_combined()
+static void test_rt_date_format_mmmm_d_yyyy_combined(void)
 {
-    printf("Testing rt_date_format MMMM D, YYYY combined...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2920,9 +2840,8 @@ void test_rt_date_format_mmmm_d_yyyy_combined()
     rt_arena_destroy(arena);
 }
 
-void test_rt_date_format_ddd_mmm_d_combined()
+static void test_rt_date_format_ddd_mmm_d_combined(void)
 {
-    printf("Testing rt_date_format ddd, MMM D combined...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -2960,103 +2879,101 @@ void test_rt_date_format_ddd_mmm_d_combined()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_date_boundaries_main()
+void test_rt_date_boundaries_main(void)
 {
-    printf("\n=== Running Date Boundaries/Comparisons/Getters/Constructors Tests ===\n\n");
+    TEST_SECTION("Date Boundaries/Comparisons/Getters/Constructors");
 
     /* Static constructor tests */
-    test_rt_date_today();
-    test_rt_date_today_null_arena();
-    test_rt_date_from_ymd_valid();
+    TEST_RUN("date_today", test_rt_date_today);
+    TEST_RUN("date_today_null_arena", test_rt_date_today_null_arena);
+    TEST_RUN("date_from_ymd_valid", test_rt_date_from_ymd_valid);
     /* Note: rt_date_from_ymd invalid test skipped - runtime calls exit(1) on invalid dates */
-    test_rt_date_from_ymd_null_arena();
-    test_rt_date_from_string_valid();
+    TEST_RUN("date_from_ymd_null_arena", test_rt_date_from_ymd_null_arena);
+    TEST_RUN("date_from_string_valid", test_rt_date_from_string_valid);
     /* Note: rt_date_from_string invalid test skipped - runtime calls exit(1) on invalid formats */
-    test_rt_date_from_string_null_arena();
-    test_rt_date_from_epoch_days_valid();
-    test_rt_date_from_epoch_days_null_arena();
-    test_rt_date_from_epoch_days_roundtrip();
-    test_rt_date_is_leap_year_static();
-    test_rt_date_days_in_month_static();
-    test_rt_date_is_valid_ymd();
+    TEST_RUN("date_from_string_null_arena", test_rt_date_from_string_null_arena);
+    TEST_RUN("date_from_epoch_days_valid", test_rt_date_from_epoch_days_valid);
+    TEST_RUN("date_from_epoch_days_null_arena", test_rt_date_from_epoch_days_null_arena);
+    TEST_RUN("date_from_epoch_days_roundtrip", test_rt_date_from_epoch_days_roundtrip);
+    TEST_RUN("date_is_leap_year_static", test_rt_date_is_leap_year_static);
+    TEST_RUN("date_days_in_month_static", test_rt_date_days_in_month_static);
+    TEST_RUN("date_is_valid_ymd", test_rt_date_is_valid_ymd);
 
     /* Date getter tests */
-    test_rt_date_get_year_month_day();
-    test_rt_date_get_weekday();
-    test_rt_date_get_day_of_year();
-    test_rt_date_get_epoch_days();
-    test_rt_date_is_weekend();
-    test_rt_date_is_weekday();
-    test_rt_date_instance_days_in_month();
-    test_rt_date_instance_is_leap_year();
+    TEST_RUN("date_get_year_month_day", test_rt_date_get_year_month_day);
+    TEST_RUN("date_get_weekday", test_rt_date_get_weekday);
+    TEST_RUN("date_get_day_of_year", test_rt_date_get_day_of_year);
+    TEST_RUN("date_get_epoch_days", test_rt_date_get_epoch_days);
+    TEST_RUN("date_is_weekend", test_rt_date_is_weekend);
+    TEST_RUN("date_is_weekday", test_rt_date_is_weekday);
+    TEST_RUN("date_instance_days_in_month", test_rt_date_instance_days_in_month);
+    TEST_RUN("date_instance_is_leap_year", test_rt_date_instance_is_leap_year);
 
     /* toIso and toString format tests */
-    test_rt_date_to_iso_format();
-    test_rt_date_to_string_format();
+    TEST_RUN("date_to_iso_format", test_rt_date_to_iso_format);
+    TEST_RUN("date_to_string_format", test_rt_date_to_string_format);
 
     /* Numeric token tests */
-    test_rt_date_format_yyyy_token();
-    test_rt_date_format_yy_token();
-    test_rt_date_format_mm_token();
-    test_rt_date_format_m_token();
-    test_rt_date_format_dd_token();
-    test_rt_date_format_d_token();
-    test_rt_date_format_yyyy_mm_dd_combined();
-    test_rt_date_format_m_d_yyyy_combined();
+    TEST_RUN("date_format_yyyy_token", test_rt_date_format_yyyy_token);
+    TEST_RUN("date_format_yy_token", test_rt_date_format_yy_token);
+    TEST_RUN("date_format_mm_token", test_rt_date_format_mm_token);
+    TEST_RUN("date_format_m_token", test_rt_date_format_m_token);
+    TEST_RUN("date_format_dd_token", test_rt_date_format_dd_token);
+    TEST_RUN("date_format_d_token", test_rt_date_format_d_token);
+    TEST_RUN("date_format_yyyy_mm_dd_combined", test_rt_date_format_yyyy_mm_dd_combined);
+    TEST_RUN("date_format_m_d_yyyy_combined", test_rt_date_format_m_d_yyyy_combined);
 
     /* Name token tests */
-    test_rt_date_format_mmm_token();
-    test_rt_date_format_mmmm_token();
-    test_rt_date_format_ddd_token();
-    test_rt_date_format_dddd_token();
-    test_rt_date_format_mmmm_d_yyyy_combined();
-    test_rt_date_format_ddd_mmm_d_combined();
+    TEST_RUN("date_format_mmm_token", test_rt_date_format_mmm_token);
+    TEST_RUN("date_format_mmmm_token", test_rt_date_format_mmmm_token);
+    TEST_RUN("date_format_ddd_token", test_rt_date_format_ddd_token);
+    TEST_RUN("date_format_dddd_token", test_rt_date_format_dddd_token);
+    TEST_RUN("date_format_mmmm_d_yyyy_combined", test_rt_date_format_mmmm_d_yyyy_combined);
+    TEST_RUN("date_format_ddd_mmm_d_combined", test_rt_date_format_ddd_mmm_d_combined);
 
     /* Date boundary tests */
-    test_rt_date_start_of_month();
-    test_rt_date_start_of_month_null_handling();
-    test_rt_date_end_of_month();
-    test_rt_date_end_of_month_null_handling();
-    test_rt_date_start_of_year();
-    test_rt_date_start_of_year_null_handling();
-    test_rt_date_end_of_year();
-    test_rt_date_end_of_year_null_handling();
-    test_rt_date_calculate_target_year_month_positive();
-    test_rt_date_calculate_target_year_month_negative();
-    test_rt_date_calculate_target_year_month_zero();
-    test_rt_date_clamp_day_to_month();
+    TEST_RUN("date_start_of_month", test_rt_date_start_of_month);
+    TEST_RUN("date_start_of_month_null_handling", test_rt_date_start_of_month_null_handling);
+    TEST_RUN("date_end_of_month", test_rt_date_end_of_month);
+    TEST_RUN("date_end_of_month_null_handling", test_rt_date_end_of_month_null_handling);
+    TEST_RUN("date_start_of_year", test_rt_date_start_of_year);
+    TEST_RUN("date_start_of_year_null_handling", test_rt_date_start_of_year_null_handling);
+    TEST_RUN("date_end_of_year", test_rt_date_end_of_year);
+    TEST_RUN("date_end_of_year_null_handling", test_rt_date_end_of_year_null_handling);
+    TEST_RUN("date_calculate_target_year_month_positive", test_rt_date_calculate_target_year_month_positive);
+    TEST_RUN("date_calculate_target_year_month_negative", test_rt_date_calculate_target_year_month_negative);
+    TEST_RUN("date_calculate_target_year_month_zero", test_rt_date_calculate_target_year_month_zero);
+    TEST_RUN("date_clamp_day_to_month", test_rt_date_clamp_day_to_month);
 
     /* Comprehensive edge case tests */
-    test_rt_date_epoch_boundaries();
-    test_rt_date_year_boundary_transitions();
-    test_rt_date_leap_year_transitions();
-    test_rt_date_large_arithmetic_values();
-    test_rt_date_far_future_dates();
-    test_rt_date_far_past_dates();
-    test_rt_date_all_methods_with_edge_dates();
-    test_rt_date_boundary_conditions();
-    test_rt_date_month_end_clamping_all_months();
-    test_rt_date_diff_days_symmetry();
-    test_rt_date_roundtrip_add_days();
-    test_rt_date_roundtrip_add_weeks();
-    test_rt_date_consistency_weeks_days();
+    TEST_RUN("date_epoch_boundaries", test_rt_date_epoch_boundaries);
+    TEST_RUN("date_year_boundary_transitions", test_rt_date_year_boundary_transitions);
+    TEST_RUN("date_leap_year_transitions", test_rt_date_leap_year_transitions);
+    TEST_RUN("date_large_arithmetic_values", test_rt_date_large_arithmetic_values);
+    TEST_RUN("date_far_future_dates", test_rt_date_far_future_dates);
+    TEST_RUN("date_far_past_dates", test_rt_date_far_past_dates);
+    TEST_RUN("date_all_methods_with_edge_dates", test_rt_date_all_methods_with_edge_dates);
+    TEST_RUN("date_boundary_conditions", test_rt_date_boundary_conditions);
+    TEST_RUN("date_month_end_clamping_all_months", test_rt_date_month_end_clamping_all_months);
+    TEST_RUN("date_diff_days_symmetry", test_rt_date_diff_days_symmetry);
+    TEST_RUN("date_roundtrip_add_days", test_rt_date_roundtrip_add_days);
+    TEST_RUN("date_roundtrip_add_weeks", test_rt_date_roundtrip_add_weeks);
+    TEST_RUN("date_consistency_weeks_days", test_rt_date_consistency_weeks_days);
 
     /* Date comparison tests */
-    test_rt_date_is_before();
-    test_rt_date_is_before_null_handling();
-    test_rt_date_is_after();
-    test_rt_date_is_after_null_handling();
-    test_rt_date_equals();
-    test_rt_date_equals_null_handling();
-    test_rt_date_comparison_consistency();
+    TEST_RUN("date_is_before", test_rt_date_is_before);
+    TEST_RUN("date_is_before_null_handling", test_rt_date_is_before_null_handling);
+    TEST_RUN("date_is_after", test_rt_date_is_after);
+    TEST_RUN("date_is_after_null_handling", test_rt_date_is_after_null_handling);
+    TEST_RUN("date_equals", test_rt_date_equals);
+    TEST_RUN("date_equals_null_handling", test_rt_date_equals_null_handling);
+    TEST_RUN("date_comparison_consistency", test_rt_date_comparison_consistency);
 
     /* Date/Time conversion tests */
-    test_rt_date_to_time();
-    test_rt_date_to_time_null_handling();
-    test_rt_time_get_date();
-    test_rt_time_get_date_null_handling();
-    test_rt_date_time_roundtrip();
-    test_rt_time_get_date_negative_times();
-
-    printf("\n=== Date Boundaries/Comparisons/Getters/Constructors Tests Complete ===\n\n");
+    TEST_RUN("date_to_time", test_rt_date_to_time);
+    TEST_RUN("date_to_time_null_handling", test_rt_date_to_time_null_handling);
+    TEST_RUN("time_get_date", test_rt_time_get_date);
+    TEST_RUN("time_get_date_null_handling", test_rt_time_get_date_null_handling);
+    TEST_RUN("date_time_roundtrip", test_rt_date_time_roundtrip);
+    TEST_RUN("time_get_date_negative_times", test_rt_time_get_date_negative_times);
 }

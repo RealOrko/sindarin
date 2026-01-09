@@ -2,10 +2,8 @@
 // Parser tests for namespace/import syntax
 
 /* Test basic import without namespace */
-void test_parse_import_basic()
+static void test_parse_import_basic()
 {
-    printf("Testing parse basic import without namespace...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -28,10 +26,8 @@ void test_parse_import_basic()
 }
 
 /* Test import with 'as' namespace */
-void test_parse_import_as_namespace()
+static void test_parse_import_as_namespace()
 {
-    printf("Testing parse import with 'as' namespace...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -56,10 +52,8 @@ void test_parse_import_as_namespace()
 }
 
 /* Test namespace with numbers in identifier */
-void test_parse_namespace_with_numbers()
+static void test_parse_namespace_with_numbers()
 {
-    printf("Testing parse namespace with numbers in identifier...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -81,10 +75,8 @@ void test_parse_namespace_with_numbers()
 }
 
 /* Test namespace starting with underscore */
-void test_parse_namespace_underscore_start()
+static void test_parse_namespace_underscore_start()
 {
-    printf("Testing parse namespace starting with underscore...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -106,10 +98,8 @@ void test_parse_namespace_underscore_start()
 }
 
 /* Test single-letter namespace */
-void test_parse_namespace_single_letter()
+static void test_parse_namespace_single_letter()
 {
-    printf("Testing parse single-letter namespace...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -131,10 +121,8 @@ void test_parse_namespace_single_letter()
 }
 
 /* Test long namespace name */
-void test_parse_namespace_long_name()
+static void test_parse_namespace_long_name()
 {
-    printf("Testing parse long namespace name...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -156,10 +144,8 @@ void test_parse_namespace_long_name()
 }
 
 /* Test multiple imports with various namespace styles */
-void test_parse_multiple_namespace_styles()
+static void test_parse_multiple_namespace_styles()
 {
-    printf("Testing parse multiple imports with various namespace styles...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -198,10 +184,8 @@ void test_parse_multiple_namespace_styles()
 }
 
 /* Test invalid: reserved keyword as namespace - 'var' */
-void test_parse_invalid_namespace_keyword_var()
+static void test_parse_invalid_namespace_keyword_var()
 {
-    printf("Testing parse invalid namespace: keyword 'var'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -219,10 +203,8 @@ void test_parse_invalid_namespace_keyword_var()
 }
 
 /* Test invalid: reserved keyword as namespace - 'fn' */
-void test_parse_invalid_namespace_keyword_fn()
+static void test_parse_invalid_namespace_keyword_fn()
 {
-    printf("Testing parse invalid namespace: keyword 'fn'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -240,10 +222,8 @@ void test_parse_invalid_namespace_keyword_fn()
 }
 
 /* Test invalid: reserved keyword as namespace - 'return' */
-void test_parse_invalid_namespace_keyword_return()
+static void test_parse_invalid_namespace_keyword_return()
 {
-    printf("Testing parse invalid namespace: keyword 'return'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -261,10 +241,8 @@ void test_parse_invalid_namespace_keyword_return()
 }
 
 /* Test invalid: reserved keyword as namespace - 'import' */
-void test_parse_invalid_namespace_keyword_import()
+static void test_parse_invalid_namespace_keyword_import()
 {
-    printf("Testing parse invalid namespace: keyword 'import'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -282,10 +260,8 @@ void test_parse_invalid_namespace_keyword_import()
 }
 
 /* Test invalid: type keyword 'str' as namespace */
-void test_parse_invalid_namespace_keyword_str()
+static void test_parse_invalid_namespace_keyword_str()
 {
-    printf("Testing parse invalid namespace: type keyword 'str'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -303,10 +279,8 @@ void test_parse_invalid_namespace_keyword_str()
 }
 
 /* Test invalid: type keyword 'int' as namespace */
-void test_parse_invalid_namespace_keyword_int()
+static void test_parse_invalid_namespace_keyword_int()
 {
-    printf("Testing parse invalid namespace: type keyword 'int'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -324,10 +298,8 @@ void test_parse_invalid_namespace_keyword_int()
 }
 
 /* Test invalid: missing identifier after 'as' */
-void test_parse_invalid_missing_namespace()
+static void test_parse_invalid_missing_namespace()
 {
-    printf("Testing parse invalid: missing namespace after 'as'...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -345,10 +317,8 @@ void test_parse_invalid_missing_namespace()
 }
 
 /* Test invalid: number as namespace (starts with digit) */
-void test_parse_invalid_namespace_starts_with_number()
+static void test_parse_invalid_namespace_starts_with_number()
 {
-    printf("Testing parse invalid: namespace starts with number...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -366,10 +336,8 @@ void test_parse_invalid_namespace_starts_with_number()
 }
 
 /* Test AST structure: import token info preserved */
-void test_parse_import_ast_token_info()
+static void test_parse_import_ast_token_info()
 {
-    printf("Testing parse import AST token info preserved...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -399,10 +367,8 @@ void test_parse_import_ast_token_info()
 }
 
 /* Test import followed by function to ensure parser continues correctly */
-void test_parse_import_followed_by_code()
+static void test_parse_import_followed_by_code()
 {
-    printf("Testing parse import followed by function...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -431,25 +397,24 @@ void test_parse_import_followed_by_code()
 }
 
 /* Main entry point for namespace parser tests */
-void test_parser_namespace_main()
+static void test_parser_namespace_main()
 {
-    printf("\n=== Parser Namespace Tests ===\n");
-    test_parse_import_basic();
-    test_parse_import_as_namespace();
-    test_parse_namespace_with_numbers();
-    test_parse_namespace_underscore_start();
-    test_parse_namespace_single_letter();
-    test_parse_namespace_long_name();
-    test_parse_multiple_namespace_styles();
-    test_parse_invalid_namespace_keyword_var();
-    test_parse_invalid_namespace_keyword_fn();
-    test_parse_invalid_namespace_keyword_return();
-    test_parse_invalid_namespace_keyword_import();
-    test_parse_invalid_namespace_keyword_str();
-    test_parse_invalid_namespace_keyword_int();
-    test_parse_invalid_missing_namespace();
-    test_parse_invalid_namespace_starts_with_number();
-    test_parse_import_ast_token_info();
-    test_parse_import_followed_by_code();
-    printf("All namespace parser tests passed!\n\n");
+    TEST_SECTION("Parser Namespace Tests");
+    TEST_RUN("parse_import_basic", test_parse_import_basic);
+    TEST_RUN("parse_import_as_namespace", test_parse_import_as_namespace);
+    TEST_RUN("parse_namespace_with_numbers", test_parse_namespace_with_numbers);
+    TEST_RUN("parse_namespace_underscore_start", test_parse_namespace_underscore_start);
+    TEST_RUN("parse_namespace_single_letter", test_parse_namespace_single_letter);
+    TEST_RUN("parse_namespace_long_name", test_parse_namespace_long_name);
+    TEST_RUN("parse_multiple_namespace_styles", test_parse_multiple_namespace_styles);
+    TEST_RUN("parse_invalid_namespace_keyword_var", test_parse_invalid_namespace_keyword_var);
+    TEST_RUN("parse_invalid_namespace_keyword_fn", test_parse_invalid_namespace_keyword_fn);
+    TEST_RUN("parse_invalid_namespace_keyword_return", test_parse_invalid_namespace_keyword_return);
+    TEST_RUN("parse_invalid_namespace_keyword_import", test_parse_invalid_namespace_keyword_import);
+    TEST_RUN("parse_invalid_namespace_keyword_str", test_parse_invalid_namespace_keyword_str);
+    TEST_RUN("parse_invalid_namespace_keyword_int", test_parse_invalid_namespace_keyword_int);
+    TEST_RUN("parse_invalid_missing_namespace", test_parse_invalid_missing_namespace);
+    TEST_RUN("parse_invalid_namespace_starts_with_number", test_parse_invalid_namespace_starts_with_number);
+    TEST_RUN("parse_import_ast_token_info", test_parse_import_ast_token_info);
+    TEST_RUN("parse_import_followed_by_code", test_parse_import_followed_by_code);
 }

@@ -1,9 +1,8 @@
 // tests/ast_tests_expr.c
 // Expression-related AST tests
 
-void test_ast_create_binary_expr()
+static void test_ast_create_binary_expr()
 {
-    printf("Testing ast_create_binary_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -40,9 +39,8 @@ void test_ast_create_binary_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_unary_expr()
+static void test_ast_create_unary_expr()
 {
-    printf("Testing ast_create_unary_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -71,9 +69,8 @@ void test_ast_create_unary_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_literal_expr()
+static void test_ast_create_literal_expr()
 {
-    printf("Testing ast_create_literal_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -132,9 +129,8 @@ void test_ast_create_literal_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_variable_expr()
+static void test_ast_create_variable_expr()
 {
-    printf("Testing ast_create_variable_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -161,9 +157,8 @@ void test_ast_create_variable_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_assign_expr()
+static void test_ast_create_assign_expr()
 {
-    printf("Testing ast_create_assign_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -195,9 +190,8 @@ void test_ast_create_assign_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_call_expr()
+static void test_ast_create_call_expr()
 {
-    printf("Testing ast_create_call_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -239,9 +233,8 @@ void test_ast_create_call_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_array_expr()
+static void test_ast_create_array_expr()
 {
-    printf("Testing ast_create_array_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -281,9 +274,8 @@ void test_ast_create_array_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_array_access_expr()
+static void test_ast_create_array_access_expr()
 {
-    printf("Testing ast_create_array_access_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -312,9 +304,8 @@ void test_ast_create_array_access_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_increment_expr()
+static void test_ast_create_increment_expr()
 {
-    printf("Testing ast_create_increment_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -339,9 +330,8 @@ void test_ast_create_increment_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_decrement_expr()
+static void test_ast_create_decrement_expr()
 {
-    printf("Testing ast_create_decrement_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -366,9 +356,8 @@ void test_ast_create_decrement_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_interpolated_expr()
+static void test_ast_create_interpolated_expr()
 {
-    printf("Testing ast_create_interpolated_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -416,9 +405,8 @@ void test_ast_create_interpolated_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_member_expr()
+static void test_ast_create_member_expr()
 {
-    printf("Testing ast_create_member_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -464,9 +452,8 @@ void test_ast_create_member_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_comparison_expr()
+static void test_ast_create_comparison_expr()
 {
-    printf("Testing ast_create_comparison_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -492,9 +479,8 @@ void test_ast_create_comparison_expr()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_array_slice_expr()
+static void test_ast_create_array_slice_expr()
 {
-    printf("Testing ast_create_array_slice_expr...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -559,18 +545,19 @@ void test_ast_create_array_slice_expr()
 
 void test_ast_expr_main()
 {
-    test_ast_create_binary_expr();
-    test_ast_create_unary_expr();
-    test_ast_create_literal_expr();
-    test_ast_create_variable_expr();
-    test_ast_create_assign_expr();
-    test_ast_create_call_expr();
-    test_ast_create_array_expr();
-    test_ast_create_array_access_expr();
-    test_ast_create_increment_expr();
-    test_ast_create_decrement_expr();
-    test_ast_create_interpolated_expr();
-    test_ast_create_member_expr();
-    test_ast_create_comparison_expr();
-    test_ast_create_array_slice_expr();
+    TEST_SECTION("AST Expression Tests");
+    TEST_RUN("ast_create_binary_expr", test_ast_create_binary_expr);
+    TEST_RUN("ast_create_unary_expr", test_ast_create_unary_expr);
+    TEST_RUN("ast_create_literal_expr", test_ast_create_literal_expr);
+    TEST_RUN("ast_create_variable_expr", test_ast_create_variable_expr);
+    TEST_RUN("ast_create_assign_expr", test_ast_create_assign_expr);
+    TEST_RUN("ast_create_call_expr", test_ast_create_call_expr);
+    TEST_RUN("ast_create_array_expr", test_ast_create_array_expr);
+    TEST_RUN("ast_create_array_access_expr", test_ast_create_array_access_expr);
+    TEST_RUN("ast_create_increment_expr", test_ast_create_increment_expr);
+    TEST_RUN("ast_create_decrement_expr", test_ast_create_decrement_expr);
+    TEST_RUN("ast_create_interpolated_expr", test_ast_create_interpolated_expr);
+    TEST_RUN("ast_create_member_expr", test_ast_create_member_expr);
+    TEST_RUN("ast_create_comparison_expr", test_ast_create_comparison_expr);
+    TEST_RUN("ast_create_array_slice_expr", test_ast_create_array_slice_expr);
 }

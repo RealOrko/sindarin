@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Cross-Platform Helper Macros
@@ -35,9 +36,8 @@
  * Process Run (Command Only) Tests
  * ============================================================================ */
 
-void test_rt_process_run_basic(void)
+static void test_rt_process_run_basic(void)
 {
-    printf("Testing rt_process_run with basic command...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -57,9 +57,8 @@ void test_rt_process_run_basic(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_run_exit_code(void)
+static void test_rt_process_run_exit_code(void)
 {
-    printf("Testing rt_process_run exit codes...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -77,9 +76,8 @@ void test_rt_process_run_exit_code(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_run_command_not_found(void)
+static void test_rt_process_run_command_not_found(void)
 {
-    printf("Testing rt_process_run with nonexistent command...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -95,9 +93,8 @@ void test_rt_process_run_command_not_found(void)
  * Process Run With Arguments Tests
  * ============================================================================ */
 
-void test_rt_process_run_with_args_basic(void)
+static void test_rt_process_run_with_args_basic(void)
 {
-    printf("Testing rt_process_run_with_args basic...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -124,9 +121,8 @@ void test_rt_process_run_with_args_basic(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_run_with_args_multiple(void)
+static void test_rt_process_run_with_args_multiple(void)
 {
-    printf("Testing rt_process_run_with_args with multiple args...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -152,9 +148,8 @@ void test_rt_process_run_with_args_multiple(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_run_with_args_null(void)
+static void test_rt_process_run_with_args_null(void)
 {
-    printf("Testing rt_process_run_with_args with NULL args...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -176,9 +171,8 @@ void test_rt_process_run_with_args_null(void)
  * Stdout Capture Tests
  * ============================================================================ */
 
-void test_rt_process_stdout_capture(void)
+static void test_rt_process_stdout_capture(void)
 {
-    printf("Testing rt_process_run stdout capture...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -207,9 +201,8 @@ void test_rt_process_stdout_capture(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_stdout_multiline(void)
+static void test_rt_process_stdout_multiline(void)
 {
-    printf("Testing rt_process_run multiline stdout...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -241,9 +234,8 @@ void test_rt_process_stdout_multiline(void)
  * Stderr Capture Tests
  * ============================================================================ */
 
-void test_rt_process_stderr_capture(void)
+static void test_rt_process_stderr_capture(void)
 {
-    printf("Testing rt_process_run stderr capture...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -274,9 +266,8 @@ void test_rt_process_stderr_capture(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_both_streams(void)
+static void test_rt_process_both_streams(void)
 {
-    printf("Testing rt_process_run both stdout and stderr...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -310,9 +301,8 @@ void test_rt_process_both_streams(void)
  * Shell Commands Tests
  * ============================================================================ */
 
-void test_rt_process_shell_command(void)
+static void test_rt_process_shell_command(void)
 {
-    printf("Testing rt_process_run with shell command...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -339,9 +329,8 @@ void test_rt_process_shell_command(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_shell_exit_code(void)
+static void test_rt_process_shell_exit_code(void)
 {
-    printf("Testing rt_process_run shell command exit code...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -361,9 +350,8 @@ void test_rt_process_shell_exit_code(void)
     rt_arena_destroy(arena);
 }
 
-void test_rt_process_shell_variable_expansion(void)
+static void test_rt_process_shell_variable_expansion(void)
 {
-    printf("Testing rt_process_run with shell variable...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -393,9 +381,8 @@ void test_rt_process_shell_variable_expansion(void)
  * Exit Code Tests
  * ============================================================================ */
 
-void test_rt_process_exit_codes(void)
+static void test_rt_process_exit_codes(void)
 {
-    printf("Testing rt_process_run various exit codes...\n");
 
     RtArena *arena = rt_arena_create(NULL);
 
@@ -440,29 +427,31 @@ void test_rt_process_exit_codes(void)
 
 void test_rt_process_main(void)
 {
+    TEST_SECTION("Process Execution");
+
     /* Command only tests */
-    test_rt_process_run_basic();
-    test_rt_process_run_exit_code();
-    test_rt_process_run_command_not_found();
+    TEST_RUN("process_run_basic", test_rt_process_run_basic);
+    TEST_RUN("process_run_exit_code", test_rt_process_run_exit_code);
+    TEST_RUN("process_run_command_not_found", test_rt_process_run_command_not_found);
 
     /* Command with arguments tests */
-    test_rt_process_run_with_args_basic();
-    test_rt_process_run_with_args_multiple();
-    test_rt_process_run_with_args_null();
+    TEST_RUN("process_run_with_args_basic", test_rt_process_run_with_args_basic);
+    TEST_RUN("process_run_with_args_multiple", test_rt_process_run_with_args_multiple);
+    TEST_RUN("process_run_with_args_null", test_rt_process_run_with_args_null);
 
     /* Stdout capture tests */
-    test_rt_process_stdout_capture();
-    test_rt_process_stdout_multiline();
+    TEST_RUN("process_stdout_capture", test_rt_process_stdout_capture);
+    TEST_RUN("process_stdout_multiline", test_rt_process_stdout_multiline);
 
     /* Stderr capture tests */
-    test_rt_process_stderr_capture();
-    test_rt_process_both_streams();
+    TEST_RUN("process_stderr_capture", test_rt_process_stderr_capture);
+    TEST_RUN("process_both_streams", test_rt_process_both_streams);
 
     /* Shell command tests */
-    test_rt_process_shell_command();
-    test_rt_process_shell_exit_code();
-    test_rt_process_shell_variable_expansion();
+    TEST_RUN("process_shell_command", test_rt_process_shell_command);
+    TEST_RUN("process_shell_exit_code", test_rt_process_shell_exit_code);
+    TEST_RUN("process_shell_variable_expansion", test_rt_process_shell_variable_expansion);
 
     /* Exit code tests */
-    test_rt_process_exit_codes();
+    TEST_RUN("process_exit_codes", test_rt_process_exit_codes);
 }

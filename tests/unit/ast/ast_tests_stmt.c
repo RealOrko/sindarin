@@ -1,9 +1,8 @@
 // tests/ast_tests_stmt.c
 // Statement-related AST tests
 
-void test_ast_create_expr_stmt()
+static void test_ast_create_expr_stmt()
 {
-    printf("Testing ast_create_expr_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -27,9 +26,8 @@ void test_ast_create_expr_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_var_decl_stmt()
+static void test_ast_create_var_decl_stmt()
 {
-    printf("Testing ast_create_var_decl_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -70,9 +68,8 @@ void test_ast_create_var_decl_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_function_stmt()
+static void test_ast_create_function_stmt()
 {
-    printf("Testing ast_create_function_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -129,9 +126,8 @@ void test_ast_create_function_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_return_stmt()
+static void test_ast_create_return_stmt()
 {
-    printf("Testing ast_create_return_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -164,9 +160,8 @@ void test_ast_create_return_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_block_stmt()
+static void test_ast_create_block_stmt()
 {
-    printf("Testing ast_create_block_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -203,9 +198,8 @@ void test_ast_create_block_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_if_stmt()
+static void test_ast_create_if_stmt()
 {
-    printf("Testing ast_create_if_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -240,9 +234,8 @@ void test_ast_create_if_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_while_stmt()
+static void test_ast_create_while_stmt()
 {
-    printf("Testing ast_create_while_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -270,9 +263,8 @@ void test_ast_create_while_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_for_stmt()
+static void test_ast_create_for_stmt()
 {
-    printf("Testing ast_create_for_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -309,9 +301,8 @@ void test_ast_create_for_stmt()
     cleanup_arena(&arena);
 }
 
-void test_ast_create_import_stmt()
+static void test_ast_create_import_stmt()
 {
-    printf("Testing ast_create_import_stmt...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -354,13 +345,14 @@ void test_ast_create_import_stmt()
 
 void test_ast_stmt_main()
 {
-    test_ast_create_expr_stmt();
-    test_ast_create_var_decl_stmt();
-    test_ast_create_function_stmt();
-    test_ast_create_return_stmt();
-    test_ast_create_block_stmt();
-    test_ast_create_if_stmt();
-    test_ast_create_while_stmt();
-    test_ast_create_for_stmt();
-    test_ast_create_import_stmt();
+    TEST_SECTION("AST Statement Tests");
+    TEST_RUN("ast_create_expr_stmt", test_ast_create_expr_stmt);
+    TEST_RUN("ast_create_var_decl_stmt", test_ast_create_var_decl_stmt);
+    TEST_RUN("ast_create_function_stmt", test_ast_create_function_stmt);
+    TEST_RUN("ast_create_return_stmt", test_ast_create_return_stmt);
+    TEST_RUN("ast_create_block_stmt", test_ast_create_block_stmt);
+    TEST_RUN("ast_create_if_stmt", test_ast_create_if_stmt);
+    TEST_RUN("ast_create_while_stmt", test_ast_create_while_stmt);
+    TEST_RUN("ast_create_for_stmt", test_ast_create_for_stmt);
+    TEST_RUN("ast_create_import_stmt", test_ast_create_import_stmt);
 }

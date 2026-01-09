@@ -22,10 +22,8 @@ static void setup_token_mem(Token *token, SnTokenType type, const char *lexeme)
     token_init(token, type, lexeme, (int)strlen(lexeme), 1, "test.sn");
 }
 
-void test_code_gen_private_function()
+static void test_code_gen_private_function(void)
 {
-    printf("Testing code_gen for private function with arena lifecycle...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable sym_table;
@@ -87,10 +85,8 @@ void test_code_gen_private_function()
     arena_free(&arena);
 }
 
-void test_code_gen_shared_function()
+static void test_code_gen_shared_function(void)
 {
-    printf("Testing code_gen for shared function (no arena lifecycle)...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable sym_table;
@@ -152,10 +148,8 @@ void test_code_gen_shared_function()
     arena_free(&arena);
 }
 
-void test_code_gen_default_function()
+static void test_code_gen_default_function(void)
 {
-    printf("Testing code_gen for default function (has arena lifecycle)...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
     SymbolTable sym_table;
@@ -217,9 +211,10 @@ void test_code_gen_default_function()
     arena_free(&arena);
 }
 
-void test_code_gen_memory_main()
+void test_code_gen_memory_main(void)
 {
-    test_code_gen_private_function();
-    test_code_gen_shared_function();
-    test_code_gen_default_function();
+    TEST_SECTION("Code Gen Memory Tests");
+    TEST_RUN("code_gen_private_function", test_code_gen_private_function);
+    TEST_RUN("code_gen_shared_function", test_code_gen_shared_function);
+    TEST_RUN("code_gen_default_function", test_code_gen_default_function);
 }

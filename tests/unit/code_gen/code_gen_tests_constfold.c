@@ -13,7 +13,6 @@
 /* Test is_constant_expr for literals */
 static void test_is_constant_expr_literal(void)
 {
-    printf("Testing is_constant_expr for literals...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -55,7 +54,6 @@ static void test_is_constant_expr_literal(void)
 /* Test is_constant_expr for binary expressions */
 static void test_is_constant_expr_binary(void)
 {
-    printf("Testing is_constant_expr for binary expressions...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -99,7 +97,6 @@ static void test_is_constant_expr_binary(void)
 /* Test is_constant_expr for unary expressions */
 static void test_is_constant_expr_unary(void)
 {
-    printf("Testing is_constant_expr for unary expressions...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -131,7 +128,6 @@ static void test_is_constant_expr_unary(void)
 /* Test try_fold_constant for integer addition */
 static void test_try_fold_constant_add(void)
 {
-    printf("Testing try_fold_constant for addition...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -168,7 +164,6 @@ static void test_try_fold_constant_add(void)
 /* Test try_fold_constant for multiplication */
 static void test_try_fold_constant_mul(void)
 {
-    printf("Testing try_fold_constant for multiplication...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -205,7 +200,6 @@ static void test_try_fold_constant_mul(void)
 /* Test try_fold_constant for division */
 static void test_try_fold_constant_div(void)
 {
-    printf("Testing try_fold_constant for division...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -242,7 +236,6 @@ static void test_try_fold_constant_div(void)
 /* Test try_fold_constant for division by zero (should not fold) */
 static void test_try_fold_constant_div_zero(void)
 {
-    printf("Testing try_fold_constant for division by zero...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -278,7 +271,6 @@ static void test_try_fold_constant_div_zero(void)
 /* Test try_fold_constant for unary negation */
 static void test_try_fold_constant_neg(void)
 {
-    printf("Testing try_fold_constant for negation...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -311,7 +303,6 @@ static void test_try_fold_constant_neg(void)
 /* Test try_fold_constant for double arithmetic */
 static void test_try_fold_constant_double(void)
 {
-    printf("Testing try_fold_constant for double arithmetic...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -348,7 +339,6 @@ static void test_try_fold_constant_double(void)
 /* Test try_fold_constant for mixed int/double arithmetic */
 static void test_try_fold_constant_mixed(void)
 {
-    printf("Testing try_fold_constant for mixed int/double arithmetic...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -386,7 +376,6 @@ static void test_try_fold_constant_mixed(void)
 /* Test try_fold_constant for comparison operators */
 static void test_try_fold_constant_comparison(void)
 {
-    printf("Testing try_fold_constant for comparisons...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -431,7 +420,6 @@ static void test_try_fold_constant_comparison(void)
 /* Test try_fold_constant for nested expressions */
 static void test_try_fold_constant_nested(void)
 {
-    printf("Testing try_fold_constant for nested expressions...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -473,7 +461,6 @@ static void test_try_fold_constant_nested(void)
 /* Test that variable expressions are not constant */
 static void test_is_constant_expr_variable(void)
 {
-    printf("Testing is_constant_expr for variable expressions...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -492,17 +479,18 @@ static void test_is_constant_expr_variable(void)
 
 void test_code_gen_constfold_main(void)
 {
-    test_is_constant_expr_literal();
-    test_is_constant_expr_binary();
-    test_is_constant_expr_unary();
-    test_is_constant_expr_variable();
-    test_try_fold_constant_add();
-    test_try_fold_constant_mul();
-    test_try_fold_constant_div();
-    test_try_fold_constant_div_zero();
-    test_try_fold_constant_neg();
-    test_try_fold_constant_double();
-    test_try_fold_constant_mixed();
-    test_try_fold_constant_comparison();
-    test_try_fold_constant_nested();
+    TEST_SECTION("Code Gen Constant Folding Tests");
+    TEST_RUN("is_constant_expr_literal", test_is_constant_expr_literal);
+    TEST_RUN("is_constant_expr_binary", test_is_constant_expr_binary);
+    TEST_RUN("is_constant_expr_unary", test_is_constant_expr_unary);
+    TEST_RUN("is_constant_expr_variable", test_is_constant_expr_variable);
+    TEST_RUN("try_fold_constant_add", test_try_fold_constant_add);
+    TEST_RUN("try_fold_constant_mul", test_try_fold_constant_mul);
+    TEST_RUN("try_fold_constant_div", test_try_fold_constant_div);
+    TEST_RUN("try_fold_constant_div_zero", test_try_fold_constant_div_zero);
+    TEST_RUN("try_fold_constant_neg", test_try_fold_constant_neg);
+    TEST_RUN("try_fold_constant_double", test_try_fold_constant_double);
+    TEST_RUN("try_fold_constant_mixed", test_try_fold_constant_mixed);
+    TEST_RUN("try_fold_constant_comparison", test_try_fold_constant_comparison);
+    TEST_RUN("try_fold_constant_nested", test_try_fold_constant_nested);
 }

@@ -1,10 +1,11 @@
 // tests/lexer_tests_operator.c
 // Operator and punctuation lexer tests
 
-void test_lexer_operators_single()
+#include "../test_harness.h"
+
+static void test_lexer_operators_single(void)
 {
     DEBUG_INFO("Starting test_lexer_operators_single");
-    printf("Testing lexer with single operators '+ - * / %%'\n");
 
     const char *source = "+ - * / %";
     Arena arena;
@@ -32,10 +33,9 @@ void test_lexer_operators_single()
     DEBUG_INFO("Finished test_lexer_operators_single");
 }
 
-void test_lexer_operators_compound()
+static void test_lexer_operators_compound(void)
 {
     DEBUG_INFO("Starting test_lexer_operators_compound");
-    printf("Testing lexer with compound operators '== != <= >= ++ -- =>'\n");
 
     const char *source = "== != <= >= ++ -- =>";
     Arena arena;
@@ -67,10 +67,9 @@ void test_lexer_operators_compound()
     DEBUG_INFO("Finished test_lexer_operators_compound");
 }
 
-void test_lexer_operators_logical()
+static void test_lexer_operators_logical(void)
 {
     DEBUG_INFO("Starting test_lexer_operators_logical");
-    printf("Testing lexer with logical operators '&& || !'\n");
 
     const char *source = "&& || !";
     Arena arena;
@@ -94,10 +93,9 @@ void test_lexer_operators_logical()
     DEBUG_INFO("Finished test_lexer_operators_logical");
 }
 
-void test_lexer_brackets_parens_braces()
+static void test_lexer_brackets_parens_braces(void)
 {
     DEBUG_INFO("Starting test_lexer_brackets_parens_braces");
-    printf("Testing lexer with brackets, parens, braces '() [] {}'\n");
 
     const char *source = "() [] {}";
     Arena arena;
@@ -127,10 +125,9 @@ void test_lexer_brackets_parens_braces()
     DEBUG_INFO("Finished test_lexer_brackets_parens_braces");
 }
 
-void test_lexer_punctuation()
+static void test_lexer_punctuation(void)
 {
     DEBUG_INFO("Starting test_lexer_punctuation");
-    printf("Testing lexer with punctuation '; : , .'\n");
 
     const char *source = "; : , .";
     Arena arena;
@@ -157,11 +154,12 @@ void test_lexer_punctuation()
 }
 
 
-void test_lexer_operator_main()
+void test_lexer_operator_main(void)
 {
-    test_lexer_operators_single();
-    test_lexer_operators_compound();
-    test_lexer_operators_logical();
-    test_lexer_brackets_parens_braces();
-    test_lexer_punctuation();
+    TEST_SECTION("Lexer Operator Tests");
+    TEST_RUN("lexer_operators_single", test_lexer_operators_single);
+    TEST_RUN("lexer_operators_compound", test_lexer_operators_compound);
+    TEST_RUN("lexer_operators_logical", test_lexer_operators_logical);
+    TEST_RUN("lexer_brackets_parens_braces", test_lexer_brackets_parens_braces);
+    TEST_RUN("lexer_punctuation", test_lexer_punctuation);
 }

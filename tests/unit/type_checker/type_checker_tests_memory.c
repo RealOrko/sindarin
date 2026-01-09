@@ -1,10 +1,8 @@
 // tests/type_checker_tests_memory.c
 // Type checker tests for memory management features (as val, as ref, shared, private)
 
-void test_type_check_var_as_ref_primitive()
+static void test_type_check_var_as_ref_primitive()
 {
-    printf("Testing type check for var with 'as ref' on primitive type (should pass)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -36,10 +34,8 @@ void test_type_check_var_as_ref_primitive()
     arena_free(&arena);
 }
 
-void test_type_check_var_as_ref_array_error()
+static void test_type_check_var_as_ref_array_error()
 {
-    printf("Testing type check for var with 'as ref' on array type (should error)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -71,10 +67,8 @@ void test_type_check_var_as_ref_array_error()
     arena_free(&arena);
 }
 
-void test_type_check_var_as_val_array()
+static void test_type_check_var_as_val_array()
 {
-    printf("Testing type check for var with 'as val' on array type (should pass)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -112,10 +106,8 @@ void test_type_check_var_as_val_array()
     arena_free(&arena);
 }
 
-void test_type_check_private_function_primitive_return()
+static void test_type_check_private_function_primitive_return()
 {
-    printf("Testing type check for private function with primitive return (should pass)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -151,10 +143,8 @@ void test_type_check_private_function_primitive_return()
     arena_free(&arena);
 }
 
-void test_type_check_private_function_array_return_error()
+static void test_type_check_private_function_array_return_error()
 {
-    printf("Testing type check for private function with array return (should error)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -190,10 +180,8 @@ void test_type_check_private_function_array_return_error()
     arena_free(&arena);
 }
 
-void test_type_check_shared_function()
+static void test_type_check_shared_function()
 {
-    printf("Testing type check for shared function (should pass)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -229,10 +217,8 @@ void test_type_check_shared_function()
     arena_free(&arena);
 }
 
-void test_type_check_param_as_ref_error()
+static void test_type_check_param_as_ref_error()
 {
-    printf("Testing type check for parameter with 'as ref' on array (should error)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -267,10 +253,8 @@ void test_type_check_param_as_ref_error()
     arena_free(&arena);
 }
 
-void test_type_check_param_as_ref_primitive()
+static void test_type_check_param_as_ref_primitive()
 {
-    printf("Testing type check for parameter with 'as ref' on primitive (should pass)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -304,10 +288,8 @@ void test_type_check_param_as_ref_primitive()
     arena_free(&arena);
 }
 
-void test_type_check_param_as_val()
+static void test_type_check_param_as_val()
 {
-    printf("Testing type check for parameter with 'as val' on array (should pass)...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -342,10 +324,8 @@ void test_type_check_param_as_val()
     arena_free(&arena);
 }
 
-void test_type_check_null_stmt_handling()
+static void test_type_check_null_stmt_handling()
 {
-    printf("Testing type checker handles null statements gracefully...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -381,10 +361,8 @@ void test_type_check_null_stmt_handling()
     arena_free(&arena);
 }
 
-void test_type_check_function_with_null_param_type()
+static void test_type_check_function_with_null_param_type()
 {
-    printf("Testing type checker handles function with null parameter type...\n");
-
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -422,15 +400,17 @@ void test_type_check_function_with_null_param_type()
 
 void test_type_checker_memory_main()
 {
-    test_type_check_var_as_ref_primitive();
-    test_type_check_var_as_ref_array_error();
-    test_type_check_var_as_val_array();
-    test_type_check_private_function_primitive_return();
-    test_type_check_private_function_array_return_error();
-    test_type_check_shared_function();
-    test_type_check_param_as_ref_error();
-    test_type_check_param_as_ref_primitive();
-    test_type_check_param_as_val();
-    test_type_check_null_stmt_handling();
-    test_type_check_function_with_null_param_type();
+    TEST_SECTION("Type Checker Memory");
+
+    TEST_RUN("var_as_ref_primitive", test_type_check_var_as_ref_primitive);
+    TEST_RUN("var_as_ref_array_error", test_type_check_var_as_ref_array_error);
+    TEST_RUN("var_as_val_array", test_type_check_var_as_val_array);
+    TEST_RUN("private_function_primitive_return", test_type_check_private_function_primitive_return);
+    TEST_RUN("private_function_array_return_error", test_type_check_private_function_array_return_error);
+    TEST_RUN("shared_function", test_type_check_shared_function);
+    TEST_RUN("param_as_ref_error", test_type_check_param_as_ref_error);
+    TEST_RUN("param_as_ref_primitive", test_type_check_param_as_ref_primitive);
+    TEST_RUN("param_as_val", test_type_check_param_as_val);
+    TEST_RUN("null_stmt_handling", test_type_check_null_stmt_handling);
+    TEST_RUN("function_with_null_param_type", test_type_check_function_with_null_param_type);
 }

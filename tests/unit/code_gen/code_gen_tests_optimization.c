@@ -106,7 +106,6 @@ static Expr *make_unary_expr(Arena *arena, SnTokenType op, Expr *operand)
 /* Test integer overflow cases */
 static void test_constant_fold_int_overflow(void)
 {
-    printf("Testing constant folding with integer overflow...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -132,7 +131,6 @@ static void test_constant_fold_int_overflow(void)
 /* Test integer underflow cases */
 static void test_constant_fold_int_underflow(void)
 {
-    printf("Testing constant folding with integer underflow...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -157,7 +155,6 @@ static void test_constant_fold_int_underflow(void)
 /* Test multiplication overflow */
 static void test_constant_fold_mul_overflow(void)
 {
-    printf("Testing constant folding with multiplication overflow...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -182,7 +179,6 @@ static void test_constant_fold_mul_overflow(void)
 /* Test division by zero is NOT folded */
 static void test_constant_fold_div_by_zero_int(void)
 {
-    printf("Testing constant folding rejects integer division by zero...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -204,7 +200,6 @@ static void test_constant_fold_div_by_zero_int(void)
 /* Test modulo by zero is NOT folded */
 static void test_constant_fold_mod_by_zero(void)
 {
-    printf("Testing constant folding rejects modulo by zero...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -226,7 +221,6 @@ static void test_constant_fold_mod_by_zero(void)
 /* Test double division by zero is NOT folded */
 static void test_constant_fold_div_by_zero_double(void)
 {
-    printf("Testing constant folding rejects double division by zero...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -248,7 +242,6 @@ static void test_constant_fold_div_by_zero_double(void)
 /* Test double edge cases */
 static void test_constant_fold_double_edge_cases(void)
 {
-    printf("Testing constant folding with double edge cases...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -282,7 +275,6 @@ static void test_constant_fold_double_edge_cases(void)
 /* Test negative zero handling */
 static void test_constant_fold_negative_zero(void)
 {
-    printf("Testing constant folding with negative zero...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -307,7 +299,6 @@ static void test_constant_fold_negative_zero(void)
 /* Test deeply nested constant expressions */
 static void test_constant_fold_deep_nesting(void)
 {
-    printf("Testing constant folding with deeply nested expressions...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -338,7 +329,6 @@ static void test_constant_fold_deep_nesting(void)
 /* Test logical operators in constant folding */
 static void test_constant_fold_logical_operators(void)
 {
-    printf("Testing constant folding with logical operators...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -383,7 +373,6 @@ static void test_constant_fold_logical_operators(void)
 /* Test unary negation edge cases */
 static void test_constant_fold_unary_negation_edge(void)
 {
-    printf("Testing constant folding with unary negation edge cases...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -416,7 +405,6 @@ static void test_constant_fold_unary_negation_edge(void)
 /* Test comparison operators */
 static void test_constant_fold_comparisons(void)
 {
-    printf("Testing constant folding with all comparison operators...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -465,7 +453,6 @@ static void test_constant_fold_comparisons(void)
 /* Test double comparisons with precision issues */
 static void test_constant_fold_double_comparison_precision(void)
 {
-    printf("Testing constant folding with double comparison precision...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -494,8 +481,6 @@ static void test_constant_fold_double_comparison_precision(void)
 /* Test native operator availability */
 static void test_can_use_native_operator(void)
 {
-    printf("Testing can_use_native_operator for all operators...\n");
-
     /* Operators that can use native C */
     assert(can_use_native_operator(TOKEN_PLUS) == true);
     assert(can_use_native_operator(TOKEN_MINUS) == true);
@@ -519,8 +504,6 @@ static void test_can_use_native_operator(void)
 /* Test get_native_c_operator returns correct strings */
 static void test_get_native_c_operator(void)
 {
-    printf("Testing get_native_c_operator returns correct strings...\n");
-
     assert(strcmp(get_native_c_operator(TOKEN_PLUS), "+") == 0);
     assert(strcmp(get_native_c_operator(TOKEN_MINUS), "-") == 0);
     assert(strcmp(get_native_c_operator(TOKEN_STAR), "*") == 0);
@@ -540,7 +523,6 @@ static void test_get_native_c_operator(void)
 /* Test gen_native_arithmetic in unchecked mode */
 static void test_gen_native_arithmetic_unchecked(void)
 {
-    printf("Testing gen_native_arithmetic in unchecked mode...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -586,7 +568,6 @@ static void test_gen_native_arithmetic_unchecked(void)
 /* Test gen_native_arithmetic in checked mode returns NULL */
 static void test_gen_native_arithmetic_checked(void)
 {
-    printf("Testing gen_native_arithmetic in checked mode returns NULL...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -617,7 +598,6 @@ static void test_gen_native_arithmetic_checked(void)
 /* Test gen_native_unary */
 static void test_gen_native_unary(void)
 {
-    printf("Testing gen_native_unary...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -659,7 +639,6 @@ static void test_gen_native_unary(void)
 /* Test type_needs_arena through function_needs_arena */
 static void test_function_needs_arena_primitives_only(void)
 {
-    printf("Testing function_needs_arena with primitives only...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -722,7 +701,6 @@ static void test_function_needs_arena_primitives_only(void)
 /* Test function_needs_arena with string return type */
 static void test_function_needs_arena_string_return(void)
 {
-    printf("Testing function_needs_arena with string return type...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -767,7 +745,6 @@ static void test_function_needs_arena_string_return(void)
 /* Test expr_needs_arena for various expression types */
 static void test_expr_needs_arena_types(void)
 {
-    printf("Testing expr_needs_arena for various expression types...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -815,7 +792,6 @@ static void test_expr_needs_arena_types(void)
 /* Test function_has_marked_tail_calls */
 static void test_function_has_marked_tail_calls_detection(void)
 {
-    printf("Testing function_has_marked_tail_calls detection...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -875,7 +851,6 @@ static void test_function_has_marked_tail_calls_detection(void)
 /* Test try_constant_fold_binary generates correct literals */
 static void test_try_constant_fold_binary_output(void)
 {
-    printf("Testing try_constant_fold_binary generates correct literals...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -924,7 +899,6 @@ static void test_try_constant_fold_binary_output(void)
 /* Test try_constant_fold_unary generates correct literals */
 static void test_try_constant_fold_unary_output(void)
 {
-    printf("Testing try_constant_fold_unary generates correct literals...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -974,7 +948,6 @@ static void test_try_constant_fold_unary_output(void)
 /* Test basic push/pop/check for loop counter stack */
 static void test_loop_counter_push_pop(void)
 {
-    printf("Testing loop counter push/pop operations...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1024,7 +997,6 @@ static void test_loop_counter_push_pop(void)
 /* Test loop counter stack grows when capacity is exceeded */
 static void test_loop_counter_stack_growth(void)
 {
-    printf("Testing loop counter stack growth...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1074,7 +1046,6 @@ static void test_loop_counter_stack_growth(void)
 /* Test is_tracked_loop_counter with NULL input */
 static void test_loop_counter_null_check(void)
 {
-    printf("Testing loop counter NULL handling...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1106,7 +1077,6 @@ static void test_loop_counter_null_check(void)
 /* Test is_provably_non_negative with non-negative integer literals */
 static void test_is_provably_non_negative_int_literals(void)
 {
-    printf("Testing is_provably_non_negative with integer literals...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1140,7 +1110,6 @@ static void test_is_provably_non_negative_int_literals(void)
 /* Test is_provably_non_negative with non-negative long literals */
 static void test_is_provably_non_negative_long_literals(void)
 {
-    printf("Testing is_provably_non_negative with long literals...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1174,7 +1143,6 @@ static void test_is_provably_non_negative_long_literals(void)
 /* Test is_provably_non_negative with negative literals */
 static void test_is_provably_non_negative_negative_literals(void)
 {
-    printf("Testing is_provably_non_negative with negative literals...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1214,7 +1182,6 @@ static void test_is_provably_non_negative_negative_literals(void)
 /* Test is_provably_non_negative with variables (untracked) */
 static void test_is_provably_non_negative_untracked_variables(void)
 {
-    printf("Testing is_provably_non_negative with untracked variables...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1244,7 +1211,6 @@ static void test_is_provably_non_negative_untracked_variables(void)
 /* Test is_provably_non_negative with tracked loop counter variables */
 static void test_is_provably_non_negative_tracked_loop_counters(void)
 {
-    printf("Testing is_provably_non_negative with tracked loop counters...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1281,7 +1247,6 @@ static void test_is_provably_non_negative_tracked_loop_counters(void)
 /* Test is_provably_non_negative with other expression types */
 static void test_is_provably_non_negative_other_expressions(void)
 {
-    printf("Testing is_provably_non_negative with other expression types...\n");
     Arena arena;
     arena_init(&arena, 4096);
 
@@ -1324,54 +1289,52 @@ static void test_is_provably_non_negative_other_expressions(void)
 
 void test_code_gen_optimization_main(void)
 {
-    printf("\n=== Running Code Generation Optimization Tests ===\n\n");
+    TEST_SECTION("Code Gen Optimization Tests");
 
     /* Constant folding edge case tests */
-    test_constant_fold_int_overflow();
-    test_constant_fold_int_underflow();
-    test_constant_fold_mul_overflow();
-    test_constant_fold_div_by_zero_int();
-    test_constant_fold_mod_by_zero();
-    test_constant_fold_div_by_zero_double();
-    test_constant_fold_double_edge_cases();
-    test_constant_fold_negative_zero();
-    test_constant_fold_deep_nesting();
-    test_constant_fold_logical_operators();
-    test_constant_fold_unary_negation_edge();
-    test_constant_fold_comparisons();
-    test_constant_fold_double_comparison_precision();
+    TEST_RUN("constant_fold_int_overflow", test_constant_fold_int_overflow);
+    TEST_RUN("constant_fold_int_underflow", test_constant_fold_int_underflow);
+    TEST_RUN("constant_fold_mul_overflow", test_constant_fold_mul_overflow);
+    TEST_RUN("constant_fold_div_by_zero_int", test_constant_fold_div_by_zero_int);
+    TEST_RUN("constant_fold_mod_by_zero", test_constant_fold_mod_by_zero);
+    TEST_RUN("constant_fold_div_by_zero_double", test_constant_fold_div_by_zero_double);
+    TEST_RUN("constant_fold_double_edge_cases", test_constant_fold_double_edge_cases);
+    TEST_RUN("constant_fold_negative_zero", test_constant_fold_negative_zero);
+    TEST_RUN("constant_fold_deep_nesting", test_constant_fold_deep_nesting);
+    TEST_RUN("constant_fold_logical_operators", test_constant_fold_logical_operators);
+    TEST_RUN("constant_fold_unary_negation_edge", test_constant_fold_unary_negation_edge);
+    TEST_RUN("constant_fold_comparisons", test_constant_fold_comparisons);
+    TEST_RUN("constant_fold_double_comparison_precision", test_constant_fold_double_comparison_precision);
 
     /* Native operator tests */
-    test_can_use_native_operator();
-    test_get_native_c_operator();
-    test_gen_native_arithmetic_unchecked();
-    test_gen_native_arithmetic_checked();
-    test_gen_native_unary();
+    TEST_RUN("can_use_native_operator", test_can_use_native_operator);
+    TEST_RUN("get_native_c_operator", test_get_native_c_operator);
+    TEST_RUN("gen_native_arithmetic_unchecked", test_gen_native_arithmetic_unchecked);
+    TEST_RUN("gen_native_arithmetic_checked", test_gen_native_arithmetic_checked);
+    TEST_RUN("gen_native_unary", test_gen_native_unary);
 
     /* Arena requirement tests */
-    test_function_needs_arena_primitives_only();
-    test_function_needs_arena_string_return();
-    test_expr_needs_arena_types();
+    TEST_RUN("function_needs_arena_primitives_only", test_function_needs_arena_primitives_only);
+    TEST_RUN("function_needs_arena_string_return", test_function_needs_arena_string_return);
+    TEST_RUN("expr_needs_arena_types", test_expr_needs_arena_types);
 
     /* Tail call marking tests */
-    test_function_has_marked_tail_calls_detection();
+    TEST_RUN("function_has_marked_tail_calls_detection", test_function_has_marked_tail_calls_detection);
 
     /* Constant folding code generation tests */
-    test_try_constant_fold_binary_output();
-    test_try_constant_fold_unary_output();
+    TEST_RUN("try_constant_fold_binary_output", test_try_constant_fold_binary_output);
+    TEST_RUN("try_constant_fold_unary_output", test_try_constant_fold_unary_output);
 
     /* Loop counter tracking tests */
-    test_loop_counter_push_pop();
-    test_loop_counter_stack_growth();
-    test_loop_counter_null_check();
+    TEST_RUN("loop_counter_push_pop", test_loop_counter_push_pop);
+    TEST_RUN("loop_counter_stack_growth", test_loop_counter_stack_growth);
+    TEST_RUN("loop_counter_null_check", test_loop_counter_null_check);
 
     /* is_provably_non_negative tests */
-    test_is_provably_non_negative_int_literals();
-    test_is_provably_non_negative_long_literals();
-    test_is_provably_non_negative_negative_literals();
-    test_is_provably_non_negative_untracked_variables();
-    test_is_provably_non_negative_tracked_loop_counters();
-    test_is_provably_non_negative_other_expressions();
-
-    printf("\n=== All Code Generation Optimization Tests Passed ===\n");
+    TEST_RUN("is_provably_non_negative_int_literals", test_is_provably_non_negative_int_literals);
+    TEST_RUN("is_provably_non_negative_long_literals", test_is_provably_non_negative_long_literals);
+    TEST_RUN("is_provably_non_negative_negative_literals", test_is_provably_non_negative_negative_literals);
+    TEST_RUN("is_provably_non_negative_untracked_variables", test_is_provably_non_negative_untracked_variables);
+    TEST_RUN("is_provably_non_negative_tracked_loop_counters", test_is_provably_non_negative_tracked_loop_counters);
+    TEST_RUN("is_provably_non_negative_other_expressions", test_is_provably_non_negative_other_expressions);
 }

@@ -6,15 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Byte Array to String Tests
  * ============================================================================ */
 
-void test_rt_byte_array_to_string()
+static void test_rt_byte_array_to_string(void)
 {
-    printf("Testing rt_byte_array_to_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic ASCII string */
@@ -48,10 +47,8 @@ void test_rt_byte_array_to_string()
     rt_arena_destroy(arena);
 }
 
-void test_rt_byte_array_to_string_latin1()
+static void test_rt_byte_array_to_string_latin1(void)
 {
-    printf("Testing rt_byte_array_to_string_latin1...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* ASCII range (0x00-0x7F) - single byte UTF-8 */
@@ -92,10 +89,8 @@ void test_rt_byte_array_to_string_latin1()
  * Byte Array to Hex Tests
  * ============================================================================ */
 
-void test_rt_byte_array_to_hex()
+static void test_rt_byte_array_to_hex(void)
 {
-    printf("Testing rt_byte_array_to_hex...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic conversion */
@@ -144,10 +139,8 @@ void test_rt_byte_array_to_hex()
  * Byte Array to Base64 Tests
  * ============================================================================ */
 
-void test_rt_byte_array_to_base64()
+static void test_rt_byte_array_to_base64(void)
 {
-    printf("Testing rt_byte_array_to_base64...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test vector: "Man" -> "TWFu" */
@@ -211,10 +204,8 @@ void test_rt_byte_array_to_base64()
  * String to Bytes Tests
  * ============================================================================ */
 
-void test_rt_string_to_bytes()
+static void test_rt_string_to_bytes(void)
 {
-    printf("Testing rt_string_to_bytes...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic string */
@@ -247,10 +238,8 @@ void test_rt_string_to_bytes()
  * Bytes from Hex Tests
  * ============================================================================ */
 
-void test_rt_bytes_from_hex()
+static void test_rt_bytes_from_hex(void)
 {
-    printf("Testing rt_bytes_from_hex...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Lowercase hex */
@@ -304,10 +293,8 @@ void test_rt_bytes_from_hex()
  * Bytes from Base64 Tests
  * ============================================================================ */
 
-void test_rt_bytes_from_base64()
+static void test_rt_bytes_from_base64(void)
 {
-    printf("Testing rt_bytes_from_base64...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test vector: "TWFu" -> "Man" */
@@ -360,10 +347,8 @@ void test_rt_bytes_from_base64()
  * Roundtrip Tests (encode then decode)
  * ============================================================================ */
 
-void test_hex_roundtrip()
+static void test_hex_roundtrip(void)
 {
-    printf("Testing hex encode/decode roundtrip...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create original byte array */
@@ -387,10 +372,8 @@ void test_hex_roundtrip()
     rt_arena_destroy(arena);
 }
 
-void test_base64_roundtrip()
+static void test_base64_roundtrip(void)
 {
-    printf("Testing base64 encode/decode roundtrip...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Test with various lengths (to test padding cases) */
@@ -430,10 +413,8 @@ void test_base64_roundtrip()
     rt_arena_destroy(arena);
 }
 
-void test_string_bytes_roundtrip()
+static void test_string_bytes_roundtrip(void)
 {
-    printf("Testing string to bytes roundtrip...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     const char *original = "Hello, World!";
@@ -454,23 +435,25 @@ void test_string_bytes_roundtrip()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_byte_main()
+void test_rt_byte_main(void)
 {
+    TEST_SECTION("Runtime Byte");
+
     /* Byte array to string */
-    test_rt_byte_array_to_string();
-    test_rt_byte_array_to_string_latin1();
+    TEST_RUN("rt_byte_array_to_string", test_rt_byte_array_to_string);
+    TEST_RUN("rt_byte_array_to_string_latin1", test_rt_byte_array_to_string_latin1);
 
     /* Byte array to hex/base64 */
-    test_rt_byte_array_to_hex();
-    test_rt_byte_array_to_base64();
+    TEST_RUN("rt_byte_array_to_hex", test_rt_byte_array_to_hex);
+    TEST_RUN("rt_byte_array_to_base64", test_rt_byte_array_to_base64);
 
     /* String/hex/base64 to bytes */
-    test_rt_string_to_bytes();
-    test_rt_bytes_from_hex();
-    test_rt_bytes_from_base64();
+    TEST_RUN("rt_string_to_bytes", test_rt_string_to_bytes);
+    TEST_RUN("rt_bytes_from_hex", test_rt_bytes_from_hex);
+    TEST_RUN("rt_bytes_from_base64", test_rt_bytes_from_base64);
 
     /* Roundtrip tests */
-    test_hex_roundtrip();
-    test_base64_roundtrip();
-    test_string_bytes_roundtrip();
+    TEST_RUN("hex_roundtrip", test_hex_roundtrip);
+    TEST_RUN("base64_roundtrip", test_base64_roundtrip);
+    TEST_RUN("string_bytes_roundtrip", test_string_bytes_roundtrip);
 }

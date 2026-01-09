@@ -2,10 +2,10 @@
 // Tests for native callback types, variadic functions, and lambda expressions
 // Note: setup_test_token helper is defined in type_checker_tests_native.c
 
-void test_variadic_function_accepts_extra_args(void)
-{
-    printf("Testing variadic function accepts extra arguments...\n");
+#include "../test_harness.h"
 
+static void test_variadic_function_accepts_extra_args(void)
+{
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -72,16 +72,12 @@ void test_variadic_function_accepts_extra_args(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should pass - variadic accepts extra args */
 
-    printf("  Variadic function correctly accepts extra arguments\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
-void test_variadic_function_rejects_too_few_args(void)
+static void test_variadic_function_rejects_too_few_args(void)
 {
-    printf("Testing variadic function rejects too few arguments...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -135,16 +131,12 @@ void test_variadic_function_rejects_too_few_args(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should fail - missing required param */
 
-    printf("  Variadic function correctly rejects missing required params\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
-void test_native_callback_type_alias_c_compatible(void)
+static void test_native_callback_type_alias_c_compatible(void)
 {
-    printf("Testing native callback type alias with C-compatible types...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -183,17 +175,13 @@ void test_native_callback_type_alias_c_compatible(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should succeed - all types are C-compatible */
 
-    printf("  Native callback with C-compatible types correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that native callback type alias with array parameter fails */
-void test_native_callback_type_alias_array_param_fails(void)
+static void test_native_callback_type_alias_array_param_fails(void)
 {
-    printf("Testing native callback type alias with array param fails...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -231,17 +219,13 @@ void test_native_callback_type_alias_array_param_fails(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should fail - array type is not C-compatible */
 
-    printf("  Native callback with array param correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that native callback type alias with array return fails */
-void test_native_callback_type_alias_array_return_fails(void)
+static void test_native_callback_type_alias_array_return_fails(void)
 {
-    printf("Testing native callback type alias with array return fails...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -276,17 +260,13 @@ void test_native_callback_type_alias_array_return_fails(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should fail - array return type is not C-compatible */
 
-    printf("  Native callback with array return correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that native callback type can be used as parameter in native function */
-void test_native_callback_as_function_param(void)
+static void test_native_callback_as_function_param(void)
 {
-    printf("Testing native callback type as function parameter...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -354,17 +334,13 @@ void test_native_callback_as_function_param(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should succeed - callback type can be used as param */
 
-    printf("  Native callback type as function parameter correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that native lambda capturing a variable from enclosing scope produces an error */
-void test_native_lambda_capture_rejected(void)
+static void test_native_lambda_capture_rejected(void)
 {
-    printf("Testing native lambda capturing variable is rejected...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -468,17 +444,13 @@ void test_native_lambda_capture_rejected(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL - native lambda captures 'counter' */
 
-    printf("  Native lambda capturing variable correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that native lambda using only its own parameters succeeds */
-void test_native_lambda_params_only_succeeds(void)
+static void test_native_lambda_params_only_succeeds(void)
 {
-    printf("Testing native lambda using only parameters succeeds...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -570,17 +542,13 @@ void test_native_lambda_params_only_succeeds(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should SUCCEED - lambda only uses its own parameters */
 
-    printf("  Native lambda using only parameters correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
 /* Test that native lambda with mismatched parameter count produces error */
-void test_native_lambda_param_count_mismatch(void)
+static void test_native_lambda_param_count_mismatch(void)
 {
-    printf("Testing native lambda with mismatched parameter count...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -652,16 +620,12 @@ void test_native_lambda_param_count_mismatch(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 0);  /* Should FAIL - parameter count mismatch */
 
-    printf("  Native lambda with mismatched parameter count correctly rejected\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
 
-void test_native_lambda_matching_signature(void)
+static void test_native_lambda_matching_signature(void)
 {
-    printf("Testing native lambda with matching signature...\n");
-
     Arena arena;
     arena_init(&arena, 8192);
 
@@ -739,8 +703,6 @@ void test_native_lambda_matching_signature(void)
     int no_error = type_check_module(&module, &table);
     assert(no_error == 1);  /* Should SUCCEED - matching signature */
 
-    printf("  Native lambda with matching signature correctly accepted\n");
-
     symbol_table_cleanup(&table);
     arena_free(&arena);
 }
@@ -751,22 +713,16 @@ void test_native_lambda_matching_signature(void)
 
 void test_type_checker_native_callback_main(void)
 {
-    printf("\n=== Native Callback Tests ===\n");
+    TEST_SECTION("Native Callback");
 
-    // Variadic function tests
-    test_variadic_function_accepts_extra_args();
-    test_variadic_function_rejects_too_few_args();
-    // Native callback type alias tests
-    test_native_callback_type_alias_c_compatible();
-    test_native_callback_type_alias_array_param_fails();
-    test_native_callback_type_alias_array_return_fails();
-    test_native_callback_as_function_param();
-    // Native lambda capture tests
-    test_native_lambda_capture_rejected();
-    test_native_lambda_params_only_succeeds();
-    // Native lambda signature matching tests
-    test_native_lambda_param_count_mismatch();
-    test_native_lambda_matching_signature();
-
-    printf("All native callback tests passed!\n");
+    TEST_RUN("variadic_function_accepts_extra_args", test_variadic_function_accepts_extra_args);
+    TEST_RUN("variadic_function_rejects_too_few_args", test_variadic_function_rejects_too_few_args);
+    TEST_RUN("native_callback_type_alias_c_compatible", test_native_callback_type_alias_c_compatible);
+    TEST_RUN("native_callback_type_alias_array_param_fails", test_native_callback_type_alias_array_param_fails);
+    TEST_RUN("native_callback_type_alias_array_return_fails", test_native_callback_type_alias_array_return_fails);
+    TEST_RUN("native_callback_as_function_param", test_native_callback_as_function_param);
+    TEST_RUN("native_lambda_capture_rejected", test_native_lambda_capture_rejected);
+    TEST_RUN("native_lambda_params_only_succeeds", test_native_lambda_params_only_succeeds);
+    TEST_RUN("native_lambda_param_count_mismatch", test_native_lambda_param_count_mismatch);
+    TEST_RUN("native_lambda_matching_signature", test_native_lambda_matching_signature);
 }

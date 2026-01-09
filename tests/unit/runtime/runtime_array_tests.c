@@ -6,15 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Array Clear Tests
  * ============================================================================ */
 
-void test_rt_array_clear()
+static void test_rt_array_clear(void)
 {
-    printf("Testing rt_array_clear...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create and populate array */
@@ -40,10 +39,8 @@ void test_rt_array_clear()
  * Array Push Tests
  * ============================================================================ */
 
-void test_rt_array_push_long()
+static void test_rt_array_push_long(void)
 {
-    printf("Testing rt_array_push_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Start with empty array */
@@ -72,10 +69,8 @@ void test_rt_array_push_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_push_double()
+static void test_rt_array_push_double(void)
 {
-    printf("Testing rt_array_push_double...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     double *arr = rt_array_alloc_double(arena, 0, 0.0);
@@ -92,10 +87,8 @@ void test_rt_array_push_double()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_push_char()
+static void test_rt_array_push_char(void)
 {
-    printf("Testing rt_array_push_char...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char *arr = rt_array_alloc_char(arena, 0, 0);
@@ -112,10 +105,8 @@ void test_rt_array_push_char()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_push_string()
+static void test_rt_array_push_string(void)
 {
-    printf("Testing rt_array_push_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -132,10 +123,8 @@ void test_rt_array_push_string()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_push_byte()
+static void test_rt_array_push_byte(void)
 {
-    printf("Testing rt_array_push_byte...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     unsigned char *arr = rt_array_alloc_byte(arena, 0, 0);
@@ -156,10 +145,8 @@ void test_rt_array_push_byte()
  * Array Pop Tests
  * ============================================================================ */
 
-void test_rt_array_pop_long()
+static void test_rt_array_pop_long(void)
 {
-    printf("Testing rt_array_pop_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 0, 0);
@@ -184,10 +171,8 @@ void test_rt_array_pop_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_pop_string()
+static void test_rt_array_pop_string(void)
 {
-    printf("Testing rt_array_pop_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -210,10 +195,8 @@ void test_rt_array_pop_string()
  * Array Concat Tests
  * ============================================================================ */
 
-void test_rt_array_concat_long()
+static void test_rt_array_concat_long(void)
 {
-    printf("Testing rt_array_concat_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr1 = rt_array_alloc_long(arena, 3, 0);
@@ -245,10 +228,8 @@ void test_rt_array_concat_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_concat_string()
+static void test_rt_array_concat_string(void)
 {
-    printf("Testing rt_array_concat_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr1 = rt_array_alloc_string(arena, 0, NULL);
@@ -273,10 +254,8 @@ void test_rt_array_concat_string()
  * Array Slice Tests
  * ============================================================================ */
 
-void test_rt_array_slice_long()
+static void test_rt_array_slice_long(void)
 {
-    printf("Testing rt_array_slice_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 5, 0);
@@ -309,10 +288,8 @@ void test_rt_array_slice_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_slice_string()
+static void test_rt_array_slice_string(void)
 {
-    printf("Testing rt_array_slice_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -335,10 +312,8 @@ void test_rt_array_slice_string()
  * Array Reverse Tests
  * ============================================================================ */
 
-void test_rt_array_rev_long()
+static void test_rt_array_rev_long(void)
 {
-    printf("Testing rt_array_rev_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 5, 0);
@@ -370,10 +345,8 @@ void test_rt_array_rev_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_rev_string()
+static void test_rt_array_rev_string(void)
 {
-    printf("Testing rt_array_rev_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -394,10 +367,8 @@ void test_rt_array_rev_string()
  * Array Remove Tests
  * ============================================================================ */
 
-void test_rt_array_rem_long()
+static void test_rt_array_rem_long(void)
 {
-    printf("Testing rt_array_rem_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 5, 0);
@@ -428,10 +399,8 @@ void test_rt_array_rem_long()
  * Array Insert Tests
  * ============================================================================ */
 
-void test_rt_array_ins_long()
+static void test_rt_array_ins_long(void)
 {
-    printf("Testing rt_array_ins_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 3, 0);
@@ -463,10 +432,8 @@ void test_rt_array_ins_long()
  * Array IndexOf Tests
  * ============================================================================ */
 
-void test_rt_array_indexOf_long()
+static void test_rt_array_indexOf_long(void)
 {
-    printf("Testing rt_array_indexOf_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 5, 0);
@@ -490,10 +457,8 @@ void test_rt_array_indexOf_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_indexOf_string()
+static void test_rt_array_indexOf_string(void)
 {
-    printf("Testing rt_array_indexOf_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -513,10 +478,8 @@ void test_rt_array_indexOf_string()
  * Array Contains Tests
  * ============================================================================ */
 
-void test_rt_array_contains_long()
+static void test_rt_array_contains_long(void)
 {
-    printf("Testing rt_array_contains_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 5, 0);
@@ -531,10 +494,8 @@ void test_rt_array_contains_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_contains_string()
+static void test_rt_array_contains_string(void)
 {
-    printf("Testing rt_array_contains_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -553,10 +514,8 @@ void test_rt_array_contains_string()
  * Array Clone Tests
  * ============================================================================ */
 
-void test_rt_array_clone_long()
+static void test_rt_array_clone_long(void)
 {
-    printf("Testing rt_array_clone_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 5, 0);
@@ -581,10 +540,8 @@ void test_rt_array_clone_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_clone_string()
+static void test_rt_array_clone_string(void)
 {
-    printf("Testing rt_array_clone_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -605,10 +562,8 @@ void test_rt_array_clone_string()
  * Array Join Tests
  * ============================================================================ */
 
-void test_rt_array_join_long()
+static void test_rt_array_join_long(void)
 {
-    printf("Testing rt_array_join_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 3, 0);
@@ -636,10 +591,8 @@ void test_rt_array_join_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_join_string()
+static void test_rt_array_join_string(void)
 {
-    printf("Testing rt_array_join_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr = rt_array_alloc_string(arena, 0, NULL);
@@ -663,10 +616,8 @@ void test_rt_array_join_string()
  * Array Equality Tests
  * ============================================================================ */
 
-void test_rt_array_eq_long()
+static void test_rt_array_eq_long(void)
 {
-    printf("Testing rt_array_eq_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr1 = rt_array_alloc_long(arena, 3, 0);
@@ -703,10 +654,8 @@ void test_rt_array_eq_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_eq_string()
+static void test_rt_array_eq_string(void)
 {
-    printf("Testing rt_array_eq_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     char **arr1 = rt_array_alloc_string(arena, 0, NULL);
@@ -731,10 +680,8 @@ void test_rt_array_eq_string()
  * Array Range Tests
  * ============================================================================ */
 
-void test_rt_array_range()
+static void test_rt_array_range(void)
 {
-    printf("Testing rt_array_range...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic range 0 to 5 */
@@ -773,10 +720,8 @@ void test_rt_array_range()
  * Array Create Tests
  * ============================================================================ */
 
-void test_rt_array_create_long()
+static void test_rt_array_create_long(void)
 {
-    printf("Testing rt_array_create_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long data[] = {10, 20, 30, 40, 50};
@@ -800,10 +745,8 @@ void test_rt_array_create_long()
     rt_arena_destroy(arena);
 }
 
-void test_rt_array_create_string()
+static void test_rt_array_create_string(void)
 {
-    printf("Testing rt_array_create_string...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     const char *data[] = {"first", "second", "third"};
@@ -821,10 +764,8 @@ void test_rt_array_create_string()
  * Array Push Copy Tests (non-mutating)
  * ============================================================================ */
 
-void test_rt_array_push_copy_long()
+static void test_rt_array_push_copy_long(void)
 {
-    printf("Testing rt_array_push_copy_long...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     long *arr = rt_array_alloc_long(arena, 3, 0);
@@ -850,67 +791,69 @@ void test_rt_array_push_copy_long()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_array_main()
+void test_rt_array_main(void)
 {
+    TEST_SECTION("Runtime Array");
+
     /* Clear */
-    test_rt_array_clear();
+    TEST_RUN("rt_array_clear", test_rt_array_clear);
 
     /* Push */
-    test_rt_array_push_long();
-    test_rt_array_push_double();
-    test_rt_array_push_char();
-    test_rt_array_push_string();
-    test_rt_array_push_byte();
+    TEST_RUN("rt_array_push_long", test_rt_array_push_long);
+    TEST_RUN("rt_array_push_double", test_rt_array_push_double);
+    TEST_RUN("rt_array_push_char", test_rt_array_push_char);
+    TEST_RUN("rt_array_push_string", test_rt_array_push_string);
+    TEST_RUN("rt_array_push_byte", test_rt_array_push_byte);
 
     /* Pop */
-    test_rt_array_pop_long();
-    test_rt_array_pop_string();
+    TEST_RUN("rt_array_pop_long", test_rt_array_pop_long);
+    TEST_RUN("rt_array_pop_string", test_rt_array_pop_string);
 
     /* Concat */
-    test_rt_array_concat_long();
-    test_rt_array_concat_string();
+    TEST_RUN("rt_array_concat_long", test_rt_array_concat_long);
+    TEST_RUN("rt_array_concat_string", test_rt_array_concat_string);
 
     /* Slice */
-    test_rt_array_slice_long();
-    test_rt_array_slice_string();
+    TEST_RUN("rt_array_slice_long", test_rt_array_slice_long);
+    TEST_RUN("rt_array_slice_string", test_rt_array_slice_string);
 
     /* Reverse */
-    test_rt_array_rev_long();
-    test_rt_array_rev_string();
+    TEST_RUN("rt_array_rev_long", test_rt_array_rev_long);
+    TEST_RUN("rt_array_rev_string", test_rt_array_rev_string);
 
     /* Remove */
-    test_rt_array_rem_long();
+    TEST_RUN("rt_array_rem_long", test_rt_array_rem_long);
 
     /* Insert */
-    test_rt_array_ins_long();
+    TEST_RUN("rt_array_ins_long", test_rt_array_ins_long);
 
     /* IndexOf */
-    test_rt_array_indexOf_long();
-    test_rt_array_indexOf_string();
+    TEST_RUN("rt_array_indexOf_long", test_rt_array_indexOf_long);
+    TEST_RUN("rt_array_indexOf_string", test_rt_array_indexOf_string);
 
     /* Contains */
-    test_rt_array_contains_long();
-    test_rt_array_contains_string();
+    TEST_RUN("rt_array_contains_long", test_rt_array_contains_long);
+    TEST_RUN("rt_array_contains_string", test_rt_array_contains_string);
 
     /* Clone */
-    test_rt_array_clone_long();
-    test_rt_array_clone_string();
+    TEST_RUN("rt_array_clone_long", test_rt_array_clone_long);
+    TEST_RUN("rt_array_clone_string", test_rt_array_clone_string);
 
     /* Join */
-    test_rt_array_join_long();
-    test_rt_array_join_string();
+    TEST_RUN("rt_array_join_long", test_rt_array_join_long);
+    TEST_RUN("rt_array_join_string", test_rt_array_join_string);
 
     /* Equality */
-    test_rt_array_eq_long();
-    test_rt_array_eq_string();
+    TEST_RUN("rt_array_eq_long", test_rt_array_eq_long);
+    TEST_RUN("rt_array_eq_string", test_rt_array_eq_string);
 
     /* Range */
-    test_rt_array_range();
+    TEST_RUN("rt_array_range", test_rt_array_range);
 
     /* Create */
-    test_rt_array_create_long();
-    test_rt_array_create_string();
+    TEST_RUN("rt_array_create_long", test_rt_array_create_long);
+    TEST_RUN("rt_array_create_string", test_rt_array_create_string);
 
     /* Push Copy */
-    test_rt_array_push_copy_long();
+    TEST_RUN("rt_array_push_copy_long", test_rt_array_push_copy_long);
 }

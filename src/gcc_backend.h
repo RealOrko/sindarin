@@ -19,9 +19,9 @@ typedef struct {
 /* Load backend configuration from config file (if it exists).
  * Must be called BEFORE cc_backend_init_config() to take effect.
  * The config file is determined by executable name:
- *   sn-gcc   -> sn.gcc.cfg
- *   sn-clang -> sn.clang.cfg
- *   sn-tcc   -> sn.tcc.cfg
+ *   sn-gcc   -> sn-gcc.cfg
+ *   sn-clang -> sn-clang.cfg
+ *   sn-tcc   -> sn-tcc.cfg
  * Config file format: KEY=VALUE (one per line), supports:
  *   SN_CC, SN_STD, SN_DEBUG_CFLAGS, SN_RELEASE_CFLAGS, SN_CFLAGS, SN_LDFLAGS, SN_LDLIBS
  */

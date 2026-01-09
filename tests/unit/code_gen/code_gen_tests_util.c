@@ -110,10 +110,9 @@ void setup_basic_token(Token *token, SnTokenType type, const char *lexeme)
     token_init(token, type, lexeme, (int)strlen(lexeme), 1, "test.sn");
 }
 
-void test_code_gen_init_invalid_output_file()
+static void test_code_gen_init_invalid_output_file(void)
 {
     DEBUG_INFO("Starting test_code_gen_init_invalid_output_file");
-    printf("Testing code_gen_init with invalid output path...\n");
 
     Arena arena;
     arena_init(&arena, 1024);
@@ -132,10 +131,9 @@ void test_code_gen_init_invalid_output_file()
     DEBUG_INFO("Finished test_code_gen_init_invalid_output_file");
 }
 
-void test_code_gen_cleanup_null_output()
+static void test_code_gen_cleanup_null_output(void)
 {
     DEBUG_INFO("Starting test_code_gen_cleanup_null_output");
-    printf("Testing code_gen_cleanup with NULL output...\n");
 
     Arena arena;
     arena_init(&arena, 1024);
@@ -153,10 +151,9 @@ void test_code_gen_cleanup_null_output()
     DEBUG_INFO("Finished test_code_gen_cleanup_null_output");
 }
 
-void test_code_gen_headers_and_externs()
+static void test_code_gen_headers_and_externs(void)
 {
     DEBUG_INFO("Starting test_code_gen_headers_and_externs");
-    printf("Testing code_gen_headers and code_gen_externs...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -192,8 +189,9 @@ void test_code_gen_headers_and_externs()
     DEBUG_INFO("Finished test_code_gen_headers_and_externs");
 }
 
-void test_code_gen_util_main()
+void test_code_gen_util_main(void)
 {
-    test_code_gen_cleanup_null_output();
-    test_code_gen_headers_and_externs();
+    TEST_SECTION("Code Gen Util Tests");
+    TEST_RUN("code_gen_cleanup_null_output", test_code_gen_cleanup_null_output);
+    TEST_RUN("code_gen_headers_and_externs", test_code_gen_headers_and_externs);
 }

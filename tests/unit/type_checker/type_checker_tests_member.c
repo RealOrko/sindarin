@@ -1,10 +1,9 @@
 // tests/type_checker_tests_member.c
 // Array member access type checker tests (length, push, pop, clear, concat)
 
-void test_type_check_array_member_length()
+static void test_type_check_array_member_length()
 {
     DEBUG_INFO("Starting test_type_check_array_member_length");
-    printf("Testing type check for array.length member access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -56,10 +55,9 @@ void test_type_check_array_member_length()
     DEBUG_INFO("Finished test_type_check_array_member_length");
 }
 
-void test_type_check_array_member_invalid()
+static void test_type_check_array_member_invalid()
 {
     DEBUG_INFO("Starting test_type_check_array_member_invalid");
-    printf("Testing type check for invalid array member access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -103,10 +101,9 @@ void test_type_check_array_member_invalid()
     DEBUG_INFO("Finished test_type_check_array_member_invalid");
 }
 
-void test_type_check_array_member_push()
+static void test_type_check_array_member_push()
 {
     DEBUG_INFO("Starting test_type_check_array_member_push");
-    printf("Testing type check for array.push member access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -156,10 +153,9 @@ void test_type_check_array_member_push()
     DEBUG_INFO("Finished test_type_check_array_member_push");
 }
 
-void test_type_check_array_member_pop()
+static void test_type_check_array_member_pop()
 {
     DEBUG_INFO("Starting test_type_check_array_member_pop");
-    printf("Testing type check for array.pop member access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -208,10 +204,9 @@ void test_type_check_array_member_pop()
     DEBUG_INFO("Finished test_type_check_array_member_pop");
 }
 
-void test_type_check_array_member_clear()
+static void test_type_check_array_member_clear()
 {
     DEBUG_INFO("Starting test_type_check_array_member_clear");
-    printf("Testing type check for array.clear member access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -252,10 +247,9 @@ void test_type_check_array_member_clear()
     DEBUG_INFO("Finished test_type_check_array_member_clear");
 }
 
-void test_type_check_array_member_concat()
+static void test_type_check_array_member_concat()
 {
     DEBUG_INFO("Starting test_type_check_array_member_concat");
-    printf("Testing type check for array.concat member access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -307,10 +301,9 @@ void test_type_check_array_member_concat()
     DEBUG_INFO("Finished test_type_check_array_member_concat");
 }
 
-void test_type_check_array_printable()
+static void test_type_check_array_printable()
 {
     DEBUG_INFO("Starting test_type_check_array_printable");
-    printf("Testing type check for array as printable type...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -362,10 +355,9 @@ void test_type_check_array_printable()
     DEBUG_INFO("Finished test_type_check_array_printable");
 }
 
-void test_type_check_string_member_append()
+static void test_type_check_string_member_append()
 {
     DEBUG_INFO("Starting test_type_check_string_member_append");
-    printf("Testing type check for string.append member access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -415,12 +407,14 @@ void test_type_check_string_member_append()
 
 void test_type_checker_member_main()
 {
-    test_type_check_array_member_length();
-    test_type_check_array_member_invalid();
-    test_type_check_array_member_push();
-    test_type_check_array_member_pop();
-    test_type_check_array_member_clear();
-    test_type_check_array_member_concat();
-    test_type_check_array_printable();
-    test_type_check_string_member_append();
+    TEST_SECTION("Type Checker Members");
+
+    TEST_RUN("array_member_length", test_type_check_array_member_length);
+    TEST_RUN("array_member_invalid", test_type_check_array_member_invalid);
+    TEST_RUN("array_member_push", test_type_check_array_member_push);
+    TEST_RUN("array_member_pop", test_type_check_array_member_pop);
+    TEST_RUN("array_member_clear", test_type_check_array_member_clear);
+    TEST_RUN("array_member_concat", test_type_check_array_member_concat);
+    TEST_RUN("array_printable", test_type_check_array_printable);
+    TEST_RUN("string_member_append", test_type_check_string_member_append);
 }

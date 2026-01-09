@@ -1,10 +1,11 @@
 // tests/lexer_tests_array.c
 // Array-related lexer tests
 
-void test_lexer_array_empty()
+#include "../test_harness.h"
+
+static void test_lexer_array_empty(void)
 {
     DEBUG_INFO("Starting test_lexer_array_empty");
-    printf("Testing lexer with empty array '{}'\n");
 
     const char *source = "{}";
     Arena arena;
@@ -31,10 +32,9 @@ void test_lexer_array_empty()
     DEBUG_INFO("Finished test_lexer_array_empty");
 }
 
-void test_lexer_array_single_element()
+static void test_lexer_array_single_element(void)
 {
     DEBUG_INFO("Starting test_lexer_array_single_element");
-    printf("Testing lexer with single-element array '{1}'\n");
 
     const char *source = "{1}";
     Arena arena;
@@ -63,10 +63,9 @@ void test_lexer_array_single_element()
     DEBUG_INFO("Finished test_lexer_array_single_element");
 }
 
-void test_lexer_array_multi_element()
+static void test_lexer_array_multi_element(void)
 {
     DEBUG_INFO("Starting test_lexer_array_multi_element");
-    printf("Testing lexer with multi-element array '{1, 2, 3}' (with whitespace)\n");
 
     const char *source = "{1, 2, 3}";
     Arena arena;
@@ -107,10 +106,9 @@ void test_lexer_array_multi_element()
     DEBUG_INFO("Finished test_lexer_array_multi_element");
 }
 
-void test_lexer_inline_array_expression()
+static void test_lexer_inline_array_expression(void)
 {
     DEBUG_INFO("Starting test_lexer_inline_array_expression");
-    printf("Testing lexer with inline array like 'arr.concat({1, 2})'\n");
 
     const char *source = "arr.concat({1, 2})";
     Arena arena;
@@ -159,10 +157,9 @@ void test_lexer_inline_array_expression()
     DEBUG_INFO("Finished test_lexer_inline_array_expression");
 }
 
-void test_lexer_array_assignment()
+static void test_lexer_array_assignment(void)
 {
     DEBUG_INFO("Starting test_lexer_array_assignment");
-    printf("Testing lexer with array assignment 'var arr: int[] = {1, 2}'\n");
 
     const char *source = "var arr: int[] = {1, 2}";
     Arena arena;
@@ -225,10 +222,9 @@ void test_lexer_array_assignment()
     DEBUG_INFO("Finished test_lexer_array_assignment");
 }
 
-void test_lexer_array_method_calls()
+static void test_lexer_array_method_calls(void)
 {
     DEBUG_INFO("Starting test_lexer_array_method_calls");
-    printf("Testing lexer with array methods 'arr.push(1); arr.length; arr.pop()'\n");
 
     const char *source = "arr.push(1); arr.length; arr.pop()";
     Arena arena;
@@ -297,10 +293,9 @@ void test_lexer_array_method_calls()
     DEBUG_INFO("Finished test_lexer_array_method_calls");
 }
 
-void test_lexer_unmatched_brace_error()
+static void test_lexer_unmatched_brace_error(void)
 {
     DEBUG_INFO("Starting test_lexer_unmatched_brace_error");
-    printf("Testing lexer error on unmatched '{' (now expecting EOF, as mismatch is parser concern)...\n");
 
     const char *source = "{1";
     Arena arena;
@@ -324,10 +319,9 @@ void test_lexer_unmatched_brace_error()
     DEBUG_INFO("Finished test_lexer_unmatched_brace_error");
 }
 
-void test_lexer_array_with_indentation()
+static void test_lexer_array_with_indentation(void)
 {
     DEBUG_INFO("Starting test_lexer_array_with_indentation");
-    printf("Testing lexer with multi-line array under indentation (INDENT once per level)\n");
 
     const char *source = "  var arr = {\n    1,\n    2\n  }";
     Arena arena;
@@ -401,10 +395,9 @@ void test_lexer_array_with_indentation()
     DEBUG_INFO("Finished test_lexer_array_with_indentation");
 }
 
-void test_lexer_array_at_line_start()
+static void test_lexer_array_at_line_start(void)
 {
     DEBUG_INFO("Starting test_lexer_array_at_line_start");
-    printf("Testing lexer with array at line start (indent handling)\n");
 
     const char *source = "\n{1, 2}";
     Arena arena;
@@ -445,10 +438,9 @@ void test_lexer_array_at_line_start()
 
 // Range operator tests for slicing
 
-void test_lexer_range_operator()
+static void test_lexer_range_operator(void)
 {
     DEBUG_INFO("Starting test_lexer_range_operator");
-    printf("Testing lexer with range operator '..'\n");
 
     const char *source = "..";
     Arena arena;
@@ -469,10 +461,9 @@ void test_lexer_range_operator()
     DEBUG_INFO("Finished test_lexer_range_operator");
 }
 
-void test_lexer_array_slice_full()
+static void test_lexer_array_slice_full(void)
 {
     DEBUG_INFO("Starting test_lexer_array_slice_full");
-    printf("Testing lexer with full slice 'arr[1..3]'\n");
 
     const char *source = "arr[1..3]";
     Arena arena;
@@ -509,10 +500,9 @@ void test_lexer_array_slice_full()
     DEBUG_INFO("Finished test_lexer_array_slice_full");
 }
 
-void test_lexer_array_slice_from_start()
+static void test_lexer_array_slice_from_start(void)
 {
     DEBUG_INFO("Starting test_lexer_array_slice_from_start");
-    printf("Testing lexer with slice from start 'arr[..3]'\n");
 
     const char *source = "arr[..3]";
     Arena arena;
@@ -545,10 +535,9 @@ void test_lexer_array_slice_from_start()
     DEBUG_INFO("Finished test_lexer_array_slice_from_start");
 }
 
-void test_lexer_array_slice_to_end()
+static void test_lexer_array_slice_to_end(void)
 {
     DEBUG_INFO("Starting test_lexer_array_slice_to_end");
-    printf("Testing lexer with slice to end 'arr[2..]'\n");
 
     const char *source = "arr[2..]";
     Arena arena;
@@ -581,10 +570,9 @@ void test_lexer_array_slice_to_end()
     DEBUG_INFO("Finished test_lexer_array_slice_to_end");
 }
 
-void test_lexer_array_slice_full_copy()
+static void test_lexer_array_slice_full_copy(void)
 {
     DEBUG_INFO("Starting test_lexer_array_slice_full_copy");
-    printf("Testing lexer with full copy slice 'arr[..]'\n");
 
     const char *source = "arr[..]";
     Arena arena;
@@ -613,10 +601,9 @@ void test_lexer_array_slice_full_copy()
     DEBUG_INFO("Finished test_lexer_array_slice_full_copy");
 }
 
-void test_lexer_dot_vs_range()
+static void test_lexer_dot_vs_range(void)
 {
     DEBUG_INFO("Starting test_lexer_dot_vs_range");
-    printf("Testing lexer distinguishes dot from range 'a.b..c'\n");
 
     const char *source = "a.b..c";
     Arena arena;
@@ -648,22 +635,23 @@ void test_lexer_dot_vs_range()
     DEBUG_INFO("Finished test_lexer_dot_vs_range");
 }
 
-void test_lexer_array_main()
+void test_lexer_array_main(void)
 {
-    test_lexer_array_empty();
-    test_lexer_array_single_element();
-    test_lexer_array_multi_element();
-    test_lexer_inline_array_expression();
-    test_lexer_array_assignment();
-    test_lexer_array_method_calls();
-    test_lexer_unmatched_brace_error();
-    test_lexer_array_with_indentation();
-    test_lexer_array_at_line_start();
+    TEST_SECTION("Lexer Array Tests");
+    TEST_RUN("lexer_array_empty", test_lexer_array_empty);
+    TEST_RUN("lexer_array_single_element", test_lexer_array_single_element);
+    TEST_RUN("lexer_array_multi_element", test_lexer_array_multi_element);
+    TEST_RUN("lexer_inline_array_expression", test_lexer_inline_array_expression);
+    TEST_RUN("lexer_array_assignment", test_lexer_array_assignment);
+    TEST_RUN("lexer_array_method_calls", test_lexer_array_method_calls);
+    TEST_RUN("lexer_unmatched_brace_error", test_lexer_unmatched_brace_error);
+    TEST_RUN("lexer_array_with_indentation", test_lexer_array_with_indentation);
+    TEST_RUN("lexer_array_at_line_start", test_lexer_array_at_line_start);
     // Range operator tests for slicing
-    test_lexer_range_operator();
-    test_lexer_array_slice_full();
-    test_lexer_array_slice_from_start();
-    test_lexer_array_slice_to_end();
-    test_lexer_array_slice_full_copy();
-    test_lexer_dot_vs_range();
+    TEST_RUN("lexer_range_operator", test_lexer_range_operator);
+    TEST_RUN("lexer_array_slice_full", test_lexer_array_slice_full);
+    TEST_RUN("lexer_array_slice_from_start", test_lexer_array_slice_from_start);
+    TEST_RUN("lexer_array_slice_to_end", test_lexer_array_slice_to_end);
+    TEST_RUN("lexer_array_slice_full_copy", test_lexer_array_slice_full_copy);
+    TEST_RUN("lexer_dot_vs_range", test_lexer_dot_vs_range);
 }

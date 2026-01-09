@@ -1,10 +1,9 @@
 // tests/code_gen_tests_expr.c
 // Expression code generation tests
 
-void test_code_gen_literal_expression()
+static void test_code_gen_literal_expression(void)
 {
     DEBUG_INFO("Starting test_code_gen_literal_expression");
-    printf("Testing code_gen for literal expressions...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -53,10 +52,9 @@ void test_code_gen_literal_expression()
     DEBUG_INFO("Finished test_code_gen_literal_expression");
 }
 
-void test_code_gen_variable_expression()
+static void test_code_gen_variable_expression(void)
 {
     DEBUG_INFO("Starting test_code_gen_variable_expression");
-    printf("Testing code_gen for variable expressions...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -109,10 +107,9 @@ void test_code_gen_variable_expression()
     DEBUG_INFO("Finished test_code_gen_variable_expression");
 }
 
-void test_code_gen_binary_expression_int_add()
+static void test_code_gen_binary_expression_int_add(void)
 {
     DEBUG_INFO("Starting test_code_gen_binary_expression_int_add");
-    printf("Testing code_gen for binary int add...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -176,10 +173,9 @@ void test_code_gen_binary_expression_int_add()
     DEBUG_INFO("Finished test_code_gen_binary_expression_int_add");
 }
 
-void test_code_gen_binary_expression_string_concat()
+static void test_code_gen_binary_expression_string_concat(void)
 {
     DEBUG_INFO("Starting test_code_gen_binary_expression_string_concat");
-    printf("Testing code_gen for string concat...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -244,10 +240,9 @@ void test_code_gen_binary_expression_string_concat()
     DEBUG_INFO("Finished test_code_gen_binary_expression_string_concat");
 }
 
-void test_code_gen_unary_expression_negate()
+static void test_code_gen_unary_expression_negate(void)
 {
     DEBUG_INFO("Starting test_code_gen_unary_expression_negate");
-    printf("Testing code_gen for unary negate...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -305,10 +300,9 @@ void test_code_gen_unary_expression_negate()
     DEBUG_INFO("Finished test_code_gen_unary_expression_negate");
 }
 
-void test_code_gen_assign_expression()
+static void test_code_gen_assign_expression(void)
 {
     DEBUG_INFO("Starting test_code_gen_assign_expression");
-    printf("Testing code_gen for assign expressions...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -373,10 +367,9 @@ void test_code_gen_assign_expression()
  * Test that *int as val generates C dereference: *(ptr)
  * This tests the primitive pointer unwrapping case in code_gen_as_val_expression.
  */
-void test_code_gen_as_val_int_pointer()
+static void test_code_gen_as_val_int_pointer(void)
 {
     DEBUG_INFO("Starting test_code_gen_as_val_int_pointer");
-    printf("Testing code_gen for *int as val (pointer dereference)...\n");
 
     Arena arena;
     arena_init(&arena, 8192);
@@ -445,10 +438,9 @@ void test_code_gen_as_val_int_pointer()
  * Test that *double as val generates C dereference: *(ptr)
  * This tests the primitive pointer unwrapping case for double type.
  */
-void test_code_gen_as_val_double_pointer()
+static void test_code_gen_as_val_double_pointer(void)
 {
     DEBUG_INFO("Starting test_code_gen_as_val_double_pointer");
-    printf("Testing code_gen for *double as val (pointer dereference)...\n");
 
     Arena arena;
     arena_init(&arena, 8192);
@@ -521,10 +513,9 @@ void test_code_gen_as_val_double_pointer()
  * 2. If not NULL, call rt_arena_strdup with the pointer
  * 3. If NULL, return empty string via rt_arena_strdup(arena, "")
  */
-void test_code_gen_as_val_char_pointer()
+static void test_code_gen_as_val_char_pointer(void)
 {
     DEBUG_INFO("Starting test_code_gen_as_val_char_pointer");
-    printf("Testing code_gen for *char as val (C string conversion)...\n");
 
     Arena arena;
     arena_init(&arena, 8192);
@@ -594,15 +585,16 @@ void test_code_gen_as_val_char_pointer()
     DEBUG_INFO("Finished test_code_gen_as_val_char_pointer");
 }
 
-void test_code_gen_expr_main()
+void test_code_gen_expr_main(void)
 {
-    test_code_gen_literal_expression();
-    test_code_gen_variable_expression();
-    test_code_gen_binary_expression_int_add();
-    test_code_gen_binary_expression_string_concat();
-    test_code_gen_unary_expression_negate();
-    test_code_gen_assign_expression();
-    test_code_gen_as_val_int_pointer();
-    test_code_gen_as_val_double_pointer();
-    test_code_gen_as_val_char_pointer();
+    TEST_SECTION("Code Gen Expression Tests");
+    TEST_RUN("code_gen_literal_expression", test_code_gen_literal_expression);
+    TEST_RUN("code_gen_variable_expression", test_code_gen_variable_expression);
+    TEST_RUN("code_gen_binary_expression_int_add", test_code_gen_binary_expression_int_add);
+    TEST_RUN("code_gen_binary_expression_string_concat", test_code_gen_binary_expression_string_concat);
+    TEST_RUN("code_gen_unary_expression_negate", test_code_gen_unary_expression_negate);
+    TEST_RUN("code_gen_assign_expression", test_code_gen_assign_expression);
+    TEST_RUN("code_gen_as_val_int_pointer", test_code_gen_as_val_int_pointer);
+    TEST_RUN("code_gen_as_val_double_pointer", test_code_gen_as_val_double_pointer);
+    TEST_RUN("code_gen_as_val_char_pointer", test_code_gen_as_val_char_pointer);
 }

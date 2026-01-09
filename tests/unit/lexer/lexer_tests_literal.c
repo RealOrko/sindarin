@@ -1,10 +1,11 @@
 // tests/lexer_tests_literal.c
 // Literal-related lexer tests (keywords, numbers, strings, chars)
 
-void test_lexer_empty_source()
+#include "../test_harness.h"
+
+static void test_lexer_empty_source(void)
 {
     DEBUG_INFO("Starting test_lexer_empty_source");
-    printf("Testing lexer with empty source\n");
 
     const char *source = "";
     Arena arena;
@@ -21,10 +22,9 @@ void test_lexer_empty_source()
     DEBUG_INFO("Finished test_lexer_empty_source");
 }
 
-void test_lexer_only_whitespace()
+static void test_lexer_only_whitespace(void)
 {
     DEBUG_INFO("Starting test_lexer_only_whitespace");
-    printf("Testing lexer with only whitespace\n");
 
     const char *source = "   \t  \n";
     Arena arena;
@@ -44,10 +44,9 @@ void test_lexer_only_whitespace()
     DEBUG_INFO("Finished test_lexer_only_whitespace");
 }
 
-void test_lexer_single_identifier()
+static void test_lexer_single_identifier(void)
 {
     DEBUG_INFO("Starting test_lexer_single_identifier");
-    printf("Testing lexer with single identifier 'var'\n");
 
     const char *source = "var";
     Arena arena;
@@ -69,10 +68,9 @@ void test_lexer_single_identifier()
     DEBUG_INFO("Finished test_lexer_single_identifier");
 }
 
-void test_lexer_keywords()
+static void test_lexer_keywords(void)
 {
     DEBUG_INFO("Starting test_lexer_keywords");
-    printf("Testing lexer with various keywords\n");
 
     const char *source = "fn if else for while return var int bool str char double long void nil import byte";
     Arena arena;
@@ -124,10 +122,9 @@ void test_lexer_keywords()
     DEBUG_INFO("Finished test_lexer_keywords");
 }
 
-void test_lexer_interop_type_keywords()
+static void test_lexer_interop_type_keywords(void)
 {
     DEBUG_INFO("Starting test_lexer_interop_type_keywords");
-    printf("Testing lexer with interop type keywords: int32 uint uint32 float\n");
 
     const char *source = "int32 uint uint32 float";
     Arena arena;
@@ -160,10 +157,9 @@ void test_lexer_interop_type_keywords()
     DEBUG_INFO("Finished test_lexer_interop_type_keywords");
 }
 
-void test_lexer_opaque_type_keywords()
+static void test_lexer_opaque_type_keywords(void)
 {
     DEBUG_INFO("Starting test_lexer_opaque_type_keywords");
-    printf("Testing lexer with opaque type keywords: type opaque\n");
 
     const char *source = "type opaque";
     Arena arena;
@@ -188,10 +184,9 @@ void test_lexer_opaque_type_keywords()
     DEBUG_INFO("Finished test_lexer_opaque_type_keywords");
 }
 
-void test_lexer_bool_literals()
+static void test_lexer_bool_literals(void)
 {
     DEBUG_INFO("Starting test_lexer_bool_literals");
-    printf("Testing lexer with bool literals 'true false'\n");
 
     const char *source = "true false";
     Arena arena;
@@ -216,10 +211,9 @@ void test_lexer_bool_literals()
     DEBUG_INFO("Finished test_lexer_bool_literals");
 }
 
-void test_lexer_int_literal()
+static void test_lexer_int_literal(void)
 {
     DEBUG_INFO("Starting test_lexer_int_literal");
-    printf("Testing lexer with int literal '42'\n");
 
     const char *source = "42";
     Arena arena;
@@ -240,10 +234,9 @@ void test_lexer_int_literal()
     DEBUG_INFO("Finished test_lexer_int_literal");
 }
 
-void test_lexer_long_literal()
+static void test_lexer_long_literal(void)
 {
     DEBUG_INFO("Starting test_lexer_long_literal");
-    printf("Testing lexer with long literal '42l'\n");
 
     const char *source = "42l";
     Arena arena;
@@ -264,10 +257,9 @@ void test_lexer_long_literal()
     DEBUG_INFO("Finished test_lexer_long_literal");
 }
 
-void test_lexer_double_literal_decimal()
+static void test_lexer_double_literal_decimal(void)
 {
     DEBUG_INFO("Starting test_lexer_double_literal_decimal");
-    printf("Testing lexer with double literal '3.14'\n");
 
     const char *source = "3.14";
     Arena arena;
@@ -288,10 +280,9 @@ void test_lexer_double_literal_decimal()
     DEBUG_INFO("Finished test_lexer_double_literal_decimal");
 }
 
-void test_lexer_double_literal_with_d()
+static void test_lexer_double_literal_with_d(void)
 {
     DEBUG_INFO("Starting test_lexer_double_literal_with_d");
-    printf("Testing lexer with double literal '3.14d'\n");
 
     const char *source = "3.14d";
     Arena arena;
@@ -312,10 +303,9 @@ void test_lexer_double_literal_with_d()
     DEBUG_INFO("Finished test_lexer_double_literal_with_d");
 }
 
-void test_lexer_string_literal()
+static void test_lexer_string_literal(void)
 {
     DEBUG_INFO("Starting test_lexer_string_literal");
-    printf("Testing lexer with string literal '\"hello\"'\n");
 
     const char *source = "\"hello\"";
     Arena arena;
@@ -337,10 +327,9 @@ void test_lexer_string_literal()
     DEBUG_INFO("Finished test_lexer_string_literal");
 }
 
-void test_lexer_string_with_escapes()
+static void test_lexer_string_with_escapes(void)
 {
     DEBUG_INFO("Starting test_lexer_string_with_escapes");
-    printf("Testing lexer with string escapes '\\n \\t \"'\n");
 
     const char *source = "\"hello\\n\\t\\\"world\"";
     Arena arena;
@@ -362,10 +351,9 @@ void test_lexer_string_with_escapes()
     DEBUG_INFO("Finished test_lexer_string_with_escapes");
 }
 
-void test_lexer_unterminated_string()
+static void test_lexer_unterminated_string(void)
 {
     DEBUG_INFO("Starting test_lexer_unterminated_string");
-    printf("Testing lexer with unterminated string (should error)\n");
 
     const char *source = "\"unterminated";
     Arena arena;
@@ -383,10 +371,9 @@ void test_lexer_unterminated_string()
     DEBUG_INFO("Finished test_lexer_unterminated_string");
 }
 
-void test_lexer_interpolated_string()
+static void test_lexer_interpolated_string(void)
 {
     DEBUG_INFO("Starting test_lexer_interpolated_string");
-    printf("Testing lexer with interpolated string '$\"hello ${var}\"' (basic recognition)\n");
 
     const char *source = "$\"hello\"";
     Arena arena;
@@ -408,10 +395,9 @@ void test_lexer_interpolated_string()
     DEBUG_INFO("Finished test_lexer_interpolated_string");
 }
 
-void test_lexer_char_literal()
+static void test_lexer_char_literal(void)
 {
     DEBUG_INFO("Starting test_lexer_char_literal");
-    printf("Testing lexer with char literal \"'a'\"\n");
 
     const char *source = "'a'";
     Arena arena;
@@ -432,10 +418,9 @@ void test_lexer_char_literal()
     DEBUG_INFO("Finished test_lexer_char_literal");
 }
 
-void test_lexer_char_escape()
+static void test_lexer_char_escape(void)
 {
     DEBUG_INFO("Starting test_lexer_char_escape");
-    printf("Testing lexer with char escape \"'\\n'\"\n");
 
     const char *source = "'\\n'";
     Arena arena;
@@ -456,10 +441,9 @@ void test_lexer_char_escape()
     DEBUG_INFO("Finished test_lexer_char_escape");
 }
 
-void test_lexer_unterminated_char()
+static void test_lexer_unterminated_char(void)
 {
     DEBUG_INFO("Starting test_lexer_unterminated_char");
-    printf("Testing lexer with unterminated char (should error)\n");
 
     const char *source = "'unterminated";
     Arena arena;
@@ -477,10 +461,9 @@ void test_lexer_unterminated_char()
     DEBUG_INFO("Finished test_lexer_unterminated_char");
 }
 
-void test_lexer_native_keyword()
+static void test_lexer_native_keyword(void)
 {
     DEBUG_INFO("Starting test_lexer_native_keyword");
-    printf("Testing lexer with native keyword\n");
 
     const char *source = "native fn nil";
     Arena arena;
@@ -507,10 +490,9 @@ void test_lexer_native_keyword()
     DEBUG_INFO("Finished test_lexer_native_keyword");
 }
 
-void test_lexer_pragma_include()
+static void test_lexer_pragma_include(void)
 {
     DEBUG_INFO("Starting test_lexer_pragma_include");
-    printf("Testing lexer with #pragma include directive\n");
 
     const char *source = "#pragma include <stdio.h>\n";
     Arena arena;
@@ -527,10 +509,9 @@ void test_lexer_pragma_include()
     DEBUG_INFO("Finished test_lexer_pragma_include");
 }
 
-void test_lexer_pragma_link()
+static void test_lexer_pragma_link(void)
 {
     DEBUG_INFO("Starting test_lexer_pragma_link");
-    printf("Testing lexer with #pragma link directive\n");
 
     const char *source = "#pragma link m\n";
     Arena arena;
@@ -547,10 +528,9 @@ void test_lexer_pragma_link()
     DEBUG_INFO("Finished test_lexer_pragma_link");
 }
 
-void test_lexer_val_ref_keywords()
+static void test_lexer_val_ref_keywords(void)
 {
     DEBUG_INFO("Starting test_lexer_val_ref_keywords");
-    printf("Testing lexer with 'as val' and 'as ref' keywords\n");
 
     const char *source = "as val ref";
     Arena arena;
@@ -579,10 +559,9 @@ void test_lexer_val_ref_keywords()
     DEBUG_INFO("Finished test_lexer_val_ref_keywords");
 }
 
-void test_lexer_ampersand_operator()
+static void test_lexer_ampersand_operator(void)
 {
     DEBUG_INFO("Starting test_lexer_ampersand_operator");
-    printf("Testing lexer with ampersand operator\n");
 
     const char *source = "&x";
     Arena arena;
@@ -604,10 +583,9 @@ void test_lexer_ampersand_operator()
     DEBUG_INFO("Finished test_lexer_ampersand_operator");
 }
 
-void test_lexer_pointer_type_syntax()
+static void test_lexer_pointer_type_syntax(void)
 {
     DEBUG_INFO("Starting test_lexer_pointer_type_syntax");
-    printf("Testing lexer with pointer type syntax *int\n");
 
     const char *source = "*int";
     Arena arena;
@@ -628,10 +606,9 @@ void test_lexer_pointer_type_syntax()
     DEBUG_INFO("Finished test_lexer_pointer_type_syntax");
 }
 
-void test_lexer_spread_operator()
+static void test_lexer_spread_operator(void)
 {
     DEBUG_INFO("Starting test_lexer_spread_operator");
-    printf("Testing lexer with spread operator ...\n");
 
     const char *source = "...";
     Arena arena;
@@ -649,10 +626,9 @@ void test_lexer_spread_operator()
     DEBUG_INFO("Finished test_lexer_spread_operator");
 }
 
-void test_lexer_uuid_keyword()
+static void test_lexer_uuid_keyword(void)
 {
     DEBUG_INFO("Starting test_lexer_uuid_keyword");
-    printf("Testing lexer with UUID keyword\n");
 
     const char *source = "UUID";
     Arena arena;
@@ -673,10 +649,9 @@ void test_lexer_uuid_keyword()
     DEBUG_INFO("Finished test_lexer_uuid_keyword");
 }
 
-void test_lexer_uuid_in_context()
+static void test_lexer_uuid_in_context(void)
 {
     DEBUG_INFO("Starting test_lexer_uuid_in_context");
-    printf("Testing lexer with UUID keyword in variable declaration context\n");
 
     const char *source = "var id: UUID";
     Arena arena;
@@ -707,10 +682,9 @@ void test_lexer_uuid_in_context()
     DEBUG_INFO("Finished test_lexer_uuid_in_context");
 }
 
-void test_lexer_environment_keyword()
+static void test_lexer_environment_keyword(void)
 {
     DEBUG_INFO("Starting test_lexer_environment_keyword");
-    printf("Testing lexer with Environment keyword\n");
 
     const char *source = "Environment";
     Arena arena;
@@ -731,10 +705,9 @@ void test_lexer_environment_keyword()
     DEBUG_INFO("Finished test_lexer_environment_keyword");
 }
 
-void test_lexer_environment_in_context()
+static void test_lexer_environment_in_context(void)
 {
     DEBUG_INFO("Starting test_lexer_environment_in_context");
-    printf("Testing lexer with Environment keyword in method call context\n");
 
     const char *source = "Environment.get";
     Arena arena;
@@ -763,39 +736,40 @@ void test_lexer_environment_in_context()
 }
 
 
-void test_lexer_literal_main()
+void test_lexer_literal_main(void)
 {
-    test_lexer_empty_source();
-    test_lexer_only_whitespace();
-    test_lexer_single_identifier();
-    test_lexer_keywords();
-    test_lexer_interop_type_keywords();
-    test_lexer_opaque_type_keywords();
-    test_lexer_native_keyword();
-    test_lexer_bool_literals();
-    test_lexer_int_literal();
-    test_lexer_long_literal();
-    test_lexer_double_literal_decimal();
-    test_lexer_double_literal_with_d();
-    test_lexer_string_literal();
-    test_lexer_string_with_escapes();
-    test_lexer_unterminated_string();
-    test_lexer_interpolated_string();
-    test_lexer_char_literal();
-    test_lexer_char_escape();
-    test_lexer_unterminated_char();
+    TEST_SECTION("Lexer Literal Tests");
+    TEST_RUN("lexer_empty_source", test_lexer_empty_source);
+    TEST_RUN("lexer_only_whitespace", test_lexer_only_whitespace);
+    TEST_RUN("lexer_single_identifier", test_lexer_single_identifier);
+    TEST_RUN("lexer_keywords", test_lexer_keywords);
+    TEST_RUN("lexer_interop_type_keywords", test_lexer_interop_type_keywords);
+    TEST_RUN("lexer_opaque_type_keywords", test_lexer_opaque_type_keywords);
+    TEST_RUN("lexer_native_keyword", test_lexer_native_keyword);
+    TEST_RUN("lexer_bool_literals", test_lexer_bool_literals);
+    TEST_RUN("lexer_int_literal", test_lexer_int_literal);
+    TEST_RUN("lexer_long_literal", test_lexer_long_literal);
+    TEST_RUN("lexer_double_literal_decimal", test_lexer_double_literal_decimal);
+    TEST_RUN("lexer_double_literal_with_d", test_lexer_double_literal_with_d);
+    TEST_RUN("lexer_string_literal", test_lexer_string_literal);
+    TEST_RUN("lexer_string_with_escapes", test_lexer_string_with_escapes);
+    TEST_RUN("lexer_unterminated_string", test_lexer_unterminated_string);
+    TEST_RUN("lexer_interpolated_string", test_lexer_interpolated_string);
+    TEST_RUN("lexer_char_literal", test_lexer_char_literal);
+    TEST_RUN("lexer_char_escape", test_lexer_char_escape);
+    TEST_RUN("lexer_unterminated_char", test_lexer_unterminated_char);
     // Pragma tests
-    test_lexer_pragma_include();
-    test_lexer_pragma_link();
+    TEST_RUN("lexer_pragma_include", test_lexer_pragma_include);
+    TEST_RUN("lexer_pragma_link", test_lexer_pragma_link);
     // Interop keyword tests
-    test_lexer_val_ref_keywords();
-    test_lexer_ampersand_operator();
-    test_lexer_pointer_type_syntax();
-    test_lexer_spread_operator();
+    TEST_RUN("lexer_val_ref_keywords", test_lexer_val_ref_keywords);
+    TEST_RUN("lexer_ampersand_operator", test_lexer_ampersand_operator);
+    TEST_RUN("lexer_pointer_type_syntax", test_lexer_pointer_type_syntax);
+    TEST_RUN("lexer_spread_operator", test_lexer_spread_operator);
     // UUID keyword tests
-    test_lexer_uuid_keyword();
-    test_lexer_uuid_in_context();
+    TEST_RUN("lexer_uuid_keyword", test_lexer_uuid_keyword);
+    TEST_RUN("lexer_uuid_in_context", test_lexer_uuid_in_context);
     // Environment keyword tests
-    test_lexer_environment_keyword();
-    test_lexer_environment_in_context();
+    TEST_RUN("lexer_environment_keyword", test_lexer_environment_keyword);
+    TEST_RUN("lexer_environment_in_context", test_lexer_environment_in_context);
 }

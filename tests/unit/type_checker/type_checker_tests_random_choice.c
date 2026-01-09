@@ -16,7 +16,6 @@
 /* Test Random.choice(int[]) returns int */
 static void test_random_choice_int_array_returns_int(void)
 {
-    printf("Testing Random.choice(int[]) returns int...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -70,7 +69,6 @@ static void test_random_choice_int_array_returns_int(void)
 /* Test Random.choice(str[]) returns str */
 static void test_random_choice_str_array_returns_str(void)
 {
-    printf("Testing Random.choice(str[]) returns str...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -117,7 +115,6 @@ static void test_random_choice_str_array_returns_str(void)
 /* Test Random.choice(double[]) returns double */
 static void test_random_choice_double_array_returns_double(void)
 {
-    printf("Testing Random.choice(double[]) returns double...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -158,7 +155,6 @@ static void test_random_choice_double_array_returns_double(void)
 /* Test Random.choice(bool[]) returns bool */
 static void test_random_choice_bool_array_returns_bool(void)
 {
-    printf("Testing Random.choice(bool[]) returns bool...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -199,7 +195,6 @@ static void test_random_choice_bool_array_returns_bool(void)
 /* Test Random.choice() with non-array argument reports error */
 static void test_random_choice_non_array_error(void)
 {
-    printf("Testing Random.choice() with non-array argument reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -233,7 +228,6 @@ static void test_random_choice_non_array_error(void)
 /* Test Random.choice() with string argument reports error */
 static void test_random_choice_string_arg_error(void)
 {
-    printf("Testing Random.choice() with string argument reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -267,7 +261,6 @@ static void test_random_choice_string_arg_error(void)
 /* Test Random.choice() with wrong argument count reports error */
 static void test_random_choice_wrong_arg_count_error(void)
 {
-    printf("Testing Random.choice() with wrong argument count reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -293,7 +286,6 @@ static void test_random_choice_wrong_arg_count_error(void)
 /* Test Random.choice() with too many arguments reports error */
 static void test_random_choice_too_many_args_error(void)
 {
-    printf("Testing Random.choice() with too many arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -339,7 +331,6 @@ static void test_random_choice_too_many_args_error(void)
 /* Test Random.weightedChoice(int[], double[]) returns int */
 static void test_random_weightedChoice_int_array_returns_int(void)
 {
-    printf("Testing Random.weightedChoice(int[], double[]) returns int...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -394,7 +385,6 @@ static void test_random_weightedChoice_int_array_returns_int(void)
 /* Test Random.weightedChoice(str[], double[]) returns str */
 static void test_random_weightedChoice_str_array_returns_str(void)
 {
-    printf("Testing Random.weightedChoice(str[], double[]) returns str...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -449,7 +439,6 @@ static void test_random_weightedChoice_str_array_returns_str(void)
 /* Test Random.weightedChoice() with non-array first arg reports error */
 static void test_random_weightedChoice_non_array_first_arg_error(void)
 {
-    printf("Testing Random.weightedChoice() with non-array first arg reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -497,7 +486,6 @@ static void test_random_weightedChoice_non_array_first_arg_error(void)
 /* Test Random.weightedChoice() with non-double[] second arg reports error */
 static void test_random_weightedChoice_non_double_array_second_arg_error(void)
 {
-    printf("Testing Random.weightedChoice() with non-double[] second arg reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -548,7 +536,6 @@ static void test_random_weightedChoice_non_double_array_second_arg_error(void)
 /* Test Random.weightedChoice() with wrong argument count reports error */
 static void test_random_weightedChoice_wrong_arg_count_error(void)
 {
-    printf("Testing Random.weightedChoice() with wrong argument count reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -588,7 +575,6 @@ static void test_random_weightedChoice_wrong_arg_count_error(void)
 /* Test Random.weightedChoice() with no arguments reports error */
 static void test_random_weightedChoice_no_args_error(void)
 {
-    printf("Testing Random.weightedChoice() with no arguments reports error...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -618,7 +604,6 @@ static void test_random_weightedChoice_no_args_error(void)
 /* Test rng.choice(int[]) instance method returns int */
 static void test_random_instance_choice_int_array(void)
 {
-    printf("Testing rng.choice(int[]) instance method returns int...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -660,7 +645,6 @@ static void test_random_instance_choice_int_array(void)
 /* Test rng.weightedChoice(int[], double[]) instance method returns int */
 static void test_random_instance_weightedChoice_int_array(void)
 {
-    printf("Testing rng.weightedChoice(int[], double[]) instance method returns int...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -717,31 +701,27 @@ static void test_random_instance_weightedChoice_int_array(void)
  * Main test runner
  * ============================================================================ */
 
-void test_tc_random_choice_main(void)
+static void test_tc_random_choice_main(void)
 {
-    printf("\n=== Type Checker Random Choice Tests ===\n");
-
     /* choice() static method tests */
-    test_random_choice_int_array_returns_int();
-    test_random_choice_str_array_returns_str();
-    test_random_choice_double_array_returns_double();
-    test_random_choice_bool_array_returns_bool();
-    test_random_choice_non_array_error();
-    test_random_choice_string_arg_error();
-    test_random_choice_wrong_arg_count_error();
-    test_random_choice_too_many_args_error();
+    TEST_RUN("choice_int_array_returns_int", test_random_choice_int_array_returns_int);
+    TEST_RUN("choice_str_array_returns_str", test_random_choice_str_array_returns_str);
+    TEST_RUN("choice_double_array_returns_double", test_random_choice_double_array_returns_double);
+    TEST_RUN("choice_bool_array_returns_bool", test_random_choice_bool_array_returns_bool);
+    TEST_RUN("choice_non_array_error", test_random_choice_non_array_error);
+    TEST_RUN("choice_string_arg_error", test_random_choice_string_arg_error);
+    TEST_RUN("choice_wrong_arg_count_error", test_random_choice_wrong_arg_count_error);
+    TEST_RUN("choice_too_many_args_error", test_random_choice_too_many_args_error);
 
     /* weightedChoice() static method tests */
-    test_random_weightedChoice_int_array_returns_int();
-    test_random_weightedChoice_str_array_returns_str();
-    test_random_weightedChoice_non_array_first_arg_error();
-    test_random_weightedChoice_non_double_array_second_arg_error();
-    test_random_weightedChoice_wrong_arg_count_error();
-    test_random_weightedChoice_no_args_error();
+    TEST_RUN("weightedChoice_int_array_returns_int", test_random_weightedChoice_int_array_returns_int);
+    TEST_RUN("weightedChoice_str_array_returns_str", test_random_weightedChoice_str_array_returns_str);
+    TEST_RUN("weightedChoice_non_array_first_arg_error", test_random_weightedChoice_non_array_first_arg_error);
+    TEST_RUN("weightedChoice_non_double_second_arg_error", test_random_weightedChoice_non_double_array_second_arg_error);
+    TEST_RUN("weightedChoice_wrong_arg_count_error", test_random_weightedChoice_wrong_arg_count_error);
+    TEST_RUN("weightedChoice_no_args_error", test_random_weightedChoice_no_args_error);
 
     /* Instance method tests */
-    test_random_instance_choice_int_array();
-    test_random_instance_weightedChoice_int_array();
-
-    printf("=== All Type Checker Random Choice Tests Passed ===\n");
+    TEST_RUN("instance_choice_int_array", test_random_instance_choice_int_array);
+    TEST_RUN("instance_weightedChoice_int_array", test_random_instance_weightedChoice_int_array);
 }

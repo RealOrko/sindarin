@@ -10,6 +10,7 @@
 #include "../ast.h"
 #include "../debug.h"
 #include "../symbol_table.h"
+#include "../test_harness.h"
 
 static void setup_parser(Arena *arena, Lexer *lexer, Parser *parser, SymbolTable *symbol_table, const char *source)
 {

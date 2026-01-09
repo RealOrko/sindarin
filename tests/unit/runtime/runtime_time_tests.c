@@ -7,15 +7,14 @@
 #include <string.h>
 #include <time.h>
 #include "../runtime.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Time Creation Tests
  * ============================================================================ */
 
-void test_rt_time_from_millis()
+static void test_rt_time_from_millis(void)
 {
-    printf("Testing rt_time_from_millis...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create time from milliseconds */
@@ -39,10 +38,8 @@ void test_rt_time_from_millis()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_from_seconds()
+static void test_rt_time_from_seconds(void)
 {
-    printf("Testing rt_time_from_seconds...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create time from seconds */
@@ -63,10 +60,8 @@ void test_rt_time_from_seconds()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_now()
+static void test_rt_time_now(void)
 {
-    printf("Testing rt_time_now...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t1 = rt_time_now(arena);
@@ -91,10 +86,8 @@ void test_rt_time_now()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_utc()
+static void test_rt_time_utc(void)
 {
-    printf("Testing rt_time_utc...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_utc(arena);
@@ -116,10 +109,8 @@ void test_rt_time_utc()
  * Time Getter Tests
  * ============================================================================ */
 
-void test_rt_time_get_millis()
+static void test_rt_time_get_millis(void)
 {
-    printf("Testing rt_time_get_millis...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_from_millis(arena, 123456789);
@@ -131,10 +122,8 @@ void test_rt_time_get_millis()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_get_seconds()
+static void test_rt_time_get_seconds(void)
 {
-    printf("Testing rt_time_get_seconds...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_from_millis(arena, 5500);
@@ -149,10 +138,8 @@ void test_rt_time_get_seconds()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_get_components()
+static void test_rt_time_get_components(void)
 {
-    printf("Testing rt_time_get_year/month/day/hour/minute/second...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Use a known timestamp: 2024-06-15 14:30:45 UTC */
@@ -182,10 +169,8 @@ void test_rt_time_get_components()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_get_weekday()
+static void test_rt_time_get_weekday(void)
 {
-    printf("Testing rt_time_get_weekday...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Any valid time should return weekday 0-6 */
@@ -200,10 +185,8 @@ void test_rt_time_get_weekday()
  * Time Formatter Tests
  * ============================================================================ */
 
-void test_rt_time_format()
+static void test_rt_time_format(void)
 {
-    printf("Testing rt_time_format...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_now(arena);
@@ -226,10 +209,8 @@ void test_rt_time_format()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_to_iso()
+static void test_rt_time_to_iso(void)
 {
-    printf("Testing rt_time_to_iso...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_now(arena);
@@ -248,10 +229,8 @@ void test_rt_time_to_iso()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_to_date()
+static void test_rt_time_to_date(void)
 {
-    printf("Testing rt_time_to_date...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_now(arena);
@@ -266,10 +245,8 @@ void test_rt_time_to_date()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_to_time()
+static void test_rt_time_to_time(void)
 {
-    printf("Testing rt_time_to_time...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_now(arena);
@@ -288,10 +265,8 @@ void test_rt_time_to_time()
  * Time Arithmetic Tests
  * ============================================================================ */
 
-void test_rt_time_add()
+static void test_rt_time_add(void)
 {
-    printf("Testing rt_time_add...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_from_millis(arena, 1000);
@@ -314,10 +289,8 @@ void test_rt_time_add()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_add_seconds()
+static void test_rt_time_add_seconds(void)
 {
-    printf("Testing rt_time_add_seconds...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_from_millis(arena, 0);
@@ -331,10 +304,8 @@ void test_rt_time_add_seconds()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_add_minutes()
+static void test_rt_time_add_minutes(void)
 {
-    printf("Testing rt_time_add_minutes...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_from_millis(arena, 0);
@@ -348,10 +319,8 @@ void test_rt_time_add_minutes()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_add_hours()
+static void test_rt_time_add_hours(void)
 {
-    printf("Testing rt_time_add_hours...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_from_millis(arena, 0);
@@ -365,10 +334,8 @@ void test_rt_time_add_hours()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_add_days()
+static void test_rt_time_add_days(void)
 {
-    printf("Testing rt_time_add_days...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t = rt_time_from_millis(arena, 0);
@@ -385,10 +352,8 @@ void test_rt_time_add_days()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_diff()
+static void test_rt_time_diff(void)
 {
-    printf("Testing rt_time_diff...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t1 = rt_time_from_millis(arena, 5000);
@@ -413,10 +378,8 @@ void test_rt_time_diff()
  * Time Comparison Tests
  * ============================================================================ */
 
-void test_rt_time_is_before()
+static void test_rt_time_is_before(void)
 {
-    printf("Testing rt_time_is_before...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *earlier = rt_time_from_millis(arena, 1000);
@@ -430,10 +393,8 @@ void test_rt_time_is_before()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_is_after()
+static void test_rt_time_is_after(void)
 {
-    printf("Testing rt_time_is_after...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *earlier = rt_time_from_millis(arena, 1000);
@@ -447,10 +408,8 @@ void test_rt_time_is_after()
     rt_arena_destroy(arena);
 }
 
-void test_rt_time_equals()
+static void test_rt_time_equals(void)
 {
-    printf("Testing rt_time_equals...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     RtTime *t1 = rt_time_from_millis(arena, 12345);
@@ -468,36 +427,38 @@ void test_rt_time_equals()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_time_main()
+void test_rt_time_main(void)
 {
+    TEST_SECTION("Runtime Time");
+
     /* Creation */
-    test_rt_time_from_millis();
-    test_rt_time_from_seconds();
-    test_rt_time_now();
-    test_rt_time_utc();
+    TEST_RUN("rt_time_from_millis", test_rt_time_from_millis);
+    TEST_RUN("rt_time_from_seconds", test_rt_time_from_seconds);
+    TEST_RUN("rt_time_now", test_rt_time_now);
+    TEST_RUN("rt_time_utc", test_rt_time_utc);
 
     /* Getters */
-    test_rt_time_get_millis();
-    test_rt_time_get_seconds();
-    test_rt_time_get_components();
-    test_rt_time_get_weekday();
+    TEST_RUN("rt_time_get_millis", test_rt_time_get_millis);
+    TEST_RUN("rt_time_get_seconds", test_rt_time_get_seconds);
+    TEST_RUN("rt_time_get_components", test_rt_time_get_components);
+    TEST_RUN("rt_time_get_weekday", test_rt_time_get_weekday);
 
     /* Formatters */
-    test_rt_time_format();
-    test_rt_time_to_iso();
-    test_rt_time_to_date();
-    test_rt_time_to_time();
+    TEST_RUN("rt_time_format", test_rt_time_format);
+    TEST_RUN("rt_time_to_iso", test_rt_time_to_iso);
+    TEST_RUN("rt_time_to_date", test_rt_time_to_date);
+    TEST_RUN("rt_time_to_time", test_rt_time_to_time);
 
     /* Arithmetic */
-    test_rt_time_add();
-    test_rt_time_add_seconds();
-    test_rt_time_add_minutes();
-    test_rt_time_add_hours();
-    test_rt_time_add_days();
-    test_rt_time_diff();
+    TEST_RUN("rt_time_add", test_rt_time_add);
+    TEST_RUN("rt_time_add_seconds", test_rt_time_add_seconds);
+    TEST_RUN("rt_time_add_minutes", test_rt_time_add_minutes);
+    TEST_RUN("rt_time_add_hours", test_rt_time_add_hours);
+    TEST_RUN("rt_time_add_days", test_rt_time_add_days);
+    TEST_RUN("rt_time_diff", test_rt_time_diff);
 
     /* Comparison */
-    test_rt_time_is_before();
-    test_rt_time_is_after();
-    test_rt_time_equals();
+    TEST_RUN("rt_time_is_before", test_rt_time_is_before);
+    TEST_RUN("rt_time_is_after", test_rt_time_is_after);
+    TEST_RUN("rt_time_equals", test_rt_time_equals);
 }

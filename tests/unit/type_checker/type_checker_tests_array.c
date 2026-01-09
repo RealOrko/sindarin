@@ -1,10 +1,9 @@
 // tests/type_checker_tests_array.c
 // Array declaration, literal, access, and assignment type checker tests
 
-void test_type_check_array_decl_no_init()
+static void test_type_check_array_decl_no_init()
 {
     DEBUG_INFO("Starting test_type_check_array_decl_no_init");
-    printf("Testing type check for array declaration without initializer...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -38,10 +37,9 @@ void test_type_check_array_decl_no_init()
     DEBUG_INFO("Finished test_type_check_array_decl_no_init");
 }
 
-void test_type_check_array_decl_with_init_matching()
+static void test_type_check_array_decl_with_init_matching()
 {
     DEBUG_INFO("Starting test_type_check_array_decl_with_init_matching");
-    printf("Testing type check for array declaration with matching initializer...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -94,10 +92,9 @@ void test_type_check_array_decl_with_init_matching()
     DEBUG_INFO("Finished test_type_check_array_decl_with_init_matching");
 }
 
-void test_type_check_array_decl_with_init_mismatch()
+static void test_type_check_array_decl_with_init_mismatch()
 {
     DEBUG_INFO("Starting test_type_check_array_decl_with_init_mismatch");
-    printf("Testing type check for array declaration with mismatched initializer...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -141,10 +138,9 @@ void test_type_check_array_decl_with_init_mismatch()
     DEBUG_INFO("Finished test_type_check_array_decl_with_init_mismatch");
 }
 
-void test_type_check_array_literal_empty()
+static void test_type_check_array_literal_empty()
 {
     DEBUG_INFO("Starting test_type_check_array_literal_empty");
-    printf("Testing type check for empty array literal...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -175,10 +171,9 @@ void test_type_check_array_literal_empty()
     DEBUG_INFO("Finished test_type_check_array_literal_empty");
 }
 
-void test_type_check_array_literal_heterogeneous()
+static void test_type_check_array_literal_heterogeneous()
 {
     DEBUG_INFO("Starting test_type_check_array_literal_heterogeneous");
-    printf("Testing type check for heterogeneous array literal...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -219,10 +214,9 @@ void test_type_check_array_literal_heterogeneous()
     DEBUG_INFO("Finished test_type_check_array_literal_heterogeneous");
 }
 
-void test_type_check_array_access_valid()
+static void test_type_check_array_access_valid()
 {
     DEBUG_INFO("Starting test_type_check_array_access_valid");
-    printf("Testing type check for valid array access...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -283,10 +277,9 @@ void test_type_check_array_access_valid()
     DEBUG_INFO("Finished test_type_check_array_access_valid");
 }
 
-void test_type_check_array_access_non_array()
+static void test_type_check_array_access_non_array()
 {
     DEBUG_INFO("Starting test_type_check_array_access_non_array");
-    printf("Testing type check for array access on non-array...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -329,10 +322,9 @@ void test_type_check_array_access_non_array()
     DEBUG_INFO("Finished test_type_check_array_access_non_array");
 }
 
-void test_type_check_array_access_invalid_index()
+static void test_type_check_array_access_invalid_index()
 {
     DEBUG_INFO("Starting test_type_check_array_access_invalid_index");
-    printf("Testing type check for array access with invalid index type...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -381,10 +373,9 @@ void test_type_check_array_access_invalid_index()
     DEBUG_INFO("Finished test_type_check_array_access_invalid_index");
 }
 
-void test_type_check_array_assignment_matching()
+static void test_type_check_array_assignment_matching()
 {
     DEBUG_INFO("Starting test_type_check_array_assignment_matching");
-    printf("Testing type check for array assignment with matching type...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -432,10 +423,9 @@ void test_type_check_array_assignment_matching()
     DEBUG_INFO("Finished test_type_check_array_assignment_matching");
 }
 
-void test_type_check_array_assignment_mismatch()
+static void test_type_check_array_assignment_mismatch()
 {
     DEBUG_INFO("Starting test_type_check_array_assignment_mismatch");
-    printf("Testing type check for array assignment with mismatched type...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -477,10 +467,9 @@ void test_type_check_array_assignment_mismatch()
     DEBUG_INFO("Finished test_type_check_array_assignment_mismatch");
 }
 
-void test_type_check_nested_array()
+static void test_type_check_nested_array()
 {
     DEBUG_INFO("Starting test_type_check_nested_array");
-    printf("Testing type check for nested array types...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -515,10 +504,9 @@ void test_type_check_nested_array()
     DEBUG_INFO("Finished test_type_check_nested_array");
 }
 
-void test_type_check_array_slice_full()
+static void test_type_check_array_slice_full()
 {
     DEBUG_INFO("Starting test_type_check_array_slice_full");
-    printf("Testing type check for array slice (full: arr[1..3])...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -570,10 +558,9 @@ void test_type_check_array_slice_full()
     DEBUG_INFO("Finished test_type_check_array_slice_full");
 }
 
-void test_type_check_array_slice_from_start()
+static void test_type_check_array_slice_from_start()
 {
     DEBUG_INFO("Starting test_type_check_array_slice_from_start");
-    printf("Testing type check for array slice (from start: arr[..3])...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -613,10 +600,9 @@ void test_type_check_array_slice_from_start()
     DEBUG_INFO("Finished test_type_check_array_slice_from_start");
 }
 
-void test_type_check_array_slice_to_end()
+static void test_type_check_array_slice_to_end()
 {
     DEBUG_INFO("Starting test_type_check_array_slice_to_end");
-    printf("Testing type check for array slice (to end: arr[1..])...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -656,10 +642,9 @@ void test_type_check_array_slice_to_end()
     DEBUG_INFO("Finished test_type_check_array_slice_to_end");
 }
 
-void test_type_check_array_slice_non_array()
+static void test_type_check_array_slice_non_array()
 {
     DEBUG_INFO("Starting test_type_check_array_slice_non_array");
-    printf("Testing type check for slice on non-array (should error)...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -708,10 +693,9 @@ void test_type_check_array_slice_non_array()
 
 // Sized array allocation tests
 
-void test_type_check_sized_array_alloc_basic()
+static void test_type_check_sized_array_alloc_basic()
 {
     DEBUG_INFO("Starting test_type_check_sized_array_alloc_basic");
-    printf("Testing type check for sized array allocation (int[10])...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -754,10 +738,9 @@ void test_type_check_sized_array_alloc_basic()
     DEBUG_INFO("Finished test_type_check_sized_array_alloc_basic");
 }
 
-void test_type_check_sized_array_alloc_with_default()
+static void test_type_check_sized_array_alloc_with_default()
 {
     DEBUG_INFO("Starting test_type_check_sized_array_alloc_with_default");
-    printf("Testing type check for sized array allocation with default (int[5] = 0)...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -806,10 +789,9 @@ void test_type_check_sized_array_alloc_with_default()
     DEBUG_INFO("Finished test_type_check_sized_array_alloc_with_default");
 }
 
-void test_type_check_sized_array_alloc_mismatch_default()
+static void test_type_check_sized_array_alloc_mismatch_default()
 {
     DEBUG_INFO("Starting test_type_check_sized_array_alloc_mismatch_default");
-    printf("Testing type check for sized array with mismatched default (int[5] = true, should error)...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -854,10 +836,9 @@ void test_type_check_sized_array_alloc_mismatch_default()
     DEBUG_INFO("Finished test_type_check_sized_array_alloc_mismatch_default");
 }
 
-void test_type_check_sized_array_alloc_runtime_size()
+static void test_type_check_sized_array_alloc_runtime_size()
 {
     DEBUG_INFO("Starting test_type_check_sized_array_alloc_runtime_size");
-    printf("Testing type check for sized array with runtime size (int[n])...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -907,10 +888,9 @@ void test_type_check_sized_array_alloc_runtime_size()
     DEBUG_INFO("Finished test_type_check_sized_array_alloc_runtime_size");
 }
 
-void test_type_check_sized_array_alloc_invalid_size()
+static void test_type_check_sized_array_alloc_invalid_size()
 {
     DEBUG_INFO("Starting test_type_check_sized_array_alloc_invalid_size");
-    printf("Testing type check for sized array with invalid size (int[\"bad\"], should error)...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -949,10 +929,9 @@ void test_type_check_sized_array_alloc_invalid_size()
     DEBUG_INFO("Finished test_type_check_sized_array_alloc_invalid_size");
 }
 
-void test_type_check_sized_array_alloc_long_size()
+static void test_type_check_sized_array_alloc_long_size()
 {
     DEBUG_INFO("Starting test_type_check_sized_array_alloc_long_size");
-    printf("Testing type check for sized array with long size (int[n:long])...\n");
 
     Arena arena;
     arena_init(&arena, 4096);
@@ -1005,27 +984,29 @@ void test_type_check_sized_array_alloc_long_size()
 
 void test_type_checker_array_main()
 {
-    test_type_check_array_decl_no_init();
-    test_type_check_array_decl_with_init_matching();
-    test_type_check_array_decl_with_init_mismatch();
-    test_type_check_array_literal_empty();
-    test_type_check_array_literal_heterogeneous();
-    test_type_check_array_access_valid();
-    test_type_check_array_access_non_array();
-    test_type_check_array_access_invalid_index();
-    test_type_check_array_assignment_matching();
-    test_type_check_array_assignment_mismatch();
-    test_type_check_nested_array();
+    TEST_SECTION("Type Checker Arrays");
+
+    TEST_RUN("array_decl_no_init", test_type_check_array_decl_no_init);
+    TEST_RUN("array_decl_with_init_matching", test_type_check_array_decl_with_init_matching);
+    TEST_RUN("array_decl_with_init_mismatch", test_type_check_array_decl_with_init_mismatch);
+    TEST_RUN("array_literal_empty", test_type_check_array_literal_empty);
+    TEST_RUN("array_literal_heterogeneous", test_type_check_array_literal_heterogeneous);
+    TEST_RUN("array_access_valid", test_type_check_array_access_valid);
+    TEST_RUN("array_access_non_array", test_type_check_array_access_non_array);
+    TEST_RUN("array_access_invalid_index", test_type_check_array_access_invalid_index);
+    TEST_RUN("array_assignment_matching", test_type_check_array_assignment_matching);
+    TEST_RUN("array_assignment_mismatch", test_type_check_array_assignment_mismatch);
+    TEST_RUN("nested_array", test_type_check_nested_array);
     // Slice tests
-    test_type_check_array_slice_full();
-    test_type_check_array_slice_from_start();
-    test_type_check_array_slice_to_end();
-    test_type_check_array_slice_non_array();
+    TEST_RUN("array_slice_full", test_type_check_array_slice_full);
+    TEST_RUN("array_slice_from_start", test_type_check_array_slice_from_start);
+    TEST_RUN("array_slice_to_end", test_type_check_array_slice_to_end);
+    TEST_RUN("array_slice_non_array", test_type_check_array_slice_non_array);
     // Sized array allocation tests
-    test_type_check_sized_array_alloc_basic();
-    test_type_check_sized_array_alloc_with_default();
-    test_type_check_sized_array_alloc_mismatch_default();
-    test_type_check_sized_array_alloc_runtime_size();
-    test_type_check_sized_array_alloc_invalid_size();
-    test_type_check_sized_array_alloc_long_size();
+    TEST_RUN("sized_array_alloc_basic", test_type_check_sized_array_alloc_basic);
+    TEST_RUN("sized_array_alloc_with_default", test_type_check_sized_array_alloc_with_default);
+    TEST_RUN("sized_array_alloc_mismatch_default", test_type_check_sized_array_alloc_mismatch_default);
+    TEST_RUN("sized_array_alloc_runtime_size", test_type_check_sized_array_alloc_runtime_size);
+    TEST_RUN("sized_array_alloc_invalid_size", test_type_check_sized_array_alloc_invalid_size);
+    TEST_RUN("sized_array_alloc_long_size", test_type_check_sized_array_alloc_long_size);
 }

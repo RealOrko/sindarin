@@ -1,9 +1,8 @@
 // tests/ast_tests_util.c
 // Utility, module, and print AST tests
 
-void test_ast_init_module()
+static void test_ast_init_module()
 {
-    printf("Testing ast_init_module...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -25,9 +24,8 @@ void test_ast_init_module()
     cleanup_arena(&arena);
 }
 
-void test_ast_module_add_statement()
+static void test_ast_module_add_statement()
 {
-    printf("Testing ast_module_add_statement...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -60,9 +58,8 @@ void test_ast_module_add_statement()
     cleanup_arena(&arena);
 }
 
-void test_ast_clone_token()
+static void test_ast_clone_token()
 {
-    printf("Testing ast_clone_token...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -95,9 +92,8 @@ void test_ast_clone_token()
     cleanup_arena(&arena);
 }
 
-void test_ast_print()
+static void test_ast_print()
 {
-    printf("Testing ast_print_stmt and ast_print_expr (no crash)...\n");
     Arena arena;
     setup_arena(&arena);
 
@@ -145,8 +141,9 @@ void test_ast_print()
 
 void test_ast_util_main()
 {
-    test_ast_init_module();
-    test_ast_module_add_statement();
-    test_ast_clone_token();
-    test_ast_print();
+    TEST_SECTION("AST Utility Tests");
+    TEST_RUN("ast_init_module", test_ast_init_module);
+    TEST_RUN("ast_module_add_statement", test_ast_module_add_statement);
+    TEST_RUN("ast_clone_token", test_ast_clone_token);
+    TEST_RUN("ast_print", test_ast_print);
 }

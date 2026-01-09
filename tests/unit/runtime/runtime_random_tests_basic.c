@@ -12,15 +12,14 @@
 #include "../../src/runtime/runtime_arena.h"
 #include "../../src/debug.h"
 #include "../test_utils.h"
+#include "../test_harness.h"
 
 /* ============================================================================
  * Instance Int Tests
  * ============================================================================ */
 
-void test_rt_random_basic_int_range()
+static void test_rt_random_basic_int_range(void)
 {
-    printf("Testing rt_random_int range validation...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -43,14 +42,11 @@ void test_rt_random_basic_int_range()
     long single = rt_random_int(rng, 42, 42);
     TEST_ASSERT(single == 42, "Single value should return that value");
 
-    printf("  Instance int range tests passed\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_int_power_of_two_range()
+static void test_rt_random_basic_int_power_of_two_range(void)
 {
-    printf("Testing rt_random_int with power-of-two ranges...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -75,14 +71,11 @@ void test_rt_random_basic_int_power_of_two_range()
         TEST_ASSERT(val >= 100 && val <= 1123, "Value should be in range [100, 1123]");
     }
 
-    printf("  Instance power-of-two ranges work correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_int_large_range()
+static void test_rt_random_basic_int_large_range(void)
 {
-    printf("Testing rt_random_int with large ranges...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -97,7 +90,6 @@ void test_rt_random_basic_int_large_range()
         TEST_ASSERT(val >= min && val <= max, "Value should be in large range");
     }
 
-    printf("  Instance large ranges work correctly\n");
     rt_arena_destroy(arena);
 }
 
@@ -105,10 +97,8 @@ void test_rt_random_basic_int_large_range()
  * Instance Long Tests
  * ============================================================================ */
 
-void test_rt_random_basic_long_range()
+static void test_rt_random_basic_long_range(void)
 {
-    printf("Testing rt_random_long range validation...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -120,14 +110,11 @@ void test_rt_random_basic_long_range()
         TEST_ASSERT(val >= 1000000000LL && val <= 2000000000LL, "Long should be in range");
     }
 
-    printf("  Instance long range tests passed\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_long_power_of_two_range()
+static void test_rt_random_basic_long_power_of_two_range(void)
 {
-    printf("Testing rt_random_long with power-of-two ranges...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -146,14 +133,11 @@ void test_rt_random_basic_long_power_of_two_range()
         TEST_ASSERT(val >= 0 && val <= 65535, "Value should be in range [0, 65535]");
     }
 
-    printf("  Instance power-of-two ranges for long work correctly\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_long_large_range()
+static void test_rt_random_basic_long_large_range(void)
 {
-    printf("Testing rt_random_long with very large ranges...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -168,7 +152,6 @@ void test_rt_random_basic_long_large_range()
         TEST_ASSERT(val >= min && val <= max, "Value should be in very large range");
     }
 
-    printf("  Instance very large long ranges work correctly\n");
     rt_arena_destroy(arena);
 }
 
@@ -176,10 +159,8 @@ void test_rt_random_basic_long_large_range()
  * Instance Double Tests
  * ============================================================================ */
 
-void test_rt_random_basic_double_range()
+static void test_rt_random_basic_double_range(void)
 {
-    printf("Testing rt_random_double range validation...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -196,14 +177,11 @@ void test_rt_random_basic_double_range()
         TEST_ASSERT(val >= 10.5 && val < 20.5, "Inverted double range should work");
     }
 
-    printf("  Instance double range tests passed\n");
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_double_small_range()
+static void test_rt_random_basic_double_small_range(void)
 {
-    printf("Testing rt_random_double with very small ranges...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -218,7 +196,6 @@ void test_rt_random_basic_double_small_range()
         TEST_ASSERT(val >= min && val < max, "Value should be in small range");
     }
 
-    printf("  Instance very small double ranges work correctly\n");
     rt_arena_destroy(arena);
 }
 
@@ -226,10 +203,8 @@ void test_rt_random_basic_double_small_range()
  * Instance Bool/Byte/Bytes Tests
  * ============================================================================ */
 
-void test_rt_random_basic_bool_instance()
+static void test_rt_random_basic_bool_instance(void)
 {
-    printf("Testing rt_random_bool instance method...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -246,14 +221,11 @@ void test_rt_random_basic_bool_instance()
     /* Should be roughly 50/50 */
     TEST_ASSERT(true_count > 350 && true_count < 650, "Bool should be roughly 50/50");
 
-    printf("  Instance bool test passed (true=%d/1000)\n", true_count);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_byte_instance()
+static void test_rt_random_basic_byte_instance(void)
 {
-    printf("Testing rt_random_byte instance method...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -273,14 +245,11 @@ void test_rt_random_basic_byte_instance()
 
     TEST_ASSERT(unique > 200, "Should see many unique byte values");
 
-    printf("  Instance byte test passed (unique=%d/256)\n", unique);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_bytes_instance()
+static void test_rt_random_basic_bytes_instance(void)
 {
-    printf("Testing rt_random_bytes instance method...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -304,7 +273,6 @@ void test_rt_random_basic_bytes_instance()
     unsigned char *zero_buf = rt_random_bytes(arena, rng, 0);
     TEST_ASSERT(zero_buf == NULL, "Zero count should return NULL");
 
-    printf("  Instance bytes test passed\n");
     rt_arena_destroy(arena);
 }
 
@@ -312,10 +280,8 @@ void test_rt_random_basic_bytes_instance()
  * Instance Gaussian Tests
  * ============================================================================ */
 
-void test_rt_random_basic_gaussian_instance()
+static void test_rt_random_basic_gaussian_instance(void)
 {
-    printf("Testing rt_random_gaussian instance method...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -343,14 +309,11 @@ void test_rt_random_basic_gaussian_instance()
     TEST_ASSERT(fabs(actual_mean) < 0.1, "Mean should be close to 0");
     TEST_ASSERT(fabs(actual_stddev - 1.0) < 0.1, "Stddev should be close to 1");
 
-    printf("  Instance gaussian: mean=%.3f, stddev=%.3f\n", actual_mean, actual_stddev);
     rt_arena_destroy(arena);
 }
 
-void test_rt_random_basic_gaussian_extreme_stddev()
+static void test_rt_random_basic_gaussian_extreme_stddev(void)
 {
-    printf("Testing rt_random_gaussian with extreme stddev values...\n");
-
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
@@ -381,7 +344,6 @@ void test_rt_random_basic_gaussian_extreme_stddev()
     /* About 68% should be within 1 stddev */
     TEST_ASSERT(in_1_stddev > 500 && in_1_stddev < 850, "Distribution should follow normal curve");
 
-    printf("  Extreme stddev values handled correctly\n");
     rt_arena_destroy(arena);
 }
 
@@ -389,37 +351,30 @@ void test_rt_random_basic_gaussian_extreme_stddev()
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_random_basic_main()
+void test_rt_random_basic_main(void)
 {
-    printf("\n");
-    printf("================================================\n");
-    printf(" Runtime Random Basic Tests\n");
-    printf("================================================\n");
+    TEST_SECTION("Runtime Random Basic");
 
     /* Instance int tests */
-    test_rt_random_basic_int_range();
-    test_rt_random_basic_int_power_of_two_range();
-    test_rt_random_basic_int_large_range();
+    TEST_RUN("int_range", test_rt_random_basic_int_range);
+    TEST_RUN("int_power_of_two_range", test_rt_random_basic_int_power_of_two_range);
+    TEST_RUN("int_large_range", test_rt_random_basic_int_large_range);
 
     /* Instance long tests */
-    test_rt_random_basic_long_range();
-    test_rt_random_basic_long_power_of_two_range();
-    test_rt_random_basic_long_large_range();
+    TEST_RUN("long_range", test_rt_random_basic_long_range);
+    TEST_RUN("long_power_of_two_range", test_rt_random_basic_long_power_of_two_range);
+    TEST_RUN("long_large_range", test_rt_random_basic_long_large_range);
 
     /* Instance double tests */
-    test_rt_random_basic_double_range();
-    test_rt_random_basic_double_small_range();
+    TEST_RUN("double_range", test_rt_random_basic_double_range);
+    TEST_RUN("double_small_range", test_rt_random_basic_double_small_range);
 
     /* Instance bool/byte/bytes tests */
-    test_rt_random_basic_bool_instance();
-    test_rt_random_basic_byte_instance();
-    test_rt_random_basic_bytes_instance();
+    TEST_RUN("bool_instance", test_rt_random_basic_bool_instance);
+    TEST_RUN("byte_instance", test_rt_random_basic_byte_instance);
+    TEST_RUN("bytes_instance", test_rt_random_basic_bytes_instance);
 
     /* Instance gaussian tests */
-    test_rt_random_basic_gaussian_instance();
-    test_rt_random_basic_gaussian_extreme_stddev();
-
-    printf("------------------------------------------------\n");
-    printf(" All runtime random basic tests passed!\n");
-    printf("================================================\n");
+    TEST_RUN("gaussian_instance", test_rt_random_basic_gaussian_instance);
+    TEST_RUN("gaussian_extreme_stddev", test_rt_random_basic_gaussian_extreme_stddev);
 }

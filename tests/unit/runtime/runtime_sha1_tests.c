@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include "../../src/runtime/runtime_sha1.h"
 #include "../test_utils.h"
+#include "../test_harness.h"
 #include "../debug.h"
 
 /* ============================================================================
@@ -16,10 +17,8 @@
  * Tests for SHA-1 context initialization with RFC 3174 constants.
  * ============================================================================ */
 
-void test_sha1_init_sets_h0_h4_constants()
+static void test_sha1_init_sets_h0_h4_constants(void)
 {
-    printf("Testing sha1_init sets H0-H4 constants...\n");
-
     SHA1_Context ctx;
     sha1_init(&ctx);
 
@@ -33,18 +32,12 @@ void test_sha1_init_sets_h0_h4_constants()
     /* Verify buffer and length are initialized */
     TEST_ASSERT_EQ(ctx.buffer_len, (size_t)0, "buffer_len = 0");
     TEST_ASSERT_EQ(ctx.total_len, (uint64_t)0, "total_len = 0");
-
-    printf("  SHA-1 context initialized correctly\n");
 }
 
-void test_sha1_init_null_context()
+static void test_sha1_init_null_context(void)
 {
-    printf("Testing sha1_init with NULL context...\n");
-
     /* Should not crash with NULL */
     sha1_init(NULL);
-
-    printf("  NULL context handled gracefully\n");
 }
 
 /* ============================================================================
@@ -53,10 +46,8 @@ void test_sha1_init_null_context()
  * Tests for SHA-1 message padding according to RFC 3174.
  * ============================================================================ */
 
-void test_sha1_pad_empty_message()
+static void test_sha1_pad_empty_message(void)
 {
-    printf("Testing sha1_pad_message with empty message...\n");
-
     uint8_t block[128];
     int block_count;
 
@@ -77,14 +68,10 @@ void test_sha1_pad_empty_message()
     for (int i = 56; i < 64; i++) {
         TEST_ASSERT_EQ(block[i], 0x00, "Length should be 0");
     }
-
-    printf("  Empty message padding correct\n");
 }
 
-void test_sha1_pad_short_message()
+static void test_sha1_pad_short_message(void)
 {
-    printf("Testing sha1_pad_message with short message...\n");
-
     uint8_t block[128];
     int block_count;
     uint8_t data[] = "abc";  /* 3 bytes */
@@ -111,14 +98,10 @@ void test_sha1_pad_short_message()
         TEST_ASSERT_EQ(block[i], 0x00, "Upper length bytes should be 0");
     }
     TEST_ASSERT_EQ(block[63], 0x18, "Length should be 24 bits (0x18)");
-
-    printf("  Short message padding correct\n");
 }
 
-void test_sha1_pad_55_byte_message()
+static void test_sha1_pad_55_byte_message(void)
 {
-    printf("Testing sha1_pad_message with 55-byte message...\n");
-
     uint8_t block[128];
     int block_count;
     uint8_t data[55];
@@ -142,14 +125,10 @@ void test_sha1_pad_55_byte_message()
     }
     TEST_ASSERT_EQ(block[62], 0x01, "Length high byte");
     TEST_ASSERT_EQ(block[63], 0xB8, "Length low byte (440 = 0x1B8)");
-
-    printf("  55-byte message padding correct (fits in 1 block)\n");
 }
 
-void test_sha1_pad_56_byte_message()
+static void test_sha1_pad_56_byte_message(void)
 {
-    printf("Testing sha1_pad_message with 56-byte message...\n");
-
     uint8_t block[128];
     int block_count;
     uint8_t data[56];
@@ -183,14 +162,10 @@ void test_sha1_pad_56_byte_message()
     }
     TEST_ASSERT_EQ(block[126], 0x01, "Length high byte");
     TEST_ASSERT_EQ(block[127], 0xC0, "Length low byte (448 = 0x1C0)");
-
-    printf("  56-byte message padding correct (needs 2 blocks)\n");
 }
 
-void test_sha1_pad_63_byte_message()
+static void test_sha1_pad_63_byte_message(void)
 {
-    printf("Testing sha1_pad_message with 63-byte message...\n");
-
     uint8_t block[128];
     int block_count;
     uint8_t data[63];
@@ -219,14 +194,10 @@ void test_sha1_pad_63_byte_message()
     }
     TEST_ASSERT_EQ(block[126], 0x01, "Length high byte");
     TEST_ASSERT_EQ(block[127], 0xF8, "Length low byte (504 = 0x1F8)");
-
-    printf("  63-byte message padding correct (needs 2 blocks)\n");
 }
 
-void test_sha1_pad_length_encoding()
+static void test_sha1_pad_length_encoding(void)
 {
-    printf("Testing sha1_pad_message length encoding (big-endian)...\n");
-
     uint8_t block[128];
     int block_count;
 
@@ -247,14 +218,10 @@ void test_sha1_pad_length_encoding()
     TEST_ASSERT_EQ(block[61], (uint8_t)(bit_len >> 16), "Length byte 5");
     TEST_ASSERT_EQ(block[62], (uint8_t)(bit_len >> 8), "Length byte 6");
     TEST_ASSERT_EQ(block[63], (uint8_t)(bit_len), "Length byte 7");
-
-    printf("  Big-endian length encoding correct\n");
 }
 
-void test_sha1_pad_null_inputs()
+static void test_sha1_pad_null_inputs(void)
 {
-    printf("Testing sha1_pad_message with NULL inputs...\n");
-
     uint8_t block[128];
     int block_count;
 
@@ -269,14 +236,10 @@ void test_sha1_pad_null_inputs()
     /* data_len >= 64 should fail */
     result = sha1_pad_message(block, &block_count, NULL, 64, 64);
     TEST_ASSERT_EQ(result, -1, "data_len >= 64 should fail");
-
-    printf("  NULL input handling correct\n");
 }
 
-void test_sha1_pad_output_is_512_bit_aligned()
+static void test_sha1_pad_output_is_512_bit_aligned(void)
 {
-    printf("Testing sha1_pad_message output is 512-bit aligned...\n");
-
     uint8_t block[128];
     int block_count;
 
@@ -297,8 +260,6 @@ void test_sha1_pad_output_is_512_bit_aligned()
         size_t total_bits = (size_t)block_count * 512;
         TEST_ASSERT(total_bits % 512 == 0, "Output should be 512-bit aligned");
     }
-
-    printf("  All outputs are 512-bit aligned\n");
 }
 
 /* ============================================================================
@@ -320,10 +281,8 @@ static void digest_to_hex(const uint8_t digest[SHA1_DIGEST_SIZE], char hex[41])
     hex[40] = '\0';
 }
 
-void test_sha1_hash_abc()
+static void test_sha1_hash_abc(void)
 {
-    printf("Testing sha1_hash with \"abc\" (RFC 3174 test vector)...\n");
-
     /*
      * RFC 3174 Appendix A - Test vector 1:
      * Input: "abc" (3 bytes)
@@ -347,15 +306,11 @@ void test_sha1_hash_abc()
         TEST_ASSERT_EQ(digest[i], expected[i], "SHA-1(abc) byte match");
     }
 
-    char hex[41];
-    digest_to_hex(digest, hex);
-    printf("  SHA-1(\"abc\") = %s\n", hex);
+    (void)digest_to_hex;  /* Suppress unused warning */
 }
 
-void test_sha1_hash_empty()
+static void test_sha1_hash_empty(void)
 {
-    printf("Testing sha1_hash with empty message...\n");
-
     /*
      * SHA-1 of empty string:
      * Expected: da39a3ee 5e6b4b0d 3255bfef 95601890 afd80709
@@ -372,16 +327,10 @@ void test_sha1_hash_empty()
     for (int i = 0; i < SHA1_DIGEST_SIZE; i++) {
         TEST_ASSERT_EQ(digest[i], expected[i], "SHA-1(empty) byte match");
     }
-
-    char hex[41];
-    digest_to_hex(digest, hex);
-    printf("  SHA-1(\"\") = %s\n", hex);
 }
 
-void test_sha1_hash_448_bits()
+static void test_sha1_hash_448_bits(void)
 {
-    printf("Testing sha1_hash with 448-bit message (56 chars)...\n");
-
     /*
      * RFC 3174 Appendix A - Test vector 2:
      * Input: "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
@@ -401,16 +350,10 @@ void test_sha1_hash_448_bits()
     for (int i = 0; i < SHA1_DIGEST_SIZE; i++) {
         TEST_ASSERT_EQ(digest[i], expected[i], "SHA-1(448-bit) byte match");
     }
-
-    char hex[41];
-    digest_to_hex(digest, hex);
-    printf("  SHA-1(448-bit message) = %s\n", hex);
 }
 
-void test_sha1_process_block_verifies_logical_functions()
+static void test_sha1_process_block_verifies_logical_functions(void)
 {
-    printf("Testing sha1_process_block verifies logical functions...\n");
-
     /*
      * This test specifically validates that sha1_process_block uses the
      * correct logical functions in each round range:
@@ -439,37 +382,33 @@ void test_sha1_process_block_verifies_logical_functions()
     for (int i = 0; i < SHA1_DIGEST_SIZE; i++) {
         TEST_ASSERT_EQ(digest[i], expected[i], "SHA-1 logical functions verified");
     }
-
-    printf("  All 4 logical functions (f0, f1, f2, f3) verified via hash test\n");
 }
 
 /* ============================================================================
  * Main Test Runner
  * ============================================================================ */
 
-void test_rt_sha1_main()
+void test_rt_sha1_main(void)
 {
-    printf("\n=== Runtime SHA-1 Tests ===\n\n");
+    TEST_SECTION("Runtime SHA-1");
 
     /* sha1_init() tests */
-    test_sha1_init_sets_h0_h4_constants();
-    test_sha1_init_null_context();
+    TEST_RUN("init_sets_h0_h4_constants", test_sha1_init_sets_h0_h4_constants);
+    TEST_RUN("init_null_context", test_sha1_init_null_context);
 
     /* sha1_pad_message() tests */
-    test_sha1_pad_empty_message();
-    test_sha1_pad_short_message();
-    test_sha1_pad_55_byte_message();
-    test_sha1_pad_56_byte_message();
-    test_sha1_pad_63_byte_message();
-    test_sha1_pad_length_encoding();
-    test_sha1_pad_null_inputs();
-    test_sha1_pad_output_is_512_bit_aligned();
+    TEST_RUN("pad_empty_message", test_sha1_pad_empty_message);
+    TEST_RUN("pad_short_message", test_sha1_pad_short_message);
+    TEST_RUN("pad_55_byte_message", test_sha1_pad_55_byte_message);
+    TEST_RUN("pad_56_byte_message", test_sha1_pad_56_byte_message);
+    TEST_RUN("pad_63_byte_message", test_sha1_pad_63_byte_message);
+    TEST_RUN("pad_length_encoding", test_sha1_pad_length_encoding);
+    TEST_RUN("pad_null_inputs", test_sha1_pad_null_inputs);
+    TEST_RUN("pad_output_is_512_bit_aligned", test_sha1_pad_output_is_512_bit_aligned);
 
     /* sha1_hash() tests - verifies logical functions f0, f1, f2, f3 */
-    test_sha1_hash_abc();
-    test_sha1_hash_empty();
-    test_sha1_hash_448_bits();
-    test_sha1_process_block_verifies_logical_functions();
-
-    printf("\n=== All Runtime SHA-1 Tests Passed ===\n\n");
+    TEST_RUN("hash_abc", test_sha1_hash_abc);
+    TEST_RUN("hash_empty", test_sha1_hash_empty);
+    TEST_RUN("hash_448_bits", test_sha1_hash_448_bits);
+    TEST_RUN("process_block_verifies_logical_functions", test_sha1_process_block_verifies_logical_functions);
 }

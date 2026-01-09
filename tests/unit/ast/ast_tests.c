@@ -10,6 +10,7 @@
 #include "../ast.h"
 #include "../debug.h"
 #include "../token.h"
+#include "../test_harness.h"
 
 // Helper functions
 static void setup_arena(Arena *arena)

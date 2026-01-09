@@ -9,14 +9,12 @@
 /* Test Levenshtein distance calculations */
 static void test_levenshtein_distance_identical(void)
 {
-    printf("Testing levenshtein_distance for identical strings...\n");
     int dist = levenshtein_distance("hello", 5, "hello", 5);
     assert(dist == 0);
 }
 
 static void test_levenshtein_distance_one_char_diff(void)
 {
-    printf("Testing levenshtein_distance for one character difference...\n");
     /* "count" vs "coutn" - one transposition (distance 2 with standard edit ops) */
     int dist = levenshtein_distance("count", 5, "coutn", 5);
     assert(dist == 2);  /* c-o-u-n-t vs c-o-u-t-n requires 2 ops */
@@ -28,7 +26,6 @@ static void test_levenshtein_distance_one_char_diff(void)
 
 static void test_levenshtein_distance_insertion(void)
 {
-    printf("Testing levenshtein_distance for insertion...\n");
     /* "count" vs "counts" - one insertion */
     int dist = levenshtein_distance("count", 5, "counts", 6);
     assert(dist == 1);
@@ -36,7 +33,6 @@ static void test_levenshtein_distance_insertion(void)
 
 static void test_levenshtein_distance_deletion(void)
 {
-    printf("Testing levenshtein_distance for deletion...\n");
     /* "counts" vs "count" - one deletion */
     int dist = levenshtein_distance("counts", 6, "count", 5);
     assert(dist == 1);
@@ -44,7 +40,6 @@ static void test_levenshtein_distance_deletion(void)
 
 static void test_levenshtein_distance_empty(void)
 {
-    printf("Testing levenshtein_distance with empty strings...\n");
     int dist = levenshtein_distance("", 0, "hello", 5);
     assert(dist == 5);
 
@@ -57,7 +52,6 @@ static void test_levenshtein_distance_empty(void)
 
 static void test_levenshtein_distance_completely_different(void)
 {
-    printf("Testing levenshtein_distance for completely different strings...\n");
     int dist = levenshtein_distance("abc", 3, "xyz", 3);
     assert(dist == 3);  /* 3 substitutions */
 }
@@ -65,7 +59,6 @@ static void test_levenshtein_distance_completely_different(void)
 /* Test find_similar_symbol with a mock symbol table */
 static void test_find_similar_symbol_basic(void)
 {
-    printf("Testing find_similar_symbol with similar name...\n");
     Arena arena;
     arena_init(&arena, 1024);
     SymbolTable table;
@@ -100,7 +93,6 @@ static void test_find_similar_symbol_basic(void)
 
 static void test_find_similar_symbol_no_match(void)
 {
-    printf("Testing find_similar_symbol with no similar names...\n");
     Arena arena;
     arena_init(&arena, 1024);
     SymbolTable table;
@@ -127,7 +119,6 @@ static void test_find_similar_symbol_no_match(void)
 /* Test find_similar_method */
 static void test_find_similar_method_array(void)
 {
-    printf("Testing find_similar_method for array methods...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -149,7 +140,6 @@ static void test_find_similar_method_array(void)
 
 static void test_find_similar_method_string(void)
 {
-    printf("Testing find_similar_method for string methods...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -173,7 +163,6 @@ static void test_find_similar_method_string(void)
 
 static void test_find_similar_method_no_match(void)
 {
-    printf("Testing find_similar_method with no similar method...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -189,7 +178,6 @@ static void test_find_similar_method_no_match(void)
 /* Test various typo patterns for "did you mean" suggestions */
 static void test_find_similar_symbol_typo_patterns(void)
 {
-    printf("Testing find_similar_symbol with various typo patterns...\n");
     Arena arena;
     arena_init(&arena, 4096);
     SymbolTable table;
@@ -249,7 +237,6 @@ static void test_find_similar_symbol_typo_patterns(void)
 /* Test case sensitivity in symbol lookup */
 static void test_find_similar_symbol_case_sensitivity(void)
 {
-    printf("Testing find_similar_symbol case sensitivity...\n");
     Arena arena;
     arena_init(&arena, 1024);
     SymbolTable table;
@@ -277,7 +264,6 @@ static void test_find_similar_symbol_case_sensitivity(void)
 /* Test method suggestions for arrays */
 static void test_find_similar_method_array_typos(void)
 {
-    printf("Testing find_similar_method for array method typos...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -310,7 +296,6 @@ static void test_find_similar_method_array_typos(void)
 /* Test method suggestions for strings */
 static void test_find_similar_method_string_typos(void)
 {
-    printf("Testing find_similar_method for string method typos...\n");
     Arena arena;
     arena_init(&arena, 1024);
 
@@ -337,7 +322,6 @@ static void test_find_similar_method_string_typos(void)
 /* Test that very different names don't get suggestions */
 static void test_find_similar_symbol_too_different(void)
 {
-    printf("Testing find_similar_symbol with names too different for suggestion...\n");
     Arena arena;
     arena_init(&arena, 1024);
     SymbolTable table;
@@ -368,8 +352,6 @@ static void test_find_similar_symbol_too_different(void)
 /* Test Levenshtein distance edge cases */
 static void test_levenshtein_distance_edge_cases(void)
 {
-    printf("Testing levenshtein_distance edge cases...\n");
-
     /* Same string with different cases */
     int dist = levenshtein_distance("Hello", 5, "hello", 5);
     assert(dist == 1);  /* One substitution (H -> h) */
@@ -394,7 +376,6 @@ static void test_levenshtein_distance_edge_cases(void)
 /* Test find_similar_method with NULL type */
 static void test_find_similar_method_null_type(void)
 {
-    printf("Testing find_similar_method with NULL type...\n");
     const char *suggestion = find_similar_method(NULL, "push");
     assert(suggestion == NULL);
 }
@@ -402,7 +383,6 @@ static void test_find_similar_method_null_type(void)
 /* Test find_similar_symbol with empty table */
 static void test_find_similar_symbol_empty_table(void)
 {
-    printf("Testing find_similar_symbol with empty table...\n");
     Arena arena;
     arena_init(&arena, 1024);
     SymbolTable table;
@@ -418,7 +398,6 @@ static void test_find_similar_symbol_empty_table(void)
 /* Test that exact matches are not suggested (distance must be > 0) */
 static void test_find_similar_symbol_exact_match(void)
 {
-    printf("Testing find_similar_symbol does not suggest exact matches...\n");
     Arena arena;
     arena_init(&arena, 1024);
     SymbolTable table;
@@ -444,29 +423,31 @@ static void test_find_similar_symbol_exact_match(void)
 
 void test_type_checker_errors_main(void)
 {
+    TEST_SECTION("Type Checker Errors");
+
     /* Core Levenshtein distance tests */
-    test_levenshtein_distance_identical();
-    test_levenshtein_distance_one_char_diff();
-    test_levenshtein_distance_insertion();
-    test_levenshtein_distance_deletion();
-    test_levenshtein_distance_empty();
-    test_levenshtein_distance_completely_different();
-    test_levenshtein_distance_edge_cases();
+    TEST_RUN("levenshtein_distance_identical", test_levenshtein_distance_identical);
+    TEST_RUN("levenshtein_distance_one_char_diff", test_levenshtein_distance_one_char_diff);
+    TEST_RUN("levenshtein_distance_insertion", test_levenshtein_distance_insertion);
+    TEST_RUN("levenshtein_distance_deletion", test_levenshtein_distance_deletion);
+    TEST_RUN("levenshtein_distance_empty", test_levenshtein_distance_empty);
+    TEST_RUN("levenshtein_distance_completely_different", test_levenshtein_distance_completely_different);
+    TEST_RUN("levenshtein_distance_edge_cases", test_levenshtein_distance_edge_cases);
 
     /* Symbol suggestion tests */
-    test_find_similar_symbol_basic();
-    test_find_similar_symbol_no_match();
-    test_find_similar_symbol_typo_patterns();
-    test_find_similar_symbol_case_sensitivity();
-    test_find_similar_symbol_too_different();
-    test_find_similar_symbol_empty_table();
-    test_find_similar_symbol_exact_match();
+    TEST_RUN("find_similar_symbol_basic", test_find_similar_symbol_basic);
+    TEST_RUN("find_similar_symbol_no_match", test_find_similar_symbol_no_match);
+    TEST_RUN("find_similar_symbol_typo_patterns", test_find_similar_symbol_typo_patterns);
+    TEST_RUN("find_similar_symbol_case_sensitivity", test_find_similar_symbol_case_sensitivity);
+    TEST_RUN("find_similar_symbol_too_different", test_find_similar_symbol_too_different);
+    TEST_RUN("find_similar_symbol_empty_table", test_find_similar_symbol_empty_table);
+    TEST_RUN("find_similar_symbol_exact_match", test_find_similar_symbol_exact_match);
 
     /* Method suggestion tests */
-    test_find_similar_method_array();
-    test_find_similar_method_string();
-    test_find_similar_method_no_match();
-    test_find_similar_method_array_typos();
-    test_find_similar_method_string_typos();
-    test_find_similar_method_null_type();
+    TEST_RUN("find_similar_method_array", test_find_similar_method_array);
+    TEST_RUN("find_similar_method_string", test_find_similar_method_string);
+    TEST_RUN("find_similar_method_no_match", test_find_similar_method_no_match);
+    TEST_RUN("find_similar_method_array_typos", test_find_similar_method_array_typos);
+    TEST_RUN("find_similar_method_string_typos", test_find_similar_method_string_typos);
+    TEST_RUN("find_similar_method_null_type", test_find_similar_method_null_type);
 }

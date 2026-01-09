@@ -1,10 +1,8 @@
 // tests/parser_tests_array.c
 // Array-related parser tests
 
-void test_array_declaration_parsing()
+static void test_array_declaration_parsing()
 {
-    printf("Testing parser_execute array declaration...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -26,10 +24,8 @@ void test_array_declaration_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_literal_parsing()
+static void test_array_literal_parsing()
 {
-    printf("Testing parser_execute array literal...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -59,10 +55,8 @@ void test_array_literal_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_member_access_parsing()
+static void test_array_member_access_parsing()
 {
-    printf("Testing parser_execute array member access (length)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -103,10 +97,8 @@ void test_array_member_access_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_method_call_push_parsing()
+static void test_array_method_call_push_parsing()
 {
-    printf("Testing parser_execute array method call (push)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -141,10 +133,8 @@ void test_array_method_call_push_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_method_call_clear_parsing()
+static void test_array_method_call_clear_parsing()
 {
-    printf("Testing parser_execute array method call (clear)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -177,10 +167,8 @@ void test_array_method_call_clear_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_method_call_concat_parsing()
+static void test_array_method_call_concat_parsing()
 {
-    printf("Testing parser_execute array method call (concat)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -218,10 +206,8 @@ void test_array_method_call_concat_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_method_call_pop_parsing()
+static void test_array_method_call_pop_parsing()
 {
-    printf("Testing parser_execute array method call (pop)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -256,10 +242,8 @@ void test_array_method_call_pop_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_print_and_interpolated_parsing()
+static void test_array_print_and_interpolated_parsing()
 {
-    printf("Testing parser_execute printing arrays and interpolated arrays...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -305,10 +289,8 @@ void test_array_print_and_interpolated_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_print_and_interpolated_parsing_no_trailing_literal()
+static void test_array_print_and_interpolated_parsing_no_trailing_literal()
 {
-    printf("Testing parser_execute printing arrays and interpolated arrays...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -352,10 +334,8 @@ void test_array_print_and_interpolated_parsing_no_trailing_literal()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_function_params_and_return_parsing()
+static void test_array_function_params_and_return_parsing()
 {
-    printf("Testing parser_execute array function params and return...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -405,10 +385,8 @@ void test_array_function_params_and_return_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_access_parsing()
+static void test_array_access_parsing()
 {
-    printf("Testing parser_execute array access (indexing)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -442,10 +420,8 @@ void test_array_access_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_slice_full_parsing()
+static void test_array_slice_full_parsing()
 {
-    printf("Testing parser_execute array slice (full: arr[1..3])...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -481,10 +457,8 @@ void test_array_slice_full_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_slice_from_start_parsing()
+static void test_array_slice_from_start_parsing()
 {
-    printf("Testing parser_execute array slice (from start: arr[..3])...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -517,10 +491,8 @@ void test_array_slice_from_start_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_slice_to_end_parsing()
+static void test_array_slice_to_end_parsing()
 {
-    printf("Testing parser_execute array slice (to end: arr[2..])...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -553,10 +525,8 @@ void test_array_slice_to_end_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_slice_full_copy_parsing()
+static void test_array_slice_full_copy_parsing()
 {
-    printf("Testing parser_execute array slice (full copy: arr[..])...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -587,10 +557,8 @@ void test_array_slice_full_copy_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_array_element_assignment_parsing()
+static void test_array_element_assignment_parsing()
 {
-    printf("Testing parser_execute array element assignment (arr[i] = value)...\n");
-
     Arena arena;
     Lexer lexer;
     Parser parser;
@@ -637,23 +605,23 @@ void test_array_element_assignment_parsing()
     cleanup_parser(&arena, &lexer, &parser, &symbol_table);
 }
 
-void test_parser_array_main()
+static void test_parser_array_main()
 {
-    test_array_declaration_parsing();
-    test_array_literal_parsing();
-    test_array_member_access_parsing();
-    test_array_method_call_push_parsing();
-    test_array_method_call_clear_parsing();
-    test_array_method_call_concat_parsing();
-    test_array_method_call_pop_parsing();
-    test_array_print_and_interpolated_parsing();
-    test_array_print_and_interpolated_parsing_no_trailing_literal();
-    test_array_function_params_and_return_parsing();
-    test_array_access_parsing();
-    test_array_element_assignment_parsing();
-    // Slice tests
-    test_array_slice_full_parsing();
-    test_array_slice_from_start_parsing();
-    test_array_slice_to_end_parsing();
-    test_array_slice_full_copy_parsing();
+    TEST_SECTION("Parser Array Tests");
+    TEST_RUN("array_declaration_parsing", test_array_declaration_parsing);
+    TEST_RUN("array_literal_parsing", test_array_literal_parsing);
+    TEST_RUN("array_member_access_parsing", test_array_member_access_parsing);
+    TEST_RUN("array_method_call_push_parsing", test_array_method_call_push_parsing);
+    TEST_RUN("array_method_call_clear_parsing", test_array_method_call_clear_parsing);
+    TEST_RUN("array_method_call_concat_parsing", test_array_method_call_concat_parsing);
+    TEST_RUN("array_method_call_pop_parsing", test_array_method_call_pop_parsing);
+    TEST_RUN("array_print_and_interpolated_parsing", test_array_print_and_interpolated_parsing);
+    TEST_RUN("array_print_and_interpolated_no_trailing", test_array_print_and_interpolated_parsing_no_trailing_literal);
+    TEST_RUN("array_function_params_and_return_parsing", test_array_function_params_and_return_parsing);
+    TEST_RUN("array_access_parsing", test_array_access_parsing);
+    TEST_RUN("array_element_assignment_parsing", test_array_element_assignment_parsing);
+    TEST_RUN("array_slice_full_parsing", test_array_slice_full_parsing);
+    TEST_RUN("array_slice_from_start_parsing", test_array_slice_from_start_parsing);
+    TEST_RUN("array_slice_to_end_parsing", test_array_slice_to_end_parsing);
+    TEST_RUN("array_slice_full_copy_parsing", test_array_slice_full_copy_parsing);
 }

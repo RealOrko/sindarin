@@ -231,11 +231,11 @@ static const char *get_config_filename(BackendType backend)
 {
     switch (backend)
     {
-        case BACKEND_CLANG:  return "sn.clang.cfg";
-        case BACKEND_TINYCC: return "sn.tcc.cfg";
-        case BACKEND_MSVC:   return "sn.msvc.cfg";
+        case BACKEND_MSVC:   return "sn-msvc.cfg";
+        case BACKEND_CLANG:  return "sn-clang.cfg";
+        case BACKEND_TINYCC: return "sn-tcc.cfg";
         case BACKEND_GCC:
-        default:             return "sn.gcc.cfg";
+        default:             return "sn-gcc.cfg";
     }
 }
 
