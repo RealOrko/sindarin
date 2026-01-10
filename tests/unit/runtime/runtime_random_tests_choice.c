@@ -1,6 +1,9 @@
 // tests/unit/runtime_random_tests_choice.c
 // Tests for runtime random choice and weighted_choice functions
 
+/* Suppress warning for tracking variables used in distribution tests but not all asserted */
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>

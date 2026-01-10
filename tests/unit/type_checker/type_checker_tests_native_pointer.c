@@ -2,6 +2,9 @@
 // Tests for native function pointer variable handling, as val, and as ref
 // Note: setup_test_token helper is defined in type_checker_tests_native.c
 
+/* Suppress warning for operator name arrays used for readability but not in assertions */
+#pragma clang diagnostic ignored "-Wunused-variable"
+
 #include "../test_harness.h"
 
 /* Test that pointer variables are REJECTED in regular (non-native) functions */

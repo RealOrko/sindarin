@@ -110,27 +110,6 @@ void setup_basic_token(Token *token, SnTokenType type, const char *lexeme)
     token_init(token, type, lexeme, (int)strlen(lexeme), 1, "test.sn");
 }
 
-static void test_code_gen_init_invalid_output_file(void)
-{
-    DEBUG_INFO("Starting test_code_gen_init_invalid_output_file");
-
-    Arena arena;
-    arena_init(&arena, 1024);
-    CodeGen gen;
-    SymbolTable sym_table;
-    symbol_table_init(&arena, &sym_table);
-
-    const char *invalid_path = "/invalid/path/test.c";
-    code_gen_init(&arena, &gen, &sym_table, invalid_path);
-    assert(gen.output == NULL); // fopen fails
-
-    symbol_table_cleanup(&sym_table);
-
-    arena_free(&arena);
-
-    DEBUG_INFO("Finished test_code_gen_init_invalid_output_file");
-}
-
 static void test_code_gen_cleanup_null_output(void)
 {
     DEBUG_INFO("Starting test_code_gen_cleanup_null_output");

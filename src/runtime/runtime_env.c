@@ -253,7 +253,6 @@ char ***rt_env_list(RtArena *arena) {
             char *eq = strchr(ptr, '=');
             if (eq != NULL) {
                 size_t name_len = eq - ptr;
-                size_t value_len = strlen(eq + 1);
 
                 /* Create pair array [name, value] */
                 char **pair = rt_array_create_string(arena, 2, NULL);

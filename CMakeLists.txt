@@ -19,6 +19,10 @@ option(SN_ASAN "Enable AddressSanitizer (GCC/Clang only)" OFF)
 
 # Compiler flags (GCC/Clang on all platforms)
 add_compile_options(-Wall -Wextra)
+# Suppress warnings for valid C99 patterns that trigger C11 warnings
+add_compile_options(-Wno-typedef-redefinition)
+# Suppress unknown pragma warnings (Windows-specific pragmas)
+add_compile_options(-Wno-unknown-pragmas)
 add_compile_definitions(_GNU_SOURCE)
 
 if(SN_DEBUG)

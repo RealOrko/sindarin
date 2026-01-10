@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
 void token_init(Token *token, SnTokenType type, const char *start, int length, int line, const char *filename)
 {
@@ -235,10 +236,10 @@ void token_print(Token *token)
     switch (token->type)
     {
     case TOKEN_INT_LITERAL:
-        printf(", value: %ld", token->literal.int_value);
+        printf(", value: %" PRId64, token->literal.int_value);
         break;
     case TOKEN_LONG_LITERAL:
-        printf(", value: %ldl", token->literal.int_value);
+        printf(", value: %" PRId64 "l", token->literal.int_value);
         break;
     case TOKEN_DOUBLE_LITERAL:
         printf(", value: %fd", token->literal.double_value);

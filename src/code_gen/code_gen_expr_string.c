@@ -72,7 +72,6 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
     bool *is_literal = arena_alloc(gen->arena, count * sizeof(bool));
     bool *is_temp = arena_alloc(gen->arena, count * sizeof(bool));
 
-    int non_literal_count = 0;
     int needs_conversion_count = 0;
     bool uses_format_specs = has_any_format_spec(expr);
 
@@ -83,7 +82,6 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
         is_literal[i] = is_string_literal_expr(expr->parts[i]);
         is_temp[i] = expression_produces_temp(expr->parts[i]);
 
-        if (!is_literal[i]) non_literal_count++;
         if (part_types[i]->kind != TYPE_STRING) needs_conversion_count++;
     }
 

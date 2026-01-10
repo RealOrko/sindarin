@@ -770,13 +770,13 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
          * Note: value is a pointer to the array pointer (from rt_thread_result_set_value),
          * so we need to dereference once to get the actual array pointer. */
         case RT_TYPE_ARRAY_INT: {
-            /* int[] is stored as long[] in runtime */
-            long *arr = *(long **)value;
+            /* int[] is stored as long long[] in runtime */
+            long long *arr = *(long long **)value;
             return rt_array_clone_long(dest, arr);
         }
 
         case RT_TYPE_ARRAY_LONG: {
-            long *arr = *(long **)value;
+            long long *arr = *(long long **)value;
             return rt_array_clone_long(dest, arr);
         }
 
