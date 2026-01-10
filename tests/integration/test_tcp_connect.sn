@@ -7,33 +7,49 @@ fn main(): void =>
     var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
     var readyFile: str = $"{tempDir}/tcp_connect_ready"
 
+    // DEBUG: Confirm we have paths (don't print actual values as they vary)
+    print("[DEBUG] Temp dir and ready file configured\n")
+
     // Clean up temp file if it exists (cross-platform)
     if Path.exists(readyFile) =>
+        print("[DEBUG] Cleaning up existing ready file\n")
         TextFile.delete(readyFile)
 
     // Set ready file path for Python to use
     Environment.set("SN_READY_FILE", readyFile)
 
     // Start a Python server that sends data and closes
+    print("[DEBUG] Starting Python server...\n")
     var server: Process = &Process.run("python", {"-c", "import socket,os;f=os.environ.get('SN_READY_FILE','/tmp/tcp_connect_ready');s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open(f,'w').write(str(p));c,a=s.accept();c.send(b'HELLO FROM SERVER');c.close();s.close()"})
+    print("[DEBUG] Python server process spawned\n")
 
     // Wait for server to be ready (poll for file) using cross-platform methods
     var attempts: int = 0
     while attempts < 100 =>
         if Path.exists(readyFile) =>
+            print("[DEBUG] Ready file found\n")
             attempts = 200
         else =>
             Time.sleep(50)  // 50ms
             attempts = attempts + 1
 
     if attempts < 200 =>
-        print("Timeout waiting for server\n")
+        print($"[ERROR] Timeout waiting for server after {attempts} attempts (5 seconds)\n")
+        print("[DEBUG] Waiting for server process to complete to see any errors...\n")
+        // Note: We can't sync here and also sync later, so just exit
+        // The test will fail and show this output
         return
 
     // Read the port number from the temp file (cross-platform)
     var port: str = TextFile.readAll(readyFile).trim()
+    print("[DEBUG] Port read from ready file\n")
+
+    if port.length == 0 =>
+        print("[ERROR] Port is empty - server may have failed!\n")
+        return
 
     // Connect to the Python server
+    print("[DEBUG] Connecting to server...\n")
     var client: TcpStream = TcpStream.connect($"127.0.0.1:{port}")
     print("Connected to server\n")
 
@@ -51,6 +67,7 @@ fn main(): void =>
         print($"Remote port unexpected: {remote}\n")
 
     // Read data using read() method
+    print("[DEBUG] Reading data from socket...\n")
     var data: byte[] = client.read(1024)
     var msg: str = data.toString()
     print($"Received: {msg}\n")
@@ -64,7 +81,9 @@ fn main(): void =>
     print("Connection closed\n")
 
     // Wait for Python server to finish
+    print("[DEBUG] Syncing server process...\n")
     server!
+    print("[DEBUG] Server process completed\n")
 
     // Clean up temp file (cross-platform)
     if Path.exists(readyFile) =>

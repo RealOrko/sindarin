@@ -1,7 +1,16 @@
+[DEBUG] Temp dir and ready file configured
+[DEBUG] Starting Python server...
+[DEBUG] Python server process spawned
+[DEBUG] Ready file found
+[DEBUG] Port read from ready file
+[DEBUG] Connecting to server...
 Connected to server
 Remote address correct
 Remote port correct
+[DEBUG] Reading data from socket...
 Received: HELLO FROM SERVER
 Message matches
 Connection closed
+[DEBUG] Syncing server process...
+[DEBUG] Server process completed
 Test complete
