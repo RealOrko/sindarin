@@ -138,8 +138,7 @@ jobs:
         Write-Host "SN_CFLAGS = $env:SN_CFLAGS"
 
         # Use the test runner script
-        # Exclude test_tcp_connect - flaky in CI due to timing issues with Python server
-        & .\scripts\run_integration_test.ps1 -TestType integration -All -Compiler bin\sn.exe -Exclude "test_tcp_connect"
+        & .\scripts\run_integration_test.ps1 -TestType integration -All -Compiler bin\sn.exe
         if ($LASTEXITCODE -ne 0) {
           Write-Host "Integration tests failed!" -ForegroundColor Red
           exit 1

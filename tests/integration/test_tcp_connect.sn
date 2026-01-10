@@ -22,17 +22,18 @@ fn main(): void =>
     print("[DEBUG] Python server process spawned\n")
 
     // Wait for server to be ready (poll for file) using cross-platform methods
+    // Use longer timeout for slow CI environments (200 attempts × 100ms = 20 seconds)
     var attempts: int = 0
-    while attempts < 100 =>
+    while attempts < 200 =>
         if Path.exists(readyFile) =>
             print("[DEBUG] Ready file found\n")
-            attempts = 200
+            attempts = 300
         else =>
-            Time.sleep(50)  // 50ms
+            Time.sleep(100)  // 100ms
             attempts = attempts + 1
 
-    if attempts < 200 =>
-        print($"[ERROR] Timeout waiting for server after {attempts} attempts (5 seconds)\n")
+    if attempts < 300 =>
+        print($"[ERROR] Timeout waiting for server after {attempts} attempts (20 seconds)\n")
         print("[DEBUG] Waiting for server process to complete to see any errors...\n")
         // Note: We can't sync here and also sync later, so just exit
         // The test will fail and show this output
