@@ -211,16 +211,21 @@ jobs:
           Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
         }
 
-        # Check for ready file
+        # Check for ready file (now in current directory)
         Write-Host ""
-        Write-Host "--- Checking temp files ---" -ForegroundColor Yellow
-        $readyFile = Join-Path $env:TEMP "tcp_connect_ready"
+        Write-Host "--- Checking ready file ---" -ForegroundColor Yellow
+        $readyFile = "tcp_connect_ready.tmp"
         if (Test-Path $readyFile) {
           Write-Host "Ready file exists: $readyFile"
           Write-Host "Contents: $(Get-Content $readyFile)"
         } else {
           Write-Host "Ready file does NOT exist: $readyFile"
         }
+
+        # List current directory to see what files exist
+        Write-Host ""
+        Write-Host "--- Files in current directory ---" -ForegroundColor Yellow
+        Get-ChildItem -Name | Select-Object -First 20
 
         Write-Host ""
         Write-Host "=== END DIAGNOSTIC ===" -ForegroundColor Cyan

@@ -1,4 +1,4 @@
-[DEBUG] Temp dir and ready file configured
+[DEBUG] Using ready file: tcp_connect_ready.tmp (current directory)
 [DEBUG] Starting Python server...
 [DEBUG] Python server process spawned
 [DEBUG] Ready file found

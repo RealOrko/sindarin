@@ -3,24 +3,22 @@
 // Cross-platform: works on Windows and Linux
 
 fn main(): void =>
-    // Get cross-platform temp directory and normalize to forward slashes
-    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
-    var readyFile: str = $"{tempDir}/tcp_connect_ready"
+    // Use a simple fixed path for the ready file to avoid environment variable issues
+    // On Windows CI, Environment.set may not propagate to child processes
+    var readyFile: str = "tcp_connect_ready.tmp"
 
-    // DEBUG: Confirm we have paths (don't print actual values as they vary)
-    print("[DEBUG] Temp dir and ready file configured\n")
+    // DEBUG: Confirm we have paths
+    print("[DEBUG] Using ready file: tcp_connect_ready.tmp (current directory)\n")
 
-    // Clean up temp file if it exists (cross-platform)
+    // Clean up temp file if it exists
     if Path.exists(readyFile) =>
         print("[DEBUG] Cleaning up existing ready file\n")
         TextFile.delete(readyFile)
 
-    // Set ready file path for Python to use
-    Environment.set("SN_READY_FILE", readyFile)
-
     // Start a Python server that sends data and closes
+    // Pass the ready file path directly in the Python code to avoid env var issues
     print("[DEBUG] Starting Python server...\n")
-    var server: Process = &Process.run("python", {"-c", "import socket,os;f=os.environ.get('SN_READY_FILE','/tmp/tcp_connect_ready');s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open(f,'w').write(str(p));c,a=s.accept();c.send(b'HELLO FROM SERVER');c.close();s.close()"})
+    var server: Process = &Process.run("python", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open('tcp_connect_ready.tmp','w').write(str(p));c,a=s.accept();c.send(b'HELLO FROM SERVER');c.close();s.close()"})
     print("[DEBUG] Python server process spawned\n")
 
     // Wait for server to be ready (poll for file) using cross-platform methods
