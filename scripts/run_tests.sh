@@ -5,6 +5,28 @@
 
 set -e
 
+# Cross-platform timeout command
+# macOS uses gtimeout from coreutils, Linux has timeout built-in
+if command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout"
+elif command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+else
+    echo "Warning: No timeout command found. Tests may hang on infinite loops."
+    TIMEOUT_CMD=""
+fi
+
+# Wrapper function for timeout
+run_with_timeout() {
+    local seconds="$1"
+    shift
+    if [ -n "$TIMEOUT_CMD" ]; then
+        $TIMEOUT_CMD "${seconds}s" "$@"
+    else
+        "$@"
+    fi
+}
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -128,7 +150,7 @@ for test_file in "$TEST_DIR"/$PATTERN; do
 
         # Compile
         compile_timeout=10
-        if ! timeout ${compile_timeout}s $SN "$test_file" -o "$exe_file" -l 1 -g -O0 2>"$compile_err"; then
+        if ! run_with_timeout ${compile_timeout} $SN "$test_file" -o "$exe_file" -l 1 -g -O0 2>"$compile_err"; then
             printf "${RED}FAIL${NC} (compile error)\n"
             head -3 "$compile_err" | sed 's/^/    /'
             failed=$((failed + 1))
@@ -140,7 +162,7 @@ for test_file in "$TEST_DIR"/$PATTERN; do
         [ "$TEST_TYPE" = "integration" ] && run_timeout=5
 
         run_exit_code=0
-        ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}" timeout ${run_timeout}s "$exe_file" > "$output_file" 2>&1 || run_exit_code=$?
+        ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}" run_with_timeout ${run_timeout} "$exe_file" > "$output_file" 2>&1 || run_exit_code=$?
 
         # Check for expected panic
         if [ -f "$panic_file" ]; then
