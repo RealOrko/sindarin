@@ -21,25 +21,30 @@ jobs:
     - name: Install LLVM-MinGW
       shell: pwsh
       run: |
-        # Download and install LLVM-MinGW
+        # Download and extract LLVM-MinGW (self-contained toolchain)
         $version = "20241217"
         $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/llvm-mingw-$version-ucrt-x86_64.zip"
         $zipPath = "$env:TEMP\llvm-mingw.zip"
         $extractPath = "C:\llvm-mingw"
 
-        Write-Host "Downloading LLVM-MinGW..."
+        Write-Host "Downloading LLVM-MinGW $version..."
         Invoke-WebRequest -Uri $url -OutFile $zipPath
 
-        Write-Host "Extracting..."
+        Write-Host "Extracting to $extractPath..."
         Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
 
-        # Find the extracted directory (has version in name)
+        # Find the extracted directory and add bin to PATH
         $llvmDir = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
-
-        # Add to PATH for subsequent steps
         $binPath = Join-Path $llvmDir.FullName "bin"
-        Write-Host "Adding $binPath to PATH"
+
+        Write-Host "LLVM-MinGW installed at: $($llvmDir.FullName)"
+        Write-Host "Adding $binPath to PATH (prepended to override any system clang)"
+
+        # IMPORTANT: Prepend to PATH so LLVM-MinGW's clang is found first
         echo "$binPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+        # Save the install path for later steps
+        echo "LLVM_MINGW_PATH=$($llvmDir.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
     - name: Install Ninja
       shell: pwsh
@@ -47,16 +52,23 @@ jobs:
         choco install ninja -y
 
     - name: Verify tools
-      shell: cmd
+      shell: pwsh
       run: |
-        echo Checking clang...
+        Write-Host "=== Checking clang ===" -ForegroundColor Cyan
+        Write-Host "Clang path: $(Get-Command clang | Select-Object -ExpandProperty Source)"
         clang --version
-        echo.
-        echo Checking cmake...
+
+        Write-Host ""
+        Write-Host "=== Checking cmake ===" -ForegroundColor Cyan
         cmake --version
-        echo.
-        echo Checking ninja...
+
+        Write-Host ""
+        Write-Host "=== Checking ninja ===" -ForegroundColor Cyan
         ninja --version
+
+        Write-Host ""
+        Write-Host "=== LLVM-MinGW Install Path ===" -ForegroundColor Cyan
+        Write-Host "$env:LLVM_MINGW_PATH"
 
     - name: Configure CMake
       shell: cmd
@@ -210,16 +222,22 @@ jobs:
     - name: Install LLVM-MinGW
       shell: pwsh
       run: |
+        # Download and extract LLVM-MinGW (self-contained toolchain)
         $version = "20241217"
         $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/llvm-mingw-$version-ucrt-x86_64.zip"
         $zipPath = "$env:TEMP\llvm-mingw.zip"
         $extractPath = "C:\llvm-mingw"
 
+        Write-Host "Downloading LLVM-MinGW $version..."
         Invoke-WebRequest -Uri $url -OutFile $zipPath
+
+        Write-Host "Extracting to $extractPath..."
         Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
 
         $llvmDir = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
         $binPath = Join-Path $llvmDir.FullName "bin"
+
+        Write-Host "LLVM-MinGW installed at: $($llvmDir.FullName)"
         echo "$binPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: Install Ninja
@@ -238,5 +256,8 @@ jobs:
 
     - name: Run unit tests (Debug)
       shell: cmd
+      env:
+        SN_CC: clang
+        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld -rtlib=compiler-rt -unwindlib=none
       run: |
         bin\tests.exe
