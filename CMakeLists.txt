@@ -19,10 +19,12 @@ option(SN_ASAN "Enable AddressSanitizer (GCC/Clang only)" OFF)
 
 # Compiler flags (GCC/Clang on all platforms)
 add_compile_options(-Wall -Wextra)
-# Suppress warnings for valid C99 patterns that trigger C11 warnings
-add_compile_options(-Wno-typedef-redefinition)
 # Suppress unknown pragma warnings (Windows-specific pragmas)
 add_compile_options(-Wno-unknown-pragmas)
+# Suppress warnings for valid C99 patterns that trigger C11 warnings (Clang only)
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-Wno-typedef-redefinition)
+endif()
 add_compile_definitions(_GNU_SOURCE)
 
 if(SN_DEBUG)
@@ -241,10 +243,17 @@ if(PLATFORM_HEADERS)
 endif()
 
 # Build runtime object files for linking with generated code
-# On Windows with Clang/MinGW, put in bin/lib/clang/
-# The gcc_backend expects individual .o files
-if(WIN32 AND NOT MSVC)
-    set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
+# The gcc_backend expects individual .o files in bin/lib/<compiler>/
+# Determine runtime library directory based on platform and compiler
+if(NOT MSVC)
+    if(WIN32)
+        # Windows with Clang/MinGW -> bin/lib/clang/
+        set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
+    else()
+        # Linux/Unix with GCC or Clang -> bin/lib/gcc/
+        set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/gcc)
+    endif()
+
     file(MAKE_DIRECTORY ${RUNTIME_LIB_DIR})
 
     # Common include directories for runtime compilation
@@ -253,6 +262,11 @@ if(WIN32 AND NOT MSVC)
         -I${CMAKE_SOURCE_DIR}/src/runtime
         -I${CMAKE_SOURCE_DIR}/src/platform
     )
+
+    # Add _GNU_SOURCE for Linux
+    if(NOT WIN32)
+        list(APPEND RUNTIME_INCLUDES -D_GNU_SOURCE)
+    endif()
 
     # Compile each runtime source file directly to the target location
     # This avoids issues with different generators (Ninja vs Make) using different paths
@@ -263,9 +277,9 @@ if(WIN32 AND NOT MSVC)
         set(OUTPUT_FILE ${RUNTIME_LIB_DIR}/${OUTPUT_NAME}.o)
         add_custom_command(
             OUTPUT ${OUTPUT_FILE}
-            COMMAND ${CMAKE_C_COMPILER} -c ${SOURCE_FILE} -o ${OUTPUT_FILE} ${RUNTIME_INCLUDES}
+            COMMAND ${CMAKE_C_COMPILER} -c ${SOURCE_FILE} -o ${OUTPUT_FILE} ${RUNTIME_INCLUDES} -O2 -std=c99
             DEPENDS ${SOURCE_FILE}
-            COMMENT "Compiling ${OUTPUT_NAME}.o"
+            COMMENT "Compiling runtime: ${OUTPUT_NAME}.o"
         )
         list(APPEND RUNTIME_OBJECTS ${OUTPUT_FILE})
     endmacro()
