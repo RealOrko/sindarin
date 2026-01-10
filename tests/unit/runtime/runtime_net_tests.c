@@ -526,9 +526,18 @@ static void test_rt_tcp_stream_connect_basic(void)
     rt_arena_destroy(server_arena);
 }
 
-/* The following tests use nested functions which are a GCC extension.
- * They are not supported by MSVC or clang-cl on Windows. */
-#ifndef _WIN32
+/* Shared struct and thread function for TCP accept tests */
+typedef struct {
+    RtTcpListener *listener;
+    RtArena *arena;
+    RtTcpStream *accepted;
+} TcpAcceptArgs;
+
+static void *tcp_accept_thread_fn(void *arg) {
+    TcpAcceptArgs *a = (TcpAcceptArgs *)arg;
+    a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
+    return NULL;
+}
 
 static void test_rt_tcp_stream_connect_has_valid_fd(void)
 {
@@ -541,24 +550,10 @@ static void test_rt_tcp_stream_connect_has_valid_fd(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs;
-
-    AcceptArgs accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn(void *arg) {
-        AcceptArgs *a = (AcceptArgs *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -593,24 +588,10 @@ static void test_rt_tcp_stream_connect_has_remote_address(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs2;
-
-    AcceptArgs2 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn2(void *arg) {
-        AcceptArgs2 *a = (AcceptArgs2 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn2, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -654,24 +635,10 @@ static void test_rt_tcp_stream_connect_localhost_hostname(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs3;
-
-    AcceptArgs3 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn3(void *arg) {
-        AcceptArgs3 *a = (AcceptArgs3 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn3, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -712,24 +679,10 @@ static void test_rt_tcp_stream_close_basic(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs4;
-
-    AcceptArgs4 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn4(void *arg) {
-        AcceptArgs4 *a = (AcceptArgs4 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn4, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -770,24 +723,10 @@ static void test_rt_tcp_stream_close_multiple_times(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs5;
-
-    AcceptArgs5 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn5(void *arg) {
-        AcceptArgs5 *a = (AcceptArgs5 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn5, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -818,8 +757,6 @@ static void test_rt_tcp_stream_close_multiple_times(void)
     rt_arena_destroy(client_arena);
     rt_arena_destroy(server_arena);
 }
-
-#endif /* !_WIN32 - end of nested function tests */
 
 /* ============================================================================
  * TcpStream Read/Write Tests
@@ -1684,8 +1621,6 @@ void test_rt_net_main(void)
     TEST_RUN("tcp_listener_close_releases_port", test_rt_tcp_listener_close_releases_port);
 
     TEST_RUN("tcp_stream_connect_basic", test_rt_tcp_stream_connect_basic);
-#ifndef _WIN32
-    /* These tests use nested functions (GCC extension) */
     TEST_RUN("tcp_stream_connect_has_valid_fd", test_rt_tcp_stream_connect_has_valid_fd);
     TEST_RUN("tcp_stream_connect_has_remote_address", test_rt_tcp_stream_connect_has_remote_address);
     TEST_RUN("tcp_stream_connect_localhost_hostname", test_rt_tcp_stream_connect_localhost_hostname);
@@ -1693,7 +1628,6 @@ void test_rt_net_main(void)
     /* TcpStream close tests */
     TEST_RUN("tcp_stream_close_basic", test_rt_tcp_stream_close_basic);
     TEST_RUN("tcp_stream_close_multiple_times", test_rt_tcp_stream_close_multiple_times);
-#endif
 
     /* TcpStream read/write tests */
     TEST_RUN("tcp_stream_write_basic", test_rt_tcp_stream_write_basic);
