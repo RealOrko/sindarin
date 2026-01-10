@@ -313,7 +313,9 @@ function Run-Test {
         }
 
         # Compile
-        $result = Invoke-WithTimeout -FilePath $Compiler -ArgumentList @($TestPath, "-o", $ExePath, "-l", "1", "-g", "-O0") -TimeoutSeconds $CompileTimeout -ErrorFile $CompileErrFile
+        # Note: Don't use -g (enables ASAN) as it requires specific runtime libraries
+        # that may not be available in all environments (e.g., GitHub Actions)
+        $result = Invoke-WithTimeout -FilePath $Compiler -ArgumentList @($TestPath, "-o", $ExePath, "-l", "1", "-O0") -TimeoutSeconds $CompileTimeout -ErrorFile $CompileErrFile
 
         if ($result.TimedOut) {
             Write-Host "FAIL (compile timeout)" -ForegroundColor Red
