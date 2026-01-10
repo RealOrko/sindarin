@@ -1,25 +1,26 @@
 // Test Process stderr capture
-// Cross-platform using Python
-// Expected output:
-// stdout is empty: true
-// stderr captured: error_message
-// exit code: 0
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    // Run command that writes to stderr
-    var p: Process = Process.run("python", {"-c", "import sys; sys.stderr.write('error_message\\n')"})
+    // Get compiler path (cross-platform)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
 
-    // stdout should be empty
-    var empty: str = ""
-    if p.stdout == empty =>
+    // Run command that writes to stderr (compile error)
+    var p: Process = Process.run(sn, {"nonexistent.sn", "--emit-c"})
+
+    // stdout should be empty for error case
+    if p.stdout.trim().length == 0 =>
         print("stdout is empty: true\n")
     else =>
         print("stdout is empty: false\n")
 
-    // stderr should contain our message
-    print($"stderr captured: {p.stderr.trim()}\n")
+    // stderr should contain error message
+    var hasError: bool = p.stderr.contains("error") || p.stderr.contains("ERROR")
+    print($"stderr has error: {hasError}\n")
 
-    // Exit code should be 0
-    print($"exit code: {p.exitCode}\n")
+    // Exit code should be non-zero
+    print($"exit code non-zero: {p.exitCode != 0}\n")
 
     return 0

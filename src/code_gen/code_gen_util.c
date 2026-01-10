@@ -871,9 +871,16 @@ static bool type_needs_arena(Type *type)
     case TYPE_NIL:
     case TYPE_ANY:
     case TYPE_POINTER:  /* Pointers are raw C pointers, no arena needed */
-    case TYPE_OPAQUE:   /* Opaque types are always pointers to external structs */
     default:
         return false;
+    case TYPE_OPAQUE:
+    case TYPE_TCP_LISTENER:
+    case TYPE_TCP_STREAM:
+    case TYPE_UDP_SOCKET:
+        /* Runtime objects (TcpStream, TcpListener, UdpSocket, Process, etc.)
+         * that may be allocated via arena. Functions using these types need an arena
+         * even though the type itself isn't a heap type like string/array. */
+        return true;
     }
 }
 

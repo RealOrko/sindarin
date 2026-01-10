@@ -1,6 +1,6 @@
 all spawned
 all done
-p1: first
-p2: second
-p3: third
+p1: sn 0.1.0
+p2: sn 0.1.0
+p3: sn 0.1.0
 total exit: 0

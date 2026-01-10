@@ -1,25 +1,28 @@
 // Test Process stdout and stderr capture
-// Cross-platform using Python
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    var p1: Process = Process.run("python", {"-c", "print('stdout test')"})
+    // Get compiler path (cross-platform)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
+
+    // Test stdout capture
+    var p1: Process = Process.run(sn, {"--version"})
     print($"stdout: {p1.stdout.trim()}\n")
 
-    var p2: Process = Process.run("python", {"-c", "import sys; sys.stderr.write('stderr test\\n')"})
-    print($"stderr: {p2.stderr.trim()}\n")
+    // Test stderr capture (compile error goes to stderr)
+    var p2: Process = Process.run(sn, {"nonexistent.sn", "--emit-c"})
+    var hasError: bool = p2.stderr.contains("error") || p2.stderr.contains("ERROR")
+    print($"stderr has error: {hasError}\n")
 
-    var p3: Process = Process.run("python", {"-c", "import sys; print('out'); sys.stderr.write('err\\n')"})
-    print($"both stdout: {p3.stdout.trim()}\n")
-    print($"both stderr: {p3.stderr.trim()}\n")
+    // Test multiline output
+    var p3: Process = Process.run(sn, {"--help"})
+    var lines: str[] = p3.stdout.split("\n")
+    print($"multiline count: {lines.length > 10}\n")
 
-    var p4: Process = Process.run("python", {"-c", "print('line1'); print('line2'); print('line3')"})
-    var multi: str = p4.stdout.replace("\r", "").trim()
-    print($"multiline:\n{multi}\n")
-
-    var p5: Process = Process.run("python", {"-c", "pass"})
-    if p5.stdout == "" =>
-        print("empty stdout: true\n")
-    else =>
-        print("empty stdout: false\n")
+    // Test stdout when there's also stderr
+    var p4: Process = Process.run(sn, {"nonexistent.sn", "--emit-c"})
+    print($"stdout empty on error: {p4.stdout.trim().length == 0}\n")
 
     return 0

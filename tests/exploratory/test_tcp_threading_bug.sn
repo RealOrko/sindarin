@@ -1,0 +1,40 @@
+// Test with 3 helper functions - triggers bug
+
+fn runServer(listener: TcpListener): int =>
+    var c1: TcpStream = listener.accept()
+    c1.write("DATA1".toBytes())
+    c1.close()
+    return 0
+
+fn fetchData(addr: str): str =>
+    var conn: TcpStream = TcpStream.connect(addr)
+    var data: byte[] = conn.read(1024)
+    conn.close()
+    return data.toString()
+
+fn main(): void =>
+    print("Step 1: Starting\n")
+
+    var listener: TcpListener = TcpListener.bind("127.0.0.1:0")
+    print("Step 2: Bound\n")
+
+    var port: int = listener.port
+    print($"Step 3: Port is {port}\n")
+
+    var addr: str = $"127.0.0.1:{port}"
+    print($"Step 4: Addr is {addr}\n")
+
+    var serverThread: int = &runServer(listener)
+    print("Step 5: Server spawned\n")
+
+    Time.sleep(100)
+    print("Step 6: After sleep\n")
+
+    var result: str = fetchData(addr)
+    print($"Step 7: Got {result}\n")
+
+    serverThread!
+    print("Step 8: Synced\n")
+
+    listener.close()
+    print("Step 9: Done\n")

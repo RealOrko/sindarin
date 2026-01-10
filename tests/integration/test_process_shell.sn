@@ -1,23 +1,32 @@
-// Test Python command execution (cross-platform shell replacement)
+// Test command execution with various arguments
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    var p1: Process = Process.run("python", {"-c", "print('hello')"})
-    print($"basic: {p1.stdout.trim()}\n")
+    // Get compiler path (cross-platform)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
 
-    var p2: Process = Process.run("python", {"-c", "print('hello'.replace('h', 'H'))"})
-    print($"pipe: {p2.stdout.trim()}\n")
+    // Basic command
+    var p1: Process = Process.run(sn, {"--version"})
+    print($"version: {p1.stdout.trim()}\n")
 
-    var p3: Process = Process.run("python", {"-c", "X='test'; print(X)"})
-    print($"variable: {p3.stdout.trim()}\n")
+    // Help output (multiline)
+    var p2: Process = Process.run(sn, {"--help"})
+    var firstLine: str = p2.stdout.split("\n")[0].trim()
+    print($"help: {firstLine}\n")
 
-    var p4: Process = Process.run("python", {"-c", "def inner(): return 'inner'\nprint(inner())"})
-    print($"subst: {p4.stdout.trim()}\n")
+    // Multiple flags
+    var p3: Process = Process.run(sn, {"-O0", "--version"})
+    print($"flags: {p3.stdout.trim()}\n")
 
-    var p5: Process = Process.run("python", {"-c", "print(5 + 3)"})
-    print($"arithmetic: {p5.stdout.trim()}\n")
+    // Error case
+    var p4: Process = Process.run(sn, {"missing.sn", "--emit-c"})
+    print($"error exit: {p4.exitCode}\n")
 
-    var p6: Process = Process.run("python", {"-c", "print('one'); print('two')"})
-    var multi: str = p6.stdout.replace("\r", "").trim()
-    print($"multi: {multi}\n")
+    // Help line count
+    var p5: Process = Process.run(sn, {"--help"})
+    var lines: str[] = p5.stdout.split("\n")
+    print($"multiline: {lines.length > 5}\n")
 
     return 0

@@ -1,4 +1,4 @@
-echo args: hello world
-echo single: single
-expr result: 8
-printf result: arg1-arg2
+version: sn 0.1.0
+help lines: true
+multi args exit: 1
+flags: sn 0.1.0

@@ -1,8 +1,13 @@
 // Test basic async Process spawn and wait pattern
-// Cross-platform using Python
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    var p: Process = &Process.run("python", {"-c", "print('async test')"})
+    // Get compiler path (cross-platform)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
+
+    var p: Process = &Process.run(sn, {"--version"})
     print("spawned\n")
     p!
     print($"result: {p.stdout.trim()}\n")

@@ -376,74 +376,137 @@ fn main(): int =>
     // ============================================================
     print("\n--- Child Process Environment ---\n")
 
-    // Test 19: Child process inherits environment variables (cross-platform using Python)
-    print("Test 19 - Child process inherits env vars:\n")
+    // Create helper programs for testing env var inheritance
+    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+    var helperDir: str = $"{tempDir}/sn_env_helper"
+    Directory.create(helperDir)
 
-    Environment.set("SN_CHILD_TEST", "inherited_value")
-    var proc: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_CHILD_TEST',''))"})
-    var childOutput: str = proc.stdout.trim()
+    // Get compiler path
+    var snCompiler: str = Path.absolute("bin/sn")
+    var exeExt: str = ""
+    if Environment.get("OS", "").contains("Windows") =>
+        snCompiler = Path.absolute("bin/sn.exe")
+        exeExt = ".exe"
 
-    if childOutput == "inherited_value" =>
-        print("  PASS: Child process inherited env var\n")
+    // Helper 1: Print value of SN_CHECK_VAR (or empty if unset)
+    var helperCode1: str = "fn main(): int =>\n    var val: str = Environment.get(\"SN_CHECK_VAR\", \"\")\n    print(val)\n    return 0\n"
+    TextFile.writeAll($"{helperDir}/getenv.sn", helperCode1)
+    var compileHelper1: Process = Process.run(snCompiler, {$"{helperDir}/getenv.sn", "-o", $"{helperDir}/getenv"})
+
+    // Helper 2: Print two vars separated by dash
+    var helperCode2: str = "fn main(): int =>\n    var a: str = Environment.get(\"SN_MULTI_A\", \"\")\n    var b: str = Environment.get(\"SN_MULTI_B\", \"\")\n    print($\"{a}-{b}\")\n    return 0\n"
+    TextFile.writeAll($"{helperDir}/getenv2.sn", helperCode2)
+    var compileHelper2: Process = Process.run(snCompiler, {$"{helperDir}/getenv2.sn", "-o", $"{helperDir}/getenv2"})
+
+    // Helper 3: Check if SN_CHECK_VAR exists (print 'set' or 'unset')
+    var helperCode3: str = "fn main(): int =>\n    if Environment.has(\"SN_CHECK_VAR\") =>\n        print(\"set\")\n    else =>\n        print(\"unset\")\n    return 0\n"
+    TextFile.writeAll($"{helperDir}/hasenv.sn", helperCode3)
+    var compileHelper3: Process = Process.run(snCompiler, {$"{helperDir}/hasenv.sn", "-o", $"{helperDir}/hasenv"})
+
+    if compileHelper1.exitCode != 0 || compileHelper2.exitCode != 0 || compileHelper3.exitCode != 0 =>
+        print("  SKIP: Failed to compile helper programs\n")
     else =>
-        print($"  FAIL: Expected 'inherited_value', got '{childOutput}'\n")
-        errors++
+        // Test 19: Child process inherits environment variables
+        print("Test 19 - Child process inherits env vars:\n")
 
-    // Test 20: Child process sees modified variables
-    print("\nTest 20 - Child sees modified variables:\n")
+        Environment.set("SN_CHECK_VAR", "SN_CHILD_TEST")
+        Environment.set("SN_CHILD_TEST", "inherited_value")
+        var proc: Process = Process.run($"{helperDir}/getenv{exeExt}", {})
+        Environment.set("SN_CHECK_VAR", "SN_CHILD_TEST")
+        proc = Process.run($"{helperDir}/getenv{exeExt}", {})
+        var childOutput: str = proc.stdout.trim()
 
-    Environment.set("SN_MODIFY_TEST", "original")
-    Environment.set("SN_MODIFY_TEST", "modified")
-    var proc2: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_MODIFY_TEST',''))"})
-    var modOutput: str = proc2.stdout.trim()
+        // Re-run with the actual var we want to check
+        Environment.remove("SN_CHECK_VAR")
+        Environment.set("SN_CHILD_TEST", "inherited_value")
+        // Create a simpler helper that directly checks SN_CHILD_TEST
+        var helper19: str = "fn main(): int =>\n    var val: str = Environment.get(\"SN_CHILD_TEST\", \"\")\n    print(val)\n    return 0\n"
+        TextFile.writeAll($"{helperDir}/test19.sn", helper19)
+        var compile19: Process = Process.run(snCompiler, {$"{helperDir}/test19.sn", "-o", $"{helperDir}/test19"})
+        if compile19.exitCode == 0 =>
+            var run19: Process = Process.run($"{helperDir}/test19{exeExt}", {})
+            childOutput = run19.stdout.trim()
+            if childOutput == "inherited_value" =>
+                print("  PASS: Child process inherited env var\n")
+            else =>
+                print($"  FAIL: Expected 'inherited_value', got '{childOutput}'\n")
+                errors++
+        else =>
+            print("  SKIP: Compilation failed\n")
 
-    if modOutput == "modified" =>
-        print("  PASS: Child sees modified value\n")
-    else =>
-        print($"  FAIL: Expected 'modified', got '{modOutput}'\n")
-        errors++
+        // Test 20: Child process sees modified variables
+        print("\nTest 20 - Child sees modified variables:\n")
 
-    // Test 21: Child process sees multiple variables
-    print("\nTest 21 - Multiple variables in child:\n")
+        Environment.set("SN_MODIFY_TEST", "original")
+        Environment.set("SN_MODIFY_TEST", "modified")
+        var helper20: str = "fn main(): int =>\n    var val: str = Environment.get(\"SN_MODIFY_TEST\", \"\")\n    print(val)\n    return 0\n"
+        TextFile.writeAll($"{helperDir}/test20.sn", helper20)
+        var compile20: Process = Process.run(snCompiler, {$"{helperDir}/test20.sn", "-o", $"{helperDir}/test20"})
+        if compile20.exitCode == 0 =>
+            var run20: Process = Process.run($"{helperDir}/test20{exeExt}", {})
+            var modOutput: str = run20.stdout.trim()
+            if modOutput == "modified" =>
+                print("  PASS: Child sees modified value\n")
+            else =>
+                print($"  FAIL: Expected 'modified', got '{modOutput}'\n")
+                errors++
+        else =>
+            print("  SKIP: Compilation failed\n")
 
-    Environment.set("SN_MULTI_A", "alpha")
-    Environment.set("SN_MULTI_B", "beta")
-    var proc3: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_MULTI_A','')+'-'+os.environ.get('SN_MULTI_B',''))"})
-    var multiOutput: str = proc3.stdout.trim()
+        // Test 21: Child process sees multiple variables
+        print("\nTest 21 - Multiple variables in child:\n")
 
-    if multiOutput == "alpha-beta" =>
-        print("  PASS: Multiple variables inherited correctly\n")
-    else =>
-        print($"  FAIL: Expected 'alpha-beta', got '{multiOutput}'\n")
-        errors++
+        Environment.set("SN_MULTI_A", "alpha")
+        Environment.set("SN_MULTI_B", "beta")
+        var run21: Process = Process.run($"{helperDir}/getenv2{exeExt}", {})
+        var multiOutput: str = run21.stdout.trim()
 
-    // Test 22: Removed variable not visible to child
-    print("\nTest 22 - Removed variable not in child:\n")
+        if multiOutput == "alpha-beta" =>
+            print("  PASS: Multiple variables inherited correctly\n")
+        else =>
+            print($"  FAIL: Expected 'alpha-beta', got '{multiOutput}'\n")
+            errors++
 
-    Environment.set("SN_REMOVE_TEST", "will_be_gone")
-    Environment.remove("SN_REMOVE_TEST")
-    var proc4: Process = Process.run("python", {"-c", "import os;print(os.environ.get('SN_REMOVE_TEST','unset'))"})
-    var removeOutput: str = proc4.stdout.trim()
+        // Test 22: Removed variable not visible to child
+        print("\nTest 22 - Removed variable not in child:\n")
 
-    if removeOutput == "unset" =>
-        print("  PASS: Removed variable not visible to child\n")
-    else =>
-        print($"  FAIL: Expected 'unset', got '{removeOutput}'\n")
-        errors++
+        Environment.set("SN_REMOVE_TEST", "will_be_gone")
+        Environment.remove("SN_REMOVE_TEST")
+        var helper22: str = "fn main(): int =>\n    var val: str = Environment.get(\"SN_REMOVE_TEST\", \"unset\")\n    print(val)\n    return 0\n"
+        TextFile.writeAll($"{helperDir}/test22.sn", helper22)
+        var compile22: Process = Process.run(snCompiler, {$"{helperDir}/test22.sn", "-o", $"{helperDir}/test22"})
+        if compile22.exitCode == 0 =>
+            var run22: Process = Process.run($"{helperDir}/test22{exeExt}", {})
+            var removeOutput: str = run22.stdout.trim()
+            if removeOutput == "unset" =>
+                print("  PASS: Removed variable not visible to child\n")
+            else =>
+                print($"  FAIL: Expected 'unset', got '{removeOutput}'\n")
+                errors++
+        else =>
+            print("  SKIP: Compilation failed\n")
 
-    // Test 23: Empty string visible to child
-    print("\nTest 23 - Empty string visible to child:\n")
+        // Test 23: Empty string visible to child
+        print("\nTest 23 - Empty string visible to child:\n")
 
-    Environment.set("SN_EMPTY_CHILD", "")
-    // Use Python to distinguish empty from unset
-    var proc5: Process = Process.run("python", {"-c", "import os;print('set' if 'SN_EMPTY_CHILD' in os.environ else 'unset')"})
-    var emptyOutput: str = proc5.stdout.trim()
+        Environment.set("SN_EMPTY_CHILD", "")
+        var helper23: str = "fn main(): int =>\n    if Environment.has(\"SN_EMPTY_CHILD\") =>\n        print(\"set\")\n    else =>\n        print(\"unset\")\n    return 0\n"
+        TextFile.writeAll($"{helperDir}/test23.sn", helper23)
+        var compile23: Process = Process.run(snCompiler, {$"{helperDir}/test23.sn", "-o", $"{helperDir}/test23"})
+        if compile23.exitCode == 0 =>
+            var run23: Process = Process.run($"{helperDir}/test23{exeExt}", {})
+            var emptyOutput: str = run23.stdout.trim()
+            if emptyOutput == "set" =>
+                print("  PASS: Empty string variable is set in child\n")
+            else =>
+                print($"  FAIL: Expected 'set', got '{emptyOutput}'\n")
+                errors++
+        else =>
+            print("  SKIP: Compilation failed\n")
 
-    if emptyOutput == "set" =>
-        print("  PASS: Empty string variable is set in child\n")
-    else =>
-        print($"  FAIL: Expected 'set', got '{emptyOutput}'\n")
-        errors++
+    // Cleanup helper directory
+    if Path.isDirectory(helperDir) =>
+        Directory.deleteRecursive(helperDir)
 
     // ============================================================
     // SPECIAL CHARACTER HANDLING

@@ -62,6 +62,48 @@ void compiler_cleanup(CompilerOptions *options)
 
 int compiler_parse_args(int argc, char **argv, CompilerOptions *options)
 {
+    // Check for --help, -h, or --version first
+    for (int i = 1; i < argc; i++)
+    {
+        if (strcmp(argv[i], "--version") == 0)
+        {
+            printf("sn 0.1.0\n");
+            exit(0);
+        }
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
+        {
+            printf(
+                "Sindarin Compiler\n"
+                "\n"
+                "Usage: %s <source_file> [-o <executable>] [options]\n"
+                "\n"
+                "Output options:\n"
+                "  -o <file>          Specify output executable (default: source_file without extension)\n"
+                "  --emit-c           Only output C code, don't compile to executable\n"
+                "  --keep-c           Keep intermediate C file after compilation\n"
+                "\n"
+                "Debug options:\n"
+                "  -v                 Verbose mode (show compilation steps)\n"
+                "  -g                 Debug build (includes symbols and address sanitizer)\n"
+                "  -l <level>         Set log level (0=none, 1=error, 2=warning, 3=info, 4=verbose)\n"
+                "\n"
+                "Code generation options:\n"
+                "  --checked          Force checked arithmetic (overflow detection, slower)\n"
+                "  --unchecked        Force unchecked arithmetic (no overflow checking, faster)\n"
+                "  -O0                No Sn optimization (for debugging)\n"
+                "  -O1                Basic Sn optimizations (dead code elimination, string merging)\n"
+                "  -O2                Full Sn optimizations (default: + tail call, unchecked arithmetic)\n"
+                "\n"
+                "Help:\n"
+                "  -h, --help         Show this help message\n"
+                "  --version          Show version information\n"
+                "\n"
+                "By default, compiles to an executable and removes the intermediate C file.\n",
+                argv[0]);
+            exit(0);
+        }
+    }
+
     if (argc < 2)
     {
         fprintf(stderr,

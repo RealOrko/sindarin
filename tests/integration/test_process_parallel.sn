@@ -1,10 +1,15 @@
 // Test multiple concurrent processes
-// Cross-platform using Python
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    var p1: Process = &Process.run("python", {"-c", "print('first')"})
-    var p2: Process = &Process.run("python", {"-c", "print('second')"})
-    var p3: Process = &Process.run("python", {"-c", "print('third')"})
+    // Get compiler path (cross-platform)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
+
+    var p1: Process = &Process.run(sn, {"--version"})
+    var p2: Process = &Process.run(sn, {"--version"})
+    var p3: Process = &Process.run(sn, {"--version"})
 
     print("all spawned\n")
 

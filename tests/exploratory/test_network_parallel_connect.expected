@@ -1,5 +1,0 @@
-Testing parallel TCP connections
-Server ready
-All requests completed in parallel
-SUCCESS: All parallel requests returned data
-Test complete

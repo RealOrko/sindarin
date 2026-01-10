@@ -1,7 +1,7 @@
 // Test: Background client handlers using &handleClient pattern
 // Demonstrates the fire-and-forget pattern for handling connections
-// Note: Server uses Python due to threading limitations with TcpListener.accept()
-// Cross-platform: works on Windows and Linux
+// Uses native Sindarin TcpListener instead of Python
+// Cross-platform: works on Windows, Linux, and macOS
 
 fn handleConnection(addr: str): void =>
     // Connect to server and handle the interaction
@@ -10,38 +10,35 @@ fn handleConnection(addr: str): void =>
     // Handler processes data in background (fire and forget)
     conn.close()
 
+fn runServer(listener: TcpListener): int =>
+    // Accept and handle 3 connections
+    var c1: TcpStream = listener.accept()
+    c1.write("HELLO1".toBytes())
+    c1.close()
+
+    var c2: TcpStream = listener.accept()
+    c2.write("HELLO2".toBytes())
+    c2.close()
+
+    var c3: TcpStream = listener.accept()
+    c3.write("HELLO3".toBytes())
+    c3.close()
+
+    return 0
+
 fn main(): void =>
     print("Testing background client handlers\n")
 
-    // Get cross-platform temp directory and normalize path
-    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
-    var portFilePath: str = $"{tempDir}/tcp_bg_port"
+    // Create server on OS-assigned port
+    var listener: TcpListener = TcpListener.bind("127.0.0.1:0")
+    var port: int = listener.port
+    var addr: str = $"127.0.0.1:{port}"
 
-    // Clean up any leftover port file from previous runs
-    if Path.exists(portFilePath) =>
-        TextFile.delete(portFilePath)
+    // Start server in background thread
+    var serverThread: int = &runServer(listener)
 
-    // Start a Python server that binds to port 0 (OS assigns free port),
-    // calls listen(), THEN writes the port to a file (to avoid race condition)
-    var pythonCode: str = $"import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));port=s.getsockname()[1];s.listen(5);f=open('{portFilePath}','w');f.write(str(port));f.flush();f.close();c1,a1=s.accept();c1.send(b'HELLO1');c1.close();c2,a2=s.accept();c2.send(b'HELLO2');c2.close();c3,a3=s.accept();c3.send(b'HELLO3');c3.close();s.close()"
-    var server: Process = &Process.run("python", {"-c", pythonCode})
-
-    // Wait for server to be ready and get the port
-    var attempts: int = 0
-    while attempts < 100 =>
-        if Path.exists(portFilePath) =>
-            attempts = 200
-        else =>
-            Time.sleep(50)
-            attempts = attempts + 1
-
-    if attempts < 200 =>
-        print("Server not ready\n")
-        return
-
-    // Read the port from the file
-    var portStr: str = TextFile.readAll(portFilePath).trim()
-    var addr: str = $"127.0.0.1:{portStr}"
+    // Delay to ensure server is accepting (Windows needs more time)
+    Time.sleep(100)
 
     print("Server ready\n")
 
@@ -53,13 +50,11 @@ fn main(): void =>
 
     print("All handlers spawned (fire and forget)\n")
 
-    // Wait for Python server to finish - this ensures all connections were accepted
-    server!
+    // Wait for server to finish - this ensures all connections were accepted
+    serverThread!
     print("Server finished - all handlers processed\n")
 
     print("SUCCESS: Background handler pattern works\n")
 
-    // Cleanup
-    if Path.exists(portFilePath) =>
-        TextFile.delete(portFilePath)
+    listener.close()
     print("Test complete\n")

@@ -1,17 +1,27 @@
 // Test Process.run with command arguments
-// Cross-platform using Python
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    var p1: Process = Process.run("python", {"-c", "import sys; print(' '.join(sys.argv[1:]))", "hello", "world"})
-    print($"echo args: {p1.stdout.trim()}\n")
+    // Get compiler path (cross-platform, absolute path required)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
 
-    var p2: Process = Process.run("python", {"-c", "import sys; print(sys.argv[1])", "single"})
-    print($"echo single: {p2.stdout.trim()}\n")
+    // Test passing multiple arguments
+    var p1: Process = Process.run(sn, {"--version"})
+    print($"version: {p1.stdout.trim()}\n")
 
-    var p3: Process = Process.run("python", {"-c", "print(5 + 3)"})
-    print($"expr result: {p3.stdout.trim()}\n")
+    // Test passing single argument
+    var p2: Process = Process.run(sn, {"--help"})
+    var lines: str[] = p2.stdout.split("\n")
+    print($"help lines: {lines.length > 5}\n")
 
-    var p4: Process = Process.run("python", {"-c", "print('arg1-arg2')"})
-    print($"printf result: {p4.stdout.trim()}\n")
+    // Test multiple args with file path
+    var p3: Process = Process.run(sn, {"nonexistent.sn", "-o", "/tmp/out", "--emit-c"})
+    print($"multi args exit: {p3.exitCode}\n")
+
+    // Test args with various flags
+    var p4: Process = Process.run(sn, {"-O0", "--version"})
+    print($"flags: {p4.stdout.trim()}\n")
 
     return 0

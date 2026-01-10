@@ -27,11 +27,8 @@ fn main(): int =>
         if !currentPath.contains("LLVM") =>
             Environment.set("PATH", $"C:/Program Files/LLVM/bin;{currentPath}")
 
-    // Create test directory using Python (cross-platform)
-    var mkdirProc: Process = Process.run("python", {"-c", $"import os;os.makedirs('{testDir}',exist_ok=True)"})
-    if mkdirProc.exitCode != 0 =>
-        print("ERROR: Failed to create test directory\n")
-        return 1
+    // Create test directory
+    Directory.create(testDir)
 
     // ============================================================
     // INVALID INTEGER CONVERSION
@@ -273,9 +270,10 @@ fn main(): int =>
         print($"  SKIP: Compilation failed\n")
 
     // ============================================================
-    // CLEANUP - use Python for cross-platform directory removal
+    // CLEANUP
     // ============================================================
-    var cleanupProc: Process = Process.run("python", {"-c", $"import shutil;shutil.rmtree('{testDir}',ignore_errors=True)"})
+    if Path.isDirectory(testDir) =>
+        Directory.deleteRecursive(testDir)
 
     // ============================================================
     // RESULTS SUMMARY
