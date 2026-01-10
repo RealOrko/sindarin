@@ -2,13 +2,19 @@
 
 Welcome to the Sindarin language documentation. This index provides navigation to all available documentation.
 
+## Getting Started
+
+| Document | Description |
+|----------|-------------|
+| [BUILDING.md](language/BUILDING.md) | How to build Sindarin on Linux, macOS, and Windows |
+| [OVERVIEW.md](language/OVERVIEW.md) | Language philosophy, syntax overview, and examples |
+
 ## Language Reference
 
 Core documentation for the Sindarin programming language:
 
 | Document | Description |
 |----------|-------------|
-| [OVERVIEW.md](language/OVERVIEW.md) | Language philosophy, syntax overview, and examples |
 | [TYPES.md](language/TYPES.md) | Primitive and built-in types |
 | [STRINGS.md](language/STRINGS.md) | String methods, interpolation, and escape sequences |
 | [ARRAYS.md](language/ARRAYS.md) | Array operations, slicing, and methods |
@@ -63,21 +69,32 @@ For contributors and compiler developers:
 - [CLAUDE.md](../CLAUDE.md) - Project instructions for AI assistants
 - [Benchmark Results](../benchmark/RESULTS.md) - Performance benchmarks
 
-## Getting Started
+## New to Sindarin?
 
-New to Sindarin? Start with these documents:
+Start with these documents:
 
-1. **[OVERVIEW.md](language/OVERVIEW.md)** - Language philosophy and syntax
-2. **[TYPES.md](language/TYPES.md)** - Data types and type system
-3. **[STRINGS.md](language/STRINGS.md)** - String manipulation
-4. **[ARRAYS.md](language/ARRAYS.md)** - Working with arrays
+1. **[BUILDING.md](language/BUILDING.md)** - Build the compiler from source
+2. **[OVERVIEW.md](language/OVERVIEW.md)** - Language philosophy and syntax
+3. **[TYPES.md](language/TYPES.md)** - Data types and type system
+4. **[STRINGS.md](language/STRINGS.md)** - String manipulation
+5. **[ARRAYS.md](language/ARRAYS.md)** - Working with arrays
 
-## Building and Testing
+## Building
+
+See [BUILDING.md](language/BUILDING.md) for complete build instructions. Quick start with CMake:
 
 ```bash
-make build            # Build compiler
-make test             # Run all tests
-make run              # Compile and run samples/main.sn
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+bin/sn --version
+```
+
+## Testing
+
+```bash
+bin/tests                           # Unit tests
+./scripts/run_tests.sh integration  # Integration tests
+./scripts/run_tests.sh explore      # Exploratory tests
 ```
 
 See [TESTING.md](internal/TESTING.md) for detailed test coverage information.

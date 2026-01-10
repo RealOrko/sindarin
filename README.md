@@ -24,9 +24,15 @@
 ### Build the Compiler
 
 ```bash
-make build                  # Build compiler + test binary
-make test                   # Run all tests
+# Configure and build with CMake
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+
+# Verify
+bin/sn --version
 ```
+
+See [docs/language/BUILDING.md](docs/language/BUILDING.md) for detailed instructions for Linux, macOS, and Windows.
 
 ### Compile a Program
 
@@ -36,12 +42,6 @@ bin/sn samples/main.sn -o myprogram    # Compile to executable
 
 # Or emit C code only:
 bin/sn samples/main.sn --emit-c -o output.c
-```
-
-### Run Samples
-
-```bash
-make run                    # Compile and run samples/main.sn
 ```
 
 ## Example
@@ -69,11 +69,17 @@ fn main(): void =>
 
 See [docs/README.md](docs/README.md) for the full documentation index.
 
+### Getting Started
+
+| Document | Description |
+|----------|-------------|
+| [BUILDING](docs/language/BUILDING.md) | Build instructions for Linux, macOS, Windows |
+| [OVERVIEW](docs/language/OVERVIEW.md) | Language philosophy, syntax overview, examples |
+
 ### Language Reference
 
 | Document | Description |
 |----------|-------------|
-| [OVERVIEW](docs/language/OVERVIEW.md) | Language philosophy, syntax overview, examples |
 | [TYPES](docs/language/TYPES.md) | Primitive and built-in types |
 | [STRINGS](docs/language/STRINGS.md) | String methods and interpolation |
 | [ARRAYS](docs/language/ARRAYS.md) | Array operations and slicing |
@@ -106,10 +112,16 @@ See `src/` for compiler implementation details.
 ## Testing
 
 ```bash
-make test             # All tests (unit + integration + exploratory)
-make test-unit        # Unit tests only
-make test-integration # Integration tests only
-make test-explore     # Exploratory tests only
+bin/tests                              # Unit tests
+./scripts/run_tests.sh integration     # Integration tests
+./scripts/run_tests.sh explore         # Exploratory tests
+```
+
+On Windows, use the PowerShell test runner:
+
+```powershell
+.\scripts\run_integration_test.ps1 -TestType integration -All
+.\scripts\run_integration_test.ps1 -TestType explore -All
 ```
 
 ## Project Structure
@@ -120,8 +132,9 @@ make test-explore     # Exploratory tests only
 ├── samples/       # Example .sn programs
 ├── docs/          # Documentation
 ├── benchmark/     # Performance benchmarks
-├── bin/           # Compiled outputs (sn, tests)
-└── Makefile       # Build system
+├── bin/           # Compiled outputs (sn, tests, runtime)
+├── build/         # CMake build directory
+└── CMakeLists.txt # CMake build configuration
 ```
 
 ## Contributing
