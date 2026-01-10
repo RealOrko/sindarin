@@ -67,9 +67,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-for /f "tokens=3" %%v in ('clang --version 2^>^&1 ^| findstr /i "clang version"') do (
+for /f "tokens=3" %%v in ('clang --version 2^>^&1 ^| findstr /i /c:"clang version"') do (
     echo      Found: Clang %%v
+    goto :done_clang_version
 )
+:done_clang_version
 
 REM ============================================================================
 REM Step 2: Check for CMake and Ninja
@@ -90,33 +92,40 @@ if errorlevel 1 (
     exit /b 1
 )
 
-for /f "tokens=3" %%v in ('cmake --version 2^>^&1 ^| findstr /i "cmake version"') do (
+for /f "tokens=3" %%v in ('cmake --version 2^>^&1 ^| findstr /i /c:"cmake version"') do (
     echo      Found: CMake %%v
+    goto :done_cmake_version
 )
+:done_cmake_version
 
 REM Check for Ninja (preferred) or fall back to MinGW Make
-set "CMAKE_GENERATOR=Ninja"
 where ninja.exe >nul 2>&1
-if errorlevel 1 (
-    echo      Ninja not found, checking for MinGW Make...
-    where mingw32-make.exe >nul 2>&1
-    if errorlevel 1 (
-        echo.
-        echo ERROR: Neither Ninja nor mingw32-make found in PATH.
-        echo.
-        echo Please install Ninja (recommended):
-        echo   - winget: winget install Ninja-build.Ninja
-        echo   - choco:  choco install ninja
-        echo.
-        echo Or install MinGW with make.
-        echo.
-        exit /b 1
-    )
+if not errorlevel 1 (
+    set "CMAKE_GENERATOR=Ninja"
+    echo      Using: Ninja
+    goto :done_generator
+)
+
+echo      Ninja not found, checking for MinGW Make...
+where mingw32-make.exe >nul 2>&1
+if not errorlevel 1 (
     set "CMAKE_GENERATOR=MinGW Makefiles"
     echo      Using: MinGW Makefiles
-) else (
-    echo      Using: Ninja
+    goto :done_generator
 )
+
+echo.
+echo ERROR: Neither Ninja nor mingw32-make found in PATH.
+echo.
+echo Please install Ninja ^(recommended^):
+echo   - winget: winget install Ninja-build.Ninja
+echo   - choco:  choco install ninja
+echo.
+echo Or install MinGW with make.
+echo.
+exit /b 1
+
+:done_generator
 
 REM ============================================================================
 REM Step 3: Configure and Build
@@ -137,16 +146,18 @@ if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
 REM Configure with CMake
 echo      Configuring CMake...
-set "CMAKE_ARGS=-G "%CMAKE_GENERATOR%" -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=%BUILD_TYPE%"
 
+REM Build cmake command based on build type
 if "%BUILD_TYPE%"=="Debug" (
-    set "CMAKE_ARGS=%CMAKE_ARGS% -DSN_DEBUG=ON -DSN_ASAN=ON"
+    set "CMAKE_DEBUG_FLAGS=-DSN_DEBUG=ON -DSN_ASAN=ON"
+) else (
+    set "CMAKE_DEBUG_FLAGS="
 )
 
 if "%VERBOSE%"=="1" (
-    cmake -S . -B "%BUILD_DIR%" %CMAKE_ARGS%
+    cmake -S . -B "%BUILD_DIR%" -G "%CMAKE_GENERATOR%" -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=%BUILD_TYPE% %CMAKE_DEBUG_FLAGS%
 ) else (
-    cmake -S . -B "%BUILD_DIR%" %CMAKE_ARGS% >nul 2>&1
+    cmake -S . -B "%BUILD_DIR%" -G "%CMAKE_GENERATOR%" -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=%BUILD_TYPE% %CMAKE_DEBUG_FLAGS% >nul 2>&1
 )
 
 if errorlevel 1 (
