@@ -174,6 +174,8 @@ static const char *filter_tinycc_flags(const char *flags, char *buf, size_t buf_
 #define DEFAULT_RELEASE_CFLAGS_MSVC "/O2 /DNDEBUG"
 #define DEFAULT_CFLAGS_MSVC "/W3 /D_CRT_SECURE_NO_WARNINGS"
 #define DEFAULT_LDLIBS_MSVC "ws2_32.lib bcrypt.lib"
+#define DEFAULT_LDLIBS_CLANG_WIN "-lws2_32 -lbcrypt -lpthread"
+#define DEFAULT_LDLIBS_GCC_WIN "-lws2_32 -lbcrypt -lpthread"
 
 /* Static buffers for config file values (persisted for lifetime of process) */
 static char cfg_cc[256];
@@ -407,6 +409,9 @@ void cc_backend_init_config(CCBackendConfig *config)
             default_cc = "clang";
             default_debug_cflags = DEFAULT_DEBUG_CFLAGS_CLANG;
             default_release_cflags = DEFAULT_RELEASE_CFLAGS_CLANG;
+#ifdef _WIN32
+            default_ldlibs = DEFAULT_LDLIBS_CLANG_WIN;
+#endif
             break;
         case BACKEND_TINYCC:
             default_cc = "tcc";
@@ -425,6 +430,9 @@ void cc_backend_init_config(CCBackendConfig *config)
             default_cc = "gcc";
             default_debug_cflags = DEFAULT_DEBUG_CFLAGS_GCC;
             default_release_cflags = DEFAULT_RELEASE_CFLAGS_GCC;
+#ifdef _WIN32
+            default_ldlibs = DEFAULT_LDLIBS_GCC_WIN;
+#endif
             break;
     }
 
