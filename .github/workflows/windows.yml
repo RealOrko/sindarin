@@ -1,11 +1,11 @@
-# GitHub Actions CI workflow for Windows (MSVC)
-# Builds and tests the Sn compiler on Windows using Visual Studio
+# GitHub Actions CI workflow for Windows
+# Builds and tests the Sn compiler on Windows using LLVM-MinGW
 
 name: Windows Build
 
 on:
   push:
-    branches: [ main, master, develop ]
+    branches: [ main, master, develop, windows ]
   pull_request:
     branches: [ main, master, develop ]
   workflow_dispatch:  # Allow manual triggering
@@ -18,25 +18,50 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup MSVC environment
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
+    - name: Install LLVM-MinGW
+      shell: pwsh
+      run: |
+        # Download and install LLVM-MinGW
+        $version = "20241217"
+        $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/llvm-mingw-$version-ucrt-x86_64.zip"
+        $zipPath = "$env:TEMP\llvm-mingw.zip"
+        $extractPath = "C:\llvm-mingw"
 
-    - name: Verify MSVC tools
+        Write-Host "Downloading LLVM-MinGW..."
+        Invoke-WebRequest -Uri $url -OutFile $zipPath
+
+        Write-Host "Extracting..."
+        Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+
+        # Find the extracted directory (has version in name)
+        $llvmDir = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
+
+        # Add to PATH for subsequent steps
+        $binPath = Join-Path $llvmDir.FullName "bin"
+        Write-Host "Adding $binPath to PATH"
+        echo "$binPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Install Ninja
+      shell: pwsh
+      run: |
+        choco install ninja -y
+
+    - name: Verify tools
       shell: cmd
       run: |
-        echo Checking cl.exe...
-        where cl.exe
-        cl.exe 2>&1 | findstr /C:"Microsoft"
+        echo Checking clang...
+        clang --version
         echo.
-        echo Checking nmake...
-        where nmake.exe
+        echo Checking cmake...
+        cmake --version
+        echo.
+        echo Checking ninja...
+        ninja --version
 
     - name: Configure CMake
       shell: cmd
       run: |
-        cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release
+        cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release
         if errorlevel 1 exit /b 1
 
     - name: Build compiler
@@ -62,6 +87,13 @@ jobs:
         )
         echo Found: bin\tests.exe
 
+        echo Checking for runtime objects...
+        if not exist "bin\lib\clang\arena.o" (
+          echo ERROR: bin\lib\clang\arena.o not found
+          exit /b 1
+        )
+        echo Found: bin\lib\clang\*.o
+
         echo.
         echo Build outputs verified successfully!
 
@@ -78,83 +110,48 @@ jobs:
 
     - name: Run integration tests
       shell: pwsh
+      env:
+        SN_CC: clang
       run: |
-        # Note: For local testing, use scripts/run_integration_test.ps1 -All
         Write-Host "Running integration tests..."
 
-        # Create test output directory
-        $testDir = "build\test_output"
-        New-Item -ItemType Directory -Force -Path $testDir | Out-Null
-
-        # Get all .sn test files
-        $testFiles = Get-ChildItem -Path "tests\integration" -Filter "*.sn" -File
-        $passed = 0
-        $failed = 0
-        $skipped = 0
-
-        foreach ($testFile in $testFiles) {
-            $testName = $testFile.BaseName
-            $expectedFile = Join-Path $testFile.DirectoryName "$testName.expected"
-            $exePath = Join-Path $testDir "$testName.exe"
-            $outputFile = Join-Path $testDir "$testName.out"
-
-            Write-Host -NoNewline "  $testName... "
-
-            # Skip if no expected file
-            if (-not (Test-Path $expectedFile)) {
-                Write-Host "SKIP (no .expected)" -ForegroundColor Yellow
-                $skipped++
-                continue
-            }
-
-            # Compile the test
-            $compileResult = & bin\sn.exe $testFile.FullName -o $exePath 2>&1
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "FAIL (compile error)" -ForegroundColor Red
-                Write-Host "    $compileResult"
-                $failed++
-                continue
-            }
-
-            # Run the test
-            $output = & $exePath 2>&1
-            $output | Out-File -FilePath $outputFile -Encoding utf8
-
-            if ($LASTEXITCODE -ne 0) {
-                Write-Host "FAIL (runtime error, exit code: $LASTEXITCODE)" -ForegroundColor Red
-                $failed++
-                continue
-            }
-
-            # Compare output
-            $expected = Get-Content $expectedFile -Raw
-            $actual = Get-Content $outputFile -Raw
-
-            # Normalize line endings for comparison
-            $expected = $expected -replace "`r`n", "`n"
-            $actual = $actual -replace "`r`n", "`n"
-
-            if ($expected.Trim() -eq $actual.Trim()) {
-                Write-Host "PASS" -ForegroundColor Green
-                $passed++
-            } else {
-                Write-Host "FAIL (output mismatch)" -ForegroundColor Red
-                Write-Host "    Expected: $($expected.Substring(0, [Math]::Min(50, $expected.Length)))..."
-                Write-Host "    Got:      $($actual.Substring(0, [Math]::Min(50, $actual.Length)))..."
-                $failed++
-            }
+        # Use the test runner script
+        & .\scripts\run_integration_test.ps1 -TestType integration -All -Compiler bin\sn.exe
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Integration tests failed!" -ForegroundColor Red
+          exit 1
         }
 
-        Write-Host ""
-        Write-Host "============================================================"
-        Write-Host "Results: $passed passed, $failed failed, $skipped skipped"
-
-        if ($failed -gt 0) {
-            Write-Host "Some integration tests failed!" -ForegroundColor Red
-            exit 1
+        Write-Host "Running integration error tests..."
+        & .\scripts\run_integration_test.ps1 -TestType integration-errors -All -Compiler bin\sn.exe
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Integration error tests failed!" -ForegroundColor Red
+          exit 1
         }
 
         Write-Host "All integration tests passed!" -ForegroundColor Green
+
+    - name: Run exploratory tests
+      shell: pwsh
+      env:
+        SN_CC: clang
+      run: |
+        Write-Host "Running exploratory tests..."
+
+        & .\scripts\run_integration_test.ps1 -TestType explore -All -Compiler bin\sn.exe
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Exploratory tests failed!" -ForegroundColor Red
+          exit 1
+        }
+
+        Write-Host "Running exploratory error tests..."
+        & .\scripts\run_integration_test.ps1 -TestType explore-errors -All -Compiler bin\sn.exe
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "Exploratory error tests failed!" -ForegroundColor Red
+          exit 1
+        }
+
+        Write-Host "All exploratory tests passed!" -ForegroundColor Green
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -164,9 +161,12 @@ jobs:
         path: |
           bin/sn.exe
           bin/tests.exe
+          bin/lib/clang/*.o
+          bin/include/**/*
+          bin/*.cfg
         retention-days: 7
 
-  # Debug build job (optional, can be enabled for troubleshooting)
+  # Debug build job (triggered manually)
   build-debug:
     runs-on: windows-latest
     if: github.event_name == 'workflow_dispatch'
@@ -175,15 +175,29 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Setup MSVC environment
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
+    - name: Install LLVM-MinGW
+      shell: pwsh
+      run: |
+        $version = "20241217"
+        $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/llvm-mingw-$version-ucrt-x86_64.zip"
+        $zipPath = "$env:TEMP\llvm-mingw.zip"
+        $extractPath = "C:\llvm-mingw"
+
+        Invoke-WebRequest -Uri $url -OutFile $zipPath
+        Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+
+        $llvmDir = Get-ChildItem -Path $extractPath -Directory | Select-Object -First 1
+        $binPath = Join-Path $llvmDir.FullName "bin"
+        echo "$binPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+    - name: Install Ninja
+      shell: pwsh
+      run: choco install ninja -y
 
     - name: Configure CMake (Debug)
       shell: cmd
       run: |
-        cmake -S . -B build -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Debug -DSN_DEBUG=ON
+        cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DSN_DEBUG=ON -DSN_ASAN=ON
 
     - name: Build compiler (Debug)
       shell: cmd
