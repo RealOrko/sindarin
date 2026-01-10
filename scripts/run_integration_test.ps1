@@ -39,30 +39,53 @@ if ($Help) {
     exit 0
 }
 
-# Try to set up VS Developer environment (fail silently if not available)
-# Try VS 2026 (18), then VS 2022
-$VsInstallPaths = @(
-    "C:\Program Files\Microsoft Visual Studio\18\Community",
-    "C:\Program Files\Microsoft Visual Studio\2022\Community"
-)
-foreach ($VsPath in $VsInstallPaths) {
-    $VsDevShellModule = Join-Path $VsPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
-    if (Test-Path $VsDevShellModule) {
-        try {
-            Import-Module $VsDevShellModule -ErrorAction SilentlyContinue
-            Enter-VsDevShell -VsInstallPath $VsPath -DevCmdArguments '-arch=x64' -SkipAutomaticLocation 2>$null
-            break
-        } catch {
-            # VS Dev Shell not available, continue anyway
+# Detect available C compiler and configure environment accordingly
+# Priority: clang-cl (MSVC-compatible) > clang (MinGW) > gcc
+
+$UseVsDevShell = $false
+$ClangClFound = $false
+
+# Check for clang-cl in standard LLVM install path
+$LlvmPath = "C:\Program Files\LLVM\bin"
+if (Test-Path (Join-Path $LlvmPath "clang-cl.exe")) {
+    $ClangClFound = $true
+    $env:PATH = "$LlvmPath;$env:PATH"
+}
+
+# If clang-cl found, try to set up VS Developer environment for MSVC libs
+if ($ClangClFound) {
+    $VsInstallPaths = @(
+        "C:\Program Files\Microsoft Visual Studio\18\Community",
+        "C:\Program Files\Microsoft Visual Studio\2022\Community"
+    )
+    foreach ($VsPath in $VsInstallPaths) {
+        $VsDevShellModule = Join-Path $VsPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
+        if (Test-Path $VsDevShellModule) {
+            try {
+                Import-Module $VsDevShellModule -ErrorAction SilentlyContinue
+                Enter-VsDevShell -VsInstallPath $VsPath -DevCmdArguments '-arch=x64' -SkipAutomaticLocation 2>$null
+                $UseVsDevShell = $true
+                # Re-add LLVM to PATH after VS Dev Shell (it may have reset PATH)
+                $env:PATH = "$LlvmPath;$env:PATH"
+                break
+            } catch {
+                # VS Dev Shell not available, continue anyway
+            }
         }
     }
 }
 
-# Add LLVM to PATH if available (for clang-cl)
-# NOTE: This must be done AFTER Enter-VsDevShell which may reset PATH
-$LlvmPath = "C:\Program Files\LLVM\bin"
-if (Test-Path $LlvmPath) {
-    $env:PATH = "$LlvmPath;$env:PATH"
+# If clang-cl not found, check for MinGW clang or gcc and set SN_CC
+if (-not $ClangClFound) {
+    $ClangPath = (Get-Command clang -ErrorAction SilentlyContinue)
+    $GccPath = (Get-Command gcc -ErrorAction SilentlyContinue)
+
+    if ($ClangPath) {
+        $env:SN_CC = "clang"
+    } elseif ($GccPath) {
+        $env:SN_CC = "gcc"
+    }
+    # If neither found, let the compiler produce its own error
 }
 
 # Paths

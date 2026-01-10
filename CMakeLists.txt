@@ -236,9 +236,9 @@ if(PLATFORM_HEADERS)
     file(INSTALL ${PLATFORM_HEADERS} DESTINATION "${PLATFORM_INCLUDE_DIR}")
 endif()
 
-# Build runtime as static library for linking with generated code
+# Build runtime object files for linking with generated code
 # On Windows with Clang/MinGW, put in bin/lib/clang/
-# On Linux, the Makefile handles this separately
+# The gcc_backend expects individual .o files, not a static library
 if(WIN32 AND NOT MSVC)
     set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
     file(MAKE_DIRECTORY ${RUNTIME_LIB_DIR})
@@ -272,8 +272,8 @@ if(WIN32 AND NOT MSVC)
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c
     )
 
-    # Create static library for runtime
-    add_library(sn_runtime STATIC ${SN_RUNTIME_LIB_SOURCES})
+    # Create object library for runtime (generates .o files)
+    add_library(sn_runtime OBJECT ${SN_RUNTIME_LIB_SOURCES})
 
     target_include_directories(sn_runtime PRIVATE
         ${CMAKE_SOURCE_DIR}/src
@@ -281,14 +281,86 @@ if(WIN32 AND NOT MSVC)
         ${CMAKE_SOURCE_DIR}/src/platform
     )
 
-    # Output the library to bin/lib/clang/
-    set_target_properties(sn_runtime PROPERTIES
-        ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_LIB_DIR}
-        OUTPUT_NAME "sn_runtime"
-    )
-
-    add_custom_command(TARGET sn_runtime POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E echo "Runtime library built in ${RUNTIME_LIB_DIR}"
+    # Custom target to copy object files to bin/lib/clang/ with expected names
+    # Use a dummy static library that depends on the object library to trigger the copy
+    add_custom_target(sn_runtime_install ALL
+        DEPENDS sn_runtime
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/arena.c.obj
+            ${RUNTIME_LIB_DIR}/arena.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/debug.c.obj
+            ${RUNTIME_LIB_DIR}/debug.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime.c.obj
+            ${RUNTIME_LIB_DIR}/runtime.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_arena.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_arena.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_string.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_string.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_array.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_array.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_text_file.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_text_file.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_binary_file.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_binary_file.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_io.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_io.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_byte.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_byte.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_path.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_path.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_date.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_date.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_time.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_time.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_thread.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_thread.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_process.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_process.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_net.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_net.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_core.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_random_core.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_basic.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_random_basic.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_static.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_random_static.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_choice.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_random_choice.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_collection.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_random_collection.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_random.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_uuid.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_uuid.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_sha1.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_sha1.o
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_env.c.obj
+            ${RUNTIME_LIB_DIR}/runtime_env.o
+        COMMENT "Installing runtime objects to ${RUNTIME_LIB_DIR}"
     )
 endif()
 

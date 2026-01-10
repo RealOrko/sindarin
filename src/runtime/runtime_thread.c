@@ -715,12 +715,13 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
             return NULL;
 
         /* Primitive types - copy by value
-         * Note: Sindarin int is 64-bit, stored as long in C code */
+         * Note: Sindarin int is 64-bit, stored as long long in C code
+         * (on Windows/MinGW, long is 32-bit, so we must use long long) */
         case RT_TYPE_INT:
         case RT_TYPE_LONG: {
-            long *promoted = rt_arena_alloc(dest, sizeof(long));
+            long long *promoted = rt_arena_alloc(dest, sizeof(long long));
             if (promoted != NULL) {
-                *promoted = *(long *)value;
+                *promoted = *(long long *)value;
             }
             return promoted;
         }
