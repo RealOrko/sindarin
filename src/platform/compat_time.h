@@ -6,7 +6,8 @@
 #ifndef SN_COMPAT_TIME_H
 #define SN_COMPAT_TIME_H
 
-#ifdef _WIN32
+/* Only needed for MSVC/clang-cl on Windows, not MinGW (which is POSIX-compatible) */
+#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
 
 #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN

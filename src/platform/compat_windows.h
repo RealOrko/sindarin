@@ -92,25 +92,23 @@ static inline int access(const char *path, int mode) {
     return _access(path, mode);
 }
 
-/* unlink() - delete a file */
-static inline int unlink(const char *path) {
-    return _unlink(path);
-}
+/* POSIX file/directory functions - use UCRT's built-in versions if available,
+ * otherwise map to underscore-prefixed versions */
+#ifndef unlink
+    #define unlink _unlink
+#endif
 
-/* rmdir() - remove a directory */
-static inline int rmdir(const char *path) {
-    return _rmdir(path);
-}
+#ifndef rmdir
+    #define rmdir _rmdir
+#endif
 
-/* getcwd() - get current working directory */
-static inline char *getcwd(char *buf, size_t size) {
-    return _getcwd(buf, (int)size);
-}
+#ifndef getcwd
+    #define getcwd _getcwd
+#endif
 
-/* chdir() - change directory */
-static inline int chdir(const char *path) {
-    return _chdir(path);
-}
+#ifndef chdir
+    #define chdir _chdir
+#endif
 
 /* mkdir() with mode (mode is ignored on Windows) */
 static inline int mkdir_compat(const char *path, mode_t mode) {

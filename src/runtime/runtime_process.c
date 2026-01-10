@@ -3,7 +3,12 @@
 #include <string.h>
 
 #ifdef _WIN32
-#include "../platform/compat_windows.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides Windows headers but not fork/wait (Windows uses CreateProcess) */
+    #include <windows.h>
+    #else
+    #include "../platform/compat_windows.h"
+    #endif
 #else
 #include <unistd.h>
 #include <sys/wait.h>

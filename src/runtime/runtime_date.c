@@ -4,7 +4,14 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include "../platform/compat_windows.h"
+    #if !defined(__MINGW32__) && !defined(__MINGW64__)
+    /* Only for MSVC/clang-cl, not MinGW */
+    #include "../platform/compat_windows.h"
+    #endif
+    /* Windows uses localtime_s with swapped arguments */
+    #define LOCALTIME_R(time_ptr, tm_ptr) localtime_s(tm_ptr, time_ptr)
+#else
+    #define LOCALTIME_R(time_ptr, tm_ptr) localtime_r(time_ptr, tm_ptr)
 #endif
 
 #include "runtime_date.h"
@@ -285,7 +292,7 @@ RtDate *rt_date_today(RtArena *arena)
     /* Get current Unix timestamp and convert to local date */
     time_t now = time(NULL);
     struct tm tm;
-    localtime_r(&now, &tm);
+    LOCALTIME_R(&now, &tm);
 
     /* Convert local date to epoch days using our calendar algorithm */
     int32_t days = rt_date_days_from_ymd(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
@@ -937,7 +944,7 @@ int rt_date_equals(RtDate *date, RtDate *other)
  * Date/Time Conversion
  * ============================================================================ */
 
-/* Convert Date to Time (midnight on that date in local timezone) */
+/* Convert Date to Time (midnight UTC on that date) */
 RtTime *rt_date_to_time(RtArena *arena, RtDate *date)
 {
     if (arena == NULL) {
@@ -949,23 +956,10 @@ RtTime *rt_date_to_time(RtArena *arena, RtDate *date)
         return NULL;
     }
 
-    /* Get date components */
-    int year, month, day;
-    rt_date_ymd_from_days(date->days, &year, &month, &day);
-
-    /* Create struct tm for midnight local time on this date */
-    struct tm tm = {0};
-    tm.tm_year = year - 1900;
-    tm.tm_mon = month - 1;
-    tm.tm_mday = day;
-    tm.tm_hour = 0;
-    tm.tm_min = 0;
-    tm.tm_sec = 0;
-    tm.tm_isdst = -1;  /* Let mktime determine DST */
-
-    /* Convert to time_t (seconds since epoch in local timezone) */
-    time_t secs = mktime(&tm);
-    long long ms = (long long)secs * 1000LL;
+    /* Convert days since epoch directly to milliseconds (midnight UTC).
+     * This avoids using mktime which fails on Windows for pre-1970 dates,
+     * and is consistent with rt_time_to_tm's UTC-based calculations. */
+    long long ms = (long long)date->days * 86400LL * 1000LL;
 
     return rt_time_from_millis(arena, ms);
 }

@@ -5,7 +5,14 @@
 #include <errno.h>
 
 #ifdef _WIN32
-#include "../platform/platform.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides POSIX headers */
+    #include <sys/stat.h>
+    #include <unistd.h>
+    #include <dirent.h>
+    #else
+    #include "../platform/platform.h"
+    #endif
 #else
 #include <sys/stat.h>
 #include <unistd.h>
@@ -22,13 +29,21 @@
  * Implementation of cross-platform path manipulation functions.
  * ============================================================================ */
 
-/* Platform-specific path separator */
+/* Platform-specific path separator and mkdir */
 #ifdef _WIN32
 #define PATH_SEPARATOR '\\'
 #define PATH_SEPARATOR_STR "\\"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW mkdir takes one argument */
+    #define MKDIR(path, mode) mkdir(path)
+    #else
+    /* MSVC: compat_windows.h provides mkdir(path, mode) macro */
+    #define MKDIR(path, mode) mkdir(path, mode)
+    #endif
 #else
 #define PATH_SEPARATOR '/'
 #define PATH_SEPARATOR_STR "/"
+#define MKDIR(path, mode) mkdir(path, mode)
 #endif
 
 /* Helper: Check if character is a path separator */
@@ -443,7 +458,7 @@ static int create_directory_recursive(const char *path) {
             *p = '\0';
             if (path_copy[0] != '\0') {
                 if (stat(path_copy, &st) != 0) {
-                    if (mkdir(path_copy, 0755) != 0 && errno != EEXIST) {
+                    if (MKDIR(path_copy, 0755) != 0 && errno != EEXIST) {
                         free(path_copy);
                         return -1;
                     }
@@ -455,7 +470,7 @@ static int create_directory_recursive(const char *path) {
     }
 
     /* Create final directory */
-    int result = mkdir(path_copy, 0755);
+    int result = MKDIR(path_copy, 0755);
     free(path_copy);
 
     if (result != 0 && errno != EEXIST) {

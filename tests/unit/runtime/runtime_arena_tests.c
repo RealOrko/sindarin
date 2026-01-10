@@ -251,19 +251,19 @@ static void test_rt_arena_many_allocations(void)
 static void test_rt_array_alloc_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
-    long *arr = rt_array_alloc_long(arena, 5, 42);
+    long long *arr = rt_array_alloc_long(arena, 5, 42);
     assert(arr != NULL);
     assert(rt_array_length(arr) == 5);
     for (size_t i = 0; i < 5; i++) {
         assert(arr[i] == 42);
     }
-    long *arr2 = rt_array_alloc_long(arena, 10, 0);
+    long long *arr2 = rt_array_alloc_long(arena, 10, 0);
     assert(arr2 != NULL);
     assert(rt_array_length(arr2) == 10);
     for (size_t i = 0; i < 10; i++) {
         assert(arr2[i] == 0);
     }
-    long *arr3 = rt_array_alloc_long(arena, 0, 99);
+    long long *arr3 = rt_array_alloc_long(arena, 0, 99);
     assert(arr3 != NULL);
     assert(rt_array_length(arr3) == 0);
     rt_arena_destroy(arena);

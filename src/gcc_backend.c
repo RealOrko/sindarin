@@ -6,12 +6,29 @@
 
 #ifdef _WIN32
 #include "platform/platform.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides most POSIX functions but not fork/wait */
+    #include <unistd.h>
+    #include <libgen.h>
+    #endif
 #else
 #include <unistd.h>
 #include <sys/wait.h>
 #include <libgen.h>
 #endif
 #include <limits.h>
+
+/* MinGW needs sn_get_executable_path (provided by compat_windows.h for MSVC) */
+#if defined(_WIN32) && (defined(__MINGW32__) || defined(__MINGW64__))
+#include <windows.h>
+static inline ssize_t sn_get_executable_path(char *buf, size_t size) {
+    DWORD len = GetModuleFileNameA(NULL, buf, (DWORD)size);
+    if (len == 0 || len >= size) {
+        return -1;
+    }
+    return (ssize_t)len;
+}
+#endif
 
 /* Cross-platform path separator */
 #ifdef _WIN32
@@ -50,16 +67,16 @@ static BackendType detect_backend(const char *cc)
         return BACKEND_TINYCC;
     }
 
-    /* Check for MSVC (cl.exe) */
-    if (strstr(cc, "cl") != NULL || strstr(cc, "msvc") != NULL)
-    {
-        return BACKEND_MSVC;
-    }
-
-    /* Check for clang (must be before gcc since some systems alias clang as gcc) */
+    /* Check for clang BEFORE cl to avoid matching "clang" as "cl"ang */
     if (strstr(cc, "clang") != NULL)
     {
         return BACKEND_CLANG;
+    }
+
+    /* Check for MSVC (cl.exe) - must be after clang check */
+    if (strstr(cc, "cl") != NULL || strstr(cc, "msvc") != NULL)
+    {
+        return BACKEND_MSVC;
     }
 
     /* Default to gcc for gcc, cc, or unknown */
@@ -330,8 +347,13 @@ void cc_backend_load_config(const char *compiler_dir)
     if (cfg_loaded) return;
     cfg_loaded = true;
 
-    /* Detect backend from executable name */
-    BackendType backend = detect_backend_from_exe();
+    /* Detect backend: first check SN_CC env, then fall back to exe name */
+    BackendType backend;
+    const char *sn_cc = getenv("SN_CC");
+    if (sn_cc && sn_cc[0])
+        backend = detect_backend(sn_cc);
+    else
+        backend = detect_backend_from_exe();
     const char *config_name = get_config_filename(backend);
 
     /* Build config file path */
@@ -355,10 +377,24 @@ void cc_backend_init_config(CCBackendConfig *config)
 {
     const char *env_val;
 
-    /* Detect backend from executable name for defaults */
-    BackendType backend = detect_backend_from_exe();
+    /* First, determine the actual CC value (priority: env > config > default) */
+    const char *actual_cc;
+    env_val = getenv("SN_CC");
+    if (env_val && env_val[0])
+        actual_cc = env_val;
+    else if (cfg_cc[0])
+        actual_cc = cfg_cc;
+    else
+        actual_cc = NULL;  /* Will determine from exe name */
 
-    /* Set backend-specific defaults */
+    /* Detect backend from actual CC if provided, otherwise from exe name */
+    BackendType backend;
+    if (actual_cc)
+        backend = detect_backend(actual_cc);
+    else
+        backend = detect_backend_from_exe();
+
+    /* Set backend-specific defaults based on actual backend */
     const char *default_cc;
     const char *default_debug_cflags;
     const char *default_release_cflags;
@@ -398,12 +434,9 @@ void cc_backend_init_config(CCBackendConfig *config)
     /* Priority: Environment variable > Config file > Default
      * Config file values are in cfg_* buffers (empty if not set) */
 
-    /* SN_CC: C compiler command */
-    env_val = getenv("SN_CC");
-    if (env_val && env_val[0])
-        config->cc = env_val;
-    else if (cfg_cc[0])
-        config->cc = cfg_cc;
+    /* SN_CC: C compiler command (already determined above) */
+    if (actual_cc)
+        config->cc = actual_cc;
     else
         config->cc = default_cc;
 

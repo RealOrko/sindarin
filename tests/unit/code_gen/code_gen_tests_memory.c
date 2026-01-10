@@ -57,10 +57,10 @@ static void test_code_gen_private_function(void)
     // Expected: private function without heap allocations doesn't need arena
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
-                                        "long compute(void);\n\n"
-                                        "long compute() {\n"
-                                        "    long _return_value = 0;\n"
-                                        "    _return_value = 42L;\n"
+                                        "long long compute(void);\n\n"
+                                        "long long compute() {\n"
+                                        "    long long _return_value = 0;\n"
+                                        "    _return_value = 42LL;\n"
                                         "    goto compute_return;\n"
                                         "compute_return:\n"
                                         "    return _return_value;\n"
@@ -120,10 +120,10 @@ static void test_code_gen_shared_function(void)
     // Expected: shared function receives caller's arena as hidden first parameter
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
-                                        "long helper(RtArena *);\n\n"
-                                        "long helper(RtArena *__caller_arena__) {\n"
-                                        "    long _return_value = 0;\n"
-                                        "    _return_value = 1L;\n"
+                                        "long long helper(RtArena *);\n\n"
+                                        "long long helper(RtArena *__caller_arena__) {\n"
+                                        "    long long _return_value = 0;\n"
+                                        "    _return_value = 1LL;\n"
                                         "    goto helper_return;\n"
                                         "helper_return:\n"
                                         "    return _return_value;\n"
@@ -183,10 +183,10 @@ static void test_code_gen_default_function(void)
     // Expected: default function without heap allocations doesn't need arena
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
-                                        "long regular(void);\n\n"
-                                        "long regular() {\n"
-                                        "    long _return_value = 0;\n"
-                                        "    _return_value = 5L;\n"
+                                        "long long regular(void);\n\n"
+                                        "long long regular() {\n"
+                                        "    long long _return_value = 0;\n"
+                                        "    _return_value = 5LL;\n"
                                         "    goto regular_return;\n"
                                         "regular_return:\n"
                                         "    return _return_value;\n"

@@ -41,7 +41,7 @@ Token lexer_scan_token(Lexer *lexer)
             {
                 lexer_advance(lexer);
             }
-            if (lexer_is_at_end(lexer) || lexer_peek(lexer) == '\n' ||
+            if (lexer_is_at_end(lexer) || lexer_peek(lexer) == '\n' || lexer_peek(lexer) == '\r' ||
                 (lexer_peek(lexer) == '/' && lexer_peek_next(lexer) == '/') ||
                 lexer_peek(lexer) == '#')
             {

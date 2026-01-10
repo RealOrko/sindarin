@@ -8,8 +8,14 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include "../platform/compat_windows.h"
-#include "../platform/compat_pthread.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides pthreads but not fork/wait */
+    #include <pthread.h>
+    #include <unistd.h>
+    #else
+    #include "../platform/compat_windows.h"
+    #include "../platform/compat_pthread.h"
+    #endif
 #else
 #include <pthread.h>
 #include <unistd.h>
@@ -520,7 +526,10 @@ static void test_rt_tcp_stream_connect_basic(void)
     rt_arena_destroy(server_arena);
 }
 
-void test_rt_tcp_stream_connect_has_valid_fd()
+/* The following tests use nested functions which are a GCC extension.
+ * They are not supported by MSVC or clang-cl on Windows. */
+#ifndef _WIN32
+
 static void test_rt_tcp_stream_connect_has_valid_fd(void)
 {
 
@@ -1460,7 +1469,10 @@ static void test_rt_udp_socket_empty_datagram()
  * These tests verify that invalid address formats cause appropriate errors.
  * Since the runtime calls exit(1) on errors, we use fork() to test in a
  * child process and verify the exit code.
+ * NOTE: These tests only work on POSIX systems (fork/wait not available on Windows)
  * ============================================================================ */
+
+#ifndef _WIN32  /* fork-based tests only on POSIX */
 
 /* Helper function to test that a function call exits with failure.
  * Returns 1 if the child exited with non-zero status, 0 otherwise.
@@ -1634,6 +1646,8 @@ static void test_udp_address_error_missing_port(void)
     assert(expect_exit_failure(try_udp_bind_missing_port) == 1);
 }
 
+#endif  /* _WIN32 - end of fork-based tests */
+
 /* ============================================================================
  * Test Main Entry Point
  * ============================================================================ */
@@ -1670,6 +1684,8 @@ void test_rt_net_main(void)
     TEST_RUN("tcp_listener_close_releases_port", test_rt_tcp_listener_close_releases_port);
 
     TEST_RUN("tcp_stream_connect_basic", test_rt_tcp_stream_connect_basic);
+#ifndef _WIN32
+    /* These tests use nested functions (GCC extension) */
     TEST_RUN("tcp_stream_connect_has_valid_fd", test_rt_tcp_stream_connect_has_valid_fd);
     TEST_RUN("tcp_stream_connect_has_remote_address", test_rt_tcp_stream_connect_has_remote_address);
     TEST_RUN("tcp_stream_connect_localhost_hostname", test_rt_tcp_stream_connect_localhost_hostname);
@@ -1677,6 +1693,7 @@ void test_rt_net_main(void)
     /* TcpStream close tests */
     TEST_RUN("tcp_stream_close_basic", test_rt_tcp_stream_close_basic);
     TEST_RUN("tcp_stream_close_multiple_times", test_rt_tcp_stream_close_multiple_times);
+#endif
 
     /* TcpStream read/write tests */
     TEST_RUN("tcp_stream_write_basic", test_rt_tcp_stream_write_basic);
@@ -1704,6 +1721,7 @@ void test_rt_net_main(void)
     TEST_RUN("udp_socket_empty_datagram", test_rt_udp_socket_empty_datagram);
 
     /* Address parsing error tests (use fork to test exit behavior) */
+#ifndef _WIN32  /* fork-based tests only on POSIX */
     TEST_RUN("address_error_empty_string", test_address_error_empty_string);
     TEST_RUN("address_error_missing_port", test_address_error_missing_port);
     TEST_RUN("address_error_invalid_port_letters", test_address_error_invalid_port_letters);
@@ -1715,4 +1733,5 @@ void test_rt_net_main(void)
     TEST_RUN("address_error_empty_port", test_address_error_empty_port);
     TEST_RUN("udp_address_error_empty_string", test_udp_address_error_empty_string);
     TEST_RUN("udp_address_error_missing_port", test_udp_address_error_missing_port);
+#endif
 }

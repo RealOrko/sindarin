@@ -1,5 +1,5 @@
 # Sn Compiler - CMake Build System
-# Cross-platform build for Linux (GCC/Clang) and Windows (MSVC)
+# Cross-platform build for Linux (GCC/Clang) and Windows (Clang/MinGW)
 
 cmake_minimum_required(VERSION 3.16)
 project(sn C)
@@ -13,45 +13,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-# For multi-config generators (MSVC), put binaries directly in bin/
-# Set output directories for all standard configuration types
-foreach(CONFIG_TYPE IN ITEMS Debug Release RelWithDebInfo MinSizeRel)
-    string(TOUPPER ${CONFIG_TYPE} CONFIG_TYPE_UPPER)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_SOURCE_DIR}/bin)
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_SOURCE_DIR}/bin)
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_TYPE_UPPER} ${CMAKE_SOURCE_DIR}/bin)
-endforeach()
-
 # Options
 option(SN_DEBUG "Build with debug symbols and sanitizers" OFF)
 option(SN_ASAN "Enable AddressSanitizer (GCC/Clang only)" OFF)
 
-# Platform-specific settings
-if(MSVC)
-    # MSVC compiler flags
-    add_compile_options(/W3)
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+# Compiler flags (GCC/Clang on all platforms)
+add_compile_options(-Wall -Wextra)
+add_compile_definitions(_GNU_SOURCE)
 
-    if(SN_DEBUG)
-        add_compile_options(/Zi /Od /RTC1)
-    else()
-        add_compile_options(/O2)
+if(SN_DEBUG)
+    add_compile_options(-g -O0)
+    if(SN_ASAN)
+        add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
+        add_link_options(-fsanitize=address)
     endif()
 else()
-    # GCC/Clang compiler flags
-    add_compile_options(-Wall -Wextra)
-    add_compile_definitions(_GNU_SOURCE)
-
-    if(SN_DEBUG)
-        add_compile_options(-g -O0)
-        if(SN_ASAN)
-            add_compile_options(-fsanitize=address -fno-omit-frame-pointer)
-            add_link_options(-fsanitize=address)
-        endif()
-    else()
-        add_compile_options(-O3 -flto)
-        add_link_options(-flto -O3)
-    endif()
+    add_compile_options(-O3 -flto)
+    add_link_options(-flto -O3)
 endif()
 
 # Collect source files
@@ -198,11 +176,9 @@ target_include_directories(sn PRIVATE
 )
 
 # Platform-specific libraries
-if(MSVC)
-    # Windows libraries
-    target_link_libraries(sn PRIVATE ws2_32 bcrypt)
+if(WIN32)
+    target_link_libraries(sn PRIVATE ws2_32 bcrypt pthread)
 else()
-    # Unix libraries
     target_link_libraries(sn PRIVATE pthread m)
 endif()
 
@@ -218,8 +194,8 @@ target_include_directories(tests PRIVATE
     ${CMAKE_SOURCE_DIR}/src/platform
 )
 
-if(MSVC)
-    target_link_libraries(tests PRIVATE ws2_32 bcrypt)
+if(WIN32)
+    target_link_libraries(tests PRIVATE ws2_32 bcrypt pthread)
 else()
     target_link_libraries(tests PRIVATE pthread m)
 endif()
@@ -260,10 +236,11 @@ if(PLATFORM_HEADERS)
     file(INSTALL ${PLATFORM_HEADERS} DESTINATION "${PLATFORM_INCLUDE_DIR}")
 endif()
 
-# Build runtime as separate object files for linking with generated code
-# These go in bin/lib/msvc/ to match the Linux structure (bin/lib/gcc/, bin/lib/clang/)
-if(MSVC)
-    set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/msvc)
+# Build runtime as static library for linking with generated code
+# On Windows with Clang/MinGW, put in bin/lib/clang/
+# On Linux, the Makefile handles this separately
+if(WIN32 AND NOT MSVC)
+    set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
     file(MAKE_DIRECTORY ${RUNTIME_LIB_DIR})
 
     # Runtime-only sources (subset needed for generated code)
@@ -304,18 +281,12 @@ if(MSVC)
         ${CMAKE_SOURCE_DIR}/src/platform
     )
 
-    target_compile_definitions(sn_runtime PRIVATE _CRT_SECURE_NO_WARNINGS)
-
-    # Output the library to bin/lib/msvc/
+    # Output the library to bin/lib/clang/
     set_target_properties(sn_runtime PROPERTIES
         ARCHIVE_OUTPUT_DIRECTORY ${RUNTIME_LIB_DIR}
-        ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${RUNTIME_LIB_DIR}
-        ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${RUNTIME_LIB_DIR}
         OUTPUT_NAME "sn_runtime"
     )
 
-    # Also create individual object files for compatibility with the gcc/clang approach
-    # This is done via a custom command after the library is built
     add_custom_command(TARGET sn_runtime POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E echo "Runtime library built in ${RUNTIME_LIB_DIR}"
     )

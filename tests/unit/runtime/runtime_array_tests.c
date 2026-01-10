@@ -17,7 +17,7 @@ static void test_rt_array_clear(void)
     RtArena *arena = rt_arena_create(NULL);
 
     /* Create and populate array */
-    long *arr = rt_array_alloc_long(arena, 5, 42);
+    long long *arr = rt_array_alloc_long(arena, 5, 42);
     assert(rt_array_length(arr) == 5);
 
     /* Clear the array */
@@ -44,7 +44,7 @@ static void test_rt_array_push_long(void)
     RtArena *arena = rt_arena_create(NULL);
 
     /* Start with empty array */
-    long *arr = rt_array_alloc_long(arena, 0, 0);
+    long long *arr = rt_array_alloc_long(arena, 0, 0);
     assert(rt_array_length(arr) == 0);
 
     /* Push elements */
@@ -149,7 +149,7 @@ static void test_rt_array_pop_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 0, 0);
+    long long *arr = rt_array_alloc_long(arena, 0, 0);
     arr = rt_array_push_long(arena, arr, 10);
     arr = rt_array_push_long(arena, arr, 20);
     arr = rt_array_push_long(arena, arr, 30);
@@ -199,13 +199,13 @@ static void test_rt_array_concat_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr1 = rt_array_alloc_long(arena, 3, 0);
+    long long *arr1 = rt_array_alloc_long(arena, 3, 0);
     arr1[0] = 1; arr1[1] = 2; arr1[2] = 3;
 
-    long *arr2 = rt_array_alloc_long(arena, 2, 0);
+    long long *arr2 = rt_array_alloc_long(arena, 2, 0);
     arr2[0] = 4; arr2[1] = 5;
 
-    long *result = rt_array_concat_long(arena, arr1, arr2);
+    long long *result = rt_array_concat_long(arena, arr1, arr2);
     assert(rt_array_length(result) == 5);
     assert(result[0] == 1);
     assert(result[1] == 2);
@@ -218,7 +218,7 @@ static void test_rt_array_concat_long(void)
     assert(rt_array_length(arr2) == 2);
 
     /* Concat with empty array */
-    long *empty = rt_array_alloc_long(arena, 0, 0);
+    long long *empty = rt_array_alloc_long(arena, 0, 0);
     result = rt_array_concat_long(arena, arr1, empty);
     assert(rt_array_length(result) == 3);
 
@@ -258,11 +258,11 @@ static void test_rt_array_slice_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 5, 0);
+    long long *arr = rt_array_alloc_long(arena, 5, 0);
     for (int i = 0; i < 5; i++) arr[i] = i * 10;  /* 0, 10, 20, 30, 40 */
 
     /* Basic slice [1:4] */
-    long *slice = rt_array_slice_long(arena, arr, 1, 4, 1);
+    long long *slice = rt_array_slice_long(arena, arr, 1, 4, 1);
     assert(rt_array_length(slice) == 3);
     assert(slice[0] == 10);
     assert(slice[1] == 20);
@@ -316,10 +316,10 @@ static void test_rt_array_rev_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 5, 0);
+    long long *arr = rt_array_alloc_long(arena, 5, 0);
     for (int i = 0; i < 5; i++) arr[i] = i + 1;  /* 1, 2, 3, 4, 5 */
 
-    long *rev = rt_array_rev_long(arena, arr);
+    long long *rev = rt_array_rev_long(arena, arr);
     assert(rt_array_length(rev) == 5);
     assert(rev[0] == 5);
     assert(rev[1] == 4);
@@ -332,12 +332,12 @@ static void test_rt_array_rev_long(void)
     assert(arr[4] == 5);
 
     /* Empty array */
-    long *empty = rt_array_alloc_long(arena, 0, 0);
+    long long *empty = rt_array_alloc_long(arena, 0, 0);
     rev = rt_array_rev_long(arena, empty);
     assert(rt_array_length(rev) == 0);
 
     /* Single element */
-    long *single = rt_array_alloc_long(arena, 1, 42);
+    long long *single = rt_array_alloc_long(arena, 1, 42);
     rev = rt_array_rev_long(arena, single);
     assert(rt_array_length(rev) == 1);
     assert(rev[0] == 42);
@@ -371,11 +371,11 @@ static void test_rt_array_rem_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 5, 0);
+    long long *arr = rt_array_alloc_long(arena, 5, 0);
     for (int i = 0; i < 5; i++) arr[i] = i + 1;  /* 1, 2, 3, 4, 5 */
 
     /* Remove middle element */
-    long *result = rt_array_rem_long(arena, arr, 2);
+    long long *result = rt_array_rem_long(arena, arr, 2);
     assert(rt_array_length(result) == 4);
     assert(result[0] == 1);
     assert(result[1] == 2);
@@ -403,11 +403,11 @@ static void test_rt_array_ins_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 3, 0);
+    long long *arr = rt_array_alloc_long(arena, 3, 0);
     arr[0] = 1; arr[1] = 2; arr[2] = 3;
 
     /* Insert in middle */
-    long *result = rt_array_ins_long(arena, arr, 99, 1);
+    long long *result = rt_array_ins_long(arena, arr, 99, 1);
     assert(rt_array_length(result) == 4);
     assert(result[0] == 1);
     assert(result[1] == 99);
@@ -436,7 +436,7 @@ static void test_rt_array_indexOf_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 5, 0);
+    long long *arr = rt_array_alloc_long(arena, 5, 0);
     arr[0] = 10; arr[1] = 20; arr[2] = 30; arr[3] = 20; arr[4] = 40;
 
     /* Find existing element (returns first occurrence) */
@@ -448,7 +448,7 @@ static void test_rt_array_indexOf_long(void)
     assert(rt_array_indexOf_long(arr, 99) == -1);
 
     /* Empty array */
-    long *empty = rt_array_alloc_long(arena, 0, 0);
+    long long *empty = rt_array_alloc_long(arena, 0, 0);
     assert(rt_array_indexOf_long(empty, 10) == -1);
 
     /* NULL array */
@@ -482,7 +482,7 @@ static void test_rt_array_contains_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 5, 0);
+    long long *arr = rt_array_alloc_long(arena, 5, 0);
     arr[0] = 10; arr[1] = 20; arr[2] = 30; arr[3] = 40; arr[4] = 50;
 
     assert(rt_array_contains_long(arr, 30) == 1);
@@ -518,10 +518,10 @@ static void test_rt_array_clone_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 5, 0);
+    long long *arr = rt_array_alloc_long(arena, 5, 0);
     for (int i = 0; i < 5; i++) arr[i] = i * 10;
 
-    long *clone = rt_array_clone_long(arena, arr);
+    long long *clone = rt_array_clone_long(arena, arr);
     assert(rt_array_length(clone) == 5);
     assert(clone != arr);  /* Different memory */
 
@@ -534,7 +534,7 @@ static void test_rt_array_clone_long(void)
     assert(clone[0] == 0);
 
     /* Clone NULL returns NULL */
-    long *null_clone = rt_array_clone_long(arena, NULL);
+    long long *null_clone = rt_array_clone_long(arena, NULL);
     assert(null_clone == NULL);
 
     rt_arena_destroy(arena);
@@ -566,7 +566,7 @@ static void test_rt_array_join_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 3, 0);
+    long long *arr = rt_array_alloc_long(arena, 3, 0);
     arr[0] = 1; arr[1] = 2; arr[2] = 3;
 
     char *result = rt_array_join_long(arena, arr, ", ");
@@ -579,12 +579,12 @@ static void test_rt_array_join_long(void)
     assert(strcmp(result, "123") == 0);
 
     /* Single element */
-    long *single = rt_array_alloc_long(arena, 1, 42);
+    long long *single = rt_array_alloc_long(arena, 1, 42);
     result = rt_array_join_long(arena, single, ", ");
     assert(strcmp(result, "42") == 0);
 
     /* Empty array */
-    long *empty = rt_array_alloc_long(arena, 0, 0);
+    long long *empty = rt_array_alloc_long(arena, 0, 0);
     result = rt_array_join_long(arena, empty, ", ");
     assert(strcmp(result, "") == 0);
 
@@ -620,16 +620,16 @@ static void test_rt_array_eq_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr1 = rt_array_alloc_long(arena, 3, 0);
+    long long *arr1 = rt_array_alloc_long(arena, 3, 0);
     arr1[0] = 1; arr1[1] = 2; arr1[2] = 3;
 
-    long *arr2 = rt_array_alloc_long(arena, 3, 0);
+    long long *arr2 = rt_array_alloc_long(arena, 3, 0);
     arr2[0] = 1; arr2[1] = 2; arr2[2] = 3;
 
-    long *arr3 = rt_array_alloc_long(arena, 3, 0);
+    long long *arr3 = rt_array_alloc_long(arena, 3, 0);
     arr3[0] = 1; arr3[1] = 2; arr3[2] = 4;  /* Different last element */
 
-    long *arr4 = rt_array_alloc_long(arena, 2, 0);
+    long long *arr4 = rt_array_alloc_long(arena, 2, 0);
     arr4[0] = 1; arr4[1] = 2;  /* Different length */
 
     /* Equal arrays */
@@ -647,8 +647,8 @@ static void test_rt_array_eq_long(void)
     assert(rt_array_eq_long(NULL, arr1) == 0);
 
     /* Empty arrays */
-    long *empty1 = rt_array_alloc_long(arena, 0, 0);
-    long *empty2 = rt_array_alloc_long(arena, 0, 0);
+    long long *empty1 = rt_array_alloc_long(arena, 0, 0);
+    long long *empty2 = rt_array_alloc_long(arena, 0, 0);
     assert(rt_array_eq_long(empty1, empty2) == 1);
 
     rt_arena_destroy(arena);
@@ -685,7 +685,7 @@ static void test_rt_array_range(void)
     RtArena *arena = rt_arena_create(NULL);
 
     /* Basic range 0 to 5 */
-    long *arr = rt_array_range(arena, 0, 5);
+    long long *arr = rt_array_range(arena, 0, 5);
     assert(rt_array_length(arr) == 5);
     assert(arr[0] == 0);
     assert(arr[1] == 1);
@@ -724,8 +724,8 @@ static void test_rt_array_create_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] = {10, 20, 30, 40, 50};
+    long long *arr = rt_array_create_long(arena, 5, data);
 
     assert(rt_array_length(arr) == 5);
     assert(arr[0] == 10);
@@ -768,10 +768,10 @@ static void test_rt_array_push_copy_long(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    long *arr = rt_array_alloc_long(arena, 3, 0);
+    long long *arr = rt_array_alloc_long(arena, 3, 0);
     arr[0] = 1; arr[1] = 2; arr[2] = 3;
 
-    long *new_arr = rt_array_push_copy_long(arena, arr, 4);
+    long long *new_arr = rt_array_push_copy_long(arena, arr, 4);
 
     /* Original unchanged */
     assert(rt_array_length(arr) == 3);

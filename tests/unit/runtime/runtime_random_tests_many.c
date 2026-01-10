@@ -552,7 +552,7 @@ static void test_rt_random_batch_large_count(void)
     /* Generate 100,000 values of each type */
     long large_count = 100000;
 
-    long *ints = rt_random_int_many(arena, rng, 0, 1000000, large_count);
+    long long *ints = rt_random_int_many(arena, rng, 0, 1000000, large_count);
     TEST_ASSERT_NOT_NULL(ints, "Large int array should be created");
 
     long long *longs = rt_random_long_many(arena, rng, 0, 1000000000LL, large_count);

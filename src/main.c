@@ -9,6 +9,11 @@
 
 #ifdef _WIN32
 #include "platform/platform.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW is POSIX-compatible */
+    #include <unistd.h>
+    #include <sys/stat.h>
+    #endif
 #else
 #include <unistd.h>
 #include <sys/stat.h>

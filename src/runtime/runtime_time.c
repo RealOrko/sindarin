@@ -4,10 +4,18 @@
 #include <time.h>
 
 #ifdef _WIN32
-#include "../platform/compat_windows.h"  /* Must come first - includes winsock2.h */
-#include "../platform/compat_time.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW is POSIX-compatible */
+    #include <sys/time.h>
+    #else
+    #include "../platform/compat_windows.h"  /* Must come first - includes winsock2.h */
+    #include "../platform/compat_time.h"
+    #endif
+    /* Windows uses gmtime_s with swapped arguments */
+    #define GMTIME_R(time_ptr, tm_ptr) gmtime_s(tm_ptr, time_ptr)
 #else
 #include <sys/time.h>
+#define GMTIME_R(time_ptr, tm_ptr) gmtime_r(time_ptr, tm_ptr)
 #endif
 
 #include "runtime_time.h"
@@ -373,7 +381,7 @@ char *rt_time_to_iso(RtArena *arena, RtTime *time)
     time_t secs = time->milliseconds / 1000;
     long millis = time->milliseconds % 1000;
     struct tm tm;
-    gmtime_r(&secs, &tm);
+    GMTIME_R(&secs, &tm);
     char *result = rt_arena_alloc(arena, 32);
     if (result == NULL) {
         fprintf(stderr, "rt_time_to_iso: allocation failed\n");

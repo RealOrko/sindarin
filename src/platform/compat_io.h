@@ -19,10 +19,11 @@
 #include <fcntl.h>
 
 /* ============================================================================
- * open_memstream implementation for Windows
+ * open_memstream implementation for Windows (both MSVC and MinGW)
  *
  * This provides a FILE* that writes to a dynamically growing memory buffer.
  * On fclose(), the buffer contains all written data.
+ * Note: MinGW doesn't provide open_memstream (it's a glibc extension).
  * ============================================================================ */
 
 /* Memstream state structure */
@@ -59,7 +60,11 @@ static inline void _memstream_register(FILE *f, const char *path, char **bufptr,
     _memstream_entry *entry = (_memstream_entry *)malloc(sizeof(_memstream_entry));
     if (entry) {
         entry->file = f;
+#if defined(__MINGW32__) || defined(__MINGW64__)
+        entry->temppath = strdup(path);
+#else
         entry->temppath = _strdup(path);
+#endif
         entry->bufptr = bufptr;
         entry->sizeptr = sizeptr;
         entry->next = _memstream_list;
@@ -93,7 +98,11 @@ static inline int _memstream_finalize(FILE *f) {
             /* Close and delete temp file */
             fclose(f);
             if (entry->temppath) {
+#if defined(__MINGW32__) || defined(__MINGW64__)
+                unlink(entry->temppath);
+#else
                 _unlink(entry->temppath);
+#endif
                 free(entry->temppath);
             }
             free(entry);
@@ -129,7 +138,11 @@ static inline FILE *open_memstream(char **bufptr, size_t *sizeptr) {
     /* Open the temp file for read/write */
     FILE *f = fopen(temppath, "w+b");
     if (f == NULL) {
+#if defined(__MINGW32__) || defined(__MINGW64__)
+        unlink(temppath);
+#else
         _unlink(temppath);
+#endif
         return NULL;
     }
 
@@ -153,6 +166,13 @@ static inline int fclose_memstream(FILE *f) {
 static inline int sn_fclose(FILE *f) {
     return fclose_memstream(f);
 }
+
+/* ============================================================================
+ * The following POSIX functions are only needed for MSVC/clang-cl.
+ * MinGW provides these natively.
+ * ============================================================================ */
+
+#if !defined(__MINGW32__) && !defined(__MINGW64__)
 
 /* ============================================================================
  * dprintf - write formatted output to a file descriptor
@@ -246,14 +266,16 @@ static inline FILE *fdopen(int fd, const char *mode) {
     return _fdopen(fd, mode);
 }
 
+#endif /* !defined(__MINGW32__) && !defined(__MINGW64__) */
+
 #endif /* _WIN32 */
 
 /* ============================================================================
  * Cross-platform helpers (available on all platforms)
  * ============================================================================ */
 
+/* On POSIX systems (not Windows), sn_fclose is just fclose */
 #ifndef _WIN32
-/* On POSIX, sn_fclose is just fclose since open_memstream works natively */
 #include <stdio.h>
 static inline int sn_fclose(FILE *f) {
     return fclose(f);

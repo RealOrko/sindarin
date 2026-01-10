@@ -21,8 +21,8 @@ static void test_rt_add_long_basic(void)
     assert(rt_add_long(-1, 1) == 0);
     assert(rt_add_long(-5, -3) == -8);
     assert(rt_add_long(100, -50) == 50);
-    assert(rt_add_long(LONG_MAX - 1, 1) == LONG_MAX);
-    assert(rt_add_long(LONG_MIN + 1, -1) == LONG_MIN);
+    assert(rt_add_long(LLONG_MAX - 1, 1) == LLONG_MAX);
+    assert(rt_add_long(LLONG_MIN + 1, -1) == LLONG_MIN);
 }
 
 static void test_rt_sub_long_basic(void)
@@ -32,8 +32,8 @@ static void test_rt_sub_long_basic(void)
     assert(rt_sub_long(-1, -1) == 0);
     assert(rt_sub_long(10, -5) == 15);
     assert(rt_sub_long(-10, 5) == -15);
-    assert(rt_sub_long(LONG_MIN + 1, 1) == LONG_MIN);
-    assert(rt_sub_long(LONG_MAX - 1, -1) == LONG_MAX);
+    assert(rt_sub_long(LLONG_MIN + 1, 1) == LLONG_MIN);
+    assert(rt_sub_long(LLONG_MAX - 1, -1) == LLONG_MAX);
 }
 
 static void test_rt_mul_long_basic(void)
@@ -76,7 +76,7 @@ static void test_rt_neg_long_basic(void)
     assert(rt_neg_long(5) == -5);
     assert(rt_neg_long(-5) == 5);
     assert(rt_neg_long(0) == 0);
-    assert(rt_neg_long(LONG_MAX) == -LONG_MAX);
+    assert(rt_neg_long(LLONG_MAX) == -LLONG_MAX);
 }
 
 /* ============================================================================
@@ -218,8 +218,8 @@ static void test_rt_not_bool(void)
 
 static void test_rt_post_inc_long(void)
 {
-    long val = 5;
-    long result = rt_post_inc_long(&val);
+    long long val = 5;
+    long long result = rt_post_inc_long(&val);
     assert(result == 5);   /* Returns old value */
     assert(val == 6);      /* Variable is incremented */
 
@@ -234,16 +234,16 @@ static void test_rt_post_inc_long(void)
     assert(val == 0);
 
     /* Test near max (but not at max to avoid overflow exit) */
-    val = LONG_MAX - 1;
+    val = LLONG_MAX - 1;
     result = rt_post_inc_long(&val);
-    assert(result == LONG_MAX - 1);
-    assert(val == LONG_MAX);
+    assert(result == LLONG_MAX - 1);
+    assert(val == LLONG_MAX);
 }
 
 static void test_rt_post_dec_long(void)
 {
-    long val = 5;
-    long result = rt_post_dec_long(&val);
+    long long val = 5;
+    long long result = rt_post_dec_long(&val);
     assert(result == 5);   /* Returns old value */
     assert(val == 4);      /* Variable is decremented */
 
@@ -258,10 +258,10 @@ static void test_rt_post_dec_long(void)
     assert(val == -1);
 
     /* Test near min (but not at min to avoid overflow exit) */
-    val = LONG_MIN + 1;
+    val = LLONG_MIN + 1;
     result = rt_post_dec_long(&val);
-    assert(result == LONG_MIN + 1);
-    assert(val == LONG_MIN);
+    assert(result == LLONG_MIN + 1);
+    assert(val == LLONG_MIN);
 }
 
 /* ============================================================================

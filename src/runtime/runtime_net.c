@@ -3,10 +3,19 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 
 #ifdef _WIN32
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+/* MinGW provides its own winsock headers */
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#else
 #include "../platform/compat_windows.h"
 #include "../platform/compat_net.h"
+#endif
 
 /* Windows socket compatibility macros */
 typedef SOCKET socket_t;

@@ -221,8 +221,8 @@ static void test_rt_random_shuffle_reproducible(void)
     RtArena *arena = rt_arena_create(NULL);
 
     /* Two identical arrays with same seed should produce same shuffle */
-    long data1[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    long data2[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    long long data1[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    long long data2[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     long long *arr1 = rt_array_create_long(arena, 10, data1);
     long long *arr2 = rt_array_create_long(arena, 10, data2);
 
@@ -1597,7 +1597,7 @@ static void test_rt_random_shuffle_empty_array(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
 
     /* Static shuffle of empty long array - should not crash */
-    long *empty_long = rt_array_alloc_long(arena, 0, 0);
+    long long *empty_long = rt_array_alloc_long(arena, 0, 0);
     rt_random_static_shuffle_long(empty_long);
     TEST_ASSERT(rt_array_length(empty_long) == 0, "Empty long array should remain empty after shuffle");
 
@@ -1612,7 +1612,7 @@ static void test_rt_random_shuffle_empty_array(void)
     TEST_ASSERT(rt_array_length(empty_string) == 0, "Empty string array should remain empty after shuffle");
 
     /* Instance shuffle of empty arrays */
-    long *empty_long2 = rt_array_alloc_long(arena, 0, 0);
+    long long *empty_long2 = rt_array_alloc_long(arena, 0, 0);
     rt_random_shuffle_long(rng, empty_long2);
     TEST_ASSERT(rt_array_length(empty_long2) == 0, "Empty long array should remain empty after seeded shuffle");
 
@@ -1631,7 +1631,7 @@ static void test_rt_random_sample_empty_array(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
 
     /* Create empty arrays */
-    long *empty_long = rt_array_alloc_long(arena, 0, 0);
+    long long *empty_long = rt_array_alloc_long(arena, 0, 0);
     double *empty_double = rt_array_alloc_double(arena, 0, 0.0);
     char **empty_string = rt_array_alloc_string(arena, 0, NULL);
 
@@ -1670,9 +1670,9 @@ static void test_rt_random_sample_single_element_all_types(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 55555);
 
     /* Static sample single from long array */
-    long long_data[] = {42};
-    long *long_arr = rt_array_create_long(arena, 1, long_data);
-    long *long_sample = rt_random_static_sample_long(arena, long_arr, 1);
+    long long long_data[] = {42};
+    long long *long_arr = rt_array_create_long(arena, 1, long_data);
+    long long *long_sample = rt_random_static_sample_long(arena, long_arr, 1);
     TEST_ASSERT_NOT_NULL(long_sample, "Single element long sample should succeed");
     TEST_ASSERT(rt_array_length(long_sample) == 1, "Single element sample should have length 1");
     TEST_ASSERT(long_sample[0] == 42, "Single element sample should be 42");
@@ -1719,8 +1719,8 @@ static void test_rt_random_shuffle_single_element_all_types(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 55555);
 
     /* Static shuffle single long */
-    long long_data[] = {99};
-    long *long_arr = rt_array_create_long(arena, 1, long_data);
+    long long long_data[] = {99};
+    long long *long_arr = rt_array_create_long(arena, 1, long_data);
     rt_random_static_shuffle_long(long_arr);
     TEST_ASSERT(long_arr[0] == 99, "Single element should remain unchanged after shuffle");
 
@@ -1737,8 +1737,8 @@ static void test_rt_random_shuffle_single_element_all_types(void)
     TEST_ASSERT(strcmp(string_arr[0], "world") == 0, "Single string should remain unchanged after shuffle");
 
     /* Instance shuffle single long */
-    long long_data2[] = {77};
-    long *long_arr2 = rt_array_create_long(arena, 1, long_data2);
+    long long long_data2[] = {77};
+    long long *long_arr2 = rt_array_create_long(arena, 1, long_data2);
     rt_random_shuffle_long(rng, long_arr2);
     TEST_ASSERT(long_arr2[0] == 77, "Seeded single element should remain unchanged");
 
@@ -2047,21 +2047,21 @@ static void test_integration_reproducible_workflow(void)
         RtRandom *rng = rt_random_create_with_seed(arena, 55555);
 
         /* 1. Make some random choices */
-        long choice1 = rt_random_choice_long(rng, arr, 10);
-        long choice2 = rt_random_choice_long(rng, arr, 10);
+        long long choice1 = rt_random_choice_long(rng, arr, 10);
+        long long choice2 = rt_random_choice_long(rng, arr, 10);
 
         /* 2. Sample from array */
         long long *sample = rt_random_sample_long(arena, rng, arr, 3);
 
         /* 3. Shuffle a copy */
-        long copy_data[] = {1, 2, 3, 4, 5};
-        long *copy = rt_array_create_long(arena, 5, copy_data);
+        long long copy_data[] = {1, 2, 3, 4, 5};
+        long long *copy = rt_array_create_long(arena, 5, copy_data);
         rt_random_shuffle_long(rng, copy);
 
         /* Store results from first run */
-        static long first_choice1, first_choice2;
-        static long first_sample[3];
-        static long first_shuffled[5];
+        static long long first_choice1, first_choice2;
+        static long long first_sample[3];
+        static long long first_shuffled[5];
 
         if (run == 0) {
             first_choice1 = choice1;

@@ -8,8 +8,13 @@
 #include <stdint.h>
 
 #ifdef _WIN32
-#include "../platform/compat_windows.h"
-#include "../platform/compat_time.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW is POSIX-compatible */
+    #include <sys/time.h>
+    #else
+    #include "../platform/compat_windows.h"
+    #include "../platform/compat_time.h"
+    #endif
 #else
 #include <sys/time.h>
 #endif

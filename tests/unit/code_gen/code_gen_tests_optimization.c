@@ -51,7 +51,7 @@ static Expr *make_int_literal(Arena *arena, int64_t value)
 static Expr *make_long_literal(Arena *arena, int64_t value)
 {
     Token tok;
-    init_token(&tok, TOKEN_LONG_LITERAL, "0L");
+    init_token(&tok, TOKEN_LONG_LITERAL, "0LL");
 
     LiteralValue lit_val;
     lit_val.int_value = value;
@@ -110,7 +110,7 @@ static void test_constant_fold_int_overflow(void)
     arena_init(&arena, 4096);
 
     /* Create MAX + 1 - this will wrap around in C */
-    Expr *left = make_long_literal(&arena, LONG_MAX);
+    Expr *left = make_long_literal(&arena, LLONG_MAX);
     Expr *right = make_long_literal(&arena, 1);
     Expr *add = make_binary_expr(&arena, left, TOKEN_PLUS, right);
 
@@ -123,7 +123,7 @@ static void test_constant_fold_int_overflow(void)
     assert(success == true);
     assert(is_double == false);
     /* Result wraps around in two's complement (this is implementation-defined) */
-    assert(int_result == LONG_MIN);  /* Wrapped around */
+    assert(int_result == LLONG_MIN);  /* Wrapped around */
 
     arena_free(&arena);
 }
@@ -135,7 +135,7 @@ static void test_constant_fold_int_underflow(void)
     arena_init(&arena, 4096);
 
     /* Create MIN - 1 - this will wrap around in C */
-    Expr *left = make_long_literal(&arena, LONG_MIN);
+    Expr *left = make_long_literal(&arena, LLONG_MIN);
     Expr *right = make_long_literal(&arena, 1);
     Expr *sub = make_binary_expr(&arena, left, TOKEN_MINUS, right);
 
@@ -147,7 +147,7 @@ static void test_constant_fold_int_underflow(void)
     assert(success == true);
     assert(is_double == false);
     /* Result wraps around in two's complement */
-    assert(int_result == LONG_MAX);  /* Wrapped around */
+    assert(int_result == LLONG_MAX);  /* Wrapped around */
 
     arena_free(&arena);
 }
@@ -158,8 +158,8 @@ static void test_constant_fold_mul_overflow(void)
     Arena arena;
     arena_init(&arena, 4096);
 
-    /* Create LONG_MAX * 2 - will overflow */
-    Expr *left = make_long_literal(&arena, LONG_MAX);
+    /* Create LLONG_MAX * 2 - will overflow */
+    Expr *left = make_long_literal(&arena, LLONG_MAX);
     Expr *right = make_long_literal(&arena, 2);
     Expr *mul = make_binary_expr(&arena, left, TOKEN_STAR, right);
 
@@ -171,7 +171,7 @@ static void test_constant_fold_mul_overflow(void)
     assert(success == true);
     assert(is_double == false);
     /* Result will have wrapped around */
-    assert(int_result == -2);  /* LONG_MAX * 2 overflows to -2 in two's complement */
+    assert(int_result == -2);  /* LLONG_MAX * 2 overflows to -2 in two's complement */
 
     arena_free(&arena);
 }
@@ -376,8 +376,8 @@ static void test_constant_fold_unary_negation_edge(void)
     Arena arena;
     arena_init(&arena, 4096);
 
-    /* Test -LONG_MIN wraps to LONG_MIN (undefined behavior in C, but we fold it) */
-    Expr *min = make_long_literal(&arena, LONG_MIN);
+    /* Test -LLONG_MIN wraps to LLONG_MIN (undefined behavior in C, but we fold it) */
+    Expr *min = make_long_literal(&arena, LLONG_MIN);
     Expr *neg = make_unary_expr(&arena, TOKEN_MINUS, min);
 
     int64_t int_result;
@@ -387,8 +387,8 @@ static void test_constant_fold_unary_negation_edge(void)
     bool success = try_fold_constant(neg, &int_result, &double_result, &is_double);
     assert(success == true);
     assert(is_double == false);
-    /* -LONG_MIN overflows back to LONG_MIN in two's complement */
-    assert(int_result == LONG_MIN);
+    /* -LLONG_MIN overflows back to LLONG_MIN in two's complement */
+    assert(int_result == LLONG_MIN);
 
     /* Test double negation */
     Expr *dbl = make_double_literal(&arena, -3.14);
@@ -537,22 +537,22 @@ static void test_gen_native_arithmetic_unchecked(void)
     Type *double_type = ast_create_primitive_type(&arena, TYPE_DOUBLE);
 
     /* Test integer addition */
-    char *result = gen_native_arithmetic(&gen, "5L", "3L", TOKEN_PLUS, int_type);
+    char *result = gen_native_arithmetic(&gen, "5LL", "3LL", TOKEN_PLUS, int_type);
     assert(result != NULL);
     assert(strstr(result, "+") != NULL);
 
     /* Test integer subtraction */
-    result = gen_native_arithmetic(&gen, "10L", "4L", TOKEN_MINUS, int_type);
+    result = gen_native_arithmetic(&gen, "10LL", "4LL", TOKEN_MINUS, int_type);
     assert(result != NULL);
     assert(strstr(result, "-") != NULL);
 
     /* Test integer multiplication */
-    result = gen_native_arithmetic(&gen, "7L", "6L", TOKEN_STAR, int_type);
+    result = gen_native_arithmetic(&gen, "7LL", "6LL", TOKEN_STAR, int_type);
     assert(result != NULL);
     assert(strstr(result, "*") != NULL);
 
     /* Test division should return NULL (needs runtime for zero check) */
-    result = gen_native_arithmetic(&gen, "20L", "4L", TOKEN_SLASH, int_type);
+    result = gen_native_arithmetic(&gen, "20LL", "4LL", TOKEN_SLASH, int_type);
     assert(result == NULL);
 
     /* Test double addition */
@@ -581,13 +581,13 @@ static void test_gen_native_arithmetic_checked(void)
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
 
     /* In checked mode, all operations should return NULL */
-    char *result = gen_native_arithmetic(&gen, "5L", "3L", TOKEN_PLUS, int_type);
+    char *result = gen_native_arithmetic(&gen, "5LL", "3LL", TOKEN_PLUS, int_type);
     assert(result == NULL);
 
-    result = gen_native_arithmetic(&gen, "5L", "3L", TOKEN_MINUS, int_type);
+    result = gen_native_arithmetic(&gen, "5LL", "3LL", TOKEN_MINUS, int_type);
     assert(result == NULL);
 
-    result = gen_native_arithmetic(&gen, "5L", "3L", TOKEN_STAR, int_type);
+    result = gen_native_arithmetic(&gen, "5LL", "3LL", TOKEN_STAR, int_type);
     assert(result == NULL);
 
     code_gen_cleanup(&gen);
@@ -613,7 +613,7 @@ static void test_gen_native_unary(void)
     Type *bool_type = ast_create_primitive_type(&arena, TYPE_BOOL);
 
     /* Test integer negation */
-    char *result = gen_native_unary(&gen, "42L", TOKEN_MINUS, int_type);
+    char *result = gen_native_unary(&gen, "42LL", TOKEN_MINUS, int_type);
     assert(result != NULL);
     assert(strstr(result, "-") != NULL);
 
@@ -871,13 +871,13 @@ static void test_try_constant_fold_binary_output(void)
 
     char *result = try_constant_fold_binary(&gen, &bin_expr);
     assert(result != NULL);
-    assert(strcmp(result, "8L") == 0);
+    assert(strcmp(result, "8LL") == 0);
 
     /* Test multiplication */
     bin_expr.operator = TOKEN_STAR;
     result = try_constant_fold_binary(&gen, &bin_expr);
     assert(result != NULL);
-    assert(strcmp(result, "15L") == 0);
+    assert(strcmp(result, "15LL") == 0);
 
     /* Test double folding */
     Expr *d_left = make_double_literal(&arena, 2.5);
@@ -917,7 +917,7 @@ static void test_try_constant_fold_unary_output(void)
 
     char *result = try_constant_fold_unary(&gen, &unary_expr);
     assert(result != NULL);
-    assert(strcmp(result, "-42L") == 0);
+    assert(strcmp(result, "-42LL") == 0);
 
     /* Test logical not on true */
     Expr *bool_operand = make_bool_literal(&arena, true);
@@ -926,7 +926,7 @@ static void test_try_constant_fold_unary_output(void)
 
     result = try_constant_fold_unary(&gen, &unary_expr);
     assert(result != NULL);
-    assert(strcmp(result, "0L") == 0);
+    assert(strcmp(result, "0LL") == 0);
 
     /* Test logical not on false */
     bool_operand = make_bool_literal(&arena, false);
@@ -934,7 +934,7 @@ static void test_try_constant_fold_unary_output(void)
 
     result = try_constant_fold_unary(&gen, &unary_expr);
     assert(result != NULL);
-    assert(strcmp(result, "1L") == 0);
+    assert(strcmp(result, "1LL") == 0);
 
     code_gen_cleanup(&gen);
     symbol_table_cleanup(&sym_table);
@@ -1120,19 +1120,19 @@ static void test_is_provably_non_negative_long_literals(void)
     code_gen_init(&arena, &gen, &sym_table, NULL_DEVICE);
 
     /* Zero should be non-negative */
-    Expr *zero = make_long_literal(&arena, 0L);
+    Expr *zero = make_long_literal(&arena, 0LL);
     assert(is_provably_non_negative(&gen, zero) == true);
 
     /* Positive longs should be non-negative */
-    Expr *positive = make_long_literal(&arena, 42L);
+    Expr *positive = make_long_literal(&arena, 42LL);
     assert(is_provably_non_negative(&gen, positive) == true);
 
     /* Large positive should be non-negative */
     Expr *large = make_long_literal(&arena, 9999999999L);
     assert(is_provably_non_negative(&gen, large) == true);
 
-    /* LONG_MAX should be non-negative */
-    Expr *long_max = make_long_literal(&arena, LONG_MAX);
+    /* LLONG_MAX should be non-negative */
+    Expr *long_max = make_long_literal(&arena, LLONG_MAX);
     assert(is_provably_non_negative(&gen, long_max) == true);
 
     code_gen_cleanup(&gen);
@@ -1164,14 +1164,14 @@ static void test_is_provably_non_negative_negative_literals(void)
     assert(is_provably_non_negative(&gen, int_min) == false);
 
     /* Negative longs should NOT be non-negative */
-    Expr *neg_long = make_long_literal(&arena, -1L);
+    Expr *neg_long = make_long_literal(&arena, -1LL);
     assert(is_provably_non_negative(&gen, neg_long) == false);
 
     Expr *neg_long2 = make_long_literal(&arena, -9999999999L);
     assert(is_provably_non_negative(&gen, neg_long2) == false);
 
-    /* LONG_MIN should NOT be non-negative */
-    Expr *long_min = make_long_literal(&arena, LONG_MIN);
+    /* LLONG_MIN should NOT be non-negative */
+    Expr *long_min = make_long_literal(&arena, LLONG_MIN);
     assert(is_provably_non_negative(&gen, long_min) == false);
 
     code_gen_cleanup(&gen);

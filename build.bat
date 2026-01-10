@@ -3,7 +3,7 @@ setlocal EnableDelayedExpansion
 
 REM ============================================================================
 REM Sn Compiler - Windows Build Script
-REM Uses CMake + Visual Studio (MSVC) toolchain
+REM Uses CMake + Clang/MinGW toolchain
 REM ============================================================================
 
 REM Default configuration
@@ -43,117 +43,79 @@ goto :show_help
 
 echo.
 echo ============================================================
-echo   Sn Compiler - Windows Build
+echo   Sn Compiler - Windows Build (Clang/MinGW)
 echo ============================================================
 echo.
 
 REM ============================================================================
-REM Step 1: Detect Visual Studio environment
+REM Step 1: Check for Clang
 REM ============================================================================
-echo [1/4] Detecting Visual Studio environment...
+echo [1/4] Checking for Clang...
 
-REM Check if we're already in a VS Developer Command Prompt
-if defined VSINSTALLDIR (
-    echo      Found: VS environment already configured
-    echo      VSINSTALLDIR: %VSINSTALLDIR%
-    goto :vs_found
-)
-
-REM Try to find and setup VS environment using vswhere
-set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
-if not exist "%VSWHERE%" (
-    set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
-)
-
-if not exist "%VSWHERE%" (
-    echo.
-    echo ERROR: Could not find Visual Studio installation.
-    echo.
-    echo Please ensure you have Visual Studio 2019 or later installed with
-    echo the "Desktop development with C++" workload.
-    echo.
-    echo Alternatively, run this script from a "Developer Command Prompt"
-    echo or "Developer PowerShell" for Visual Studio.
-    echo.
-    exit /b 1
-)
-
-REM Find VS installation path
-for /f "usebackq tokens=*" %%i in (`"%VSWHERE%" -latest -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do (
-    set "VS_PATH=%%i"
-)
-
-if not defined VS_PATH (
-    echo.
-    echo ERROR: Visual Studio found but C++ tools are not installed.
-    echo.
-    echo Please install the "Desktop development with C++" workload
-    echo using the Visual Studio Installer.
-    echo.
-    exit /b 1
-)
-
-echo      Found: %VS_PATH%
-
-REM Setup VS environment
-set "VCVARSALL=%VS_PATH%\VC\Auxiliary\Build\vcvarsall.bat"
-if not exist "%VCVARSALL%" (
-    echo.
-    echo ERROR: vcvarsall.bat not found at expected location.
-    echo      Expected: %VCVARSALL%
-    echo.
-    echo Please verify your Visual Studio installation is complete.
-    echo.
-    exit /b 1
-)
-
-echo      Configuring x64 native tools environment...
-call "%VCVARSALL%" x64 >nul 2>&1
+where clang.exe >nul 2>&1
 if errorlevel 1 (
     echo.
-    echo ERROR: Failed to configure Visual Studio environment.
-    echo      Please try running this script from a Developer Command Prompt.
+    echo ERROR: clang.exe not found in PATH.
+    echo.
+    echo Please install LLVM/Clang. Options:
+    echo   - winget: winget install LLVM.LLVM
+    echo   - choco:  choco install llvm
+    echo   - Direct: https://releases.llvm.org/
+    echo.
+    echo Make sure the LLVM bin directory is in your PATH.
     echo.
     exit /b 1
 )
 
-:vs_found
-echo      Compiler: cl.exe
-
-REM Verify cl.exe is available
-where cl.exe >nul 2>&1
-if errorlevel 1 (
-    echo.
-    echo ERROR: cl.exe not found in PATH after VS environment setup.
-    echo      Please run this script from a Developer Command Prompt.
-    echo.
-    exit /b 1
+for /f "tokens=3" %%v in ('clang --version 2^>^&1 ^| findstr /i "clang version"') do (
+    echo      Found: Clang %%v
 )
 
 REM ============================================================================
-REM Step 2: Check for CMake
+REM Step 2: Check for CMake and Ninja
 REM ============================================================================
 echo.
-echo [2/4] Checking for CMake...
+echo [2/4] Checking for CMake and Ninja...
 
 where cmake.exe >nul 2>&1
 if errorlevel 1 (
     echo.
     echo ERROR: CMake not found in PATH.
     echo.
-    echo Please install CMake from https://cmake.org/download/
-    echo and ensure it is added to your PATH.
-    echo.
-    echo You can also install CMake via:
-    echo   - Visual Studio Installer ^(Individual Components ^> CMake tools^)
+    echo Please install CMake:
     echo   - winget: winget install Kitware.CMake
-    echo   - chocolatey: choco install cmake
+    echo   - choco:  choco install cmake
+    echo   - Direct: https://cmake.org/download/
     echo.
     exit /b 1
 )
 
 for /f "tokens=3" %%v in ('cmake --version 2^>^&1 ^| findstr /i "cmake version"') do (
     echo      Found: CMake %%v
+)
+
+REM Check for Ninja (preferred) or fall back to MinGW Make
+set "CMAKE_GENERATOR=Ninja"
+where ninja.exe >nul 2>&1
+if errorlevel 1 (
+    echo      Ninja not found, checking for MinGW Make...
+    where mingw32-make.exe >nul 2>&1
+    if errorlevel 1 (
+        echo.
+        echo ERROR: Neither Ninja nor mingw32-make found in PATH.
+        echo.
+        echo Please install Ninja (recommended):
+        echo   - winget: winget install Ninja-build.Ninja
+        echo   - choco:  choco install ninja
+        echo.
+        echo Or install MinGW with make.
+        echo.
+        exit /b 1
+    )
+    set "CMAKE_GENERATOR=MinGW Makefiles"
+    echo      Using: MinGW Makefiles
+) else (
+    echo      Using: Ninja
 )
 
 REM ============================================================================
@@ -175,10 +137,10 @@ if not exist "%BUILD_DIR%" mkdir "%BUILD_DIR%"
 
 REM Configure with CMake
 echo      Configuring CMake...
-set "CMAKE_ARGS=-G "NMake Makefiles" -DCMAKE_BUILD_TYPE=%BUILD_TYPE%"
+set "CMAKE_ARGS=-G "%CMAKE_GENERATOR%" -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=%BUILD_TYPE%"
 
 if "%BUILD_TYPE%"=="Debug" (
-    set "CMAKE_ARGS=%CMAKE_ARGS% -DSN_DEBUG=ON"
+    set "CMAKE_ARGS=%CMAKE_ARGS% -DSN_DEBUG=ON -DSN_ASAN=ON"
 )
 
 if "%VERBOSE%"=="1" (
@@ -237,14 +199,6 @@ if exist "bin\tests.exe" (
     set "BUILD_SUCCESS=0"
 )
 
-if exist "bin\sn_runtime.lib" (
-    echo      bin\lib\msvc\sn_runtime.lib - OK
-) else if exist "bin\lib\msvc\sn_runtime.lib" (
-    echo      bin\lib\msvc\sn_runtime.lib - OK
-) else (
-    echo      bin\lib\msvc\sn_runtime.lib - MISSING ^(optional^)
-)
-
 if "%BUILD_SUCCESS%"=="0" (
     echo.
     echo ERROR: Build completed but expected outputs are missing.
@@ -289,12 +243,12 @@ REM Help message
 REM ============================================================================
 :show_help
 echo.
-echo Sn Compiler - Windows Build Script
+echo Sn Compiler - Windows Build Script (Clang/MinGW)
 echo.
 echo Usage: build.bat [options]
 echo.
 echo Options:
-echo   --debug     Build with debug symbols and runtime checks
+echo   --debug     Build with debug symbols and AddressSanitizer
 echo   --clean     Clean build directory before building
 echo   --test      Run unit tests after building
 echo   --verbose   Show detailed build output
@@ -302,16 +256,13 @@ echo   --help, -h  Show this help message
 echo.
 echo Examples:
 echo   build.bat              Build release version
-echo   build.bat --debug      Build debug version
+echo   build.bat --debug      Build debug version with ASAN
 echo   build.bat --clean      Clean rebuild
 echo   build.bat --test       Build and run tests
 echo.
 echo Requirements:
-echo   - Visual Studio 2019 or later with C++ tools
+echo   - LLVM/Clang (clang.exe in PATH)
 echo   - CMake 3.16 or later
-echo.
-echo Note: This script will automatically detect and configure the
-echo       Visual Studio environment. You can also run it from a
-echo       Developer Command Prompt if auto-detection fails.
+echo   - Ninja (recommended) or MinGW Make
 echo.
 exit /b 0

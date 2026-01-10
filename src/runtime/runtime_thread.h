@@ -2,7 +2,12 @@
 #define RUNTIME_THREAD_H
 
 #ifdef _WIN32
-#include "../platform/compat_pthread.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides pthreads */
+    #include <pthread.h>
+    #else
+    #include "../platform/compat_pthread.h"
+    #endif
 #else
 #include <pthread.h>
 #endif
