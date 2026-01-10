@@ -180,9 +180,15 @@ static const char *filter_tinycc_flags(const char *flags, char *buf, size_t buf_
 
 /* Default values for backend configuration */
 #define DEFAULT_STD "c99"
+#ifdef __APPLE__
+/* macOS: ASAN has issues with sigaltstack, so disable it but keep debug symbols */
+#define DEFAULT_DEBUG_CFLAGS_GCC "-fno-omit-frame-pointer -g"
+#define DEFAULT_DEBUG_CFLAGS_CLANG "-fno-omit-frame-pointer -g"
+#else
 #define DEFAULT_DEBUG_CFLAGS_GCC "-no-pie -fsanitize=address -fno-omit-frame-pointer -g"
-#define DEFAULT_RELEASE_CFLAGS_GCC "-O3 -flto"
 #define DEFAULT_DEBUG_CFLAGS_CLANG "-fsanitize=address -fno-omit-frame-pointer -g"
+#endif
+#define DEFAULT_RELEASE_CFLAGS_GCC "-O3 -flto"
 #define DEFAULT_RELEASE_CFLAGS_CLANG "-O3 -flto"
 #define DEFAULT_DEBUG_CFLAGS_TCC "-g"
 #define DEFAULT_RELEASE_CFLAGS_TCC "-O2"
