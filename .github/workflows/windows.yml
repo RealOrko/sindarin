@@ -125,7 +125,7 @@ jobs:
       shell: cmd
       env:
         SN_CC: clang
-        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld
+        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld -rtlib=compiler-rt -unwindlib=none
       run: |
         echo === Testing single compile with verbose output ===
         bin\sn.exe tests\integration\hello_world.sn -o build\hello_test.exe -l 3 -v
@@ -140,7 +140,7 @@ jobs:
       shell: pwsh
       env:
         SN_CC: clang
-        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld
+        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld -rtlib=compiler-rt -unwindlib=none
       run: |
         Write-Host "Running integration tests..."
         Write-Host "SN_CC = $env:SN_CC"
@@ -166,7 +166,7 @@ jobs:
       shell: pwsh
       env:
         SN_CC: clang
-        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld
+        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld -rtlib=compiler-rt -unwindlib=none
       run: |
         Write-Host "Running exploratory tests..."
 
