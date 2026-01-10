@@ -14,6 +14,7 @@ param(
     [string]$Compiler = "",
     [int]$CompileTimeout = 10,
     [int]$RunTimeout = 30,
+    [string[]]$Exclude = @(),
     [switch]$All,
     [switch]$Help
 )
@@ -440,6 +441,23 @@ if ($TestFile) {
         Write-Host "Results: 0 passed, 0 failed, 0 skipped"
         Cleanup
         exit 0
+    }
+
+    # Filter out excluded tests
+    if ($Exclude.Count -gt 0) {
+        $Tests = $Tests | Where-Object {
+            $testName = $_.BaseName
+            $excluded = $false
+            foreach ($pattern in $Exclude) {
+                if ($testName -like $pattern) {
+                    Write-Host "$testName SKIP (excluded)" -ForegroundColor Yellow
+                    $Skipped++
+                    $excluded = $true
+                    break
+                }
+            }
+            -not $excluded
+        }
     }
 
     foreach ($Test in $Tests) {
