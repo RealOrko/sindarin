@@ -9,10 +9,10 @@ native fn get_nil_int_ptr(): *int =>
 native fn get_nil_char_ptr(): *char =>
 	return nil
 
-fn test_nil_equality(ptr: *int): bool =>
+native fn test_nil_equality(ptr: *int): bool =>
 	return ptr == nil
 
-fn test_nil_inequality(ptr: *int): bool =>
+native fn test_nil_inequality(ptr: *int): bool =>
 	return ptr != nil
 
 native fn test_nil_comparisons(): void =>
@@ -47,7 +47,7 @@ native fn test_nil_comparisons(): void =>
 
 # --- Test 2: *char as val when NULL (should return empty string) ---
 
-fn safe_char_unwrap(ptr: *char): str =>
+native fn safe_char_unwrap(ptr: *char): str =>
 	if ptr == nil =>
 		return "(null)"
 	return ptr as val
@@ -80,7 +80,7 @@ native fn mixed_params(a: int, ptr: *int, b: double, flag: bool): int =>
 fn call_mixed_params_with_nil(): int =>
 	return mixed_params(5, nil, 3.14, true)
 
-fn call_mixed_params_with_ptr(p: *int): int =>
+native fn call_mixed_params_with_ptr(p: *int): int =>
 	return mixed_params(5, p, 3.14, false)
 
 native fn test_mixed_parameters(): void =>
@@ -137,7 +137,7 @@ native fn test_callback_with_pointer(): void =>
 native fn get_nil_ptr_ptr(): **int =>
 	return nil
 
-fn test_double_pointer_nil(pp: **int): bool =>
+native fn test_double_pointer_nil(pp: **int): bool =>
 	return pp == nil
 
 native fn test_ptr_ptr_nil(): void =>

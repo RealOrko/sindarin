@@ -37,20 +37,20 @@ native fn get_mock_buffer(): *byte =>
 native fn get_mock_buffer_len(): int =>
     return 10
 
-# Regular function that unwraps an int pointer
-fn unwrap_int(p: *int): int =>
+# Native function that unwraps an int pointer
+native fn unwrap_int(p: *int): int =>
     if p == nil =>
         return -999
     return p as val
 
-# Regular function that unwraps a char pointer to str
-fn unwrap_char(p: *char): str =>
+# Native function that unwraps a char pointer to str
+native fn unwrap_char(p: *char): str =>
     if p == nil =>
         return "(nil)"
     return p as val
 
-# Regular function that unwraps a buffer slice
-fn unwrap_buffer_slice(p: *byte, len: int): byte[] =>
+# Native function that unwraps a buffer slice
+native fn unwrap_buffer_slice(p: *byte, len: int): byte[] =>
     if p == nil =>
         return p[0..0] as val
     return p[0..len] as val

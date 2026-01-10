@@ -148,7 +148,7 @@ if p != nil =>
 ### Safety Restrictions
 
 1. **No pointer arithmetic** - `p + 1` is a compile error
-2. **Pointer variables only in `native` functions** - regular functions cannot store pointers
+2. **Pointer types only in `native` functions** - regular functions cannot have pointer parameters, return types, or variables
 3. **Immediate unwrapping required** - regular functions must use `as val` when calling pointer-returning natives
 
 ### Unwrapping Pointers with `as val`
@@ -317,7 +317,7 @@ native fn fopen(path: str, mode: str): *FILE
 native fn fclose(f: *FILE): int
 native fn fread(buf: byte[], size: int, count: int, f: *FILE): int
 
-fn read_file(path: str): byte[] =>
+native fn read_file(path: str): byte[] =>
     var f: *FILE = fopen(path, "rb")
     if f == nil =>
         panic("Failed to open file")

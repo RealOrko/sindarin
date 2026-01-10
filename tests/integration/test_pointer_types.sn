@@ -1,22 +1,22 @@
 // Integration test for pointer types: *T, **T, *void, nil
 // Tests pointer type declarations and nil literal
 //
-// Note: Pointer variables can only be declared in native functions.
-// Regular functions can accept pointers as parameters.
+// Note: Pointer types can only be used in native functions.
+// This includes pointer variables, parameters, and return types.
 
-fn test_pointer_type_param(p: *int): bool =>
+native fn test_pointer_type_param(p: *int): bool =>
     // Test pointer parameter with nil comparison
     if p == nil =>
         return true
     return false
 
-fn test_void_pointer_param(p: *void): bool =>
+native fn test_void_pointer_param(p: *void): bool =>
     // Test void pointer parameter
     if p == nil =>
         return true
     return false
 
-fn test_double_pointer_param(pp: **int): bool =>
+native fn test_double_pointer_param(pp: **int): bool =>
     // Test pointer-to-pointer parameter
     if pp == nil =>
         return true

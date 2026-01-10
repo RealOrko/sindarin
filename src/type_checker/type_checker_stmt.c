@@ -375,6 +375,32 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
 {
     DEBUG_VERBOSE("Type checking function with %d parameters", stmt->as.function.param_count);
 
+    /* Enforce that pointer types in function signatures require native keyword.
+     * Regular functions cannot have pointer parameters or return types. */
+    if (!stmt->as.function.is_native)
+    {
+        /* Check return type for pointers */
+        if (stmt->as.function.return_type &&
+            stmt->as.function.return_type->kind == TYPE_POINTER)
+        {
+            type_error(&stmt->as.function.name,
+                       "Pointer return type requires 'native' function");
+            return;
+        }
+
+        /* Check parameter types for pointers */
+        for (int i = 0; i < stmt->as.function.param_count; i++)
+        {
+            Type *param_type = stmt->as.function.params[i].type;
+            if (param_type && param_type->kind == TYPE_POINTER)
+            {
+                type_error(&stmt->as.function.params[i].name,
+                           "Pointer parameter type requires 'native' function");
+                return;
+            }
+        }
+    }
+
     /* Create function type from declaration */
     Arena *arena = table->arena;
     Type **param_types = (Type **)arena_alloc(arena, sizeof(Type *) * stmt->as.function.param_count);

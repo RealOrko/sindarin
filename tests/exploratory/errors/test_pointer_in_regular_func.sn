@@ -1,6 +1,6 @@
 # Exploratory test: Pointer variable in regular function
-# This should fail to compile because pointer types cannot be stored in variables
-# within regular (non-native) functions.
+# This should fail to compile because pointer types (variables, parameters,
+# and return types) can only be used in native functions.
 
 native fn get_pointer(): *int
 

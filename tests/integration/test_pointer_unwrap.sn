@@ -7,9 +7,9 @@
 native fn get_int_ptr(): *int =>
     return nil
 
-# Regular function that unwraps *int with 'as val'
-# Note: Regular functions can accept pointers as parameters
-fn unwrap_int_pointer(ptr: *int): int =>
+# Native function that unwraps *int with 'as val'
+# Note: Pointer parameters require native functions
+native fn unwrap_int_pointer(ptr: *int): int =>
     if ptr == nil =>
         return -1
     return ptr as val
@@ -36,8 +36,8 @@ native fn mock_getenv(name: str): *char
 native fn get_env_value(): *char =>
     return nil
 
-# Regular function that unwraps *char to str with 'as val'
-fn get_environment_var(ptr: *char): str =>
+# Native function that unwraps *char to str with 'as val'
+native fn get_environment_var(ptr: *char): str =>
     if ptr == nil =>
         return "(not set)"
     return ptr as val
@@ -65,9 +65,9 @@ native fn get_buffer(): *byte =>
 native fn get_buffer_len(): int =>
     return 8
 
-# Regular function that unwraps a buffer using slice syntax
-# Takes pointer as parameter (allowed in regular functions)
-fn unwrap_buffer(ptr: *byte, len: int): byte[] =>
+# Native function that unwraps a buffer using slice syntax
+# Pointer parameters require native functions
+native fn unwrap_buffer(ptr: *byte, len: int): byte[] =>
     if ptr == nil =>
         # Cannot return empty array directly, use slice with 0 length
         return ptr[0..0] as val
