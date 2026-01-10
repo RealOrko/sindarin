@@ -103,6 +103,9 @@ if (-not (Test-Path $Compiler)) {
     exit 1
 }
 
+# Resolve to absolute path for Process.Start()
+$Compiler = (Resolve-Path $Compiler).Path
+
 # Test configuration based on type
 $TestConfig = @{
     "integration" = @{
