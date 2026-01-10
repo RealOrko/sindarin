@@ -58,11 +58,11 @@ jobs:
         echo "Found: bin/tests"
 
         echo "Checking for runtime objects..."
-        if [ ! -f "bin/lib/clang/arena.o" ]; then
-          echo "ERROR: bin/lib/clang/arena.o not found"
+        if [ ! -f "bin/lib/gcc/arena.o" ]; then
+          echo "ERROR: bin/lib/gcc/arena.o not found"
           exit 1
         fi
-        echo "Found: bin/lib/clang/*.o"
+        echo "Found: bin/lib/gcc/*.o"
 
         echo ""
         echo "Build outputs verified successfully!"
@@ -101,7 +101,7 @@ jobs:
         path: |
           bin/sn
           bin/tests
-          bin/lib/clang/*.o
+          bin/lib/gcc/*.o
           bin/include/**/*
           bin/*.cfg
         retention-days: 7
