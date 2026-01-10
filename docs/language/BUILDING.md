@@ -89,34 +89,37 @@ bin/tests  # Run unit tests
 
 ### Windows
 
-Windows builds use LLVM-MinGW, a self-contained Clang/LLVM toolchain with MinGW-w64.
-
-**Option 1: Using LLVM-MinGW (Recommended)**
-
-1. Download LLVM-MinGW from [GitHub releases](https://github.com/mstorsjo/llvm-mingw/releases)
-2. Extract to `C:\llvm-mingw` (or another location)
-3. Add the `bin` directory to your PATH
-
-**Option 2: Using Chocolatey**
+**Install dependencies (via winget):**
 
 ```powershell
-choco install ninja -y
-# Then manually install LLVM-MinGW as above
+winget install Kitware.CMake
+winget install Ninja-build.Ninja
+winget install LLVM.LLVM
 ```
 
-**Configure and build (from cmd or PowerShell):**
+After installation, you may need to restart your terminal or add the install locations to your PATH.
 
-```cmd
+**Configure and build (from PowerShell or cmd):**
+
+```powershell
 cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
 **Verify the build:**
 
-```cmd
+```powershell
 bin\sn.exe --version
 bin\tests.exe
 ```
+
+**Alternative: LLVM-MinGW**
+
+The GitHub CI uses [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw/releases), a self-contained Clang toolchain with MinGW-w64. This is useful if you need a fully isolated toolchain:
+
+1. Download from GitHub releases
+2. Extract to `C:\llvm-mingw`
+3. Add the `bin` directory to your PATH
 
 ## Build Outputs
 
@@ -230,10 +233,16 @@ SN_CC=/usr/bin/gcc bin/sn myprogram.sn -o myprogram
 
 ### Windows: "clang not found"
 
-Ensure LLVM-MinGW's `bin` directory is in your PATH:
+If using winget-installed LLVM, restart your terminal or add to PATH:
 
 ```powershell
-$env:PATH = "C:\llvm-mingw\llvm-mingw-20241217-ucrt-x86_64\bin;$env:PATH"
+$env:PATH = "C:\Program Files\LLVM\bin;$env:PATH"
+```
+
+If using LLVM-MinGW:
+
+```powershell
+$env:PATH = "C:\llvm-mingw\bin;$env:PATH"
 ```
 
 ### macOS: AddressSanitizer errors
