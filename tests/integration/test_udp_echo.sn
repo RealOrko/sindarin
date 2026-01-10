@@ -1,41 +1,27 @@
 // Test: UDP sendTo and receiveFrom operations
-// Uses Python as UDP echo server to test datagram exchange
-// Python server verifies and reports sender address
-// Cross-platform: works on Windows and Linux
+// Uses pure Sindarin threading - no external dependencies
+
+fn serverTask(server: UdpSocket): str =>
+    // Receive datagram and echo it back with prefix
+    var data: byte[] = server.receiveFrom(1024)
+    var sender: str = server.lastSender
+    var echoData: byte[] = $"ECHO:{data.toString()}".toBytes()
+    server.sendTo(echoData, sender)
+    // Return sender info for verification
+    return sender
 
 fn main(): void =>
-    // Get cross-platform temp directory and normalize to forward slashes
-    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
-    var readyFile: str = $"{tempDir}/udp_ready"
+    // Create server socket first to get the port
+    var server: UdpSocket = UdpSocket.bind("127.0.0.1:0")
+    var serverPort: int = server.port
 
-    // Clean up ready file from any previous run (cross-platform)
-    if Path.exists(readyFile) =>
-        TextFile.delete(readyFile)
+    // Spawn server thread to handle one datagram
+    var serverThread: str = &serverTask(server)
 
-    // Set ready file path for Python to use
-    Environment.set("SN_READY_FILE", readyFile)
+    // Small delay to ensure server thread is ready
+    Time.sleep(100)
 
-    // Start a Python UDP server that echoes data and reports sender
-    // Uses port 0 for dynamic port assignment, writes port to file
-    var server: Process = &Process.run("python", {"-c", "import socket,os;f=os.environ.get('SN_READY_FILE','/tmp/udp_ready');s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM);s.bind(('127.0.0.1',0));p=s.getsockname()[1];open(f,'w').write(str(p));data,addr=s.recvfrom(1024);print(f'From:{addr[0]}:{addr[1]}');s.sendto(b'ECHO:'+data,addr);s.close()"})
-
-    // Wait for server to be ready using cross-platform methods
-    var attempts: int = 0
-    while attempts < 50 =>
-        if Path.exists(readyFile) =>
-            attempts = 100
-        else =>
-            Time.sleep(50)  // 50ms
-            attempts = attempts + 1
-
-    if attempts < 100 =>
-        print("Timeout waiting for server\n")
-        return
-
-    // Read the server port from the ready file
-    var serverPort: str = TextFile.readAll(readyFile).trim()
-
-    // Create client socket with OS-assigned port
+    // Create client socket
     var client: UdpSocket = UdpSocket.bind("127.0.0.1:0")
     var clientPort: int = client.port
     print("Client bound\n")
@@ -62,24 +48,21 @@ fn main(): void =>
 
     client.close()
 
-    // Wait for Python server and check its output
-    server!
-    var serverOut: str = server.stdout
+    // Wait for server thread and get sender info it captured
+    serverThread!
+    var senderInfo: str = serverThread
 
-    // Test 4: Server saw sender address (verifies sender info)
-    if serverOut.contains("127.0.0.1") =>
+    // Test 4: Server saw sender address
+    if senderInfo.contains("127.0.0.1") =>
         print("Test 4 PASS: Server saw sender IP\n")
     else =>
-        print($"Test 4 FAIL: Server output {serverOut}\n")
+        print($"Test 4 FAIL: Server saw {senderInfo}\n")
 
     // Test 5: Server saw client port
-    if serverOut.contains($"{clientPort}") =>
+    if senderInfo.contains($"{clientPort}") =>
         print("Test 5 PASS: Server saw sender port\n")
     else =>
         print("Test 5 FAIL: Server did not see correct port\n")
 
-    // Clean up (cross-platform)
-    if Path.exists(readyFile) =>
-        TextFile.delete(readyFile)
-
+    server.close()
     print("All UDP echo tests complete\n")
