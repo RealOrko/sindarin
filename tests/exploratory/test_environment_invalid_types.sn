@@ -5,20 +5,30 @@
 // NOTE: These tests compile small test programs and run them to verify
 // that the runtime correctly rejects invalid type conversions.
 // The test programs must USE the variable to prevent dead code elimination.
+//
+// Cross-platform: works on Windows and Linux
 
 fn main(): int =>
     print("=== Environment Invalid Type Conversion Tests ===\n")
     var errors: int = 0
 
-    // Helper variables for test program creation
-    var testDir: str = "/tmp/sn_env_tests"
+    // Get cross-platform temp directory
+    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+    var testDir: str = $"{tempDir}/sn_env_tests"
 
-    // Create test directory and wait for completion
-    var mkdirProc: Process = Process.run("mkdir", {"-p", testDir})
-    // Check that mkdir succeeded
-    if mkdirProc.exitCode != 0 =>
-        print("ERROR: Failed to create test directory\n")
-        return 1
+    // Determine executable extension and compiler path (must be absolute for Process.run)
+    var exeExt: str = ""
+    var snCompiler: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        exeExt = ".exe"
+        snCompiler = Path.absolute("bin/sn.exe")
+        // Ensure LLVM is in PATH for child compiler processes on Windows
+        var currentPath: str = Environment.get("PATH", "")
+        if !currentPath.contains("LLVM") =>
+            Environment.set("PATH", $"C:/Program Files/LLVM/bin;{currentPath}")
+
+    // Create test directory
+    Directory.create(testDir)
 
     // ============================================================
     // INVALID INTEGER CONVERSION
@@ -34,9 +44,9 @@ fn main(): int =>
     TextFile.writeAll($"{testDir}/test_invalid_int.sn", code1)
 
     // Compile and run
-    var compileProc1: Process = Process.run("bin/sn", {$"{testDir}/test_invalid_int.sn", "-o", $"{testDir}/test_invalid_int"})
+    var compileProc1: Process = Process.run(snCompiler, {$"{testDir}/test_invalid_int.sn", "-o", $"{testDir}/test_invalid_int"})
     if compileProc1.exitCode == 0 =>
-        var runProc1: Process = Process.run("timeout", {"2s", $"{testDir}/test_invalid_int"})
+        var runProc1: Process = Process.run($"{testDir}/test_invalid_int{exeExt}", {})
         if runProc1.exitCode != 0 =>
             print("  PASS: Invalid integer causes runtime error\n")
         else =>
@@ -51,9 +61,9 @@ fn main(): int =>
     var code2: str = "fn main(): int =>\n    Environment.set(\"TEST_TRAILING_INT\", \"42abc\")\n    var x: int = Environment.getInt(\"TEST_TRAILING_INT\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_trailing_int.sn", code2)
 
-    var compileProc2: Process = Process.run("bin/sn", {$"{testDir}/test_trailing_int.sn", "-o", $"{testDir}/test_trailing_int"})
+    var compileProc2: Process = Process.run(snCompiler, {$"{testDir}/test_trailing_int.sn", "-o", $"{testDir}/test_trailing_int"})
     if compileProc2.exitCode == 0 =>
-        var runProc2: Process = Process.run("timeout", {"2s", $"{testDir}/test_trailing_int"})
+        var runProc2: Process = Process.run($"{testDir}/test_trailing_int{exeExt}", {})
         if runProc2.exitCode != 0 =>
             print("  PASS: Integer with trailing text causes error\n")
         else =>
@@ -73,9 +83,9 @@ fn main(): int =>
     var code3: str = "fn main(): int =>\n    Environment.set(\"TEST_INVALID_DOUBLE\", \"not_a_double\")\n    var x: double = Environment.getDouble(\"TEST_INVALID_DOUBLE\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_invalid_double.sn", code3)
 
-    var compileProc3: Process = Process.run("bin/sn", {$"{testDir}/test_invalid_double.sn", "-o", $"{testDir}/test_invalid_double"})
+    var compileProc3: Process = Process.run(snCompiler, {$"{testDir}/test_invalid_double.sn", "-o", $"{testDir}/test_invalid_double"})
     if compileProc3.exitCode == 0 =>
-        var runProc3: Process = Process.run("timeout", {"2s", $"{testDir}/test_invalid_double"})
+        var runProc3: Process = Process.run($"{testDir}/test_invalid_double{exeExt}", {})
         if runProc3.exitCode != 0 =>
             print("  PASS: Invalid double causes runtime error\n")
         else =>
@@ -90,9 +100,9 @@ fn main(): int =>
     var code4: str = "fn main(): int =>\n    Environment.set(\"TEST_MULTI_DECIMAL\", \"3.14.159\")\n    var x: double = Environment.getDouble(\"TEST_MULTI_DECIMAL\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_multi_decimal.sn", code4)
 
-    var compileProc4: Process = Process.run("bin/sn", {$"{testDir}/test_multi_decimal.sn", "-o", $"{testDir}/test_multi_decimal"})
+    var compileProc4: Process = Process.run(snCompiler, {$"{testDir}/test_multi_decimal.sn", "-o", $"{testDir}/test_multi_decimal"})
     if compileProc4.exitCode == 0 =>
-        var runProc4: Process = Process.run("timeout", {"2s", $"{testDir}/test_multi_decimal"})
+        var runProc4: Process = Process.run($"{testDir}/test_multi_decimal{exeExt}", {})
         if runProc4.exitCode != 0 =>
             print("  PASS: Double with multiple decimals causes error\n")
         else =>
@@ -112,9 +122,9 @@ fn main(): int =>
     var code5: str = "fn main(): int =>\n    Environment.set(\"TEST_INVALID_LONG\", \"not_a_long\")\n    var x: long = Environment.getLong(\"TEST_INVALID_LONG\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_invalid_long.sn", code5)
 
-    var compileProc5: Process = Process.run("bin/sn", {$"{testDir}/test_invalid_long.sn", "-o", $"{testDir}/test_invalid_long"})
+    var compileProc5: Process = Process.run(snCompiler, {$"{testDir}/test_invalid_long.sn", "-o", $"{testDir}/test_invalid_long"})
     if compileProc5.exitCode == 0 =>
-        var runProc5: Process = Process.run("timeout", {"2s", $"{testDir}/test_invalid_long"})
+        var runProc5: Process = Process.run($"{testDir}/test_invalid_long{exeExt}", {})
         if runProc5.exitCode != 0 =>
             print("  PASS: Invalid long causes runtime error\n")
         else =>
@@ -129,9 +139,9 @@ fn main(): int =>
     var code6: str = "fn main(): int =>\n    Environment.set(\"TEST_OVERFLOW_LONG\", \"99999999999999999999999999999999\")\n    var x: long = Environment.getLong(\"TEST_OVERFLOW_LONG\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_overflow_long.sn", code6)
 
-    var compileProc6: Process = Process.run("bin/sn", {$"{testDir}/test_overflow_long.sn", "-o", $"{testDir}/test_overflow_long"})
+    var compileProc6: Process = Process.run(snCompiler, {$"{testDir}/test_overflow_long.sn", "-o", $"{testDir}/test_overflow_long"})
     if compileProc6.exitCode == 0 =>
-        var runProc6: Process = Process.run("timeout", {"2s", $"{testDir}/test_overflow_long"})
+        var runProc6: Process = Process.run($"{testDir}/test_overflow_long{exeExt}", {})
         if runProc6.exitCode != 0 =>
             print("  PASS: Long overflow causes runtime error\n")
         else =>
@@ -151,9 +161,9 @@ fn main(): int =>
     var code7: str = "fn main(): int =>\n    Environment.set(\"TEST_INVALID_BOOL\", \"maybe\")\n    var x: bool = Environment.getBool(\"TEST_INVALID_BOOL\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_invalid_bool.sn", code7)
 
-    var compileProc7: Process = Process.run("bin/sn", {$"{testDir}/test_invalid_bool.sn", "-o", $"{testDir}/test_invalid_bool"})
+    var compileProc7: Process = Process.run(snCompiler, {$"{testDir}/test_invalid_bool.sn", "-o", $"{testDir}/test_invalid_bool"})
     if compileProc7.exitCode == 0 =>
-        var runProc7: Process = Process.run("timeout", {"2s", $"{testDir}/test_invalid_bool"})
+        var runProc7: Process = Process.run($"{testDir}/test_invalid_bool{exeExt}", {})
         if runProc7.exitCode != 0 =>
             print("  PASS: Invalid boolean ('maybe') causes error\n")
         else =>
@@ -168,9 +178,9 @@ fn main(): int =>
     var code8: str = "fn main(): int =>\n    Environment.set(\"TEST_BOOL_NUM2\", \"2\")\n    var x: bool = Environment.getBool(\"TEST_BOOL_NUM2\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_bool_number2.sn", code8)
 
-    var compileProc8: Process = Process.run("bin/sn", {$"{testDir}/test_bool_number2.sn", "-o", $"{testDir}/test_bool_number2"})
+    var compileProc8: Process = Process.run(snCompiler, {$"{testDir}/test_bool_number2.sn", "-o", $"{testDir}/test_bool_number2"})
     if compileProc8.exitCode == 0 =>
-        var runProc8: Process = Process.run("timeout", {"2s", $"{testDir}/test_bool_number2"})
+        var runProc8: Process = Process.run($"{testDir}/test_bool_number2{exeExt}", {})
         if runProc8.exitCode != 0 =>
             print("  PASS: '2' as boolean causes error\n")
         else =>
@@ -190,9 +200,9 @@ fn main(): int =>
     var code9: str = "fn main(): int =>\n    Environment.set(\"TEST_INVALID_INT_DEF\", \"xyz\")\n    var x: int = Environment.getInt(\"TEST_INVALID_INT_DEF\", 100)\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_invalid_int_default.sn", code9)
 
-    var compileProc9: Process = Process.run("bin/sn", {$"{testDir}/test_invalid_int_default.sn", "-o", $"{testDir}/test_invalid_int_default"})
+    var compileProc9: Process = Process.run(snCompiler, {$"{testDir}/test_invalid_int_default.sn", "-o", $"{testDir}/test_invalid_int_default"})
     if compileProc9.exitCode == 0 =>
-        var runProc9: Process = Process.run("timeout", {"2s", $"{testDir}/test_invalid_int_default"})
+        var runProc9: Process = Process.run($"{testDir}/test_invalid_int_default{exeExt}", {})
         if runProc9.exitCode != 0 =>
             print("  PASS: Invalid int with default causes error (default only for unset)\n")
         else =>
@@ -207,9 +217,9 @@ fn main(): int =>
     var code10: str = "fn main(): int =>\n    Environment.set(\"TEST_INVALID_BOOL_DEF\", \"invalid\")\n    var x: bool = Environment.getBool(\"TEST_INVALID_BOOL_DEF\", true)\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_invalid_bool_default.sn", code10)
 
-    var compileProc10: Process = Process.run("bin/sn", {$"{testDir}/test_invalid_bool_default.sn", "-o", $"{testDir}/test_invalid_bool_default"})
+    var compileProc10: Process = Process.run(snCompiler, {$"{testDir}/test_invalid_bool_default.sn", "-o", $"{testDir}/test_invalid_bool_default"})
     if compileProc10.exitCode == 0 =>
-        var runProc10: Process = Process.run("timeout", {"2s", $"{testDir}/test_invalid_bool_default"})
+        var runProc10: Process = Process.run($"{testDir}/test_invalid_bool_default{exeExt}", {})
         if runProc10.exitCode != 0 =>
             print("  PASS: Invalid bool with default causes error (default only for unset)\n")
         else =>
@@ -231,9 +241,9 @@ fn main(): int =>
     var code11: str = "fn main(): int =>\n    Environment.remove(\"TEST_REQUIRED_UNSET\")\n    var x: str = Environment.get(\"TEST_REQUIRED_UNSET\")\n    print(x)\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_required_unset.sn", code11)
 
-    var compileProc11: Process = Process.run("bin/sn", {$"{testDir}/test_required_unset.sn", "-o", $"{testDir}/test_required_unset"})
+    var compileProc11: Process = Process.run(snCompiler, {$"{testDir}/test_required_unset.sn", "-o", $"{testDir}/test_required_unset"})
     if compileProc11.exitCode == 0 =>
-        var runProc11: Process = Process.run("timeout", {"2s", $"{testDir}/test_required_unset"})
+        var runProc11: Process = Process.run($"{testDir}/test_required_unset{exeExt}", {})
         // Current behavior: returns NULL/prints "(null)", doesn't throw
         if runProc11.exitCode == 0 =>
             print("  INFO: Get without default for unset returns NULL (current behavior)\n")
@@ -248,9 +258,9 @@ fn main(): int =>
     var code12: str = "fn main(): int =>\n    Environment.remove(\"TEST_REQUIRED_INT_UNSET\")\n    var x: int = Environment.getInt(\"TEST_REQUIRED_INT_UNSET\")\n    print($\"{x}\")\n    return 0\n"
     TextFile.writeAll($"{testDir}/test_required_int_unset.sn", code12)
 
-    var compileProc12: Process = Process.run("bin/sn", {$"{testDir}/test_required_int_unset.sn", "-o", $"{testDir}/test_required_int_unset"})
+    var compileProc12: Process = Process.run(snCompiler, {$"{testDir}/test_required_int_unset.sn", "-o", $"{testDir}/test_required_int_unset"})
     if compileProc12.exitCode == 0 =>
-        var runProc12: Process = Process.run("timeout", {"2s", $"{testDir}/test_required_int_unset"})
+        var runProc12: Process = Process.run($"{testDir}/test_required_int_unset{exeExt}", {})
         if runProc12.exitCode != 0 =>
             print("  PASS: getInt without default for unset variable causes error\n")
         else =>
@@ -262,7 +272,8 @@ fn main(): int =>
     // ============================================================
     // CLEANUP
     // ============================================================
-    var cleanupProc: Process = Process.run("rm", {"-rf", testDir})
+    if Path.isDirectory(testDir) =>
+        Directory.deleteRecursive(testDir)
 
     // ============================================================
     // RESULTS SUMMARY

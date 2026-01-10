@@ -2,8 +2,20 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+
+#ifdef _WIN32
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW is POSIX-compatible */
+    #include <sys/stat.h>
+    #include <unistd.h>
+    #else
+    #include "../platform/compat_windows.h"
+    #endif
+#else
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+
 #include "runtime_file.h"
 #include "runtime_arena.h"
 #include "runtime_array.h"

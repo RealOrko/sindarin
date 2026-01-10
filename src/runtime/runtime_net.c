@@ -2,13 +2,70 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <unistd.h>
 #include <errno.h>
+#include <stdint.h>
+
+#ifdef _WIN32
+
+#if defined(__MINGW32__) || defined(__MINGW64__)
+/* MinGW provides its own winsock headers */
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <windows.h>
+#else
+#include "../platform/compat_windows.h"
+#include "../platform/compat_net.h"
+#endif
+
+/* Windows socket compatibility macros */
+typedef SOCKET socket_t;
+#define SOCKET_INVALID INVALID_SOCKET
+#define SOCKET_ERROR_VAL SOCKET_ERROR
+#define socket_close(s) closesocket(s)
+#define socket_errno() WSAGetLastError()
+/* setsockopt on Windows uses const char* for optval */
+#define SETSOCKOPT_OPTVAL_TYPE const char *
+
+/* Winsock initialization state */
+static int winsock_initialized = 0;
+
+static void ensure_winsock_initialized(void)
+{
+    if (!winsock_initialized) {
+        WSADATA wsa_data;
+        int result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+        if (result != 0) {
+            fprintf(stderr, "WSAStartup failed with error: %d\n", result);
+            exit(1);
+        }
+        winsock_initialized = 1;
+    }
+}
+
+#else
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+
+/* POSIX socket compatibility macros */
+typedef int socket_t;
+#define SOCKET_INVALID (-1)
+#define SOCKET_ERROR_VAL (-1)
+#define socket_close(s) close(s)
+#define socket_errno() errno
+/* setsockopt on POSIX uses const void* for optval */
+#define SETSOCKOPT_OPTVAL_TYPE const void *
+
+static void ensure_winsock_initialized(void)
+{
+    /* No-op on POSIX systems */
+}
+
+#endif
+
 #include "runtime_net.h"
 #include "runtime_array.h"
 
@@ -261,21 +318,23 @@ RtTcpListener *rt_tcp_listener_bind(RtArena *arena, const char *address)
         exit(1);
     }
 
+    ensure_winsock_initialized();
+
     ParsedAddress parsed = parse_address(address);
 
     /* Create socket */
     int family = parsed.is_ipv6 ? AF_INET6 : AF_INET;
-    int fd = socket(family, SOCK_STREAM, 0);
-    if (fd < 0) {
-        fprintf(stderr, "TcpListener.bind: failed to create socket: %s\n", strerror(errno));
+    socket_t fd = socket(family, SOCK_STREAM, 0);
+    if (fd == SOCKET_INVALID) {
+        fprintf(stderr, "TcpListener.bind: failed to create socket\n");
         exit(1);
     }
 
     /* Set SO_REUSEADDR to allow quick restart */
     int optval = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
-        close(fd);
-        fprintf(stderr, "TcpListener.bind: failed to set SO_REUSEADDR: %s\n", strerror(errno));
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (SETSOCKOPT_OPTVAL_TYPE)&optval, sizeof(optval)) < 0) {
+        socket_close(fd);
+        fprintf(stderr, "TcpListener.bind: failed to set SO_REUSEADDR\n");
         exit(1);
     }
 
@@ -283,21 +342,21 @@ RtTcpListener *rt_tcp_listener_bind(RtArena *arena, const char *address)
     struct sockaddr_storage addr;
     socklen_t addrlen;
     if (resolve_address(parsed.host, parsed.port, parsed.is_ipv6, &addr, &addrlen) < 0) {
-        close(fd);
-        fprintf(stderr, "TcpListener.bind: failed to resolve address '%s': %s\n", address, strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "TcpListener.bind: failed to resolve address '%s'\n", address);
         exit(1);
     }
 
     if (bind(fd, (struct sockaddr *)&addr, addrlen) < 0) {
-        close(fd);
-        fprintf(stderr, "TcpListener.bind: failed to bind to '%s': %s\n", address, strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "TcpListener.bind: failed to bind to '%s'\n", address);
         exit(1);
     }
 
     /* Start listening */
     if (listen(fd, SOMAXCONN) < 0) {
-        close(fd);
-        fprintf(stderr, "TcpListener.bind: failed to listen on '%s': %s\n", address, strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "TcpListener.bind: failed to listen on '%s'\n", address);
         exit(1);
     }
 
@@ -305,8 +364,8 @@ RtTcpListener *rt_tcp_listener_bind(RtArena *arena, const char *address)
     struct sockaddr_storage bound_addr;
     socklen_t bound_len = sizeof(bound_addr);
     if (getsockname(fd, (struct sockaddr *)&bound_addr, &bound_len) < 0) {
-        close(fd);
-        fprintf(stderr, "TcpListener.bind: failed to get socket name: %s\n", strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "TcpListener.bind: failed to get socket name\n");
         exit(1);
     }
 
@@ -320,12 +379,12 @@ RtTcpListener *rt_tcp_listener_bind(RtArena *arena, const char *address)
     /* Allocate and return listener */
     RtTcpListener *listener = rt_arena_alloc(arena, sizeof(RtTcpListener));
     if (listener == NULL) {
-        close(fd);
+        socket_close(fd);
         fprintf(stderr, "TcpListener.bind: memory allocation failed\n");
         exit(1);
     }
 
-    listener->fd = fd;
+    listener->fd = (int)fd;
     listener->port = actual_port;
     return listener;
 }
@@ -347,21 +406,21 @@ RtTcpStream *rt_tcp_listener_accept(RtArena *arena, RtTcpListener *listener)
 
     struct sockaddr_storage client_addr;
     socklen_t client_len = sizeof(client_addr);
-    int client_fd = accept(listener->fd, (struct sockaddr *)&client_addr, &client_len);
-    if (client_fd < 0) {
-        fprintf(stderr, "TcpListener.accept: accept failed: %s\n", strerror(errno));
+    socket_t client_fd = accept(listener->fd, (struct sockaddr *)&client_addr, &client_len);
+    if (client_fd == SOCKET_INVALID) {
+        fprintf(stderr, "TcpListener.accept: accept failed\n");
         exit(1);
     }
 
     /* Allocate stream */
     RtTcpStream *stream = rt_arena_alloc(arena, sizeof(RtTcpStream));
     if (stream == NULL) {
-        close(client_fd);
+        socket_close(client_fd);
         fprintf(stderr, "TcpListener.accept: memory allocation failed\n");
         exit(1);
     }
 
-    stream->fd = client_fd;
+    stream->fd = (int)client_fd;
     stream->remote_address = format_address(arena, &client_addr, client_len);
     return stream;
 }
@@ -369,7 +428,7 @@ RtTcpStream *rt_tcp_listener_accept(RtArena *arena, RtTcpListener *listener)
 void rt_tcp_listener_close(RtTcpListener *listener)
 {
     if (listener != NULL && listener->fd >= 0) {
-        close(listener->fd);
+        socket_close(listener->fd);
         listener->fd = -1;
     }
 }
@@ -385,40 +444,42 @@ RtTcpStream *rt_tcp_stream_connect(RtArena *arena, const char *address)
         exit(1);
     }
 
+    ensure_winsock_initialized();
+
     ParsedAddress parsed = parse_address(address);
 
     /* Resolve address */
     struct sockaddr_storage addr;
     socklen_t addrlen;
     if (resolve_address(parsed.host, parsed.port, parsed.is_ipv6, &addr, &addrlen) < 0) {
-        fprintf(stderr, "TcpStream.connect: failed to resolve address '%s': %s\n", address, strerror(errno));
+        fprintf(stderr, "TcpStream.connect: failed to resolve address '%s'\n", address);
         exit(1);
     }
 
     /* Create socket */
     int family = addr.ss_family;
-    int fd = socket(family, SOCK_STREAM, 0);
-    if (fd < 0) {
-        fprintf(stderr, "TcpStream.connect: failed to create socket: %s\n", strerror(errno));
+    socket_t fd = socket(family, SOCK_STREAM, 0);
+    if (fd == SOCKET_INVALID) {
+        fprintf(stderr, "TcpStream.connect: failed to create socket\n");
         exit(1);
     }
 
     /* Connect */
     if (connect(fd, (struct sockaddr *)&addr, addrlen) < 0) {
-        close(fd);
-        fprintf(stderr, "TcpStream.connect: failed to connect to '%s': %s\n", address, strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "TcpStream.connect: failed to connect to '%s'\n", address);
         exit(1);
     }
 
     /* Allocate stream */
     RtTcpStream *stream = rt_arena_alloc(arena, sizeof(RtTcpStream));
     if (stream == NULL) {
-        close(fd);
+        socket_close(fd);
         fprintf(stderr, "TcpStream.connect: memory allocation failed\n");
         exit(1);
     }
 
-    stream->fd = fd;
+    stream->fd = (int)fd;
     stream->remote_address = format_address(arena, &addr, addrlen);
     return stream;
 }
@@ -450,9 +511,9 @@ unsigned char *rt_tcp_stream_read(RtArena *arena, RtTcpStream *stream, long max_
     }
 
     /* Read data */
-    ssize_t bytes_read = recv(stream->fd, buffer, (size_t)max_bytes, 0);
+    ssize_t bytes_read = recv(stream->fd, (char *)buffer, (int)max_bytes, 0);
     if (bytes_read < 0) {
-        fprintf(stderr, "TcpStream.read: recv failed: %s\n", strerror(errno));
+        fprintf(stderr, "TcpStream.read: recv failed\n");
         exit(1);
     }
 
@@ -504,9 +565,9 @@ unsigned char *rt_tcp_stream_read_all(RtArena *arena, RtTcpStream *stream)
             capacity = new_capacity;
         }
 
-        ssize_t bytes_read = recv(stream->fd, buffer + length, capacity - length, 0);
+        ssize_t bytes_read = recv(stream->fd, (char *)(buffer + length), (int)(capacity - length), 0);
         if (bytes_read < 0) {
-            fprintf(stderr, "TcpStream.readAll: recv failed: %s\n", strerror(errno));
+            fprintf(stderr, "TcpStream.readAll: recv failed\n");
             exit(1);
         }
         if (bytes_read == 0) {
@@ -559,7 +620,7 @@ char *rt_tcp_stream_read_line(RtArena *arena, RtTcpStream *stream)
         char c;
         ssize_t bytes_read = recv(stream->fd, &c, 1, 0);
         if (bytes_read < 0) {
-            fprintf(stderr, "TcpStream.readLine: recv failed: %s\n", strerror(errno));
+            fprintf(stderr, "TcpStream.readLine: recv failed\n");
             exit(1);
         }
         if (bytes_read == 0) {
@@ -606,9 +667,9 @@ long rt_tcp_stream_write(RtTcpStream *stream, unsigned char *data)
     /* Loop to handle partial writes */
     size_t total_written = 0;
     while (total_written < len) {
-        ssize_t bytes_written = send(stream->fd, data + total_written, len - total_written, 0);
+        ssize_t bytes_written = send(stream->fd, (const char *)(data + total_written), (int)(len - total_written), 0);
         if (bytes_written < 0) {
-            fprintf(stderr, "TcpStream.write: send failed: %s\n", strerror(errno));
+            fprintf(stderr, "TcpStream.write: send failed\n");
             exit(1);
         }
         total_written += (size_t)bytes_written;
@@ -642,9 +703,9 @@ void rt_tcp_stream_write_line(RtTcpStream *stream, const char *text)
     size_t len = strlen(text);
     size_t total_written = 0;
     while (total_written < len) {
-        ssize_t written = send(stream->fd, text + total_written, len - total_written, flags);
+        ssize_t written = send(stream->fd, text + total_written, (int)(len - total_written), flags);
         if (written < 0) {
-            fprintf(stderr, "TcpStream.writeLine: send failed: %s\n", strerror(errno));
+            fprintf(stderr, "TcpStream.writeLine: send failed\n");
             exit(1);
         }
         total_written += (size_t)written;
@@ -653,7 +714,7 @@ void rt_tcp_stream_write_line(RtTcpStream *stream, const char *text)
     /* Send newline - loop in case of partial write (unlikely for 1 byte but correct) */
     ssize_t written = send(stream->fd, "\n", 1, flags);
     if (written < 0) {
-        fprintf(stderr, "TcpStream.writeLine: send newline failed: %s\n", strerror(errno));
+        fprintf(stderr, "TcpStream.writeLine: send newline failed\n");
         exit(1);
     }
 }
@@ -661,7 +722,7 @@ void rt_tcp_stream_write_line(RtTcpStream *stream, const char *text)
 void rt_tcp_stream_close(RtTcpStream *stream)
 {
     if (stream != NULL && stream->fd >= 0) {
-        close(stream->fd);
+        socket_close(stream->fd);
         stream->fd = -1;
     }
 }
@@ -723,21 +784,23 @@ RtUdpSocket *rt_udp_socket_bind(RtArena *arena, const char *address)
         exit(1);
     }
 
+    ensure_winsock_initialized();
+
     ParsedAddress parsed = parse_address(address);
 
     /* Create socket */
     int family = parsed.is_ipv6 ? AF_INET6 : AF_INET;
-    int fd = socket(family, SOCK_DGRAM, 0);
-    if (fd < 0) {
-        fprintf(stderr, "UdpSocket.bind: failed to create socket: %s\n", strerror(errno));
+    socket_t fd = socket(family, SOCK_DGRAM, 0);
+    if (fd == SOCKET_INVALID) {
+        fprintf(stderr, "UdpSocket.bind: failed to create socket\n");
         exit(1);
     }
 
     /* Set SO_REUSEADDR */
     int optval = 1;
-    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
-        close(fd);
-        fprintf(stderr, "UdpSocket.bind: failed to set SO_REUSEADDR: %s\n", strerror(errno));
+    if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (SETSOCKOPT_OPTVAL_TYPE)&optval, sizeof(optval)) < 0) {
+        socket_close(fd);
+        fprintf(stderr, "UdpSocket.bind: failed to set SO_REUSEADDR\n");
         exit(1);
     }
 
@@ -745,14 +808,14 @@ RtUdpSocket *rt_udp_socket_bind(RtArena *arena, const char *address)
     struct sockaddr_storage addr;
     socklen_t addrlen;
     if (resolve_address(parsed.host, parsed.port, parsed.is_ipv6, &addr, &addrlen) < 0) {
-        close(fd);
-        fprintf(stderr, "UdpSocket.bind: failed to resolve address '%s': %s\n", address, strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "UdpSocket.bind: failed to resolve address '%s'\n", address);
         exit(1);
     }
 
     if (bind(fd, (struct sockaddr *)&addr, addrlen) < 0) {
-        close(fd);
-        fprintf(stderr, "UdpSocket.bind: failed to bind to '%s': %s\n", address, strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "UdpSocket.bind: failed to bind to '%s'\n", address);
         exit(1);
     }
 
@@ -760,8 +823,8 @@ RtUdpSocket *rt_udp_socket_bind(RtArena *arena, const char *address)
     struct sockaddr_storage bound_addr;
     socklen_t bound_len = sizeof(bound_addr);
     if (getsockname(fd, (struct sockaddr *)&bound_addr, &bound_len) < 0) {
-        close(fd);
-        fprintf(stderr, "UdpSocket.bind: failed to get socket name: %s\n", strerror(errno));
+        socket_close(fd);
+        fprintf(stderr, "UdpSocket.bind: failed to get socket name\n");
         exit(1);
     }
 
@@ -775,12 +838,12 @@ RtUdpSocket *rt_udp_socket_bind(RtArena *arena, const char *address)
     /* Allocate and return socket */
     RtUdpSocket *sock = rt_arena_alloc(arena, sizeof(RtUdpSocket));
     if (sock == NULL) {
-        close(fd);
+        socket_close(fd);
         fprintf(stderr, "UdpSocket.bind: memory allocation failed\n");
         exit(1);
     }
 
-    sock->fd = fd;
+    sock->fd = (int)fd;
     sock->port = actual_port;
     sock->last_sender = NULL;
     return sock;
@@ -806,14 +869,14 @@ long rt_udp_socket_send_to(RtUdpSocket *socket, unsigned char *data, const char 
     struct sockaddr_storage addr;
     socklen_t addrlen;
     if (resolve_address(parsed.host, parsed.port, parsed.is_ipv6, &addr, &addrlen) < 0) {
-        fprintf(stderr, "UdpSocket.sendTo: failed to resolve address '%s': %s\n", address, strerror(errno));
+        fprintf(stderr, "UdpSocket.sendTo: failed to resolve address '%s'\n", address);
         exit(1);
     }
 
     size_t len = rt_array_length(data);
-    ssize_t bytes_sent = sendto(socket->fd, data, len, 0, (struct sockaddr *)&addr, addrlen);
+    ssize_t bytes_sent = sendto(socket->fd, (const char *)data, (int)len, 0, (struct sockaddr *)&addr, addrlen);
     if (bytes_sent < 0) {
-        fprintf(stderr, "UdpSocket.sendTo: sendto failed: %s\n", strerror(errno));
+        fprintf(stderr, "UdpSocket.sendTo: sendto failed\n");
         exit(1);
     }
 
@@ -848,10 +911,10 @@ unsigned char *rt_udp_socket_receive_from(RtArena *arena, RtUdpSocket *socket, l
     /* Receive datagram */
     struct sockaddr_storage src_addr;
     socklen_t src_len = sizeof(src_addr);
-    ssize_t bytes_received = recvfrom(socket->fd, buffer, (size_t)max_bytes, 0,
+    ssize_t bytes_received = recvfrom(socket->fd, (char *)buffer, (int)max_bytes, 0,
                                        (struct sockaddr *)&src_addr, &src_len);
     if (bytes_received < 0) {
-        fprintf(stderr, "UdpSocket.receiveFrom: recvfrom failed: %s\n", strerror(errno));
+        fprintf(stderr, "UdpSocket.receiveFrom: recvfrom failed\n");
         exit(1);
     }
 
@@ -871,7 +934,7 @@ unsigned char *rt_udp_socket_receive_from(RtArena *arena, RtUdpSocket *socket, l
 void rt_udp_socket_close(RtUdpSocket *socket)
 {
     if (socket != NULL && socket->fd >= 0) {
-        close(socket->fd);
+        socket_close(socket->fd);
         socket->fd = -1;
     }
 }

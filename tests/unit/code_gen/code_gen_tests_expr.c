@@ -32,7 +32,7 @@ static void test_code_gen_literal_expression(void)
     symbol_table_cleanup(&sym_table);
 
     const char *expected = get_expected(&arena,
-                                  "42L;\n"
+                                  "42LL;\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
@@ -86,7 +86,7 @@ static void test_code_gen_variable_expression(void)
     symbol_table_cleanup(&sym_table);
 
     const char *expected = get_expected(&arena,
-                                  "long x = 0;\n"
+                                  "long long x = 0;\n"
                                   "x;\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
@@ -153,7 +153,7 @@ static void test_code_gen_binary_expression_int_add(void)
 
     /* Constant folding optimization: 1 + 2 is folded to 3L at compile time */
     const char *expected = get_expected(&arena,
-                                  "3L;\n"
+                                  "3LL;\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
@@ -280,7 +280,7 @@ static void test_code_gen_unary_expression_negate(void)
 
     /* Constant folding optimization: -5 is folded to -5L at compile time */
     const char *expected = get_expected(&arena,
-                                  "-5L;\n"
+                                  "-5LL;\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
@@ -342,8 +342,8 @@ static void test_code_gen_assign_expression(void)
     symbol_table_cleanup(&sym_table);
 
     const char *expected = get_expected(&arena,
-                                  "long x = 0;\n"
-                                  "(x = 10L);\n"
+                                  "long long x = 0;\n"
+                                  "(x = 10LL);\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
@@ -413,7 +413,7 @@ static void test_code_gen_as_val_int_pointer(void)
 
     /* The key assertion: *int as val should generate *(ptr) */
     const char *expected = get_expected(&arena,
-                                  "long* ptr = 0;\n"
+                                  "long long* ptr = 0;\n"
                                   "(*(ptr));\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"

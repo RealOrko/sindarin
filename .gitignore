@@ -2,7 +2,23 @@ bin/
 log/
 logs/
 *.o
+*.obj
+*.pdb
 .idea/
 tests/exploratory/output/
 .claude-looper/
 sindarin.sln
+
+# Build directories
+build/
+build_cmake/
+build_msvc/
+
+# Claude Code session files
+.claude/
+
+# Generated test executables (no extension)
+test_lambda
+test_lambda_shared
+test_thread
+test_state.txt

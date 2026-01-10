@@ -1,0 +1,130 @@
+# GitHub Actions CI workflow for Linux
+# Builds and tests the Sn compiler on Linux using GCC
+
+name: Linux Build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build
+
+    - name: Verify tools
+      run: |
+        echo "=== Checking gcc ==="
+        gcc --version
+        echo ""
+        echo "=== Checking cmake ==="
+        cmake --version
+        echo ""
+        echo "=== Checking ninja ==="
+        ninja --version
+
+    - name: Configure CMake
+      run: |
+        cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build compiler
+      run: |
+        cmake --build build
+
+    - name: Verify build outputs
+      run: |
+        echo "Checking for compiler executable..."
+        if [ ! -f "bin/sn" ]; then
+          echo "ERROR: bin/sn not found"
+          exit 1
+        fi
+        echo "Found: bin/sn"
+
+        echo "Checking for test executable..."
+        if [ ! -f "bin/tests" ]; then
+          echo "ERROR: bin/tests not found"
+          exit 1
+        fi
+        echo "Found: bin/tests"
+
+        echo "Checking for runtime objects..."
+        if [ ! -f "bin/lib/gcc/arena.o" ]; then
+          echo "ERROR: bin/lib/gcc/arena.o not found"
+          exit 1
+        fi
+        echo "Found: bin/lib/gcc/*.o"
+
+        echo ""
+        echo "Build outputs verified successfully!"
+
+    - name: Run unit tests
+      run: |
+        echo "Running unit tests..."
+        bin/tests
+        echo "Unit tests passed!"
+
+    - name: Run integration tests
+      run: |
+        echo "Running integration tests..."
+        ./scripts/run_tests.sh integration
+        echo "Running integration error tests..."
+        ./scripts/run_tests.sh integration-errors
+        echo "All integration tests passed!"
+
+    - name: Run exploratory tests
+      run: |
+        echo "Running exploratory tests..."
+        ./scripts/run_tests.sh explore
+        echo "Running exploratory error tests..."
+        ./scripts/run_tests.sh explore-errors
+        echo "All exploratory tests passed!"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: sn-linux-x64
+        path: |
+          bin/sn
+          bin/tests
+          bin/lib/gcc/*.o
+          bin/include/**/*
+          bin/*.cfg
+        retention-days: 7
+
+  # Debug build job (triggered manually)
+  build-debug:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake ninja-build
+
+    - name: Configure CMake (Debug)
+      run: |
+        cmake -S . -B build -G Ninja -DCMAKE_C_COMPILER=gcc -DCMAKE_BUILD_TYPE=Debug -DSN_DEBUG=ON -DSN_ASAN=ON
+
+    - name: Build compiler (Debug)
+      run: |
+        cmake --build build
+
+    - name: Run unit tests (Debug)
+      run: |
+        bin/tests

@@ -19,8 +19,8 @@
  * Generate multiple values in one call for performance.
  * ============================================================================ */
 
-/* Array of random integers in range [min, max] inclusive */
-long *rt_random_static_int_many(RtArena *arena, long min, long max, long count);
+/* Array of random integers in range [min, max] inclusive - uses long long for 64-bit portability */
+long long *rt_random_static_int_many(RtArena *arena, long long min, long long max, long count);
 
 /* Array of random longs in range [min, max] inclusive */
 long long *rt_random_static_long_many(RtArena *arena, long long min, long long max, long count);
@@ -38,8 +38,8 @@ double *rt_random_static_gaussian_many(RtArena *arena, double mean, double stdde
  * Static Collection Operations (OS Entropy)
  * ============================================================================ */
 
-/* Random element from long array */
-long rt_random_static_choice_long(long *arr, long len);
+/* Random element from long array - uses long long for 64-bit portability */
+long long rt_random_static_choice_long(long long *arr, long len);
 
 /* Random element from double array */
 double rt_random_static_choice_double(double *arr, long len);
@@ -87,8 +87,8 @@ double *rt_random_build_cumulative(RtArena *arena, double *weights, long len);
  */
 long rt_random_select_weighted_index(double random_val, double *cumulative, long len);
 
-/* Weighted random choice from long array */
-long rt_random_static_weighted_choice_long(long *arr, double *weights);
+/* Weighted random choice from long array - uses long long for 64-bit portability */
+long long rt_random_static_weighted_choice_long(long long *arr, double *weights);
 
 /* Weighted random choice from double array */
 double rt_random_static_weighted_choice_double(double *arr, double *weights);
@@ -96,8 +96,8 @@ double rt_random_static_weighted_choice_double(double *arr, double *weights);
 /* Weighted random choice from string array */
 char *rt_random_static_weighted_choice_string(char **arr, double *weights);
 
-/* Shuffle long array in place */
-void rt_random_static_shuffle_long(long *arr);
+/* Shuffle long array in place - uses long long for 64-bit portability */
+void rt_random_static_shuffle_long(long long *arr);
 
 /* Shuffle double array in place */
 void rt_random_static_shuffle_double(double *arr);
@@ -111,8 +111,8 @@ void rt_random_static_shuffle_bool(int *arr);
 /* Shuffle byte array in place */
 void rt_random_static_shuffle_byte(unsigned char *arr);
 
-/* Random sample without replacement from long array */
-long *rt_random_static_sample_long(RtArena *arena, long *arr, long count);
+/* Random sample without replacement from long array - uses long long for 64-bit portability */
+long long *rt_random_static_sample_long(RtArena *arena, long long *arr, long count);
 
 /* Random sample without replacement from double array */
 double *rt_random_static_sample_double(RtArena *arena, double *arr, long count);

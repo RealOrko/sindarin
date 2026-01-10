@@ -253,6 +253,8 @@ See [MEMORY.md](MEMORY.md) for full documentation.
 
 ## Compilation
 
+See [BUILDING.md](BUILDING.md) for instructions on building the compiler from source.
+
 ```bash
 # Compile to executable
 bin/sn source.sn -o program
@@ -299,6 +301,7 @@ Note: The default runtime objects are compiled with GCC's LTO. To use a differen
 
 ## Documentation Index
 
+- [BUILDING.md](BUILDING.md) - Build instructions for Linux, macOS, Windows
 - [TYPES.md](TYPES.md) - Primitive and built-in types
 - [STRINGS.md](STRINGS.md) - String methods and interpolation
 - [ARRAYS.md](ARRAYS.md) - Array operations and slicing

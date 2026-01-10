@@ -51,7 +51,7 @@ typedef enum
     // Native interop keyword
     TOKEN_NATIVE,
     // Type declaration keywords
-    TOKEN_TYPE,
+    TOKEN_KEYWORD_TYPE,
     TOKEN_OPAQUE,
     // UUID type keyword
     TOKEN_UUID,
@@ -92,7 +92,7 @@ typedef enum
     TOKEN_PRAGMA_INCLUDE,
     TOKEN_PRAGMA_LINK,
     TOKEN_ERROR
-} TokenType;
+} SnTokenType;
 
 typedef union
 {
@@ -105,7 +105,7 @@ typedef union
 
 typedef struct
 {
-    TokenType type;
+    SnTokenType type;
     const char *start;
     int length;
     int line;
@@ -113,14 +113,14 @@ typedef struct
     LiteralValue literal;
 } Token;
 
-void token_init(Token *token, TokenType type, const char *start, int length, int line, const char *filename);
+void token_init(Token *token, SnTokenType type, const char *start, int length, int line, const char *filename);
 void token_set_int_literal(Token *token, int64_t value);
 void token_set_double_literal(Token *token, double value);
 void token_set_char_literal(Token *token, char value);
 void token_set_string_literal(Token *token, const char *value);
 void token_set_array_literal(Token *token, const char *value);
 void token_set_bool_literal(Token *token, int value);
-const char *token_type_to_string(TokenType type);
+const char *token_type_to_string(SnTokenType type);
 void token_print(Token *token);
 
 #endif

@@ -19,8 +19,8 @@
  * Instance Choice Functions (Seeded PRNG)
  * ============================================================================ */
 
-/* Random element from long array */
-long rt_random_choice_long(RtRandom *rng, long *arr, long len);
+/* Random element from long array - uses long long for 64-bit portability */
+long long rt_random_choice_long(RtRandom *rng, long long *arr, long len);
 
 /* Random element from double array */
 double rt_random_choice_double(RtRandom *rng, double *arr, long len);
@@ -38,8 +38,8 @@ unsigned char rt_random_choice_byte(RtRandom *rng, unsigned char *arr, long len)
  * Instance Weighted Choice Functions (Seeded PRNG)
  * ============================================================================ */
 
-/* Weighted random choice from long array */
-long rt_random_weighted_choice_long(RtRandom *rng, long *arr, double *weights);
+/* Weighted random choice from long array - uses long long for 64-bit portability */
+long long rt_random_weighted_choice_long(RtRandom *rng, long long *arr, double *weights);
 
 /* Weighted random choice from double array */
 double rt_random_weighted_choice_double(RtRandom *rng, double *arr, double *weights);

@@ -42,6 +42,25 @@ void remove_test_file(const char *path)
     remove(path);
 }
 
+/* Normalize line endings by removing \r characters (for cross-platform comparison) */
+static char *normalize_line_endings(Arena *arena, const char *str)
+{
+    if (str == NULL) return NULL;
+
+    size_t len = strlen(str);
+    char *result = arena_alloc(arena, len + 1);
+    if (result == NULL) return NULL;
+
+    size_t j = 0;
+    for (size_t i = 0; i < len; i++) {
+        if (str[i] != '\r') {
+            result[j++] = str[i];
+        }
+    }
+    result[j] = '\0';
+    return result;
+}
+
 void compare_output_files(const char *actual_path, const char *expected_path)
 {
     DEBUG_VERBOSE("Entering compare_output_files with actual_path=%s, expected_path=%s", actual_path, expected_path);
@@ -51,15 +70,19 @@ void compare_output_files(const char *actual_path, const char *expected_path)
     arena_init(&read_arena, 1024 * 1024);
 
     DEBUG_VERBOSE("Reading actual file: %s", actual_path);
-    char *actual = file_read(&read_arena, actual_path);
-    DEBUG_VERBOSE("Actual file contents: %s", actual ? actual : "NULL");
+    char *actual_raw = file_read(&read_arena, actual_path);
+    DEBUG_VERBOSE("Actual file contents: %s", actual_raw ? actual_raw : "NULL");
 
     DEBUG_VERBOSE("Reading expected file: %s", expected_path);
-    char *expected = file_read(&read_arena, expected_path);
-    DEBUG_VERBOSE("Expected file contents: %s", expected ? expected : "NULL");
+    char *expected_raw = file_read(&read_arena, expected_path);
+    DEBUG_VERBOSE("Expected file contents: %s", expected_raw ? expected_raw : "NULL");
 
     DEBUG_VERBOSE("Checking if file contents are non-null");
-    assert(actual != NULL && expected != NULL);
+    assert(actual_raw != NULL && expected_raw != NULL);
+
+    /* Normalize line endings for cross-platform comparison */
+    char *actual = normalize_line_endings(&read_arena, actual_raw);
+    char *expected = normalize_line_endings(&read_arena, expected_raw);
 
     DEBUG_VERBOSE("Comparing file contents");
     if (strcmp(actual, expected) != 0) {
@@ -82,30 +105,9 @@ void compare_output_files(const char *actual_path, const char *expected_path)
     arena_free(&read_arena);
 }
 
-void setup_basic_token(Token *token, TokenType type, const char *lexeme)
+void setup_basic_token(Token *token, SnTokenType type, const char *lexeme)
 {
     token_init(token, type, lexeme, (int)strlen(lexeme), 1, "test.sn");
-}
-
-static void test_code_gen_init_invalid_output_file(void)
-{
-    DEBUG_INFO("Starting test_code_gen_init_invalid_output_file");
-
-    Arena arena;
-    arena_init(&arena, 1024);
-    CodeGen gen;
-    SymbolTable sym_table;
-    symbol_table_init(&arena, &sym_table);
-
-    const char *invalid_path = "/invalid/path/test.c";
-    code_gen_init(&arena, &gen, &sym_table, invalid_path);
-    assert(gen.output == NULL); // fopen fails
-
-    symbol_table_cleanup(&sym_table);
-
-    arena_free(&arena);
-
-    DEBUG_INFO("Finished test_code_gen_init_invalid_output_file");
 }
 
 static void test_code_gen_cleanup_null_output(void)

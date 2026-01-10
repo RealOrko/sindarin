@@ -3,8 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 
-void token_init(Token *token, TokenType type, const char *start, int length, int line, const char *filename)
+void token_init(Token *token, SnTokenType type, const char *start, int length, int line, const char *filename)
 {
     token->type = type;
     token->start = start;
@@ -44,11 +45,11 @@ void token_set_bool_literal(Token *token, int value)
     token->literal.bool_value = value;
 }
 
-const char *token_type_to_string(TokenType type)
+const char *token_type_to_string(SnTokenType type)
 {
     if (type < 0 || type > TOKEN_ERROR)
     {
-        DEBUG_ERROR("Invalid TokenType: %d", type);
+        DEBUG_ERROR("Invalid SnTokenType: %d", type);
         return "INVALID";
     }
 
@@ -134,7 +135,7 @@ const char *token_type_to_string(TokenType type)
         return "REF";
     case TOKEN_NATIVE:
         return "NATIVE";
-    case TOKEN_TYPE:
+    case TOKEN_KEYWORD_TYPE:
         return "TYPE";
     case TOKEN_OPAQUE:
         return "OPAQUE";
@@ -235,10 +236,10 @@ void token_print(Token *token)
     switch (token->type)
     {
     case TOKEN_INT_LITERAL:
-        printf(", value: %ld", token->literal.int_value);
+        printf(", value: %" PRId64, token->literal.int_value);
         break;
     case TOKEN_LONG_LITERAL:
-        printf(", value: %ldl", token->literal.int_value);
+        printf(", value: %" PRId64 "l", token->literal.int_value);
         break;
     case TOKEN_DOUBLE_LITERAL:
         printf(", value: %fd", token->literal.double_value);

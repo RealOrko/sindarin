@@ -134,13 +134,13 @@ typedef struct
 {
     Expr *left;
     Expr *right;
-    TokenType operator;
+    SnTokenType operator;
 } BinaryExpr;
 
 typedef struct
 {
     Expr *operand;
-    TokenType operator;
+    SnTokenType operator;
 } UnaryExpr;
 
 typedef struct
@@ -482,8 +482,8 @@ int ast_type_is_pointer(Type *type);
 int ast_type_is_opaque(Type *type);
 const char *ast_type_to_string(Arena *arena, Type *type);
 
-Expr *ast_create_binary_expr(Arena *arena, Expr *left, TokenType operator, Expr *right, const Token *loc_token);
-Expr *ast_create_unary_expr(Arena *arena, TokenType operator, Expr *operand, const Token *loc_token);
+Expr *ast_create_binary_expr(Arena *arena, Expr *left, SnTokenType operator, Expr *right, const Token *loc_token);
+Expr *ast_create_unary_expr(Arena *arena, SnTokenType operator, Expr *operand, const Token *loc_token);
 Expr *ast_create_literal_expr(Arena *arena, LiteralValue value, Type *type, bool is_interpolated, const Token *loc_token);
 Expr *ast_create_variable_expr(Arena *arena, Token name, const Token *loc_token);
 Expr *ast_create_assign_expr(Arena *arena, Token name, Expr *value, const Token *loc_token);
@@ -495,7 +495,7 @@ Expr *ast_create_increment_expr(Arena *arena, Expr *operand, const Token *loc_to
 Expr *ast_create_decrement_expr(Arena *arena, Expr *operand, const Token *loc_token);
 Expr *ast_create_interpolated_expr(Arena *arena, Expr **parts, char **format_specs, int part_count, const Token *loc_token);
 Expr *ast_create_member_expr(Arena *arena, Expr *object, Token member_name, const Token *loc_token);
-Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenType comparison_type, const Token *loc_token);
+Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, SnTokenType comparison_type, const Token *loc_token);
 Expr *ast_create_array_slice_expr(Arena *arena, Expr *array, Expr *start, Expr *end, Expr *step, const Token *loc_token);
 Expr *ast_create_range_expr(Arena *arena, Expr *start, Expr *end, const Token *loc_token);
 Expr *ast_create_spread_expr(Arena *arena, Expr *array, const Token *loc_token);

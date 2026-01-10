@@ -86,7 +86,7 @@ elem_type *rt_array_push_##suffix(RtArena *arena, elem_type *arr, elem_type elem
 }
 
 /* Generate array push functions for each type */
-DEFINE_ARRAY_PUSH(long, long, element)
+DEFINE_ARRAY_PUSH(long, long long, element)
 DEFINE_ARRAY_PUSH(double, double, element)
 DEFINE_ARRAY_PUSH(char, char, element)
 DEFINE_ARRAY_PUSH(bool, int, element)
@@ -165,7 +165,7 @@ elem_type rt_array_pop_##suffix(elem_type *arr) {                              \
 }
 
 /* Generate array pop functions for each type */
-DEFINE_ARRAY_POP(long, long, 0)
+DEFINE_ARRAY_POP(long, long long, 0)
 DEFINE_ARRAY_POP(double, double, 0.0)
 DEFINE_ARRAY_POP(char, char, '\0')
 DEFINE_ARRAY_POP(bool, int, 0)
@@ -218,7 +218,7 @@ elem_type *rt_array_concat_##suffix(RtArena *arena, elem_type *arr1, elem_type *
 }
 
 /* Generate array concat functions for each type */
-DEFINE_ARRAY_CONCAT(long, long)
+DEFINE_ARRAY_CONCAT(long, long long)
 DEFINE_ARRAY_CONCAT(double, double)
 DEFINE_ARRAY_CONCAT(char, char)
 DEFINE_ARRAY_CONCAT(bool, int)
@@ -314,7 +314,7 @@ elem_type *rt_array_slice_##suffix(RtArena *arena, elem_type *arr, long start, l
 }
 
 /* Generate array slice functions for each type */
-DEFINE_ARRAY_SLICE(long, long)
+DEFINE_ARRAY_SLICE(long, long long)
 DEFINE_ARRAY_SLICE(double, double)
 DEFINE_ARRAY_SLICE(char, char)
 DEFINE_ARRAY_SLICE(bool, int)
@@ -408,7 +408,7 @@ elem_type *rt_array_rev_##suffix(RtArena *arena, elem_type *arr) {              
 }
 
 /* Generate array reverse functions for each type */
-DEFINE_ARRAY_REV(long, long)
+DEFINE_ARRAY_REV(long, long long)
 DEFINE_ARRAY_REV(double, double)
 DEFINE_ARRAY_REV(char, char)
 DEFINE_ARRAY_REV(bool, int)
@@ -478,7 +478,7 @@ elem_type *rt_array_rem_##suffix(RtArena *arena, elem_type *arr, long index) {  
 }
 
 /* Generate array remove functions for each type */
-DEFINE_ARRAY_REM(long, long)
+DEFINE_ARRAY_REM(long, long long)
 DEFINE_ARRAY_REM(double, double)
 DEFINE_ARRAY_REM(char, char)
 DEFINE_ARRAY_REM(bool, int)
@@ -549,7 +549,7 @@ elem_type *rt_array_ins_##suffix(RtArena *arena, elem_type *arr, elem_type elem,
 }
 
 /* Generate array insert functions for each type */
-DEFINE_ARRAY_INS(long, long)
+DEFINE_ARRAY_INS(long, long long)
 DEFINE_ARRAY_INS(double, double)
 DEFINE_ARRAY_INS(char, char)
 DEFINE_ARRAY_INS(bool, int)
@@ -601,7 +601,7 @@ long rt_array_indexOf_##suffix(elem_type *arr, elem_type elem) {                
 }
 
 /* Generate array indexOf functions for each type */
-DEFINE_ARRAY_INDEXOF(long, long, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(long, long long, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(double, double, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(char, char, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(bool, int, arr[i] == elem)
@@ -635,7 +635,7 @@ int rt_array_contains_##suffix(elem_type *arr, elem_type elem) {                
 }
 
 /* Generate array contains functions for each type */
-DEFINE_ARRAY_CONTAINS(long, long)
+DEFINE_ARRAY_CONTAINS(long, long long)
 DEFINE_ARRAY_CONTAINS(double, double)
 DEFINE_ARRAY_CONTAINS(char, char)
 DEFINE_ARRAY_CONTAINS(bool, int)
@@ -675,7 +675,7 @@ elem_type *rt_array_clone_##suffix(RtArena *arena, elem_type *arr) {            
 }
 
 /* Generate array clone functions for each type */
-DEFINE_ARRAY_CLONE(long, long)
+DEFINE_ARRAY_CLONE(long, long long)
 DEFINE_ARRAY_CLONE(double, double)
 DEFINE_ARRAY_CLONE(char, char)
 DEFINE_ARRAY_CLONE(bool, int)
@@ -711,14 +711,14 @@ char **rt_array_clone_string(RtArena *arena, char **arr) {
  * ============================================================================
  * Join array elements into a string with separator.
  */
-char *rt_array_join_long(RtArena *arena, long *arr, const char *separator) {
+char *rt_array_join_long(RtArena *arena, long long *arr, const char *separator) {
     if (arr == NULL || rt_array_length(arr) == 0) {
         return rt_arena_strdup(arena, "");
     }
     size_t len = rt_array_length(arr);
     size_t sep_len = separator ? strlen(separator) : 0;
 
-    /* Estimate buffer size: each long can be up to 20 chars + separators */
+    /* Estimate buffer size: each long long can be up to 20 chars + separators */
     size_t buf_size = len * 24 + (len - 1) * sep_len + 1;
     char *result = rt_arena_alloc(arena, buf_size);
     if (result == NULL) {
@@ -731,7 +731,7 @@ char *rt_array_join_long(RtArena *arena, long *arr, const char *separator) {
         if (i > 0 && separator) {
             ptr += sprintf(ptr, "%s", separator);
         }
-        ptr += sprintf(ptr, "%ld", arr[i]);
+        ptr += sprintf(ptr, "%lld", arr[i]);
     }
     return result;
 }
@@ -879,13 +879,13 @@ char *rt_array_join_string(RtArena *arena, char **arr, const char *separator) {
  * ============================================================================
  * Print array contents to stdout for debugging.
  */
-void rt_print_array_long(long *arr) {
+void rt_print_array_long(long long *arr) {
     printf("[");
     if (arr != NULL) {
         size_t len = rt_array_length(arr);
         for (size_t i = 0; i < len; i++) {
             if (i > 0) printf(", ");
-            printf("%ld", arr[i]);
+            printf("%lld", arr[i]);
         }
     }
     printf("]");
@@ -980,7 +980,7 @@ elem_type *rt_array_create_##suffix(RtArena *arena, size_t count, const elem_typ
 }
 
 /* Generate array create functions for each type */
-DEFINE_ARRAY_CREATE(long, long)
+DEFINE_ARRAY_CREATE(long, long long)
 DEFINE_ARRAY_CREATE(double, double)
 DEFINE_ARRAY_CREATE(char, char)
 DEFINE_ARRAY_CREATE(bool, int)
@@ -1045,7 +1045,7 @@ int rt_array_eq_##suffix(elem_type *a, elem_type *b) {                          
 }
 
 /* Generate array equality functions for each type */
-DEFINE_ARRAY_EQ(long, long, a[i] == b[i])
+DEFINE_ARRAY_EQ(long, long long, a[i] == b[i])
 DEFINE_ARRAY_EQ(double, double, a[i] == b[i])
 DEFINE_ARRAY_EQ(char, char, a[i] == b[i])
 DEFINE_ARRAY_EQ(bool, int, a[i] == b[i])
@@ -1076,9 +1076,9 @@ int rt_array_eq_string(char **a, char **b) {
  * ============================================================================
  * Creates long[] from start to end (exclusive).
  */
-long *rt_array_range(RtArena *arena, long start, long end) {
+long long *rt_array_range(RtArena *arena, long long start, long long end) {
     /* Calculate count, handle both ascending and descending ranges */
-    long count;
+    long long count;
     if (end >= start) {
         count = end - start;
     } else {
@@ -1089,7 +1089,7 @@ long *rt_array_range(RtArena *arena, long start, long end) {
     if (count <= 0) {
         /* Empty range */
         size_t capacity = 4;
-        ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(long));
+        ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(long long));
         if (meta == NULL) {
             fprintf(stderr, "rt_array_range: allocation failed\n");
             exit(1);
@@ -1097,11 +1097,11 @@ long *rt_array_range(RtArena *arena, long start, long end) {
         meta->arena = arena;
         meta->size = 0;
         meta->capacity = capacity;
-        return (long *)(meta + 1);
+        return (long long *)(meta + 1);
     }
 
     size_t capacity = (size_t)count > 4 ? (size_t)count : 4;
-    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(long));
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(long long));
     if (meta == NULL) {
         fprintf(stderr, "rt_array_range: allocation failed\n");
         exit(1);
@@ -1109,9 +1109,9 @@ long *rt_array_range(RtArena *arena, long start, long end) {
     meta->arena = arena;
     meta->size = (size_t)count;
     meta->capacity = capacity;
-    long *arr = (long *)(meta + 1);
+    long long *arr = (long long *)(meta + 1);
 
-    for (long i = 0; i < count; i++) {
+    for (long long i = 0; i < count; i++) {
         arr[i] = start + i;
     }
 
@@ -1123,8 +1123,8 @@ long *rt_array_range(RtArena *arena, long start, long end) {
  * ============================================================================
  * Creates arrays of specified size filled with default value.
  */
-long *rt_array_alloc_long(RtArena *arena, size_t count, long default_value) {
-    size_t data_size = count * sizeof(long);
+long long *rt_array_alloc_long(RtArena *arena, size_t count, long long default_value) {
+    size_t data_size = count * sizeof(long long);
     size_t total = sizeof(ArrayMetadata) + data_size;
 
     ArrayMetadata *meta = rt_arena_alloc(arena, total);
@@ -1136,7 +1136,7 @@ long *rt_array_alloc_long(RtArena *arena, size_t count, long default_value) {
     meta->size = count;
     meta->capacity = count;
 
-    long *data = (long *)(meta + 1);
+    long long *data = (long long *)(meta + 1);
     if (default_value == 0) {
         memset(data, 0, data_size);
     } else {
@@ -1284,7 +1284,7 @@ elem_type *rt_array_push_copy_##suffix(RtArena *arena, elem_type *arr, elem_type
 }
 
 /* Generate array push copy functions for each type */
-DEFINE_ARRAY_PUSH_COPY(long, long)
+DEFINE_ARRAY_PUSH_COPY(long, long long)
 DEFINE_ARRAY_PUSH_COPY(double, double)
 DEFINE_ARRAY_PUSH_COPY(char, char)
 DEFINE_ARRAY_PUSH_COPY(bool, int)

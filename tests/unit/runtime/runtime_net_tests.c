@@ -5,10 +5,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include <time.h>
+
+#ifdef _WIN32
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides pthreads but not fork/wait */
+    #include <pthread.h>
+    #include <unistd.h>
+    #else
+    #include "../platform/compat_windows.h"
+    #include "../platform/compat_pthread.h"
+    #endif
+#else
+#include <pthread.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#endif
+
 #include "../runtime.h"
 #include "../debug.h"
 #include "../test_harness.h"
@@ -513,6 +526,19 @@ static void test_rt_tcp_stream_connect_basic(void)
     rt_arena_destroy(server_arena);
 }
 
+/* Shared struct and thread function for TCP accept tests */
+typedef struct {
+    RtTcpListener *listener;
+    RtArena *arena;
+    RtTcpStream *accepted;
+} TcpAcceptArgs;
+
+static void *tcp_accept_thread_fn(void *arg) {
+    TcpAcceptArgs *a = (TcpAcceptArgs *)arg;
+    a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
+    return NULL;
+}
+
 static void test_rt_tcp_stream_connect_has_valid_fd(void)
 {
 
@@ -524,24 +550,10 @@ static void test_rt_tcp_stream_connect_has_valid_fd(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs;
-
-    AcceptArgs accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn(void *arg) {
-        AcceptArgs *a = (AcceptArgs *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -576,24 +588,10 @@ static void test_rt_tcp_stream_connect_has_remote_address(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs2;
-
-    AcceptArgs2 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn2(void *arg) {
-        AcceptArgs2 *a = (AcceptArgs2 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn2, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -637,24 +635,10 @@ static void test_rt_tcp_stream_connect_localhost_hostname(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs3;
-
-    AcceptArgs3 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn3(void *arg) {
-        AcceptArgs3 *a = (AcceptArgs3 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn3, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -695,24 +679,10 @@ static void test_rt_tcp_stream_close_basic(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs4;
-
-    AcceptArgs4 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn4(void *arg) {
-        AcceptArgs4 *a = (AcceptArgs4 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn4, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -753,24 +723,10 @@ static void test_rt_tcp_stream_close_multiple_times(void)
     assert(listener != NULL);
     int port = rt_tcp_listener_get_port(listener);
 
-    /* Thread args for accepting */
-    typedef struct {
-        RtTcpListener *listener;
-        RtArena *arena;
-        RtTcpStream *accepted;
-    } AcceptArgs5;
-
-    AcceptArgs5 accept_args = {listener, server_arena, NULL};
-
-    /* Thread to accept connection */
-    void *accept_thread_fn5(void *arg) {
-        AcceptArgs5 *a = (AcceptArgs5 *)arg;
-        a->accepted = rt_tcp_listener_accept(a->arena, a->listener);
-        return NULL;
-    }
+    TcpAcceptArgs accept_args = {listener, server_arena, NULL};
 
     pthread_t accept_thread;
-    pthread_create(&accept_thread, NULL, accept_thread_fn5, &accept_args);
+    pthread_create(&accept_thread, NULL, tcp_accept_thread_fn, &accept_args);
 
     /* Give server time to start accepting */
     struct timespec ts = {0, 10000000}; /* 10ms */
@@ -1450,7 +1406,10 @@ static void test_rt_udp_socket_empty_datagram()
  * These tests verify that invalid address formats cause appropriate errors.
  * Since the runtime calls exit(1) on errors, we use fork() to test in a
  * child process and verify the exit code.
+ * NOTE: These tests only work on POSIX systems (fork/wait not available on Windows)
  * ============================================================================ */
+
+#ifndef _WIN32  /* fork-based tests only on POSIX */
 
 /* Helper function to test that a function call exits with failure.
  * Returns 1 if the child exited with non-zero status, 0 otherwise.
@@ -1624,6 +1583,8 @@ static void test_udp_address_error_missing_port(void)
     assert(expect_exit_failure(try_udp_bind_missing_port) == 1);
 }
 
+#endif  /* _WIN32 - end of fork-based tests */
+
 /* ============================================================================
  * Test Main Entry Point
  * ============================================================================ */
@@ -1659,7 +1620,6 @@ void test_rt_net_main(void)
     TEST_RUN("tcp_listener_close_multiple_times", test_rt_tcp_listener_close_multiple_times);
     TEST_RUN("tcp_listener_close_releases_port", test_rt_tcp_listener_close_releases_port);
 
-    /* TcpStream connect tests */
     TEST_RUN("tcp_stream_connect_basic", test_rt_tcp_stream_connect_basic);
     TEST_RUN("tcp_stream_connect_has_valid_fd", test_rt_tcp_stream_connect_has_valid_fd);
     TEST_RUN("tcp_stream_connect_has_remote_address", test_rt_tcp_stream_connect_has_remote_address);
@@ -1695,6 +1655,7 @@ void test_rt_net_main(void)
     TEST_RUN("udp_socket_empty_datagram", test_rt_udp_socket_empty_datagram);
 
     /* Address parsing error tests (use fork to test exit behavior) */
+#ifndef _WIN32  /* fork-based tests only on POSIX */
     TEST_RUN("address_error_empty_string", test_address_error_empty_string);
     TEST_RUN("address_error_missing_port", test_address_error_missing_port);
     TEST_RUN("address_error_invalid_port_letters", test_address_error_invalid_port_letters);
@@ -1706,4 +1667,5 @@ void test_rt_net_main(void)
     TEST_RUN("address_error_empty_port", test_address_error_empty_port);
     TEST_RUN("udp_address_error_empty_string", test_udp_address_error_empty_string);
     TEST_RUN("udp_address_error_missing_port", test_udp_address_error_missing_port);
+#endif
 }

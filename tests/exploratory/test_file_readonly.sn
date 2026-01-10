@@ -1,5 +1,5 @@
 // Test 140: File I/O error handling for read-only/protected locations
-// 
+//
 // BEHAVIOR DOCUMENTATION:
 // When writing to a protected or invalid location, the Sn runtime:
 // - Prints an error message to stderr with the reason
@@ -15,27 +15,35 @@
 // - Files in read-only directories
 //
 // PATHS THAT SUCCEED:
-// - /dev/null (writable black hole, content discarded)
-// - /tmp/* (writable temp directory)
+// - /dev/null on Linux, NUL on Windows (writable black hole, content discarded)
+// - Temp directory (writable)
 //
 // This test verifies SUCCESSFUL write operations to avoid panics.
-// See comments below for behavior of protected paths.
+// Cross-platform: works on Windows and Linux
 
 fn main(): int =>
     print("Test file I/O write operations:\n\n")
 
-    // === Test 1: Write to /dev/null (always succeeds) ===
-    print("Test 1 - Write to /dev/null:\n")
-    TextFile.writeAll("/dev/null", "this content is discarded")
-    print("  TextFile.writeAll to /dev/null: SUCCESS\n")
-    
+    // Get cross-platform temp directory
+    var tempDir: str = Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+
+    // Get cross-platform null device
+    var nullDevice: str = "/dev/null"
+    if Environment.get("OS", "").contains("Windows") =>
+        nullDevice = "NUL"
+
+    // === Test 1: Write to null device (always succeeds) ===
+    print("Test 1 - Write to null device:\n")
+    TextFile.writeAll(nullDevice, "this content is discarded")
+    print("  TextFile.writeAll to null device: SUCCESS\n")
+
     var devnull_data: byte[] = {1, 2, 3, 4, 5}
-    BinaryFile.writeAll("/dev/null", devnull_data)
-    print("  BinaryFile.writeAll to /dev/null: SUCCESS\n")
+    BinaryFile.writeAll(nullDevice, devnull_data)
+    print("  BinaryFile.writeAll to null device: SUCCESS\n")
 
     // === Test 2: Write to writable temp directory ===
-    print("\nTest 2 - Write to /tmp (writable):\n")
-    var tmp_path: str = "/tmp/test_140_writable.txt"
+    print("\nTest 2 - Write to temp dir (writable):\n")
+    var tmp_path: str = $"{tempDir}/test_140_writable.txt"
     TextFile.writeAll(tmp_path, "test content")
     var read_back: str = TextFile.readAll(tmp_path)
     if read_back == "test content" =>
@@ -45,8 +53,8 @@ fn main(): int =>
     TextFile.delete(tmp_path)
 
     // === Test 3: Binary file to writable location ===
-    print("\nTest 3 - BinaryFile to /tmp:\n")
-    var tmp_bin_path: str = "/tmp/test_140_writable.bin"
+    print("\nTest 3 - BinaryFile to temp dir:\n")
+    var tmp_bin_path: str = $"{tempDir}/test_140_writable.bin"
     var bin_data: byte[] = {10, 20, 30, 40, 50}
     BinaryFile.writeAll(tmp_bin_path, bin_data)
     var bin_read_back: byte[] = BinaryFile.readAll(tmp_bin_path)
@@ -58,14 +66,15 @@ fn main(): int =>
 
     // === Test 4: Instance-based file writing ===
     print("\nTest 4 - Instance-based TextFile write:\n")
-    var tmp_inst_path: str = "/tmp/test_140_instance.txt"
+    var tmp_inst_path: str = $"{tempDir}/test_140_instance.txt"
     var f: TextFile = TextFile.open(tmp_inst_path)
     f.writeLine("Line 1")
     f.writeLine("Line 2")
     f.close()
-    
+
     var inst_content: str = TextFile.readAll(tmp_inst_path)
-    if inst_content == "Line 1\nLine 2\n" =>
+    // Handle both Unix (\n) and Windows (\r\n) line endings
+    if inst_content.replace("\r\n", "\n") == "Line 1\nLine 2\n" =>
         print("  Instance write: SUCCESS\n")
     else =>
         print("  Instance write: FAIL\n")
@@ -73,7 +82,7 @@ fn main(): int =>
 
     // === Test 5: Instance-based BinaryFile writing ===
     print("\nTest 5 - Instance-based BinaryFile write:\n")
-    var tmp_bin_inst: str = "/tmp/test_140_bin_instance.bin"
+    var tmp_bin_inst: str = $"{tempDir}/test_140_bin_instance.bin"
     // First create the file with some data
     var init_data: byte[] = {0}
     BinaryFile.writeAll(tmp_bin_inst, init_data)
@@ -94,8 +103,8 @@ fn main(): int =>
     // === Test 6: Safe write pattern with exists check ===
     print("\nTest 6 - Safe write pattern:\n")
     // Check if parent directory exists/is writable by trying a small write
-    var safe_path: str = "/tmp/test_140_safe_write.txt"
-    // Since /tmp is always writable, this should succeed
+    var safe_path: str = $"{tempDir}/test_140_safe_write.txt"
+    // Since temp dir is always writable, this should succeed
     TextFile.writeAll(safe_path, "safe content")
     if TextFile.exists(safe_path) =>
         print("  Safe write pattern: SUCCESS\n")
@@ -106,15 +115,13 @@ fn main(): int =>
     // === Documentation of panic behavior ===
     print("\n=== Panic Behavior Documentation ===\n")
     print("The following operations cause RUNTIME PANIC:\n")
-    print("  - TextFile.writeAll(\"/etc/passwd\", ...)\n")
-    print("    -> 'Permission denied', exit code 1\n")
-    print("  - TextFile.writeAll(\"/nonexistent_dir/file.txt\", ...)\n")
-    print("    -> 'No such file or directory', exit code 1\n")
+    print("  - Writing to protected system files (Permission denied)\n")
+    print("  - Writing to nonexistent directories (No such file or directory)\n")
     print("  - BinaryFile.writeAll to protected paths\n")
     print("    -> Same panic behavior\n")
     print("\nTo avoid panics:\n")
     print("  1. Use TextFile.exists() to check paths first\n")
-    print("  2. Only write to known-writable locations (/tmp, etc.)\n")
+    print("  2. Only write to known-writable locations (temp dir, etc.)\n")
     print("  3. Handle file operations in controlled code sections\n")
 
     print("\nAll file write tests passed!\n")

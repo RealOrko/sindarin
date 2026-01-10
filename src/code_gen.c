@@ -116,9 +116,14 @@ static void code_gen_headers(CodeGen *gen)
     indented_fprintf(gen, 0, "#include <stdint.h>\n");  /* For int32_t, uint32_t, uint64_t */
     indented_fprintf(gen, 0, "#include <limits.h>\n");
     indented_fprintf(gen, 0, "#include <setjmp.h>\n");  /* For thread panic handling */
-    indented_fprintf(gen, 0, "#include <pthread.h>\n"); /* For thread operations (pthread_self) */
+    /* pthread.h is included via runtime.h -> runtime_thread.h (handles Windows compatibility) */
     /* Include runtime.h for inline function definitions (comparisons, array_length, etc.) */
-    indented_fprintf(gen, 0, "#include \"runtime.h\"\n\n");
+    indented_fprintf(gen, 0, "#include \"runtime.h\"\n");
+    /* Undefine Windows min/max macros to avoid name collisions with user functions */
+    indented_fprintf(gen, 0, "#ifdef _WIN32\n");
+    indented_fprintf(gen, 0, "#undef min\n");
+    indented_fprintf(gen, 0, "#undef max\n");
+    indented_fprintf(gen, 0, "#endif\n\n");
 }
 
 static void code_gen_externs(CodeGen *gen)
@@ -152,7 +157,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern long rt_str_charAt(const char *, long);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime print functions */\n");
-    indented_fprintf(gen, 0, "extern void rt_print_long(long);\n");
+    indented_fprintf(gen, 0, "extern void rt_print_long(long long);\n");
     indented_fprintf(gen, 0, "extern void rt_print_double(double);\n");
     indented_fprintf(gen, 0, "extern void rt_print_char(long);\n");
     indented_fprintf(gen, 0, "extern void rt_print_string(const char *);\n");
@@ -160,7 +165,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern void rt_print_byte(unsigned char);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime type conversions */\n");
-    indented_fprintf(gen, 0, "extern char *rt_to_string_long(RtArena *, long);\n");
+    indented_fprintf(gen, 0, "extern char *rt_to_string_long(RtArena *, long long);\n");
     indented_fprintf(gen, 0, "extern char *rt_to_string_double(RtArena *, double);\n");
     indented_fprintf(gen, 0, "extern char *rt_to_string_char(RtArena *, char);\n");
     indented_fprintf(gen, 0, "extern char *rt_to_string_bool(RtArena *, int);\n");
@@ -170,20 +175,20 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char *rt_to_string_pointer(RtArena *, void *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime format specifier functions */\n");
-    indented_fprintf(gen, 0, "extern char *rt_format_long(RtArena *, long, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_format_long(RtArena *, long long, const char *);\n");
     indented_fprintf(gen, 0, "extern char *rt_format_double(RtArena *, double, const char *);\n");
     indented_fprintf(gen, 0, "extern char *rt_format_string(RtArena *, const char *, const char *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime long arithmetic (comparisons are static inline in runtime.h) */\n");
-    indented_fprintf(gen, 0, "extern long rt_add_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_sub_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_mul_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_div_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_mod_long(long, long);\n");
-    indented_fprintf(gen, 0, "extern long rt_neg_long(long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_add_long(long long, long long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_sub_long(long long, long long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_mul_long(long long, long long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_div_long(long long, long long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_mod_long(long long, long long);\n");
+    indented_fprintf(gen, 0, "extern long long rt_neg_long(long long);\n");
     /* rt_eq_long, rt_ne_long, etc. are static inline in runtime.h */
-    indented_fprintf(gen, 0, "extern long rt_post_inc_long(long *);\n");
-    indented_fprintf(gen, 0, "extern long rt_post_dec_long(long *);\n\n");
+    indented_fprintf(gen, 0, "extern long long rt_post_inc_long(long long *);\n");
+    indented_fprintf(gen, 0, "extern long long rt_post_dec_long(long long *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime double arithmetic (comparisons are static inline in runtime.h) */\n");
     indented_fprintf(gen, 0, "extern double rt_add_double(double, double);\n");
@@ -196,7 +201,7 @@ static void code_gen_externs(CodeGen *gen)
     /* rt_not_bool, rt_eq_string, etc. are declared in runtime.h */
 
     indented_fprintf(gen, 0, "/* Runtime array operations */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_push_long(RtArena *, long *, long);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_push_long(RtArena *, long long *, long long);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_push_double(RtArena *, double *, double);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_push_char(RtArena *, char *, char);\n");
     indented_fprintf(gen, 0, "extern char **rt_array_push_string(RtArena *, char **, const char *);\n");
@@ -205,7 +210,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern void **rt_array_push_ptr(RtArena *, void **, void *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array print functions */\n");
-    indented_fprintf(gen, 0, "extern void rt_print_array_long(long *);\n");
+    indented_fprintf(gen, 0, "extern void rt_print_array_long(long long *);\n");
     indented_fprintf(gen, 0, "extern void rt_print_array_double(double *);\n");
     indented_fprintf(gen, 0, "extern void rt_print_array_char(char *);\n");
     indented_fprintf(gen, 0, "extern void rt_print_array_bool(int *);\n");
@@ -216,7 +221,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern void rt_array_clear(void *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array pop functions */\n");
-    indented_fprintf(gen, 0, "extern long rt_array_pop_long(long *);\n");
+    indented_fprintf(gen, 0, "extern long long rt_array_pop_long(long long *);\n");
     indented_fprintf(gen, 0, "extern double rt_array_pop_double(double *);\n");
     indented_fprintf(gen, 0, "extern char rt_array_pop_char(char *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_pop_bool(int *);\n");
@@ -225,7 +230,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern void *rt_array_pop_ptr(void **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array concat functions */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_concat_long(RtArena *, long *, long *);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_concat_long(RtArena *, long long *, long long *);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_concat_double(RtArena *, double *, double *);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_concat_char(RtArena *, char *, char *);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_concat_bool(RtArena *, int *, int *);\n");
@@ -234,7 +239,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern void **rt_array_concat_ptr(RtArena *, void **, void **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array slice functions (start, end, step) */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_slice_long(RtArena *, long *, long, long, long);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_slice_long(RtArena *, long long *, long, long, long);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_slice_double(RtArena *, double *, long, long, long);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_slice_char(RtArena *, char *, long, long, long);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_slice_bool(RtArena *, int *, long, long, long);\n");
@@ -242,7 +247,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_slice_string(RtArena *, char **, long, long, long);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array reverse functions */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_rev_long(RtArena *, long *);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_rev_long(RtArena *, long long *);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_rev_double(RtArena *, double *);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_rev_char(RtArena *, char *);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_rev_bool(RtArena *, int *);\n");
@@ -250,7 +255,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_rev_string(RtArena *, char **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array remove functions */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_rem_long(RtArena *, long *, long);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_rem_long(RtArena *, long long *, long);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_rem_double(RtArena *, double *, long);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_rem_char(RtArena *, char *, long);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_rem_bool(RtArena *, int *, long);\n");
@@ -258,7 +263,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_rem_string(RtArena *, char **, long);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array insert functions */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_ins_long(RtArena *, long *, long, long);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_ins_long(RtArena *, long long *, long long, long);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_ins_double(RtArena *, double *, double, long);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_ins_char(RtArena *, char *, char, long);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_ins_bool(RtArena *, int *, int, long);\n");
@@ -266,7 +271,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_ins_string(RtArena *, char **, const char *, long);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array push (copy) functions */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_push_copy_long(RtArena *, long *, long);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_push_copy_long(RtArena *, long long *, long long);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_push_copy_double(RtArena *, double *, double);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_push_copy_char(RtArena *, char *, char);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_push_copy_bool(RtArena *, int *, int);\n");
@@ -274,7 +279,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_push_copy_string(RtArena *, char **, const char *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array indexOf functions */\n");
-    indented_fprintf(gen, 0, "extern long rt_array_indexOf_long(long *, long);\n");
+    indented_fprintf(gen, 0, "extern long rt_array_indexOf_long(long long *, long long);\n");
     indented_fprintf(gen, 0, "extern long rt_array_indexOf_double(double *, double);\n");
     indented_fprintf(gen, 0, "extern long rt_array_indexOf_char(char *, char);\n");
     indented_fprintf(gen, 0, "extern long rt_array_indexOf_bool(int *, int);\n");
@@ -282,7 +287,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern long rt_array_indexOf_string(char **, const char *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array contains functions */\n");
-    indented_fprintf(gen, 0, "extern int rt_array_contains_long(long *, long);\n");
+    indented_fprintf(gen, 0, "extern int rt_array_contains_long(long long *, long long);\n");
     indented_fprintf(gen, 0, "extern int rt_array_contains_double(double *, double);\n");
     indented_fprintf(gen, 0, "extern int rt_array_contains_char(char *, char);\n");
     indented_fprintf(gen, 0, "extern int rt_array_contains_bool(int *, int);\n");
@@ -290,7 +295,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_array_contains_string(char **, const char *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array clone functions */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_clone_long(RtArena *, long *);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_clone_long(RtArena *, long long *);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_clone_double(RtArena *, double *);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_clone_char(RtArena *, char *);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_clone_bool(RtArena *, int *);\n");
@@ -298,7 +303,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_clone_string(RtArena *, char **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array join functions */\n");
-    indented_fprintf(gen, 0, "extern char *rt_array_join_long(RtArena *, long *, const char *);\n");
+    indented_fprintf(gen, 0, "extern char *rt_array_join_long(RtArena *, long long *, const char *);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_join_double(RtArena *, double *, const char *);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_join_char(RtArena *, char *, const char *);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_join_bool(RtArena *, int *, const char *);\n");
@@ -306,7 +311,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char *rt_array_join_string(RtArena *, char **, const char *);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array create from static data */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_create_long(RtArena *, size_t, const long *);\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_create_long(RtArena *, size_t, const long long *);\n");
     indented_fprintf(gen, 0, "extern double *rt_array_create_double(RtArena *, size_t, const double *);\n");
     indented_fprintf(gen, 0, "extern char *rt_array_create_char(RtArena *, size_t, const char *);\n");
     indented_fprintf(gen, 0, "extern int *rt_array_create_bool(RtArena *, size_t, const int *);\n");
@@ -314,7 +319,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern char **rt_array_create_string(RtArena *, size_t, const char **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime array equality functions */\n");
-    indented_fprintf(gen, 0, "extern int rt_array_eq_long(long *, long *);\n");
+    indented_fprintf(gen, 0, "extern int rt_array_eq_long(long long *, long long *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_eq_double(double *, double *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_eq_char(char *, char *);\n");
     indented_fprintf(gen, 0, "extern int rt_array_eq_bool(int *, int *);\n");
@@ -322,7 +327,7 @@ static void code_gen_externs(CodeGen *gen)
     indented_fprintf(gen, 0, "extern int rt_array_eq_string(char **, char **);\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime range creation */\n");
-    indented_fprintf(gen, 0, "extern long *rt_array_range(RtArena *, long, long);\n\n");
+    indented_fprintf(gen, 0, "extern long long *rt_array_range(RtArena *, long long, long long);\n\n");
 
     indented_fprintf(gen, 0, "/* TextFile static methods */\n");
     indented_fprintf(gen, 0, "typedef struct RtTextFile RtTextFile;\n");

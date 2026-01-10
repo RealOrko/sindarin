@@ -4,8 +4,8 @@
 #include "lexer.h"
 
 /* Keyword recognition */
-TokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *rest, TokenType type);
-TokenType lexer_identifier_type(Lexer *lexer);
+SnTokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *rest, SnTokenType type);
+SnTokenType lexer_identifier_type(Lexer *lexer);
 
 /* Token scanners */
 Token lexer_scan_identifier(Lexer *lexer);

@@ -728,7 +728,6 @@ char *code_gen_thread_sync_expression(CodeGen *gen, Expr *expr)
                  * Pattern: ({ var = *(type*)sync(__var_pending__, ...); var; }) */
                 char *var_name = get_var_name(gen->arena, sync->handle->as.variable.name);
                 char *pending_var = arena_sprintf(gen->arena, "__%s_pending__", var_name);
-                int temp_id = gen->temp_count++;
                 return arena_sprintf(gen->arena,
                     "({\n"
                     "    %s = *(%s *)rt_thread_sync_with_result(%s, %s, %s);\n"

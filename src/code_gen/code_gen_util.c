@@ -119,8 +119,9 @@ const char *get_c_type(Arena *arena, Type *type)
     switch (type->kind)
     {
     case TYPE_INT:
+        return arena_strdup(arena, "long long");
     case TYPE_LONG:
-        return arena_strdup(arena, "long");
+        return arena_strdup(arena, "long long");
     case TYPE_INT32:
         return arena_strdup(arena, "int32_t");
     case TYPE_UINT:
@@ -297,7 +298,7 @@ void indented_fprintf(CodeGen *gen, int indent, const char *fmt, ...)
     va_end(args);
 }
 
-char *code_gen_binary_op_str(TokenType op)
+char *code_gen_binary_op_str(SnTokenType op)
 {
     DEBUG_VERBOSE("Entering code_gen_binary_op_str");
     switch (op)
@@ -393,7 +394,7 @@ bool is_constant_expr(Expr *expr)
     {
         /* Binary expressions are constant if both operands are constant
            and the operator is a foldable arithmetic/comparison op */
-        TokenType op = expr->as.binary.operator;
+        SnTokenType op = expr->as.binary.operator;
         /* Only fold arithmetic and comparison operations */
         if (op == TOKEN_PLUS || op == TOKEN_MINUS ||
             op == TOKEN_STAR || op == TOKEN_SLASH ||
@@ -411,7 +412,7 @@ bool is_constant_expr(Expr *expr)
     case EXPR_UNARY:
     {
         /* Unary expressions are constant if the operand is constant */
-        TokenType op = expr->as.unary.operator;
+        SnTokenType op = expr->as.unary.operator;
         if (op == TOKEN_MINUS || op == TOKEN_BANG)
         {
             return is_constant_expr(expr->as.unary.operand);
@@ -472,7 +473,7 @@ bool try_fold_constant(Expr *expr, int64_t *out_int_value, double *out_double_va
             return false;
         }
 
-        TokenType op = expr->as.unary.operator;
+        SnTokenType op = expr->as.unary.operator;
         switch (op)
         {
         case TOKEN_MINUS:
@@ -526,7 +527,7 @@ bool try_fold_constant(Expr *expr, int64_t *out_int_value, double *out_double_va
         double left_val = left_is_double ? left_double : (double)left_int;
         double right_val = right_is_double ? right_double : (double)right_int;
 
-        TokenType op = expr->as.binary.operator;
+        SnTokenType op = expr->as.binary.operator;
 
         /* For comparison and logical operators, result is always integer (bool) */
         if (op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL ||
@@ -666,7 +667,7 @@ char *try_constant_fold_binary(CodeGen *gen, BinaryExpr *expr)
     }
     else
     {
-        return arena_sprintf(gen->arena, "%ldL", int_result);
+        return arena_sprintf(gen->arena, "%lldLL", (long long)int_result);
     }
 }
 
@@ -698,7 +699,7 @@ char *try_constant_fold_unary(CodeGen *gen, UnaryExpr *expr)
     }
     else
     {
-        return arena_sprintf(gen->arena, "%ldL", int_result);
+        return arena_sprintf(gen->arena, "%lldLL", (long long)int_result);
     }
 }
 
@@ -710,7 +711,7 @@ char *try_constant_fold_unary(CodeGen *gen, UnaryExpr *expr)
  * but removes overflow checking.
  */
 
-const char *get_native_c_operator(TokenType op)
+const char *get_native_c_operator(SnTokenType op)
 {
     switch (op)
     {
@@ -741,7 +742,7 @@ const char *get_native_c_operator(TokenType op)
     }
 }
 
-bool can_use_native_operator(TokenType op)
+bool can_use_native_operator(SnTokenType op)
 {
     /* Division and modulo still need runtime functions for zero-division check.
        All other arithmetic and comparison operators can use native C operators. */
@@ -767,7 +768,7 @@ bool can_use_native_operator(TokenType op)
 }
 
 char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *right_str,
-                            TokenType op, Type *type)
+                            SnTokenType op, Type *type)
 {
     if (gen->arithmetic_mode != ARITH_UNCHECKED)
     {
@@ -795,8 +796,8 @@ char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *righ
              type->kind == TYPE_INT32 || type->kind == TYPE_UINT ||
              type->kind == TYPE_UINT32)
     {
-        /* For integers, result is long */
-        return arena_sprintf(gen->arena, "((long)((%s) %s (%s)))", left_str, c_op, right_str);
+        /* For integers, result is long long (64-bit on all platforms) */
+        return arena_sprintf(gen->arena, "((long long)((%s) %s (%s)))", left_str, c_op, right_str);
     }
     else if (type->kind == TYPE_BOOL)
     {
@@ -807,7 +808,7 @@ char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *righ
     return NULL;  /* Unsupported type */
 }
 
-char *gen_native_unary(CodeGen *gen, const char *operand_str, TokenType op, Type *type)
+char *gen_native_unary(CodeGen *gen, const char *operand_str, SnTokenType op, Type *type)
 {
     if (gen->arithmetic_mode != ARITH_UNCHECKED)
     {
@@ -825,7 +826,7 @@ char *gen_native_unary(CodeGen *gen, const char *operand_str, TokenType op, Type
                  type->kind == TYPE_INT32 || type->kind == TYPE_UINT ||
                  type->kind == TYPE_UINT32)
         {
-            return arena_sprintf(gen->arena, "((long)(-(%s)))", operand_str);
+            return arena_sprintf(gen->arena, "((long long)(-(%s)))", operand_str);
         }
         break;
     case TOKEN_BANG:
@@ -870,9 +871,16 @@ static bool type_needs_arena(Type *type)
     case TYPE_NIL:
     case TYPE_ANY:
     case TYPE_POINTER:  /* Pointers are raw C pointers, no arena needed */
-    case TYPE_OPAQUE:   /* Opaque types are always pointers to external structs */
     default:
         return false;
+    case TYPE_OPAQUE:
+    case TYPE_TCP_LISTENER:
+    case TYPE_TCP_STREAM:
+    case TYPE_UDP_SOCKET:
+        /* Runtime objects (TcpStream, TcpListener, UdpSocket, Process, etc.)
+         * that may be allocated via arena. Functions using these types need an arena
+         * even though the type itself isn't a heap type like string/array. */
+        return true;
     }
 }
 

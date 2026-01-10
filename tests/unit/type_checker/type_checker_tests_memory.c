@@ -239,7 +239,7 @@ static void test_type_check_param_as_ref_error()
     params[0].type = arr_type;
     params[0].mem_qualifier = MEM_AS_REF;  // Invalid for array parameters - arrays are already references
 
-    Stmt *body[0];
+    Stmt **body = NULL;
     Token func_name_tok;
     setup_token(&func_name_tok, TOKEN_IDENTIFIER, "process", 1, "test.sn", &arena);
     Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, params, 1, void_type, body, 0, &func_name_tok);
@@ -274,7 +274,7 @@ static void test_type_check_param_as_ref_primitive()
     params[0].type = int_type;
     params[0].mem_qualifier = MEM_AS_REF;  // Valid for primitive parameters - enables pass-by-reference
 
-    Stmt *body[0];
+    Stmt **body = NULL;
     Token func_name_tok;
     setup_token(&func_name_tok, TOKEN_IDENTIFIER, "increment", 1, "test.sn", &arena);
     Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, params, 1, void_type, body, 0, &func_name_tok);
@@ -310,7 +310,7 @@ static void test_type_check_param_as_val()
     params[0].type = arr_type;
     params[0].mem_qualifier = MEM_AS_VAL;  // Copy semantics for array param
 
-    Stmt *body[0];
+    Stmt **body = NULL;
     Token func_name_tok;
     setup_token(&func_name_tok, TOKEN_IDENTIFIER, "process", 1, "test.sn", &arena);
     Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, params, 1, void_type, body, 0, &func_name_tok);
@@ -382,7 +382,7 @@ static void test_type_check_function_with_null_param_type()
     params[0].type = NULL;  // NULL type - edge case
     params[0].mem_qualifier = MEM_DEFAULT;
 
-    Stmt *body[0];
+    Stmt **body = NULL;
     Token func_name_tok;
     setup_token(&func_name_tok, TOKEN_IDENTIFIER, "test_null_param", 1, "test.sn", &arena);
     Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, params, 1, void_type, body, 0, &func_name_tok);

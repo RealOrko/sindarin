@@ -87,7 +87,7 @@ bool is_numeric_type(Type *type)
     return result;
 }
 
-bool is_comparison_operator(TokenType op)
+bool is_comparison_operator(SnTokenType op)
 {
     bool result = op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL || op == TOKEN_LESS ||
                   op == TOKEN_LESS_EQUAL || op == TOKEN_GREATER || op == TOKEN_GREATER_EQUAL;
@@ -95,7 +95,7 @@ bool is_comparison_operator(TokenType op)
     return result;
 }
 
-bool is_arithmetic_operator(TokenType op)
+bool is_arithmetic_operator(SnTokenType op)
 {
     bool result = op == TOKEN_MINUS || op == TOKEN_STAR || op == TOKEN_SLASH || op == TOKEN_MODULO;
     DEBUG_VERBOSE("Checking if operator is arithmetic: %s (op: %d)", result ? "true" : "false", op);

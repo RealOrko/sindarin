@@ -180,7 +180,13 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
     int all_count = 0;
     int all_capacity = 0;
 
-    const char *dir_end = strrchr(filename, '/');
+    /* Find the last path separator (handle both Unix '/' and Windows '\') */
+    const char *dir_end_fwd = strrchr(filename, '/');
+    const char *dir_end_back = strrchr(filename, '\\');
+    const char *dir_end = dir_end_fwd;
+    if (dir_end_back && (!dir_end || dir_end_back > dir_end)) {
+        dir_end = dir_end_back;
+    }
     size_t dir_len = dir_end ? (size_t)(dir_end - filename + 1) : 0;
     char *dir = NULL;
     if (dir_len > 0) {

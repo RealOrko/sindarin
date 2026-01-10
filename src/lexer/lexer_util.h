@@ -16,7 +16,7 @@ char lexer_peek_next(Lexer *lexer);
 int lexer_match(Lexer *lexer, char expected);
 
 /* Token creation */
-Token lexer_make_token(Lexer *lexer, TokenType type);
+Token lexer_make_token(Lexer *lexer, SnTokenType type);
 Token lexer_error_token(Lexer *lexer, const char *message);
 
 /* Whitespace handling */

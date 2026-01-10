@@ -1,7 +1,17 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#ifdef _WIN32
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides pthreads */
+    #include <pthread.h>
+    #else
+    #include "../platform/compat_pthread.h"
+    #endif
+#else
 #include <pthread.h>
+#endif
 #include <setjmp.h>
 #include "runtime_thread.h"
 #include "runtime_array.h"
@@ -705,12 +715,13 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
             return NULL;
 
         /* Primitive types - copy by value
-         * Note: Sindarin int is 64-bit, stored as long in C code */
+         * Note: Sindarin int is 64-bit, stored as long long in C code
+         * (on Windows/MinGW, long is 32-bit, so we must use long long) */
         case RT_TYPE_INT:
         case RT_TYPE_LONG: {
-            long *promoted = rt_arena_alloc(dest, sizeof(long));
+            long long *promoted = rt_arena_alloc(dest, sizeof(long long));
             if (promoted != NULL) {
-                *promoted = *(long *)value;
+                *promoted = *(long long *)value;
             }
             return promoted;
         }
@@ -759,13 +770,13 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
          * Note: value is a pointer to the array pointer (from rt_thread_result_set_value),
          * so we need to dereference once to get the actual array pointer. */
         case RT_TYPE_ARRAY_INT: {
-            /* int[] is stored as long[] in runtime */
-            long *arr = *(long **)value;
+            /* int[] is stored as long long[] in runtime */
+            long long *arr = *(long long **)value;
             return rt_array_clone_long(dest, arr);
         }
 
         case RT_TYPE_ARRAY_LONG: {
-            long *arr = *(long **)value;
+            long long *arr = *(long long **)value;
             return rt_array_clone_long(dest, arr);
         }
 

@@ -3,10 +3,54 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include "platform/platform.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides most POSIX functions but not fork/wait */
+    #include <unistd.h>
+    #include <libgen.h>
+    #endif
+#else
 #include <unistd.h>
 #include <sys/wait.h>
 #include <libgen.h>
+#endif
 #include <limits.h>
+
+/* macOS needs mach-o/dyld.h for _NSGetExecutablePath */
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
+/* MinGW needs sn_get_executable_path (provided by compat_windows.h for MSVC) */
+#if defined(_WIN32) && (defined(__MINGW32__) || defined(__MINGW64__))
+#include <windows.h>
+static inline ssize_t sn_get_executable_path(char *buf, size_t size) {
+    DWORD len = GetModuleFileNameA(NULL, buf, (DWORD)size);
+    if (len == 0 || len >= size) {
+        return -1;
+    }
+    return (ssize_t)len;
+}
+#endif
+
+/* Cross-platform path separator */
+#ifdef _WIN32
+#define SN_PATH_SEP '\\'
+#define SN_PATH_SEP_STR "\\"
+/* Normalize path separators to backslashes for Windows cmd.exe compatibility */
+static void normalize_path_separators(char *path)
+{
+    for (char *p = path; *p; p++) {
+        if (*p == '/') *p = '\\';
+    }
+}
+#else
+#define SN_PATH_SEP '/'
+#define SN_PATH_SEP_STR "/"
+#define normalize_path_separators(path) ((void)0)
+#endif
 
 /* Static buffer for compiler directory path */
 static char compiler_dir_buf[PATH_MAX];
@@ -15,7 +59,8 @@ static char compiler_dir_buf[PATH_MAX];
 typedef enum {
     BACKEND_GCC,
     BACKEND_CLANG,
-    BACKEND_TINYCC
+    BACKEND_TINYCC,
+    BACKEND_MSVC
 } BackendType;
 
 /* Detect backend type from compiler name */
@@ -27,10 +72,16 @@ static BackendType detect_backend(const char *cc)
         return BACKEND_TINYCC;
     }
 
-    /* Check for clang (must be before gcc since some systems alias clang as gcc) */
+    /* Check for clang BEFORE cl to avoid matching "clang" as "cl"ang */
     if (strstr(cc, "clang") != NULL)
     {
         return BACKEND_CLANG;
+    }
+
+    /* Check for MSVC (cl.exe) - must be after clang check */
+    if (strstr(cc, "cl") != NULL || strstr(cc, "msvc") != NULL)
+    {
+        return BACKEND_MSVC;
     }
 
     /* Default to gcc for gcc, cc, or unknown */
@@ -42,10 +93,22 @@ static const char *backend_lib_subdir(BackendType backend)
 {
     switch (backend)
     {
+#ifdef _WIN32
+        /* On Windows, each compiler may need its own object files */
         case BACKEND_CLANG:  return "lib/clang";
         case BACKEND_TINYCC: return "lib/tinycc";
+        case BACKEND_MSVC:   return "lib/msvc";
         case BACKEND_GCC:
         default:             return "lib/gcc";
+#else
+        /* On Unix (Linux/macOS), gcc and clang produce compatible object files,
+         * so we use lib/gcc for both. TinyCC still needs its own directory. */
+        case BACKEND_TINYCC: return "lib/tinycc";
+        case BACKEND_CLANG:
+        case BACKEND_MSVC:
+        case BACKEND_GCC:
+        default:             return "lib/gcc";
+#endif
     }
 }
 
@@ -56,6 +119,7 @@ static const char *backend_name(BackendType backend)
     {
         case BACKEND_CLANG:  return "clang";
         case BACKEND_TINYCC: return "tinycc";
+        case BACKEND_MSVC:   return "msvc";
         case BACKEND_GCC:
         default:             return "gcc";
     }
@@ -116,12 +180,24 @@ static const char *filter_tinycc_flags(const char *flags, char *buf, size_t buf_
 
 /* Default values for backend configuration */
 #define DEFAULT_STD "c99"
+#ifdef __APPLE__
+/* macOS: ASAN has issues with sigaltstack, so disable it but keep debug symbols */
+#define DEFAULT_DEBUG_CFLAGS_GCC "-fno-omit-frame-pointer -g"
+#define DEFAULT_DEBUG_CFLAGS_CLANG "-fno-omit-frame-pointer -g"
+#else
 #define DEFAULT_DEBUG_CFLAGS_GCC "-no-pie -fsanitize=address -fno-omit-frame-pointer -g"
-#define DEFAULT_RELEASE_CFLAGS_GCC "-O3 -flto"
 #define DEFAULT_DEBUG_CFLAGS_CLANG "-fsanitize=address -fno-omit-frame-pointer -g"
+#endif
+#define DEFAULT_RELEASE_CFLAGS_GCC "-O3 -flto"
 #define DEFAULT_RELEASE_CFLAGS_CLANG "-O3 -flto"
 #define DEFAULT_DEBUG_CFLAGS_TCC "-g"
 #define DEFAULT_RELEASE_CFLAGS_TCC "-O2"
+#define DEFAULT_DEBUG_CFLAGS_MSVC "/Zi /Od"
+#define DEFAULT_RELEASE_CFLAGS_MSVC "/O2 /DNDEBUG"
+#define DEFAULT_CFLAGS_MSVC "/W3 /D_CRT_SECURE_NO_WARNINGS"
+#define DEFAULT_LDLIBS_MSVC "ws2_32.lib bcrypt.lib"
+#define DEFAULT_LDLIBS_CLANG_WIN "-lws2_32 -lbcrypt -lpthread"
+#define DEFAULT_LDLIBS_GCC_WIN "-lws2_32 -lbcrypt -lpthread"
 
 /* Static buffers for config file values (persisted for lifetime of process) */
 static char cfg_cc[256];
@@ -133,19 +209,60 @@ static char cfg_ldflags[1024];
 static char cfg_ldlibs[1024];
 static bool cfg_loaded = false;
 
-/* Detect backend type from executable name (sn-gcc, sn-clang, sn-tcc) */
+/* Helper: Find last path separator in string (cross-platform) */
+static char *find_last_path_sep(char *path)
+{
+    char *last = NULL;
+    for (char *p = path; *p; p++)
+    {
+#ifdef _WIN32
+        if (*p == '/' || *p == '\\') last = p;
+#else
+        if (*p == '/') last = p;
+#endif
+    }
+    return last;
+}
+
+/* Detect backend type from executable name (sn-gcc, sn-clang, sn-tcc, sn-msvc) */
 static BackendType detect_backend_from_exe(void)
 {
     char exe_path[PATH_MAX];
-    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
-    if (len == -1)
+    bool got_path = false;
+
+#ifdef _WIN32
+    ssize_t len = sn_get_executable_path(exe_path, sizeof(exe_path));
+    if (len != -1)
     {
-        return BACKEND_GCC; /* Default to GCC */
+        exe_path[len] = '\0';
+        got_path = true;
     }
-    exe_path[len] = '\0';
+#elif defined(__APPLE__)
+    uint32_t size = sizeof(exe_path);
+    if (_NSGetExecutablePath(exe_path, &size) == 0)
+    {
+        got_path = true;
+    }
+#else
+    ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (len != -1)
+    {
+        exe_path[len] = '\0';
+        got_path = true;
+    }
+#endif
+
+    if (!got_path)
+    {
+#ifdef _WIN32
+        return BACKEND_MSVC; /* Default to MSVC on Windows */
+#else
+        return BACKEND_GCC;  /* Default to GCC on Unix */
+#endif
+    }
 
     /* Get basename */
-    char *base = strrchr(exe_path, '/');
+    char *base = find_last_path_sep(exe_path);
     if (base) base++; else base = exe_path;
 
     /* Check for backend suffix */
@@ -157,7 +274,15 @@ static BackendType detect_backend_from_exe(void)
     {
         return BACKEND_CLANG;
     }
-    return BACKEND_GCC;
+    if (strstr(base, "sn-msvc") != NULL)
+    {
+        return BACKEND_MSVC;
+    }
+#ifdef _WIN32
+    return BACKEND_MSVC; /* Default to MSVC on Windows */
+#else
+    return BACKEND_GCC;  /* Default to GCC on Unix */
+#endif
 }
 
 /* Get config filename for a backend (e.g., "sn.gcc.cfg") */
@@ -165,6 +290,7 @@ static const char *get_config_filename(BackendType backend)
 {
     switch (backend)
     {
+        case BACKEND_MSVC:   return "sn-msvc.cfg";
         case BACKEND_CLANG:  return "sn-clang.cfg";
         case BACKEND_TINYCC: return "sn-tcc.cfg";
         case BACKEND_GCC:
@@ -263,13 +389,18 @@ void cc_backend_load_config(const char *compiler_dir)
     if (cfg_loaded) return;
     cfg_loaded = true;
 
-    /* Detect backend from executable name */
-    BackendType backend = detect_backend_from_exe();
+    /* Detect backend: first check SN_CC env, then fall back to exe name */
+    BackendType backend;
+    const char *sn_cc = getenv("SN_CC");
+    if (sn_cc && sn_cc[0])
+        backend = detect_backend(sn_cc);
+    else
+        backend = detect_backend_from_exe();
     const char *config_name = get_config_filename(backend);
 
     /* Build config file path */
     char config_path[PATH_MAX];
-    snprintf(config_path, sizeof(config_path), "%s/%s", compiler_dir, config_name);
+    snprintf(config_path, sizeof(config_path), "%s" SN_PATH_SEP_STR "%s", compiler_dir, config_name);
 
     /* Try to open config file */
     FILE *f = fopen(config_path, "r");
@@ -288,13 +419,29 @@ void cc_backend_init_config(CCBackendConfig *config)
 {
     const char *env_val;
 
-    /* Detect backend from executable name for defaults */
-    BackendType backend = detect_backend_from_exe();
+    /* First, determine the actual CC value (priority: env > config > default) */
+    const char *actual_cc;
+    env_val = getenv("SN_CC");
+    if (env_val && env_val[0])
+        actual_cc = env_val;
+    else if (cfg_cc[0])
+        actual_cc = cfg_cc;
+    else
+        actual_cc = NULL;  /* Will determine from exe name */
 
-    /* Set backend-specific defaults */
+    /* Detect backend from actual CC if provided, otherwise from exe name */
+    BackendType backend;
+    if (actual_cc)
+        backend = detect_backend(actual_cc);
+    else
+        backend = detect_backend_from_exe();
+
+    /* Set backend-specific defaults based on actual backend */
     const char *default_cc;
     const char *default_debug_cflags;
     const char *default_release_cflags;
+    const char *default_cflags = "";
+    const char *default_ldlibs = "";
 
     switch (backend)
     {
@@ -302,17 +449,30 @@ void cc_backend_init_config(CCBackendConfig *config)
             default_cc = "clang";
             default_debug_cflags = DEFAULT_DEBUG_CFLAGS_CLANG;
             default_release_cflags = DEFAULT_RELEASE_CFLAGS_CLANG;
+#ifdef _WIN32
+            default_ldlibs = DEFAULT_LDLIBS_CLANG_WIN;
+#endif
             break;
         case BACKEND_TINYCC:
             default_cc = "tcc";
             default_debug_cflags = DEFAULT_DEBUG_CFLAGS_TCC;
             default_release_cflags = DEFAULT_RELEASE_CFLAGS_TCC;
             break;
+        case BACKEND_MSVC:
+            default_cc = "cl";
+            default_debug_cflags = DEFAULT_DEBUG_CFLAGS_MSVC;
+            default_release_cflags = DEFAULT_RELEASE_CFLAGS_MSVC;
+            default_cflags = DEFAULT_CFLAGS_MSVC;
+            default_ldlibs = DEFAULT_LDLIBS_MSVC;
+            break;
         case BACKEND_GCC:
         default:
             default_cc = "gcc";
             default_debug_cflags = DEFAULT_DEBUG_CFLAGS_GCC;
             default_release_cflags = DEFAULT_RELEASE_CFLAGS_GCC;
+#ifdef _WIN32
+            default_ldlibs = DEFAULT_LDLIBS_GCC_WIN;
+#endif
             break;
     }
 
@@ -322,12 +482,9 @@ void cc_backend_init_config(CCBackendConfig *config)
     /* Priority: Environment variable > Config file > Default
      * Config file values are in cfg_* buffers (empty if not set) */
 
-    /* SN_CC: C compiler command */
-    env_val = getenv("SN_CC");
-    if (env_val && env_val[0])
-        config->cc = env_val;
-    else if (cfg_cc[0])
-        config->cc = cfg_cc;
+    /* SN_CC: C compiler command (already determined above) */
+    if (actual_cc)
+        config->cc = actual_cc;
     else
         config->cc = default_cc;
 
@@ -358,14 +515,14 @@ void cc_backend_init_config(CCBackendConfig *config)
     else
         config->release_cflags = default_release_cflags;
 
-    /* SN_CFLAGS: Additional compiler flags (empty by default) */
+    /* SN_CFLAGS: Additional compiler flags */
     env_val = getenv("SN_CFLAGS");
     if (env_val && env_val[0])
         config->cflags = env_val;
     else if (cfg_cflags[0])
         config->cflags = cfg_cflags;
     else
-        config->cflags = "";
+        config->cflags = default_cflags;
 
     /* SN_LDFLAGS: Additional linker flags (empty by default) */
     env_val = getenv("SN_LDFLAGS");
@@ -376,21 +533,39 @@ void cc_backend_init_config(CCBackendConfig *config)
     else
         config->ldflags = "";
 
-    /* SN_LDLIBS: Additional libraries (empty by default) */
+    /* SN_LDLIBS: Additional libraries */
     env_val = getenv("SN_LDLIBS");
     if (env_val && env_val[0])
         config->ldlibs = env_val;
     else if (cfg_ldlibs[0])
         config->ldlibs = cfg_ldlibs;
     else
-        config->ldlibs = "";
+        config->ldlibs = default_ldlibs;
 }
 
 bool gcc_check_available(const CCBackendConfig *config, bool verbose)
 {
     /* Build command to check if compiler is available */
     char check_cmd[PATH_MAX];
+
+    /* MSVC cl.exe doesn't support --version, use different check */
+    bool is_msvc = (strcmp(config->cc, "cl") == 0 || strstr(config->cc, "cl.exe") != NULL);
+
+#ifdef _WIN32
+    /* Only quote compiler path if it contains spaces (avoid cmd.exe quote parsing issues) */
+    const char *cc_quote = (strchr(config->cc, ' ') != NULL) ? "\"" : "";
+    if (is_msvc)
+    {
+        /* cl.exe outputs version to stderr when called with no args, redirect all output */
+        snprintf(check_cmd, sizeof(check_cmd), "%s%s%s 2>&1 | findstr /C:\"Microsoft\" > NUL", cc_quote, config->cc, cc_quote);
+    }
+    else
+    {
+        snprintf(check_cmd, sizeof(check_cmd), "%s%s%s --version > NUL 2>&1", cc_quote, config->cc, cc_quote);
+    }
+#else
     snprintf(check_cmd, sizeof(check_cmd), "%s --version > /dev/null 2>&1", config->cc);
+#endif
 
     int result = system(check_cmd);
 
@@ -411,6 +586,11 @@ bool gcc_check_available(const CCBackendConfig *config, bool verbose)
         fprintf(stderr, "  Fedora/RHEL:   sudo dnf install gcc\n");
         fprintf(stderr, "  Arch Linux:    sudo pacman -S gcc\n");
     }
+    else if (is_msvc)
+    {
+        fprintf(stderr, "To use MSVC, run from Visual Studio Developer Command Prompt.\n");
+        fprintf(stderr, "Or set SN_CC to a different compiler.\n");
+    }
     else
     {
         fprintf(stderr, "Ensure '%s' is installed and in your PATH.\n", config->cc);
@@ -423,7 +603,37 @@ bool gcc_check_available(const CCBackendConfig *config, bool verbose)
 
 const char *gcc_get_compiler_dir(const char *argv0)
 {
-    /* First, try to resolve via /proc/self/exe (Linux-specific but reliable) */
+#ifdef _WIN32
+    /* Windows: use GetModuleFileName via sn_get_executable_path */
+    ssize_t len = sn_get_executable_path(compiler_dir_buf, sizeof(compiler_dir_buf));
+    if (len != -1)
+    {
+        /* Get the directory part */
+        char *dir = dirname(compiler_dir_buf);
+        /* Copy back since dirname may modify in place */
+        memmove(compiler_dir_buf, dir, strlen(dir) + 1);
+        return compiler_dir_buf;
+    }
+#elif defined(__APPLE__)
+    /* macOS: use _NSGetExecutablePath */
+    uint32_t size = sizeof(compiler_dir_buf);
+    if (_NSGetExecutablePath(compiler_dir_buf, &size) == 0)
+    {
+        /* Resolve any symlinks to get the real path */
+        char real_path[PATH_MAX];
+        if (realpath(compiler_dir_buf, real_path) != NULL)
+        {
+            strncpy(compiler_dir_buf, real_path, sizeof(compiler_dir_buf) - 1);
+            compiler_dir_buf[sizeof(compiler_dir_buf) - 1] = '\0';
+        }
+        /* Get the directory part */
+        char *dir = dirname(compiler_dir_buf);
+        /* Copy back since dirname may modify in place */
+        memmove(compiler_dir_buf, dir, strlen(dir) + 1);
+        return compiler_dir_buf;
+    }
+#else
+    /* Linux: try to resolve via /proc/self/exe */
     ssize_t len = readlink("/proc/self/exe", compiler_dir_buf, sizeof(compiler_dir_buf) - 1);
     if (len != -1)
     {
@@ -434,6 +644,7 @@ const char *gcc_get_compiler_dir(const char *argv0)
         memmove(compiler_dir_buf, dir, strlen(dir) + 1);
         return compiler_dir_buf;
     }
+#endif
 
     /* Fallback: use argv[0] */
     if (argv0 != NULL)
@@ -487,13 +698,23 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     char command[PATH_MAX * 16];
     char extra_libs[PATH_MAX];
     char filtered_mode_cflags[1024];
+    char c_file_normalized[PATH_MAX];
+
+    /* Copy and normalize the C file path for Windows compatibility */
+    strncpy(c_file_normalized, c_file, sizeof(c_file_normalized) - 1);
+    c_file_normalized[sizeof(c_file_normalized) - 1] = '\0';
+    normalize_path_separators(c_file_normalized);
 
     /* Detect backend type from compiler name */
     BackendType backend = detect_backend(config->cc);
 
     /* Build paths to library and include directories */
-    snprintf(lib_dir, sizeof(lib_dir), "%s/%s", compiler_dir, backend_lib_subdir(backend));
-    snprintf(include_dir, sizeof(include_dir), "%s/include", compiler_dir);
+    snprintf(lib_dir, sizeof(lib_dir), "%s" SN_PATH_SEP_STR "%s", compiler_dir, backend_lib_subdir(backend));
+    snprintf(include_dir, sizeof(include_dir), "%s" SN_PATH_SEP_STR "include", compiler_dir);
+
+    /* Normalize path separators for Windows cmd.exe compatibility */
+    normalize_path_separators(lib_dir);
+    normalize_path_separators(include_dir);
 
     if (verbose)
     {
@@ -520,162 +741,168 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         exe_path[sizeof(exe_path) - 1] = '\0';
     }
 
-    /* Build paths to runtime object files (in backend-specific lib directory) */
-    snprintf(arena_obj, sizeof(arena_obj), "%s/arena.o", lib_dir);
-    snprintf(debug_obj, sizeof(debug_obj), "%s/debug.o", lib_dir);
-    snprintf(runtime_obj, sizeof(runtime_obj), "%s/runtime.o", lib_dir);
-    snprintf(runtime_arena_obj, sizeof(runtime_arena_obj), "%s/runtime_arena.o", lib_dir);
-    snprintf(runtime_string_obj, sizeof(runtime_string_obj), "%s/runtime_string.o", lib_dir);
-    snprintf(runtime_array_obj, sizeof(runtime_array_obj), "%s/runtime_array.o", lib_dir);
-    snprintf(runtime_text_file_obj, sizeof(runtime_text_file_obj), "%s/runtime_text_file.o", lib_dir);
-    snprintf(runtime_binary_file_obj, sizeof(runtime_binary_file_obj), "%s/runtime_binary_file.o", lib_dir);
-    snprintf(runtime_io_obj, sizeof(runtime_io_obj), "%s/runtime_io.o", lib_dir);
-    snprintf(runtime_byte_obj, sizeof(runtime_byte_obj), "%s/runtime_byte.o", lib_dir);
-    snprintf(runtime_path_obj, sizeof(runtime_path_obj), "%s/runtime_path.o", lib_dir);
-    snprintf(runtime_date_obj, sizeof(runtime_date_obj), "%s/runtime_date.o", lib_dir);
-    snprintf(runtime_time_obj, sizeof(runtime_time_obj), "%s/runtime_time.o", lib_dir);
-    snprintf(runtime_thread_obj, sizeof(runtime_thread_obj), "%s/runtime_thread.o", lib_dir);
-    snprintf(runtime_process_obj, sizeof(runtime_process_obj), "%s/runtime_process.o", lib_dir);
-    snprintf(runtime_net_obj, sizeof(runtime_net_obj), "%s/runtime_net.o", lib_dir);
-    snprintf(runtime_random_core_obj, sizeof(runtime_random_core_obj), "%s/runtime_random_core.o", lib_dir);
-    snprintf(runtime_random_basic_obj, sizeof(runtime_random_basic_obj), "%s/runtime_random_basic.o", lib_dir);
-    snprintf(runtime_random_static_obj, sizeof(runtime_random_static_obj), "%s/runtime_random_static.o", lib_dir);
-    snprintf(runtime_random_choice_obj, sizeof(runtime_random_choice_obj), "%s/runtime_random_choice.o", lib_dir);
-    snprintf(runtime_random_collection_obj, sizeof(runtime_random_collection_obj), "%s/runtime_random_collection.o", lib_dir);
-    snprintf(runtime_random_obj, sizeof(runtime_random_obj), "%s/runtime_random.o", lib_dir);
-    snprintf(runtime_uuid_obj, sizeof(runtime_uuid_obj), "%s/runtime_uuid.o", lib_dir);
-    snprintf(runtime_sha1_obj, sizeof(runtime_sha1_obj), "%s/runtime_sha1.o", lib_dir);
-    snprintf(runtime_env_obj, sizeof(runtime_env_obj), "%s/runtime_env.o", lib_dir);
+    /* Normalize path separators for Windows cmd.exe compatibility */
+    normalize_path_separators(exe_path);
 
-    /* Check that runtime objects exist */
-    if (access(arena_obj, R_OK) != 0)
+    /* Build paths to runtime object files (in backend-specific lib directory) */
+    snprintf(arena_obj, sizeof(arena_obj), "%s" SN_PATH_SEP_STR "arena.o", lib_dir);
+    snprintf(debug_obj, sizeof(debug_obj), "%s" SN_PATH_SEP_STR "debug.o", lib_dir);
+    snprintf(runtime_obj, sizeof(runtime_obj), "%s" SN_PATH_SEP_STR "runtime.o", lib_dir);
+    snprintf(runtime_arena_obj, sizeof(runtime_arena_obj), "%s" SN_PATH_SEP_STR "runtime_arena.o", lib_dir);
+    snprintf(runtime_string_obj, sizeof(runtime_string_obj), "%s" SN_PATH_SEP_STR "runtime_string.o", lib_dir);
+    snprintf(runtime_array_obj, sizeof(runtime_array_obj), "%s" SN_PATH_SEP_STR "runtime_array.o", lib_dir);
+    snprintf(runtime_text_file_obj, sizeof(runtime_text_file_obj), "%s" SN_PATH_SEP_STR "runtime_text_file.o", lib_dir);
+    snprintf(runtime_binary_file_obj, sizeof(runtime_binary_file_obj), "%s" SN_PATH_SEP_STR "runtime_binary_file.o", lib_dir);
+    snprintf(runtime_io_obj, sizeof(runtime_io_obj), "%s" SN_PATH_SEP_STR "runtime_io.o", lib_dir);
+    snprintf(runtime_byte_obj, sizeof(runtime_byte_obj), "%s" SN_PATH_SEP_STR "runtime_byte.o", lib_dir);
+    snprintf(runtime_path_obj, sizeof(runtime_path_obj), "%s" SN_PATH_SEP_STR "runtime_path.o", lib_dir);
+    snprintf(runtime_date_obj, sizeof(runtime_date_obj), "%s" SN_PATH_SEP_STR "runtime_date.o", lib_dir);
+    snprintf(runtime_time_obj, sizeof(runtime_time_obj), "%s" SN_PATH_SEP_STR "runtime_time.o", lib_dir);
+    snprintf(runtime_thread_obj, sizeof(runtime_thread_obj), "%s" SN_PATH_SEP_STR "runtime_thread.o", lib_dir);
+    snprintf(runtime_process_obj, sizeof(runtime_process_obj), "%s" SN_PATH_SEP_STR "runtime_process.o", lib_dir);
+    snprintf(runtime_net_obj, sizeof(runtime_net_obj), "%s" SN_PATH_SEP_STR "runtime_net.o", lib_dir);
+    snprintf(runtime_random_core_obj, sizeof(runtime_random_core_obj), "%s" SN_PATH_SEP_STR "runtime_random_core.o", lib_dir);
+    snprintf(runtime_random_basic_obj, sizeof(runtime_random_basic_obj), "%s" SN_PATH_SEP_STR "runtime_random_basic.o", lib_dir);
+    snprintf(runtime_random_static_obj, sizeof(runtime_random_static_obj), "%s" SN_PATH_SEP_STR "runtime_random_static.o", lib_dir);
+    snprintf(runtime_random_choice_obj, sizeof(runtime_random_choice_obj), "%s" SN_PATH_SEP_STR "runtime_random_choice.o", lib_dir);
+    snprintf(runtime_random_collection_obj, sizeof(runtime_random_collection_obj), "%s" SN_PATH_SEP_STR "runtime_random_collection.o", lib_dir);
+    snprintf(runtime_random_obj, sizeof(runtime_random_obj), "%s" SN_PATH_SEP_STR "runtime_random.o", lib_dir);
+    snprintf(runtime_uuid_obj, sizeof(runtime_uuid_obj), "%s" SN_PATH_SEP_STR "runtime_uuid.o", lib_dir);
+    snprintf(runtime_sha1_obj, sizeof(runtime_sha1_obj), "%s" SN_PATH_SEP_STR "runtime_sha1.o", lib_dir);
+    snprintf(runtime_env_obj, sizeof(runtime_env_obj), "%s" SN_PATH_SEP_STR "runtime_env.o", lib_dir);
+
+    /* Check that runtime objects exist (skip for MSVC which uses sn_runtime.lib) */
+    if (backend != BACKEND_MSVC)
     {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", arena_obj);
-        fprintf(stderr, "The '%s' backend runtime is not built.\n", backend_name(backend));
-        fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
-        return false;
-    }
-    if (access(debug_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", debug_obj);
-        fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
-        return false;
-    }
-    if (access(runtime_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_obj);
-        fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
-        return false;
-    }
-    if (access(runtime_arena_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_arena_obj);
-        return false;
-    }
-    if (access(runtime_string_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_string_obj);
-        return false;
-    }
-    if (access(runtime_array_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_array_obj);
-        return false;
-    }
-    if (access(runtime_text_file_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_text_file_obj);
-        return false;
-    }
-    if (access(runtime_binary_file_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_binary_file_obj);
-        return false;
-    }
-    if (access(runtime_io_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_io_obj);
-        return false;
-    }
-    if (access(runtime_byte_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_byte_obj);
-        return false;
-    }
-    if (access(runtime_path_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_path_obj);
-        return false;
-    }
-    if (access(runtime_date_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_date_obj);
-        return false;
-    }
-    if (access(runtime_time_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_time_obj);
-        return false;
-    }
-    if (access(runtime_thread_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_thread_obj);
-        return false;
-    }
-    if (access(runtime_process_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_process_obj);
-        return false;
-    }
-    if (access(runtime_net_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_net_obj);
-        return false;
-    }
-    if (access(runtime_random_core_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_core_obj);
-        return false;
-    }
-    if (access(runtime_random_basic_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_basic_obj);
-        return false;
-    }
-    if (access(runtime_random_static_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_static_obj);
-        return false;
-    }
-    if (access(runtime_random_choice_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_choice_obj);
-        return false;
-    }
-    if (access(runtime_random_collection_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_collection_obj);
-        return false;
-    }
-    if (access(runtime_random_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_obj);
-        return false;
-    }
-    if (access(runtime_uuid_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_uuid_obj);
-        return false;
-    }
-    if (access(runtime_sha1_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_sha1_obj);
-        return false;
-    }
-    if (access(runtime_env_obj, R_OK) != 0)
-    {
-        fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_env_obj);
-        return false;
+        if (access(arena_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", arena_obj);
+            fprintf(stderr, "The '%s' backend runtime is not built.\n", backend_name(backend));
+            fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
+            return false;
+        }
+        if (access(debug_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", debug_obj);
+            fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
+            return false;
+        }
+        if (access(runtime_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_obj);
+            fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
+            return false;
+        }
+        if (access(runtime_arena_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_arena_obj);
+            return false;
+        }
+        if (access(runtime_string_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_string_obj);
+            return false;
+        }
+        if (access(runtime_array_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_array_obj);
+            return false;
+        }
+        if (access(runtime_text_file_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_text_file_obj);
+            return false;
+        }
+        if (access(runtime_binary_file_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_binary_file_obj);
+            return false;
+        }
+        if (access(runtime_io_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_io_obj);
+            return false;
+        }
+        if (access(runtime_byte_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_byte_obj);
+            return false;
+        }
+        if (access(runtime_path_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_path_obj);
+            return false;
+        }
+        if (access(runtime_date_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_date_obj);
+            return false;
+        }
+        if (access(runtime_time_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_time_obj);
+            return false;
+        }
+        if (access(runtime_thread_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_thread_obj);
+            return false;
+        }
+        if (access(runtime_process_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_process_obj);
+            return false;
+        }
+        if (access(runtime_net_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_net_obj);
+            return false;
+        }
+        if (access(runtime_random_core_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_core_obj);
+            return false;
+        }
+        if (access(runtime_random_basic_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_basic_obj);
+            return false;
+        }
+        if (access(runtime_random_static_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_static_obj);
+            return false;
+        }
+        if (access(runtime_random_choice_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_choice_obj);
+            return false;
+        }
+        if (access(runtime_random_collection_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_collection_obj);
+            return false;
+        }
+        if (access(runtime_random_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_obj);
+            return false;
+        }
+        if (access(runtime_uuid_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_uuid_obj);
+            return false;
+        }
+        if (access(runtime_sha1_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_sha1_obj);
+            return false;
+        }
+        if (access(runtime_env_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_env_obj);
+            return false;
+        }
     }
 
     /* Build C compiler command using configuration.
@@ -704,7 +931,17 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         }
     }
 
-    char error_file[] = "/tmp/sn_cc_errors_XXXXXX";
+    /* Create temporary file for compiler errors */
+    char error_file[PATH_MAX];
+#ifdef _WIN32
+    /* Windows: use TEMP environment variable */
+    const char *temp_dir = getenv("TEMP");
+    if (!temp_dir) temp_dir = getenv("TMP");
+    if (!temp_dir) temp_dir = ".";
+    snprintf(error_file, sizeof(error_file), "%s\\sn_cc_errors_%d.txt", temp_dir, (int)getpid());
+#else
+    /* Unix: use /tmp with mkstemp */
+    strcpy(error_file, "/tmp/sn_cc_errors_XXXXXX");
     int error_fd = mkstemp(error_file);
     if (error_fd == -1)
     {
@@ -715,6 +952,7 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     {
         close(error_fd);
     }
+#endif
 
     /* Select mode-specific flags, filtering for TinyCC if needed */
     const char *mode_cflags = debug_mode ? config->debug_cflags : config->release_cflags;
@@ -727,19 +965,52 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
      * may be empty strings, which is fine.
      * Use include_dir for headers (-I) and lib_dir for runtime objects.
      */
-    snprintf(command, sizeof(command),
-        "%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" "
-        "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
-        "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
-        "-lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
-        config->cc, mode_cflags, config->std, config->cflags, include_dir,
-        c_file, arena_obj, debug_obj, runtime_obj, runtime_arena_obj,
-        runtime_string_obj, runtime_array_obj, runtime_text_file_obj,
-        runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj,
-        runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj,
-        runtime_process_obj, runtime_net_obj, runtime_random_core_obj, runtime_random_basic_obj,
-        runtime_random_static_obj, runtime_random_choice_obj, runtime_random_collection_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj,
-        extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
+    if (backend == BACKEND_MSVC)
+    {
+        /* MSVC uses different command line syntax:
+         * - /Fe for output file
+         * - /I for include path
+         * - Links against sn_runtime.lib instead of individual .o files
+         * - No -std, -lpthread, -lm needed
+         */
+        char runtime_lib[PATH_MAX];
+        snprintf(runtime_lib, sizeof(runtime_lib), "%s" SN_PATH_SEP_STR "sn_runtime.lib", lib_dir);
+
+        /* Check that runtime library exists */
+        if (access(runtime_lib, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime library not found: %s\n", runtime_lib);
+            fprintf(stderr, "The MSVC backend runtime is not built.\n");
+            fprintf(stderr, "Run CMake build with MSVC to build the runtime library.\n");
+            return false;
+        }
+
+        /* Only quote compiler path if it contains spaces */
+        const char *cc_quote = (strchr(config->cc, ' ') != NULL) ? "\"" : "";
+        snprintf(command, sizeof(command),
+            "%s%s%s %s %s /I\"%s\" \"%s\" \"%s\" %s %s /Fe\"%s\" /link %s 2>\"%s\"",
+            cc_quote, config->cc, cc_quote, mode_cflags, config->cflags, include_dir,
+            c_file_normalized, runtime_lib, config->ldlibs, config->ldflags, exe_path,
+            config->ldlibs, error_file);
+    }
+    else
+    {
+        /* Only quote compiler path if it contains spaces */
+        const char *cc_quote = (strchr(config->cc, ' ') != NULL) ? "\"" : "";
+        snprintf(command, sizeof(command),
+            "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" "
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
+            "-lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
+            cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir,
+            c_file_normalized, arena_obj, debug_obj, runtime_obj, runtime_arena_obj,
+            runtime_string_obj, runtime_array_obj, runtime_text_file_obj,
+            runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj,
+            runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj,
+            runtime_process_obj, runtime_net_obj, runtime_random_core_obj, runtime_random_basic_obj,
+            runtime_random_static_obj, runtime_random_choice_obj, runtime_random_collection_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj,
+            extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
+    }
 
     if (verbose)
     {

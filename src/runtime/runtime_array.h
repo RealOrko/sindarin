@@ -46,7 +46,7 @@ void rt_array_clear(void *arr);
  * ============================================================================
  * Push element to end of array, growing capacity if needed.
  */
-long *rt_array_push_long(RtArena *arena, long *arr, long element);
+long long *rt_array_push_long(RtArena *arena, long long *arr, long long element);
 double *rt_array_push_double(RtArena *arena, double *arr, double element);
 char *rt_array_push_char(RtArena *arena, char *arr, char element);
 int *rt_array_push_bool(RtArena *arena, int *arr, int element);
@@ -59,7 +59,7 @@ char **rt_array_push_string(RtArena *arena, char **arr, const char *element);
  * ============================================================================
  * Remove and return the last element of an array.
  */
-long rt_array_pop_long(long *arr);
+long long rt_array_pop_long(long long *arr);
 double rt_array_pop_double(double *arr);
 char rt_array_pop_char(char *arr);
 int rt_array_pop_bool(int *arr);
@@ -72,7 +72,7 @@ char *rt_array_pop_string(char **arr);
  * ============================================================================
  * Return a NEW array containing elements from both arrays (non-mutating).
  */
-long *rt_array_concat_long(RtArena *arena, long *arr1, long *arr2);
+long long *rt_array_concat_long(RtArena *arena, long long *arr1, long long *arr2);
 double *rt_array_concat_double(RtArena *arena, double *arr1, double *arr2);
 char *rt_array_concat_char(RtArena *arena, char *arr1, char *arr2);
 int *rt_array_concat_bool(RtArena *arena, int *arr1, int *arr2);
@@ -85,7 +85,7 @@ char **rt_array_concat_string(RtArena *arena, char **arr1, char **arr2);
  * ============================================================================
  * Create a new array from a portion of the source array.
  */
-long *rt_array_slice_long(RtArena *arena, long *arr, long start, long end, long step);
+long long *rt_array_slice_long(RtArena *arena, long long *arr, long start, long end, long step);
 double *rt_array_slice_double(RtArena *arena, double *arr, long start, long end, long step);
 char *rt_array_slice_char(RtArena *arena, char *arr, long start, long end, long step);
 int *rt_array_slice_bool(RtArena *arena, int *arr, long start, long end, long step);
@@ -97,7 +97,7 @@ char **rt_array_slice_string(RtArena *arena, char **arr, long start, long end, l
  * ============================================================================
  * Return a new reversed array - the original array is not modified.
  */
-long *rt_array_rev_long(RtArena *arena, long *arr);
+long long *rt_array_rev_long(RtArena *arena, long long *arr);
 double *rt_array_rev_double(RtArena *arena, double *arr);
 char *rt_array_rev_char(RtArena *arena, char *arr);
 int *rt_array_rev_bool(RtArena *arena, int *arr);
@@ -109,7 +109,7 @@ char **rt_array_rev_string(RtArena *arena, char **arr);
  * ============================================================================
  * Return a new array without the element at the specified index.
  */
-long *rt_array_rem_long(RtArena *arena, long *arr, long index);
+long long *rt_array_rem_long(RtArena *arena, long long *arr, long index);
 double *rt_array_rem_double(RtArena *arena, double *arr, long index);
 char *rt_array_rem_char(RtArena *arena, char *arr, long index);
 int *rt_array_rem_bool(RtArena *arena, int *arr, long index);
@@ -121,7 +121,7 @@ char **rt_array_rem_string(RtArena *arena, char **arr, long index);
  * ============================================================================
  * Return a new array with the element inserted at the specified index.
  */
-long *rt_array_ins_long(RtArena *arena, long *arr, long elem, long index);
+long long *rt_array_ins_long(RtArena *arena, long long *arr, long long elem, long index);
 double *rt_array_ins_double(RtArena *arena, double *arr, double elem, long index);
 char *rt_array_ins_char(RtArena *arena, char *arr, char elem, long index);
 int *rt_array_ins_bool(RtArena *arena, int *arr, int elem, long index);
@@ -133,7 +133,7 @@ char **rt_array_ins_string(RtArena *arena, char **arr, const char *elem, long in
  * ============================================================================
  * Create a NEW array with element appended (non-mutating push).
  */
-long *rt_array_push_copy_long(RtArena *arena, long *arr, long elem);
+long long *rt_array_push_copy_long(RtArena *arena, long long *arr, long long elem);
 double *rt_array_push_copy_double(RtArena *arena, double *arr, double elem);
 char *rt_array_push_copy_char(RtArena *arena, char *arr, char elem);
 int *rt_array_push_copy_bool(RtArena *arena, int *arr, int elem);
@@ -145,7 +145,7 @@ char **rt_array_push_copy_string(RtArena *arena, char **arr, const char *elem);
  * ============================================================================
  * Find first index of element, returns -1 if not found.
  */
-long rt_array_indexOf_long(long *arr, long elem);
+long rt_array_indexOf_long(long long *arr, long long elem);
 long rt_array_indexOf_double(double *arr, double elem);
 long rt_array_indexOf_char(char *arr, char elem);
 long rt_array_indexOf_bool(int *arr, int elem);
@@ -157,7 +157,7 @@ long rt_array_indexOf_string(char **arr, const char *elem);
  * ============================================================================
  * Check if element exists in array.
  */
-int rt_array_contains_long(long *arr, long elem);
+int rt_array_contains_long(long long *arr, long long elem);
 int rt_array_contains_double(double *arr, double elem);
 int rt_array_contains_char(char *arr, char elem);
 int rt_array_contains_bool(int *arr, int elem);
@@ -169,7 +169,7 @@ int rt_array_contains_string(char **arr, const char *elem);
  * ============================================================================
  * Create a deep copy of the array.
  */
-long *rt_array_clone_long(RtArena *arena, long *arr);
+long long *rt_array_clone_long(RtArena *arena, long long *arr);
 double *rt_array_clone_double(RtArena *arena, double *arr);
 char *rt_array_clone_char(RtArena *arena, char *arr);
 int *rt_array_clone_bool(RtArena *arena, int *arr);
@@ -181,7 +181,7 @@ char **rt_array_clone_string(RtArena *arena, char **arr);
  * ============================================================================
  * Join array elements into a string with separator.
  */
-char *rt_array_join_long(RtArena *arena, long *arr, const char *separator);
+char *rt_array_join_long(RtArena *arena, long long *arr, const char *separator);
 char *rt_array_join_double(RtArena *arena, double *arr, const char *separator);
 char *rt_array_join_char(RtArena *arena, char *arr, const char *separator);
 char *rt_array_join_bool(RtArena *arena, int *arr, const char *separator);
@@ -193,7 +193,7 @@ char *rt_array_join_string(RtArena *arena, char **arr, const char *separator);
  * ============================================================================
  * Create runtime array from static C array.
  */
-long *rt_array_create_long(RtArena *arena, size_t count, const long *data);
+long long *rt_array_create_long(RtArena *arena, size_t count, const long long *data);
 double *rt_array_create_double(RtArena *arena, size_t count, const double *data);
 char *rt_array_create_char(RtArena *arena, size_t count, const char *data);
 int *rt_array_create_bool(RtArena *arena, size_t count, const int *data);
@@ -206,7 +206,7 @@ unsigned char *rt_array_create_byte_uninit(RtArena *arena, size_t count);
  * ============================================================================
  * Create array of count elements filled with default_value.
  */
-long *rt_array_alloc_long(RtArena *arena, size_t count, long default_value);
+long long *rt_array_alloc_long(RtArena *arena, size_t count, long long default_value);
 double *rt_array_alloc_double(RtArena *arena, size_t count, double default_value);
 char *rt_array_alloc_char(RtArena *arena, size_t count, char default_value);
 int *rt_array_alloc_bool(RtArena *arena, size_t count, int default_value);
@@ -218,7 +218,7 @@ char **rt_array_alloc_string(RtArena *arena, size_t count, const char *default_v
  * ============================================================================
  * Check if two arrays are equal (same length and all elements equal).
  */
-int rt_array_eq_long(long *a, long *b);
+int rt_array_eq_long(long long *a, long long *b);
 int rt_array_eq_double(double *a, double *b);
 int rt_array_eq_char(char *a, char *b);
 int rt_array_eq_bool(int *a, int *b);
@@ -230,14 +230,14 @@ int rt_array_eq_string(char **a, char **b);
  * ============================================================================
  * Create array of longs from start to end (exclusive).
  */
-long *rt_array_range(RtArena *arena, long start, long end);
+long long *rt_array_range(RtArena *arena, long long start, long long end);
 
 /* ============================================================================
  * Array Print Functions
  * ============================================================================
  * Print array contents to stdout.
  */
-void rt_print_array_long(long *arr);
+void rt_print_array_long(long long *arr);
 void rt_print_array_double(double *arr);
 void rt_print_array_char(char *arr);
 void rt_print_array_bool(int *arr);

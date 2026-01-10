@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y \
     gdb \
     make \
     cmake \
+    clang \
+    tcc \
     software-properties-common \
     locales \
     sudo \

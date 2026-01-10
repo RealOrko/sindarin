@@ -1,11 +1,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <limits.h>
+#include <errno.h>
+
+#ifdef _WIN32
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW provides POSIX headers */
+    #include <sys/stat.h>
+    #include <unistd.h>
+    #include <dirent.h>
+    #else
+    #include "../platform/platform.h"
+    #endif
+#else
 #include <sys/stat.h>
 #include <unistd.h>
-#include <limits.h>
 #include <dirent.h>
-#include <errno.h>
+#endif
+
 #include "runtime_path.h"
 #include "runtime_arena.h"
 #include "runtime_array.h"
@@ -16,13 +29,21 @@
  * Implementation of cross-platform path manipulation functions.
  * ============================================================================ */
 
-/* Platform-specific path separator */
+/* Platform-specific path separator and mkdir */
 #ifdef _WIN32
 #define PATH_SEPARATOR '\\'
 #define PATH_SEPARATOR_STR "\\"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW mkdir takes one argument */
+    #define MKDIR(path, mode) mkdir(path)
+    #else
+    /* MSVC: compat_windows.h provides mkdir(path, mode) macro */
+    #define MKDIR(path, mode) mkdir(path, mode)
+    #endif
 #else
 #define PATH_SEPARATOR '/'
 #define PATH_SEPARATOR_STR "/"
+#define MKDIR(path, mode) mkdir(path, mode)
 #endif
 
 /* Helper: Check if character is a path separator */
@@ -57,9 +78,9 @@ char *rt_path_directory(RtArena *arena, const char *path) {
         return rt_arena_strdup(arena, ".");
     }
 
-    /* Handle root path (/ or C:\) */
+    /* Handle root path (/ or C:\) - always return forward slash for consistency */
     if (last_sep == path) {
-        return rt_arena_strdup(arena, PATH_SEPARATOR_STR);
+        return rt_arena_strdup(arena, "/");
     }
 
 #ifdef _WIN32
@@ -68,7 +89,7 @@ char *rt_path_directory(RtArena *arena, const char *path) {
         char *result = rt_arena_alloc(arena, 4);
         result[0] = path[0];
         result[1] = ':';
-        result[2] = PATH_SEPARATOR;
+        result[2] = '/';  /* Use forward slash for consistency */
         result[3] = '\0';
         return result;
     }
@@ -159,7 +180,7 @@ char *rt_path_join2(RtArena *arena, const char *path1, const char *path2) {
     memcpy(result, path1, len1);
     size_t pos = len1;
     if (!has_trailing_sep) {
-        result[pos++] = PATH_SEPARATOR;
+        result[pos++] = '/';  /* Always use forward slash for consistency */
     }
     memcpy(result + pos, path2, len2);
     result[pos + len2] = '\0';
@@ -171,6 +192,23 @@ char *rt_path_join2(RtArena *arena, const char *path1, const char *path2) {
 char *rt_path_join3(RtArena *arena, const char *path1, const char *path2, const char *path3) {
     char *temp = rt_path_join2(arena, path1, path2);
     return rt_path_join2(arena, temp, path3);
+}
+
+/* Helper: Check if a path is absolute */
+static int is_absolute_path(const char *path) {
+    if (path == NULL || *path == '\0') return 0;
+
+#ifdef _WIN32
+    /* Windows: absolute if starts with drive letter (e.g., C:\) or UNC path (\\server) */
+    if (strlen(path) >= 3 && path[1] == ':' && is_path_separator(path[2])) {
+        return 1;  /* Drive letter path */
+    }
+    if (strlen(path) >= 2 && is_path_separator(path[0]) && is_path_separator(path[1])) {
+        return 1;  /* UNC path */
+    }
+#endif
+    /* Unix style: absolute if starts with / */
+    return is_path_separator(path[0]);
 }
 
 /* Resolve a path to its absolute form */
@@ -195,9 +233,10 @@ char *rt_path_absolute(RtArena *arena, const char *path) {
     if (realpath(path, resolved) != NULL) {
         return rt_arena_strdup(arena, resolved);
     }
+#endif
 
-    /* realpath fails if path doesn't exist - try to resolve manually */
-    if (path[0] == '/') {
+    /* realpath/_fullpath fails if path doesn't exist - try to resolve manually */
+    if (is_absolute_path(path)) {
         /* Already absolute */
         return rt_arena_strdup(arena, path);
     }
@@ -207,7 +246,6 @@ char *rt_path_absolute(RtArena *arena, const char *path) {
     if (getcwd(cwd, sizeof(cwd)) != NULL) {
         return rt_path_join2(arena, cwd, path);
     }
-#endif
 
     /* Fallback - return as-is */
     return rt_arena_strdup(arena, path);
@@ -312,6 +350,18 @@ char **rt_directory_list(RtArena *arena, const char *path) {
     return result;
 }
 
+/* Helper: join two paths with forward slash (for consistent cross-platform relative paths) */
+static char *join_with_forward_slash(RtArena *arena, const char *prefix, const char *name) {
+    size_t prefix_len = strlen(prefix);
+    size_t name_len = strlen(name);
+    char *result = rt_arena_alloc(arena, prefix_len + 1 + name_len + 1);
+    memcpy(result, prefix, prefix_len);
+    result[prefix_len] = '/';
+    memcpy(result + prefix_len + 1, name, name_len);
+    result[prefix_len + 1 + name_len] = '\0';
+    return result;
+}
+
 /* Helper for recursive directory listing */
 static char **list_recursive_helper(RtArena *arena, char **result, const char *base_path, const char *rel_prefix) {
     DIR *dir = opendir(base_path);
@@ -326,15 +376,15 @@ static char **list_recursive_helper(RtArena *arena, char **result, const char *b
             continue;
         }
 
-        /* Build full path for stat check */
+        /* Build full path for stat check (use native separator) */
         char *full_path = rt_path_join2(arena, base_path, entry->d_name);
 
-        /* Build relative path for result */
+        /* Build relative path for result (always use '/' for cross-platform consistency) */
         char *rel_path;
         if (rel_prefix[0] == '\0') {
             rel_path = rt_arena_strdup(arena, entry->d_name);
         } else {
-            rel_path = rt_path_join2(arena, rel_prefix, entry->d_name);
+            rel_path = join_with_forward_slash(arena, rel_prefix, entry->d_name);
         }
 
         /* Add this entry */
@@ -389,30 +439,38 @@ static int create_directory_recursive(const char *path) {
     /* Create parent directories first */
     char *p = path_copy;
 
-    /* Skip leading slashes for absolute paths */
-    while (*p == '/') p++;
+#ifdef _WIN32
+    /* Skip Windows drive letter (e.g., C:\) */
+    if (len >= 3 && path_copy[1] == ':' && is_path_separator(path_copy[2])) {
+        p = path_copy + 3;
+    }
+#endif
+
+    /* Skip leading path separators for absolute paths */
+    while (is_path_separator(*p)) p++;
 
     while (*p) {
-        /* Find next slash */
-        while (*p && *p != '/') p++;
+        /* Find next path separator */
+        while (*p && !is_path_separator(*p)) p++;
 
-        if (*p == '/') {
+        if (is_path_separator(*p)) {
+            char saved = *p;
             *p = '\0';
             if (path_copy[0] != '\0') {
                 if (stat(path_copy, &st) != 0) {
-                    if (mkdir(path_copy, 0755) != 0 && errno != EEXIST) {
+                    if (MKDIR(path_copy, 0755) != 0 && errno != EEXIST) {
                         free(path_copy);
                         return -1;
                     }
                 }
             }
-            *p = '/';
+            *p = saved;
             p++;
         }
     }
 
     /* Create final directory */
-    int result = mkdir(path_copy, 0755);
+    int result = MKDIR(path_copy, 0755);
     free(path_copy);
 
     if (result != 0 && errno != EEXIST) {
@@ -469,18 +527,24 @@ static int delete_recursive_helper(const char *path) {
             continue;
         }
 
-        /* Build full path */
+        /* Build full path using cross-platform separator */
         size_t path_len = strlen(path);
         size_t name_len = strlen(entry->d_name);
-        char *full_path = malloc(path_len + 1 + name_len + 1);
+        /* Check if path already ends with a separator */
+        int has_sep = (path_len > 0 && is_path_separator(path[path_len - 1]));
+        char *full_path = malloc(path_len + (has_sep ? 0 : 1) + name_len + 1);
         if (full_path == NULL) {
             result = -1;
             break;
         }
 
         strcpy(full_path, path);
-        full_path[path_len] = '/';
-        strcpy(full_path + path_len + 1, entry->d_name);
+        if (!has_sep) {
+            full_path[path_len] = PATH_SEPARATOR;
+            strcpy(full_path + path_len + 1, entry->d_name);
+        } else {
+            strcpy(full_path + path_len, entry->d_name);
+        }
 
         struct stat st;
         if (stat(full_path, &st) == 0) {

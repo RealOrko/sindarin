@@ -68,7 +68,7 @@ Expr *parser_logical_or(Parser *parser)
     while (parser_match(parser, TOKEN_OR))
     {
         Token op = parser->previous;
-        TokenType operator = op.type;
+        SnTokenType operator = op.type;
         Expr *right = parser_logical_and(parser);
         expr = ast_create_binary_expr(parser->arena, expr, operator, right, &op);
     }
@@ -81,7 +81,7 @@ Expr *parser_logical_and(Parser *parser)
     while (parser_match(parser, TOKEN_AND))
     {
         Token op = parser->previous;
-        TokenType operator = op.type;
+        SnTokenType operator = op.type;
         Expr *right = parser_equality(parser);
         expr = ast_create_binary_expr(parser->arena, expr, operator, right, &op);
     }
@@ -94,7 +94,7 @@ Expr *parser_equality(Parser *parser)
     while (parser_match(parser, TOKEN_BANG_EQUAL) || parser_match(parser, TOKEN_EQUAL_EQUAL))
     {
         Token op = parser->previous;
-        TokenType operator = op.type;
+        SnTokenType operator = op.type;
         Expr *right = parser_comparison(parser);
         expr = ast_create_binary_expr(parser->arena, expr, operator, right, &op);
     }
@@ -108,7 +108,7 @@ Expr *parser_comparison(Parser *parser)
            parser_match(parser, TOKEN_GREATER) || parser_match(parser, TOKEN_GREATER_EQUAL))
     {
         Token op = parser->previous;
-        TokenType operator = op.type;
+        SnTokenType operator = op.type;
         Expr *right = parser_range(parser);
         expr = ast_create_binary_expr(parser->arena, expr, operator, right, &op);
     }
@@ -136,7 +136,7 @@ Expr *parser_term(Parser *parser)
     while (parser_match(parser, TOKEN_PLUS) || parser_match(parser, TOKEN_MINUS))
     {
         Token op = parser->previous;
-        TokenType operator = op.type;
+        SnTokenType operator = op.type;
         Expr *right = parser_factor(parser);
         expr = ast_create_binary_expr(parser->arena, expr, operator, right, &op);
     }
@@ -149,7 +149,7 @@ Expr *parser_factor(Parser *parser)
     while (parser_match(parser, TOKEN_STAR) || parser_match(parser, TOKEN_SLASH) || parser_match(parser, TOKEN_MODULO))
     {
         Token op = parser->previous;
-        TokenType operator = op.type;
+        SnTokenType operator = op.type;
         Expr *right = parser_unary(parser);
         expr = ast_create_binary_expr(parser->arena, expr, operator, right, &op);
     }
@@ -161,7 +161,7 @@ Expr *parser_unary(Parser *parser)
     if (parser_match(parser, TOKEN_BANG) || parser_match(parser, TOKEN_MINUS))
     {
         Token op = parser->previous;
-        TokenType operator = op.type;
+        SnTokenType operator = op.type;
         Expr *right = parser_unary(parser);
         return ast_create_unary_expr(parser->arena, operator, right, &op);
     }

@@ -1,29 +1,32 @@
-// Test shell command execution via sh -c
-// Verifies that complex shell commands work correctly
+// Test command execution with various arguments
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    // Basic shell command
-    var p1: Process = Process.run("sh", {"-c", "echo hello"})
-    print($"basic: {p1.stdout}")
+    // Get compiler path (cross-platform)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
 
-    // Shell with pipes
-    var p2: Process = Process.run("sh", {"-c", "echo hello | tr h H"})
-    print($"pipe: {p2.stdout}")
+    // Basic command
+    var p1: Process = Process.run(sn, {"--version"})
+    print($"version: {p1.stdout.trim()}\n")
 
-    // Shell with variable
-    var p3: Process = Process.run("sh", {"-c", "X=test; echo $X"})
-    print($"variable: {p3.stdout}")
+    // Help output (multiline)
+    var p2: Process = Process.run(sn, {"--help"})
+    var firstLine: str = p2.stdout.split("\n")[0].trim()
+    print($"help: {firstLine}\n")
 
-    // Shell with command substitution
-    var p4: Process = Process.run("sh", {"-c", "echo $(echo inner)"})
-    print($"subst: {p4.stdout}")
+    // Multiple flags
+    var p3: Process = Process.run(sn, {"-O0", "--version"})
+    print($"flags: {p3.stdout.trim()}\n")
 
-    // Shell with arithmetic
-    var p5: Process = Process.run("sh", {"-c", "echo $((5 + 3))"})
-    print($"arithmetic: {p5.stdout}")
+    // Error case
+    var p4: Process = Process.run(sn, {"missing.sn", "--emit-c"})
+    print($"error exit: {p4.exitCode}\n")
 
-    // Shell with multiple commands
-    var p6: Process = Process.run("sh", {"-c", "echo one; echo two"})
-    print($"multi: {p6.stdout}")
+    // Help line count
+    var p5: Process = Process.run(sn, {"--help"})
+    var lines: str[] = p5.stdout.split("\n")
+    print($"multiline: {lines.length > 5}\n")
 
     return 0

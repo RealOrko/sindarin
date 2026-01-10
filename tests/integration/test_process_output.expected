@@ -1,9 +1,4 @@
-stdout: stdout test
-stderr: stderr test
-both stdout: out
-both stderr: err
-multiline:
-line1
-line2
-line3
-empty stdout: true
+stdout: sn 0.1.0
+stderr has error: true
+multiline count: true
+stdout empty on error: true

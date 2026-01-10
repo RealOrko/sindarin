@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenType comparison_type, const Token *loc_token)
+Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, SnTokenType comparison_type, const Token *loc_token)
 {
     if (left == NULL || right == NULL)
     {
@@ -15,7 +15,7 @@ Expr *ast_create_comparison_expr(Arena *arena, Expr *left, Expr *right, TokenTyp
     return ast_create_binary_expr(arena, left, comparison_type, right, loc_token);
 }
 
-Expr *ast_create_binary_expr(Arena *arena, Expr *left, TokenType operator, Expr *right, const Token *loc_token)
+Expr *ast_create_binary_expr(Arena *arena, Expr *left, SnTokenType operator, Expr *right, const Token *loc_token)
 {
     if (left == NULL || right == NULL)
     {
@@ -38,7 +38,7 @@ Expr *ast_create_binary_expr(Arena *arena, Expr *left, TokenType operator, Expr 
     return expr;
 }
 
-Expr *ast_create_unary_expr(Arena *arena, TokenType operator, Expr *operand, const Token *loc_token)
+Expr *ast_create_unary_expr(Arena *arena, SnTokenType operator, Expr *operand, const Token *loc_token)
 {
     if (operand == NULL)
     {

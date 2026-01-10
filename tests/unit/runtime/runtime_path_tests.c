@@ -5,10 +5,37 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW is POSIX-compatible */
+    #include <sys/stat.h>
+    #include <unistd.h>
+    #else
+    #include "../platform/compat_windows.h"
+    #endif
+#else
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+
 #include "../runtime.h"
 #include "../test_harness.h"
+
+/* Cross-platform temp directory helper */
+static const char *get_temp_dir(void)
+{
+#ifdef _WIN32
+    const char *tmp = getenv("TEMP");
+    if (tmp == NULL) tmp = getenv("TMP");
+    if (tmp == NULL) tmp = "C:\\Windows\\Temp";
+    return tmp;
+#else
+    const char *tmp = getenv("TMPDIR");
+    if (tmp == NULL) tmp = "/tmp";
+    return tmp;
+#endif
+}
 
 /* ============================================================================
  * Path Component Extraction Tests
@@ -215,7 +242,10 @@ static void test_rt_path_exists(void)
 static void test_rt_path_is_file(void)
 {
     /* Create a temporary file for testing */
-    const char *test_file = "/tmp/rt_path_test_file.txt";
+    const char *tmp = get_temp_dir();
+    char test_file[512];
+    snprintf(test_file, sizeof(test_file), "%s/rt_path_test_file.txt", tmp);
+
     FILE *f = fopen(test_file, "w");
     if (f) {
         fprintf(f, "test");
@@ -229,11 +259,11 @@ static void test_rt_path_is_file(void)
     }
 
     /* Directory is not a file */
-    assert(rt_path_is_file("/tmp") == 0);
+    assert(rt_path_is_file(tmp) == 0);
     assert(rt_path_is_file(".") == 0);
 
     /* Non-existent path */
-    assert(rt_path_is_file("/definitely/does/not/exist") == 0);
+    assert(rt_path_is_file("/definitely/does/not/exist/anywhere") == 0);
 
     /* NULL input */
     assert(rt_path_is_file(NULL) == 0);
@@ -241,13 +271,19 @@ static void test_rt_path_is_file(void)
 
 static void test_rt_path_is_directory(void)
 {
+    const char *tmp = get_temp_dir();
+
     /* Known directories */
-    assert(rt_path_is_directory("/tmp") == 1);
+    assert(rt_path_is_directory(tmp) == 1);
     assert(rt_path_is_directory(".") == 1);
+#ifdef _WIN32
+    assert(rt_path_is_directory("C:\\") == 1);
+#else
     assert(rt_path_is_directory("/") == 1);
+#endif
 
     /* Non-existent path */
-    assert(rt_path_is_directory("/definitely/does/not/exist") == 0);
+    assert(rt_path_is_directory("/definitely/does/not/exist/anywhere") == 0);
 
     /* NULL input */
     assert(rt_path_is_directory(NULL) == 0);
@@ -260,12 +296,24 @@ static void test_rt_path_absolute(void)
     /* Relative path should become absolute */
     char *abs = rt_path_absolute(arena, ".");
     assert(abs != NULL);
+#ifdef _WIN32
+    /* On Windows, absolute paths start with drive letter (e.g., C:\) */
+    assert((abs[0] >= 'A' && abs[0] <= 'Z') || (abs[0] >= 'a' && abs[0] <= 'z'));
+    assert(abs[1] == ':');
+#else
     assert(abs[0] == '/');  /* Should start with / on Unix */
+#endif
 
     /* Already absolute should stay absolute */
+#ifdef _WIN32
+    abs = rt_path_absolute(arena, "C:\\Windows");
+    assert(abs != NULL);
+    assert(abs[0] == 'C' && abs[1] == ':');
+#else
     abs = rt_path_absolute(arena, "/tmp");
     assert(abs != NULL);
     assert(strcmp(abs, "/tmp") == 0 || abs[0] == '/');
+#endif
 
     rt_arena_destroy(arena);
 }
@@ -277,13 +325,14 @@ static void test_rt_path_absolute(void)
 static void test_rt_directory_list(void)
 {
     RtArena *arena = rt_arena_create(NULL);
+    const char *tmp = get_temp_dir();
 
-    /* List /tmp - should work */
-    char **files = rt_directory_list(arena, "/tmp");
+    /* List temp directory - should work */
+    char **files = rt_directory_list(arena, tmp);
     assert(files != NULL);
 
     /* Non-existent directory - should return empty array */
-    files = rt_directory_list(arena, "/definitely/does/not/exist");
+    files = rt_directory_list(arena, "/definitely/does/not/exist/anywhere");
     assert(files != NULL);
     assert(rt_array_length(files) == 0);
 
@@ -292,7 +341,9 @@ static void test_rt_directory_list(void)
 
 static void test_rt_directory_create_and_delete(void)
 {
-    const char *test_dir = "/tmp/rt_path_test_dir_12345";
+    const char *tmp = get_temp_dir();
+    char test_dir[512];
+    snprintf(test_dir, sizeof(test_dir), "%s/rt_path_test_dir_12345", tmp);
 
     /* Ensure it doesn't exist first */
     if (rt_path_exists(test_dir)) {
@@ -312,11 +363,12 @@ static void test_rt_directory_create_and_delete(void)
 static void test_rt_directory_list_recursive(void)
 {
     RtArena *arena = rt_arena_create(NULL);
+    const char *tmp = get_temp_dir();
 
-    /* Test with /tmp - should return some entries */
-    char **files = rt_directory_list_recursive(arena, "/tmp");
+    /* Test with temp dir - should return some entries */
+    char **files = rt_directory_list_recursive(arena, tmp);
     assert(files != NULL);
-    /* Don't assert on count since /tmp contents vary */
+    /* Don't assert on count since temp dir contents vary */
 
     rt_arena_destroy(arena);
 }

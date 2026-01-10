@@ -23,7 +23,7 @@ static Type *type_check_binary(Expr *expr, SymbolTable *table)
         type_error(expr->token, "Invalid operand in binary expression");
         return NULL;
     }
-    TokenType op = expr->as.binary.operator;
+    SnTokenType op = expr->as.binary.operator;
 
     /* Reject pointer arithmetic - pointers cannot be used with arithmetic operators.
      * This includes +, -, *, /, %. Pointer comparison (==, !=) with nil is still allowed. */

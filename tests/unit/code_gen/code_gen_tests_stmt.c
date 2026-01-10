@@ -178,9 +178,9 @@ static void test_code_gen_function_with_params_and_return(void)
 
     /* Note: add() doesn't need arena since it only uses primitives */
     const char *expected = get_expected(&arena,
-                                  "long add(long);\n\n"
-                                  "long add(long a) {\n"
-                                  "    long _return_value = 0;\n"
+                                  "long long add(long long);\n\n"
+                                  "long long add(long long a) {\n"
+                                  "    long long _return_value = 0;\n"
                                   "    _return_value = a;\n"
                                   "    goto add_return;\n"
                                   "add_return:\n"
@@ -292,7 +292,7 @@ static void test_code_gen_block_statement(void)
 
     const char *expected = get_expected(&arena,
                                   "{\n"
-                                  "    long block_var = 0;\n"
+                                  "    long long block_var = 0;\n"
                                   "}\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
@@ -523,8 +523,8 @@ static void test_code_gen_for_statement(void)
 
     const char *expected = get_expected(&arena,
                                   "{\n"
-                                  "    long k = 0L;\n"
-                                  "    while (rt_lt_long(k, 5L)) {\n"
+                                  "    long long k = 0LL;\n"
+                                  "    while (rt_lt_long(k, 5LL)) {\n"
                                   "        rt_print_long(k);\n"
                                   "    __for_continue_0__:;\n"
                                   "        rt_post_inc_long(&k);\n"
@@ -648,7 +648,7 @@ static void test_code_gen_increment_decrement(void)
     symbol_table_cleanup(&sym_table);
 
     const char *expected = get_expected(&arena,
-                                  "long counter = 0;\n"
+                                  "long long counter = 0;\n"
                                   "rt_post_inc_long(&counter);\n"
                                   "int main() {\n"
                                   "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"

@@ -1,6 +1,7 @@
 #include "ast/ast_print.h"
 #include "ast/ast_type.h"
 #include "debug.h"
+#include <inttypes.h>
 
 /* Helper functions to convert memory modifiers to strings */
 static const char *memory_qualifier_to_string(MemoryQualifier qual)
@@ -291,7 +292,7 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
         switch (expr->as.literal.type->kind)
         {
         case TYPE_INT:
-            DEBUG_VERBOSE_INDENT(indent_level, "%ld", expr->as.literal.value.int_value);
+            DEBUG_VERBOSE_INDENT(indent_level, "%" PRId64, expr->as.literal.value.int_value);
             break;
         case TYPE_DOUBLE:
             DEBUG_VERBOSE_INDENT(indent_level, "%f", expr->as.literal.value.double_value);

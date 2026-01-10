@@ -1,40 +1,33 @@
 // Test: TCP line-based protocol (readLine, writeLine)
-// Uses Python as a server for line-based communication
+// Uses pure Sindarin threading - no external dependencies
+
+fn serverTask(server: TcpListener): int =>
+    var client: TcpStream = server.accept()
+    // Send greeting
+    client.writeLine("GREETING")
+    // Receive line from client
+    var received: str = client.readLine()
+    // Echo it back with prefix
+    client.writeLine($"ECHO:{received}")
+    client.close()
+    return 0
 
 fn main(): void =>
-    // Clean up temp file if it exists
-    var preclean: Process = Process.run("rm", {"-f", "/tmp/tcp_lines_ready"})
+    // Create listener first to get the port
+    var server: TcpListener = TcpListener.bind("127.0.0.1:0")
+    var port: int = server.port
 
-    // Start a Python server that:
-    // 1. Sends "GREETING\n"
-    // 2. Receives a line
-    // 3. Sends back "ECHO:<received>\n"
-    // 4. Waits for client to close, then closes
-    var server: Process = &Process.run("python3", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open('/tmp/tcp_lines_ready','w').write(str(p));c,a=s.accept();c.send(b'GREETING\\n');d=c.recv(1024).decode().strip();c.send(f'ECHO:{d}\\n'.encode());c.recv(1);c.close();s.close()"})
+    // Spawn server thread
+    var serverThread: int = &serverTask(server)
 
-    // Wait for server to be ready
-    var attempts: int = 0
-    while attempts < 100 =>
-        var check: Process = Process.run("test", {"-f", "/tmp/tcp_lines_ready"})
-        if check.exitCode == 0 =>
-            attempts = 200
-        else =>
-            var wait: Process = Process.run("sleep", {"0.05"})
-            attempts = attempts + 1
+    // Small delay to ensure server thread is ready
+    Time.sleep(100)
 
-    if attempts < 200 =>
-        print("Timeout waiting for server\n")
-        return
-
-    // Read the port number from the temp file
-    var portReader: Process = Process.run("cat", {"/tmp/tcp_lines_ready"})
-    var port: str = portReader.stdout.trim()
-
-    // Connect to the Python server
+    // Connect to server
     var client: TcpStream = TcpStream.connect($"127.0.0.1:{port}")
     print("Connected\n")
 
-    // Read the greeting line
+    // Read greeting
     var greeting: str = client.readLine()
     print($"Received line: {greeting}\n")
 
@@ -43,11 +36,11 @@ fn main(): void =>
     else =>
         print("Greeting incorrect\n")
 
-    // Send a line using writeLine
+    // Send line
     client.writeLine("HELLO WORLD")
     print("Sent line\n")
 
-    // Read the echo response
+    // Read echo
     var echo: str = client.readLine()
     print($"Echo received: {echo}\n")
 
@@ -59,9 +52,8 @@ fn main(): void =>
     client.close()
     print("Closed\n")
 
-    // Wait for server to finish
-    server!
+    // Wait for server thread
+    serverThread!
 
-    // Clean up
-    var cleanup: Process = Process.run("rm", {"-f", "/tmp/tcp_lines_ready"})
+    server.close()
     print("Test complete\n")

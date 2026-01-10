@@ -1,30 +1,31 @@
 // Test basic Process.run functionality
-// Expected output:
-// pwd exit code: 0
-// false exit code: 1
-// command not found exit code: 127
-// echo output: hello world
-// echo with args: arg1 arg2
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
-    // Test 1: Run true command (exit code 0)
-    var p1: Process = Process.run("true")
-    print($"pwd exit code: {p1.exitCode}\n")
+    // Get compiler path (cross-platform, absolute path required)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
 
-    // Test 2: Run false command (exit code 1)
-    var p2: Process = Process.run("false")
-    print($"false exit code: {p2.exitCode}\n")
+    // Test 1: Exit code 0
+    var p1: Process = Process.run(sn, {"--version"})
+    print($"exit code 0: {p1.exitCode}\n")
 
-    // Test 3: Run non-existent command (exit code 127)
+    // Test 2: Exit code 1 (compile error)
+    var p2: Process = Process.run(sn, {"nonexistent.sn", "--emit-c"})
+    print($"exit code 1: {p2.exitCode}\n")
+
+    // Test 3: Command not found
     var p3: Process = Process.run("nonexistent_command_xyz123")
-    print($"command not found exit code: {p3.exitCode}\n")
+    print($"command not found: {p3.exitCode}\n")
 
-    // Test 4: Run echo with shell
-    var p4: Process = Process.run("sh", {"-c", "echo hello world"})
-    print($"echo output: {p4.stdout}")
+    // Test 4: Read stdout
+    var p4: Process = Process.run(sn, {"--version"})
+    print($"version output: {p4.stdout.trim()}\n")
 
-    // Test 5: Run echo with args
-    var p5: Process = Process.run("sh", {"-c", "echo arg1 arg2"})
-    print($"echo with args: {p5.stdout}")
+    // Test 5: Read stdout with help
+    var p5: Process = Process.run(sn, {"--help"})
+    var helpLine: str = p5.stdout.split("\n")[0]
+    print($"help first line: {helpLine}\n")
 
     return 0

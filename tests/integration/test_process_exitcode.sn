@@ -1,31 +1,36 @@
 // Test Process exit code handling
-// Verifies that exit codes are captured correctly
+// Uses the Sindarin compiler itself for cross-platform testing
 
 fn main(): int =>
+    // Get compiler path (cross-platform)
+    var sn: str = Path.absolute("bin/sn")
+    if Environment.get("OS", "").contains("Windows") =>
+        sn = Path.absolute("bin/sn.exe")
+
     // Exit code 0 (success)
-    var p0: Process = Process.run("true")
-    print($"true: {p0.exitCode}\n")
+    var p0: Process = Process.run(sn, {"--version"})
+    print($"success: {p0.exitCode}\n")
 
-    // Exit code 1 (general error)
-    var p1: Process = Process.run("false")
-    print($"false: {p1.exitCode}\n")
-
-    // Custom exit codes via shell
-    var p42: Process = Process.run("sh", {"-c", "exit 42"})
-    print($"exit 42: {p42.exitCode}\n")
-
-    var p255: Process = Process.run("sh", {"-c", "exit 255"})
-    print($"exit 255: {p255.exitCode}\n")
+    // Exit code 1 (error)
+    var p1: Process = Process.run(sn, {"nonexistent.sn", "--emit-c"})
+    print($"error: {p1.exitCode}\n")
 
     // Exit code 127 (command not found)
     var p127: Process = Process.run("nonexistent_command_xyz123")
     print($"not found: {p127.exitCode}\n")
 
     // Test exit code in conditional
-    var p: Process = Process.run("true")
+    var p: Process = Process.run(sn, {"--version"})
     if p.exitCode == 0 =>
         print("success check: pass\n")
     else =>
         print("success check: fail\n")
+
+    // Test error exit code in conditional
+    var pErr: Process = Process.run(sn, {"bad.sn", "--emit-c"})
+    if pErr.exitCode != 0 =>
+        print("error check: pass\n")
+    else =>
+        print("error check: fail\n")
 
     return 0

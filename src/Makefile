@@ -361,3 +361,4 @@ clean:
 	@rm -f $(BIN_DIR)/sn $(BIN_DIR)/sn-* $(BIN_DIR)/tests $(BIN_DIR)/tests-*
 	@rm -f $(BIN_DIR)/*.o $(BIN_DIR)/*.d
 	@rm -rf $(BIN_DIR)/lib $(BIN_DIR)/include
+    

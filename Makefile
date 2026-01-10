@@ -12,6 +12,51 @@
 .PHONY: assembly measure-optimization benchmark help
 
 #------------------------------------------------------------------------------
+# Platform Detection
+#------------------------------------------------------------------------------
+# Detect Windows (MSYS2/MinGW/Cygwin)
+ifeq ($(OS),Windows_NT)
+    PLATFORM := windows
+else
+    UNAME_S := $(shell uname -s 2>/dev/null || echo Unknown)
+    ifneq ($(filter MINGW% MSYS% CYGWIN%,$(UNAME_S)),)
+        PLATFORM := windows
+    else ifeq ($(UNAME_S),Linux)
+        PLATFORM := linux
+    else ifeq ($(UNAME_S),Darwin)
+        PLATFORM := darwin
+    else
+        PLATFORM := unknown
+    endif
+endif
+
+# Platform-specific settings
+ifeq ($(PLATFORM),windows)
+    EXE_EXT := .exe
+    # Use copy instead of symlink on Windows (symlinks require admin privileges)
+    CREATE_SYMLINK = cp -f $(1) $(2)
+    # Windows uses ; for path separator in some contexts, but MSYS uses :
+    PATH_SEP := :
+    # rm on MSYS2 handles both path styles
+    RM := rm -f
+    RMDIR := rm -rf
+    MKDIR := mkdir -p
+    # Windows timeout command has different syntax; use MSYS timeout or skip
+    TIMEOUT_CMD = timeout
+    # Null device
+    NULL_DEV := /dev/null
+else
+    EXE_EXT :=
+    CREATE_SYMLINK = ln -sf $(1) $(2)
+    PATH_SEP := :
+    RM := rm -f
+    RMDIR := rm -rf
+    MKDIR := mkdir -p
+    TIMEOUT_CMD := timeout
+    NULL_DEV := /dev/null
+endif
+
+#------------------------------------------------------------------------------
 # Configuration
 #------------------------------------------------------------------------------
 
@@ -31,7 +76,7 @@ EXPLORE_DIR := tests/exploratory
 EXPLORE_ERROR_DIR := tests/exploratory/errors
 
 # Sindarin compiler binary (can be overridden for backend-specific tests)
-SN := $(BIN_DIR)/sn
+SN := $(BIN_DIR)/sn$(EXE_EXT)
 
 # Colors (for terminal output)
 RED := \033[0;31m
@@ -48,14 +93,14 @@ NC := \033[0m
 # Build a single backend
 # Usage: $(call BUILD_BACKEND,DisplayName,backend-id)
 define BUILD_BACKEND
-	@mkdir -p $(BIN_DIR) $(LOG_DIR)
+	@$(MKDIR) $(BIN_DIR) $(LOG_DIR)
 	@echo "Building compiler with $(1) backend..."
-	@$(MAKE) -C $(SRC_DIR) clean
-	@$(MAKE) -C $(SRC_DIR) BACKEND=$(2) > $(LOG_DIR)/build-output.log 2>&1
-	@$(MAKE) -C $(SRC_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) clean PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT)
+	@$(MAKE) -C $(SRC_DIR) BACKEND=$(2) PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) > $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) tests PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) >> $(LOG_DIR)/build-output.log 2>&1
 	@cat $(LOG_DIR)/build-output.log
 	@cp -n etc/*.cfg $(BIN_DIR)/ 2>>$(LOG_DIR)/build-warnings.log || true
-	@find $(BIN_DIR) -maxdepth 1 \( -name "*.d" -o -name "*.o" \) -delete
+	@find $(BIN_DIR) -maxdepth 1 \( -name "*.d" -o -name "*.o" \) -delete 2>$(NULL_DEV) || true
 endef
 
 # Run all tests for a backend
@@ -66,8 +111,8 @@ define TEST_BACKEND
 	@echo "$(BOLD)  $(1) Backend$(NC)"
 	@echo "$(BOLD)═══════════════════════════════════════════════════════════$(NC)"
 	@$(MAKE) --no-print-directory test-unit
-	@$(MAKE) --no-print-directory test-integration test-integration-errors SN=$(BIN_DIR)/sn-$(2)
-	@$(MAKE) --no-print-directory test-explore test-explore-errors SN=$(BIN_DIR)/sn-$(2)
+	@$(MAKE) --no-print-directory test-integration test-integration-errors SN=$(BIN_DIR)/sn-$(2)$(EXE_EXT)
+	@$(MAKE) --no-print-directory test-explore test-explore-errors SN=$(BIN_DIR)/sn-$(2)$(EXE_EXT)
 endef
 
 #------------------------------------------------------------------------------
@@ -77,30 +122,30 @@ all: build
 
 #------------------------------------------------------------------------------
 # build - Build compiler with all backends (GCC, Clang, TinyCC)
-# Produces: sn-gcc, sn-clang, sn-tcc with 'sn' symlink pointing to sn-gcc
+# Produces: sn-gcc, sn-clang, sn-tcc with 'sn' symlink/copy pointing to sn-gcc
 #------------------------------------------------------------------------------
 build:
-	@mkdir -p $(BIN_DIR) $(LOG_DIR)
-	@echo "Building compiler with all backends..."
-	@$(MAKE) -C $(SRC_DIR) clean
+	@$(MKDIR) $(BIN_DIR) $(LOG_DIR)
+	@echo "Building compiler with all backends (platform: $(PLATFORM))..."
+	@$(MAKE) -C $(SRC_DIR) clean PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT)
 	@# Build GCC backend first (includes test binary)
 	@echo "  Building GCC backend..."
-	@$(MAKE) -C $(SRC_DIR) BACKEND=gcc > $(LOG_DIR)/build-output.log 2>&1
-	@$(MAKE) -C $(SRC_DIR) tests >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) BACKEND=gcc PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) > $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) tests PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) >> $(LOG_DIR)/build-output.log 2>&1
 	@# Build Clang backend (compiler binary + runtime)
 	@echo "  Building Clang backend..."
-	@$(MAKE) -C $(SRC_DIR) runtime-clang >> $(LOG_DIR)/build-output.log 2>&1
-	@$(MAKE) -C $(SRC_DIR) BACKEND=clang ../$(BIN_DIR)/sn-clang >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) runtime-clang PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) BACKEND=clang PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) ../$(BIN_DIR)/sn-clang$(EXE_EXT) >> $(LOG_DIR)/build-output.log 2>&1
 	@# Build TinyCC backend (compiler binary + runtime)
 	@echo "  Building TinyCC backend..."
-	@$(MAKE) -C $(SRC_DIR) runtime-tinycc >> $(LOG_DIR)/build-output.log 2>&1
-	@$(MAKE) -C $(SRC_DIR) BACKEND=tinycc ../$(BIN_DIR)/sn-tcc >> $(LOG_DIR)/build-output.log 2>&1
-	@# Set sn symlink to gcc by default
-	@rm -f $(BIN_DIR)/sn
-	@ln -s sn-gcc $(BIN_DIR)/sn
+	@$(MAKE) -C $(SRC_DIR) runtime-tinycc PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) >> $(LOG_DIR)/build-output.log 2>&1
+	@$(MAKE) -C $(SRC_DIR) BACKEND=tinycc PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) ../$(BIN_DIR)/sn-tcc$(EXE_EXT) >> $(LOG_DIR)/build-output.log 2>&1
+	@# Set sn symlink/copy to gcc by default
+	@$(RM) $(BIN_DIR)/sn$(EXE_EXT)
+	$(call CREATE_SYMLINK,$(BIN_DIR)/sn-gcc$(EXE_EXT),$(BIN_DIR)/sn$(EXE_EXT))
 	@cp -n etc/*.cfg $(BIN_DIR)/ 2>>$(LOG_DIR)/build-warnings.log || true
-	@echo "Built: sn-gcc, sn-clang, sn-tcc (sn -> sn-gcc)"
-	@find $(BIN_DIR) -maxdepth 1 \( -name "*.d" -o -name "*.o" \) -delete
+	@echo "Built: sn-gcc$(EXE_EXT), sn-clang$(EXE_EXT), sn-tcc$(EXE_EXT) (sn -> sn-gcc)"
+	@find $(BIN_DIR) -maxdepth 1 \( -name "*.d" -o -name "*.o" \) -delete 2>$(NULL_DEV) || true
 
 #------------------------------------------------------------------------------
 # rebuild - Clean and build (for when you need a fresh build)
@@ -123,19 +168,19 @@ build-tcc:
 # clean - Remove build artifacts (preserves .cfg config files)
 #------------------------------------------------------------------------------
 clean:
-	@rm -f $(BIN_DIR)/sn $(BIN_DIR)/sn-* $(BIN_DIR)/tests
-	@rm -f $(BIN_DIR)/*.o $(BIN_DIR)/*.d
-	@rm -f $(BIN_DIR)/hello-world
-	@rm -rf $(LOG_DIR)/*
-	@mkdir -p $(BIN_DIR) $(LOG_DIR)
+	@$(RM) $(BIN_DIR)/sn$(EXE_EXT) $(BIN_DIR)/sn-*$(EXE_EXT) $(BIN_DIR)/tests$(EXE_EXT)
+	@$(RM) $(BIN_DIR)/*.o $(BIN_DIR)/*.d
+	@$(RM) $(BIN_DIR)/hello-world$(EXE_EXT)
+	@$(RMDIR) $(LOG_DIR)/*
+	@$(MKDIR) $(BIN_DIR) $(LOG_DIR)
 
 #------------------------------------------------------------------------------
 # run - Compile and run samples/main.sn
 #------------------------------------------------------------------------------
 run:
-	@mkdir -p $(LOG_DIR)
-	$(SN) samples/main.sn -o $(BIN_DIR)/hello-world -l 3 -g $(OPT_LEVEL) > $(LOG_DIR)/run-output.log 2>&1
-	@timeout 5s $(BIN_DIR)/hello-world
+	@$(MKDIR) $(LOG_DIR)
+	$(SN) samples/main.sn -o $(BIN_DIR)/hello-world$(EXE_EXT) -l 3 -g $(OPT_LEVEL) > $(LOG_DIR)/run-output.log 2>&1
+	@$(TIMEOUT_CMD) 5s $(BIN_DIR)/hello-world$(EXE_EXT) || $(BIN_DIR)/hello-world$(EXE_EXT)
 
 #------------------------------------------------------------------------------
 # test - Run all tests with all backends
@@ -163,8 +208,8 @@ test-unit:
 	@echo ""
 	@echo "$(BOLD)Unit Tests$(NC)"
 	@echo "============================================================"
-	@mkdir -p $(LOG_DIR)
-	@if $(BIN_DIR)/tests > $(LOG_DIR)/test-output.log 2>&1; then \
+	@$(MKDIR) $(LOG_DIR)
+	@if $(BIN_DIR)/tests$(EXE_EXT) > $(LOG_DIR)/test-output.log 2>&1; then \
 		cat $(LOG_DIR)/test-output.log; \
 		echo ""; \
 		echo "------------------------------------------------------------"; \
@@ -202,19 +247,28 @@ test-threading:
 # assembly - Assemble and link assembly files
 #------------------------------------------------------------------------------
 assembly:
-	@mkdir -p $(BIN_DIR)
+	@$(MKDIR) $(BIN_DIR)
+ifeq ($(PLATFORM),windows)
+	nasm -f win64 $(BIN_DIR)/hello-world.asm -o $(BIN_DIR)/hello-world.o
+	gcc $(BIN_DIR)/hello-world.o -o $(BIN_DIR)/hello-world$(EXE_EXT)
+else
 	nasm -f elf64 $(BIN_DIR)/hello-world.asm -o $(BIN_DIR)/hello-world.o
 	gcc -no-pie $(BIN_DIR)/hello-world.o -o $(BIN_DIR)/hello-world
-	@timeout 5s ./$(BIN_DIR)/hello-world
+endif
+	@$(TIMEOUT_CMD) 5s ./$(BIN_DIR)/hello-world$(EXE_EXT) || ./$(BIN_DIR)/hello-world$(EXE_EXT)
 
 #------------------------------------------------------------------------------
 # measure-optimization - Measure optimization impact
 #------------------------------------------------------------------------------
+ifeq ($(PLATFORM),windows)
+MEASURE_TEMP := $(TEMP)/sn_optimization_test
+else
 MEASURE_TEMP := /tmp/sn_optimization_test
+endif
 MEASURE_TESTS := factorial.sn loops.sn string_interp.sn const_fold.sn edge_cases.sn native_ops.sn tail_recursion.sn
 
 measure-optimization:
-	@mkdir -p $(MEASURE_TEMP)
+	@$(MKDIR) $(MEASURE_TEMP)
 	@echo "=============================================="
 	@echo "Sn Compiler Optimization Impact Analysis"
 	@echo "=============================================="

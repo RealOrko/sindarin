@@ -13,8 +13,6 @@
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-typedef struct Type Type;
-
 /* Thread state tracking for variables that hold thread handles.
  * Used by the type checker to ensure thread results are properly synchronized. */
 typedef enum

@@ -2,6 +2,9 @@
 // Tests for native function pointer variable handling, as val, and as ref
 // Note: setup_test_token helper is defined in type_checker_tests_native.c
 
+/* Suppress warning for operator name arrays used for readability but not in assertions */
+#pragma clang diagnostic ignored "-Wunused-variable"
+
 #include "../test_harness.h"
 
 /* Test that pointer variables are REJECTED in regular (non-native) functions */
@@ -89,7 +92,7 @@ static void test_pointer_var_accepted_in_native_function(void)
 }
 
 /* Test helper: create a binary expression with pointer and int */
-static Stmt *create_pointer_arithmetic_stmt(Arena *arena, Type *ptr_type, Type *int_type, TokenType op)
+static Stmt *create_pointer_arithmetic_stmt(Arena *arena, Type *ptr_type, Type *int_type, SnTokenType op)
 {
     /* Create a pointer variable reference */
     Token p_tok;
@@ -116,7 +119,7 @@ static Stmt *create_pointer_arithmetic_stmt(Arena *arena, Type *ptr_type, Type *
 static void test_pointer_arithmetic_rejected(void)
 {
     /* Test each arithmetic operator */
-    TokenType operators[] = {TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_MODULO};
+    SnTokenType operators[] = {TOKEN_PLUS, TOKEN_MINUS, TOKEN_STAR, TOKEN_SLASH, TOKEN_MODULO};
     const char *op_names[] = {"+", "-", "*", "/", "%%"};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
 
@@ -167,7 +170,7 @@ static void test_pointer_arithmetic_rejected(void)
 }
 
 /* Test helper: create a comparison expression with two pointers */
-static Stmt *create_pointer_comparison_stmt(Arena *arena, Type *ptr_type, TokenType op, bool use_nil_as_right)
+static Stmt *create_pointer_comparison_stmt(Arena *arena, Type *ptr_type, SnTokenType op, bool use_nil_as_right)
 {
     /* Create a pointer variable reference */
     Token p1_tok;
@@ -207,7 +210,7 @@ static Stmt *create_pointer_comparison_stmt(Arena *arena, Type *ptr_type, TokenT
 /* Test that pointer equality (==, !=) with nil is ALLOWED */
 static void test_pointer_nil_comparison_allowed(void)
 {
-    TokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
+    SnTokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
     const char *op_names[] = {"==", "!="};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
 
@@ -260,7 +263,7 @@ static void test_pointer_nil_comparison_allowed(void)
 /* Test that pointer-to-pointer equality (==, !=) is ALLOWED */
 static void test_pointer_pointer_comparison_allowed(void)
 {
-    TokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
+    SnTokenType operators[] = {TOKEN_EQUAL_EQUAL, TOKEN_BANG_EQUAL};
     const char *op_names[] = {"==", "!="};
     int num_ops = sizeof(operators) / sizeof(operators[0]);
 

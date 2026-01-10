@@ -168,7 +168,7 @@ static void test_lexer_opaque_type_keywords(void)
     lexer_init(&arena, &lexer, source, "test.sn");
 
     Token t1 = lexer_scan_token(&lexer);
-    assert(t1.type == TOKEN_TYPE);
+    assert(t1.type == TOKEN_KEYWORD_TYPE);
     assert(t1.length == 4);
 
     Token t2 = lexer_scan_token(&lexer);

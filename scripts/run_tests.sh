@@ -5,6 +5,28 @@
 
 set -e
 
+# Cross-platform timeout command
+# macOS uses gtimeout from coreutils, Linux has timeout built-in
+if command -v timeout &> /dev/null; then
+    TIMEOUT_CMD="timeout"
+elif command -v gtimeout &> /dev/null; then
+    TIMEOUT_CMD="gtimeout"
+else
+    echo "Warning: No timeout command found. Tests may hang on infinite loops."
+    TIMEOUT_CMD=""
+fi
+
+# Wrapper function for timeout
+run_with_timeout() {
+    local seconds="$1"
+    shift
+    if [ -n "$TIMEOUT_CMD" ]; then
+        $TIMEOUT_CMD "${seconds}s" "$@"
+    else
+        "$@"
+    fi
+}
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -16,8 +38,20 @@ NC='\033[0m'
 TEST_TYPE="${1:-integration}"
 SN="${2:-bin/sn}"
 
+# Excluded tests (space-separated list via environment variable)
+# Example: SN_EXCLUDE_TESTS="test_foo test_bar" ./scripts/run_tests.sh
+EXCLUDE_TESTS="${SN_EXCLUDE_TESTS:-}"
+
 # Directories
-TEMP_DIR="/tmp/sn_test_runner_$$"
+# Use SN_TEST_DIR if set, otherwise try /tmp. If /tmp has noexec, fall back to ./build/test_runner
+if [ -n "$SN_TEST_DIR" ]; then
+    TEMP_DIR="$SN_TEST_DIR/sn_test_runner_$$"
+elif mount | grep -q "on /tmp.*noexec"; then
+    # /tmp is mounted noexec, use a directory within the project
+    TEMP_DIR="$(pwd)/build/test_runner_$$"
+else
+    TEMP_DIR="/tmp/sn_test_runner_$$"
+fi
 mkdir -p "$TEMP_DIR"
 
 # Cleanup on exit
@@ -74,6 +108,14 @@ for test_file in "$TEST_DIR"/$PATTERN; do
     [ -f "$test_file" ] || continue
 
     test_name=$(basename "$test_file" .sn)
+
+    # Check if test is excluded
+    if [ -n "$EXCLUDE_TESTS" ] && echo "$EXCLUDE_TESTS" | grep -qw "$test_name"; then
+        printf "  %-45s ${YELLOW}SKIP${NC} (excluded)\n" "$test_name"
+        skipped=$((skipped + 1))
+        continue
+    fi
+
     expected_file="${test_file%.sn}.expected"
     panic_file="${test_file%.sn}.panic"
     exe_file="$TEMP_DIR/$test_name"
@@ -120,7 +162,7 @@ for test_file in "$TEST_DIR"/$PATTERN; do
 
         # Compile
         compile_timeout=10
-        if ! timeout ${compile_timeout}s $SN "$test_file" -o "$exe_file" -l 1 -g -O0 2>"$compile_err"; then
+        if ! run_with_timeout ${compile_timeout} $SN "$test_file" -o "$exe_file" -l 1 -g -O0 2>"$compile_err"; then
             printf "${RED}FAIL${NC} (compile error)\n"
             head -3 "$compile_err" | sed 's/^/    /'
             failed=$((failed + 1))
@@ -132,7 +174,7 @@ for test_file in "$TEST_DIR"/$PATTERN; do
         [ "$TEST_TYPE" = "integration" ] && run_timeout=5
 
         run_exit_code=0
-        ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}" timeout ${run_timeout}s "$exe_file" > "$output_file" 2>&1 || run_exit_code=$?
+        ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0}" run_with_timeout ${run_timeout} "$exe_file" > "$output_file" 2>&1 || run_exit_code=$?
 
         # Check for expected panic
         if [ -f "$panic_file" ]; then

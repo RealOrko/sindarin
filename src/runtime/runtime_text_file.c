@@ -2,8 +2,20 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+
+#ifdef _WIN32
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW is POSIX-compatible */
+    #include <sys/stat.h>
+    #include <unistd.h>
+    #else
+    #include "../platform/compat_windows.h"
+    #endif
+#else
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+
 #include "runtime_file.h"
 #include "runtime_arena.h"
 #include "runtime_array.h"
@@ -70,10 +82,10 @@ RtTextFile *rt_text_file_open(RtArena *arena, const char *path) {
         exit(1);
     }
 
-    FILE *fp = fopen(path, "r+");
+    FILE *fp = fopen(path, "r+b");  /* Binary mode for cross-platform consistency */
     if (fp == NULL) {
         /* Try to create if doesn't exist for write */
-        fp = fopen(path, "w+");
+        fp = fopen(path, "w+b");
         if (fp == NULL) {
             fprintf(stderr, "TextFile.open: failed to open file '%s': %s\n", path, strerror(errno));
             exit(1);
@@ -103,7 +115,7 @@ int rt_text_file_exists(const char *path) {
     if (path == NULL) {
         return 0;
     }
-    FILE *fp = fopen(path, "r");
+    FILE *fp = fopen(path, "rb");
     if (fp == NULL) {
         return 0;
     }
@@ -135,7 +147,7 @@ char *rt_text_file_read_all(RtArena *arena, const char *path) {
         exit(1);
     }
 
-    FILE *fp = fopen(path, "r");
+    FILE *fp = fopen(path, "rb");
     if (fp == NULL) {
         fprintf(stderr, "TextFile.readAll: failed to open file '%s': %s\n", path, strerror(errno));
         exit(1);
@@ -193,7 +205,7 @@ void rt_text_file_write_all(const char *path, const char *content) {
         content = "";
     }
 
-    FILE *fp = fopen(path, "w");
+    FILE *fp = fopen(path, "wb");
     if (fp == NULL) {
         fprintf(stderr, "TextFile.writeAll: failed to open file '%s' for writing: %s\n", path, strerror(errno));
         exit(1);
@@ -226,13 +238,13 @@ void rt_text_file_copy(const char *src, const char *dst) {
         exit(1);
     }
 
-    FILE *src_fp = fopen(src, "r");
+    FILE *src_fp = fopen(src, "rb");
     if (src_fp == NULL) {
         fprintf(stderr, "TextFile.copy: failed to open source file '%s': %s\n", src, strerror(errno));
         exit(1);
     }
 
-    FILE *dst_fp = fopen(dst, "w");
+    FILE *dst_fp = fopen(dst, "wb");
     if (dst_fp == NULL) {
         fclose(src_fp);
         fprintf(stderr, "TextFile.copy: failed to open destination file '%s': %s\n", dst, strerror(errno));

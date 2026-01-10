@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+#include "../platform/compat_io.h"
+
 /* is_primitive_type is defined in type_checker_util.c */
 
 /* Initialize LocalVars structure */
@@ -402,7 +404,7 @@ char *code_gen_lambda_stmt_body(CodeGen *gen, LambdaExpr *lambda, int indent,
         code_gen_statement(gen, lambda->body_stmts[i], indent);
     }
 
-    fclose(gen->output);
+    sn_fclose(gen->output);
     gen->output = old_output;
 
     /* Restore context */

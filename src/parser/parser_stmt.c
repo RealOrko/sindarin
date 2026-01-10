@@ -276,7 +276,7 @@ Stmt *parser_declaration(Parser *parser)
     {
         return parser_pragma_statement(parser, PRAGMA_LINK);
     }
-    if (parser_match(parser, TOKEN_TYPE))
+    if (parser_match(parser, TOKEN_KEYWORD_TYPE))
     {
         return parser_type_declaration(parser);
     }
@@ -357,7 +357,7 @@ Stmt *parser_expression_statement(Parser *parser)
 }
 
 /* Helper to check if a token type is a reserved keyword */
-static bool parser_is_keyword_token(TokenType type)
+static bool parser_is_keyword_token(SnTokenType type)
 {
     switch (type)
     {

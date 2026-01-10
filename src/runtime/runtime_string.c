@@ -227,10 +227,10 @@ char *rt_string_append(char *dest, const char *src) {
 
 static const char *null_str = "(null)";
 
-char *rt_to_string_long(RtArena *arena, long val)
+char *rt_to_string_long(RtArena *arena, long long val)
 {
     char buf[32];
-    snprintf(buf, sizeof(buf), "%ld", val);
+    snprintf(buf, sizeof(buf), "%lld", val);
     return rt_arena_strdup(arena, buf);
 }
 
@@ -289,13 +289,13 @@ char *rt_to_string_pointer(RtArena *arena, void *p)
  * Format syntax: [0][width][type] where type varies by function.
  * ============================================================================ */
 
-char *rt_format_long(RtArena *arena, long val, const char *fmt)
+char *rt_format_long(RtArena *arena, long long val, const char *fmt)
 {
     char buf[128];
     char format_str[64];
 
     if (fmt == NULL || fmt[0] == '\0') {
-        snprintf(buf, sizeof(buf), "%ld", val);
+        snprintf(buf, sizeof(buf), "%lld", val);
         return rt_arena_strdup(arena, buf);
     }
 
@@ -322,41 +322,41 @@ char *rt_format_long(RtArena *arena, long val, const char *fmt)
     switch (type) {
         case 'd':
             if (zero_pad && width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%0%dld", width);
+                snprintf(format_str, sizeof(format_str), "%%0%dlld", width);
             } else if (width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%%dld", width);
+                snprintf(format_str, sizeof(format_str), "%%%dlld", width);
             } else {
-                snprintf(format_str, sizeof(format_str), "%%ld");
+                snprintf(format_str, sizeof(format_str), "%%lld");
             }
             snprintf(buf, sizeof(buf), format_str, val);
             break;
         case 'x':
             if (zero_pad && width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%0%dlx", width);
+                snprintf(format_str, sizeof(format_str), "%%0%dllx", width);
             } else if (width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%%dlx", width);
+                snprintf(format_str, sizeof(format_str), "%%%dllx", width);
             } else {
-                snprintf(format_str, sizeof(format_str), "%%lx");
+                snprintf(format_str, sizeof(format_str), "%%llx");
             }
             snprintf(buf, sizeof(buf), format_str, val);
             break;
         case 'X':
             if (zero_pad && width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%0%dlX", width);
+                snprintf(format_str, sizeof(format_str), "%%0%dllX", width);
             } else if (width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%%dlX", width);
+                snprintf(format_str, sizeof(format_str), "%%%dllX", width);
             } else {
-                snprintf(format_str, sizeof(format_str), "%%lX");
+                snprintf(format_str, sizeof(format_str), "%%llX");
             }
             snprintf(buf, sizeof(buf), format_str, val);
             break;
         case 'o':
             if (zero_pad && width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%0%dlo", width);
+                snprintf(format_str, sizeof(format_str), "%%0%dllo", width);
             } else if (width > 0) {
-                snprintf(format_str, sizeof(format_str), "%%%dlo", width);
+                snprintf(format_str, sizeof(format_str), "%%%dllo", width);
             } else {
-                snprintf(format_str, sizeof(format_str), "%%lo");
+                snprintf(format_str, sizeof(format_str), "%%llo");
             }
             snprintf(buf, sizeof(buf), format_str, val);
             break;
@@ -364,7 +364,7 @@ char *rt_format_long(RtArena *arena, long val, const char *fmt)
             /* Binary format - custom implementation */
             char binbuf[65];
             int len = 0;
-            unsigned long uval = (unsigned long)val;
+            unsigned long long uval = (unsigned long long)val;
             if (uval == 0) {
                 binbuf[len++] = '0';
             } else {
@@ -392,7 +392,7 @@ char *rt_format_long(RtArena *arena, long val, const char *fmt)
             return rt_arena_strdup(arena, binbuf);
         }
         default:
-            snprintf(buf, sizeof(buf), "%ld", val);
+            snprintf(buf, sizeof(buf), "%lld", val);
             break;
     }
 
@@ -566,9 +566,9 @@ char *rt_format_string(RtArena *arena, const char *val, const char *fmt)
  * These functions print values to stdout. Used by the print() built-in.
  * ============================================================================ */
 
-void rt_print_long(long val)
+void rt_print_long(long long val)
 {
-    printf("%ld", val);
+    printf("%lld", val);
 }
 
 void rt_print_double(double val)

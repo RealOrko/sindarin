@@ -29,7 +29,7 @@ char lexer_peek(Lexer *lexer);
 char lexer_peek_next(Lexer *lexer);
 int lexer_match(Lexer *lexer, char expected);
 
-Token lexer_make_token(Lexer *lexer, TokenType type);
+Token lexer_make_token(Lexer *lexer, SnTokenType type);
 Token lexer_error_token(Lexer *lexer, const char *message);
 void lexer_skip_whitespace(Lexer *lexer);
 Token lexer_scan_identifier(Lexer *lexer);
@@ -37,8 +37,8 @@ Token lexer_scan_number(Lexer *lexer);
 Token lexer_scan_string(Lexer *lexer);
 Token lexer_scan_char(Lexer *lexer);
 
-TokenType lexer_identifier_type(Lexer *lexer);
-TokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *rest, TokenType type);
+SnTokenType lexer_identifier_type(Lexer *lexer);
+SnTokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *rest, SnTokenType type);
 
 void lexer_report_indentation_error(Lexer *lexer, int expected, int actual);
 

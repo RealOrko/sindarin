@@ -1,6 +1,9 @@
 // tests/unit/runtime_random_tests_choice.c
 // Tests for runtime random choice and weighted_choice functions
 
+/* Suppress warning for tracking variables used in distribution tests but not all asserted */
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,12 +25,12 @@
 static void test_rt_random_static_choice_long_basic(void)
 {
 
-    long arr[] = {10, 20, 30, 40, 50};
-    long len = 5;
+    long long arr[] = {10, 20, 30, 40, 50};
+    long long len = 5;
 
     /* Generate multiple choices and verify they are from the array */
     for (int i = 0; i < 100; i++) {
-        long val = rt_random_static_choice_long(arr, len);
+        long long val = rt_random_static_choice_long(arr, len);
         int found = 0;
         for (long j = 0; j < len; j++) {
             if (val == arr[j]) {
@@ -43,9 +46,9 @@ static void test_rt_random_static_choice_long_basic(void)
 static void test_rt_random_static_choice_long_single_element(void)
 {
 
-    long arr[] = {42};
+    long long arr[] = {42};
     for (int i = 0; i < 10; i++) {
-        long val = rt_random_static_choice_long(arr, 1);
+        long long val = rt_random_static_choice_long(arr, 1);
         TEST_ASSERT(val == 42, "Single element should always return that element");
     }
 
@@ -54,17 +57,17 @@ static void test_rt_random_static_choice_long_single_element(void)
 static void test_rt_random_static_choice_long_null_empty(void)
 {
 
-    long arr[] = {1, 2, 3};
+    long long arr[] = {1, 2, 3};
 
     /* NULL array should return 0 */
-    long val1 = rt_random_static_choice_long(NULL, 3);
+    long long val1 = rt_random_static_choice_long(NULL, 3);
     TEST_ASSERT(val1 == 0, "NULL array should return 0");
 
     /* Empty array (len <= 0) should return 0 */
-    long val2 = rt_random_static_choice_long(arr, 0);
+    long long val2 = rt_random_static_choice_long(arr, 0);
     TEST_ASSERT(val2 == 0, "Empty array should return 0");
 
-    long val3 = rt_random_static_choice_long(arr, -1);
+    long long val3 = rt_random_static_choice_long(arr, -1);
     TEST_ASSERT(val3 == 0, "Negative length should return 0");
 
 }
@@ -72,13 +75,13 @@ static void test_rt_random_static_choice_long_null_empty(void)
 static void test_rt_random_static_choice_long_distribution(void)
 {
 
-    long arr[] = {0, 1, 2, 3, 4};
-    long len = 5;
+    long long arr[] = {0, 1, 2, 3, 4};
+    long long len = 5;
     int counts[5] = {0};
     int iterations = 5000;
 
     for (int i = 0; i < iterations; i++) {
-        long val = rt_random_static_choice_long(arr, len);
+        long long val = rt_random_static_choice_long(arr, len);
         TEST_ASSERT(val >= 0 && val < len, "Value should be valid index");
         counts[val]++;
     }
@@ -98,7 +101,7 @@ static void test_rt_random_static_choice_double_basic(void)
 {
 
     double arr[] = {1.1, 2.2, 3.3, 4.4, 5.5};
-    long len = 5;
+    long long len = 5;
 
     for (int i = 0; i < 100; i++) {
         double val = rt_random_static_choice_double(arr, len);
@@ -131,7 +134,7 @@ static void test_rt_random_static_choice_string_basic(void)
 {
 
     char *arr[] = {"red", "green", "blue", "yellow"};
-    long len = 4;
+    long long len = 4;
 
     for (int i = 0; i < 100; i++) {
         char *val = rt_random_static_choice_string(arr, len);
@@ -164,7 +167,7 @@ static void test_rt_random_static_choice_bool_basic(void)
 {
 
     int arr[] = {0, 1, 0, 1, 1};
-    long len = 5;
+    long long len = 5;
 
     for (int i = 0; i < 100; i++) {
         int val = rt_random_static_choice_bool(arr, len);
@@ -190,7 +193,7 @@ static void test_rt_random_static_choice_byte_basic(void)
 {
 
     unsigned char arr[] = {0x10, 0x20, 0x30, 0x40, 0x50};
-    long len = 5;
+    long long len = 5;
 
     for (int i = 0; i < 100; i++) {
         unsigned char val = rt_random_static_choice_byte(arr, len);
@@ -232,11 +235,11 @@ static void test_rt_random_choice_long_basic(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
-    long arr[] = {10, 20, 30, 40, 50};
-    long len = 5;
+    long long arr[] = {10, 20, 30, 40, 50};
+    long long len = 5;
 
     for (int i = 0; i < 100; i++) {
-        long val = rt_random_choice_long(rng, arr, len);
+        long long val = rt_random_choice_long(rng, arr, len);
         int found = 0;
         for (long j = 0; j < len; j++) {
             if (val == arr[j]) {
@@ -259,8 +262,8 @@ static void test_rt_random_choice_long_reproducibility(void)
     RtRandom *rng1 = rt_random_create_with_seed(arena, 42);
     RtRandom *rng2 = rt_random_create_with_seed(arena, 42);
 
-    long arr[] = {100, 200, 300, 400, 500};
-    long len = 5;
+    long long arr[] = {100, 200, 300, 400, 500};
+    long long len = 5;
 
     for (int i = 0; i < 50; i++) {
         long v1 = rt_random_choice_long(rng1, arr, len);
@@ -278,15 +281,15 @@ static void test_rt_random_choice_long_null_args(void)
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
-    long arr[] = {1, 2, 3};
+    long long arr[] = {1, 2, 3};
 
-    long val1 = rt_random_choice_long(NULL, arr, 3);
+    long long val1 = rt_random_choice_long(NULL, arr, 3);
     TEST_ASSERT(val1 == 0, "NULL rng should return 0");
 
-    long val2 = rt_random_choice_long(rng, NULL, 3);
+    long long val2 = rt_random_choice_long(rng, NULL, 3);
     TEST_ASSERT(val2 == 0, "NULL array should return 0");
 
-    long val3 = rt_random_choice_long(rng, arr, 0);
+    long long val3 = rt_random_choice_long(rng, arr, 0);
     TEST_ASSERT(val3 == 0, "Empty array should return 0");
 
     rt_arena_destroy(arena);
@@ -300,13 +303,13 @@ static void test_rt_random_choice_long_distribution(void)
 
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
 
-    long arr[] = {0, 1, 2, 3, 4};
-    long len = 5;
+    long long arr[] = {0, 1, 2, 3, 4};
+    long long len = 5;
     int counts[5] = {0};
     int iterations = 5000;
 
     for (int i = 0; i < iterations; i++) {
-        long val = rt_random_choice_long(rng, arr, len);
+        long long val = rt_random_choice_long(rng, arr, len);
         TEST_ASSERT(val >= 0 && val < len, "Value should be valid index");
         counts[val]++;
     }
@@ -330,7 +333,7 @@ static void test_rt_random_choice_double_basic(void)
 
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
     double arr[] = {1.1, 2.2, 3.3, 4.4, 5.5};
-    long len = 5;
+    long long len = 5;
 
     for (int i = 0; i < 100; i++) {
         double val = rt_random_choice_double(rng, arr, len);
@@ -373,7 +376,7 @@ static void test_rt_random_choice_string_basic(void)
 
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
     char *arr[] = {"red", "green", "blue", "yellow"};
-    long len = 4;
+    long long len = 4;
 
     for (int i = 0; i < 100; i++) {
         char *val = rt_random_choice_string(rng, arr, len);
@@ -416,7 +419,7 @@ static void test_rt_random_choice_bool_basic(void)
 
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
     int arr[] = {0, 1, 0, 1, 1};
-    long len = 5;
+    long long len = 5;
 
     for (int i = 0; i < 100; i++) {
         int val = rt_random_choice_bool(rng, arr, len);
@@ -452,7 +455,7 @@ static void test_rt_random_choice_byte_basic(void)
 
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
     unsigned char arr[] = {0x10, 0x20, 0x30, 0x40, 0x50};
-    long len = 5;
+    long long len = 5;
 
     for (int i = 0; i < 100; i++) {
         unsigned char val = rt_random_choice_byte(rng, arr, len);
@@ -495,7 +498,7 @@ static void test_rt_random_static_choice_double_distribution(void)
 {
 
     double arr[] = {0.0, 1.0, 2.0, 3.0};
-    long len = 4;
+    long long len = 4;
     int counts[4] = {0};
     int iterations = 4000;
 
@@ -520,7 +523,7 @@ static void test_rt_random_static_choice_string_distribution(void)
 {
 
     char *arr[] = {"a", "b", "c", "d"};
-    long len = 4;
+    long long len = 4;
     int counts[4] = {0};
     int iterations = 4000;
 
@@ -548,7 +551,7 @@ static void test_rt_random_static_choice_byte_distribution(void)
 {
 
     unsigned char arr[] = {0x00, 0x55, 0xAA, 0xFF};
-    long len = 4;
+    long long len = 4;
     int counts[4] = {0};
     int iterations = 4000;
 
@@ -581,7 +584,7 @@ static void test_rt_random_choice_double_distribution(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
 
     double arr[] = {0.0, 1.0, 2.0, 3.0};
-    long len = 4;
+    long long len = 4;
     int counts[4] = {0};
     int iterations = 4000;
 
@@ -612,7 +615,7 @@ static void test_rt_random_choice_string_distribution(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
 
     char *arr[] = {"a", "b", "c", "d"};
-    long len = 4;
+    long long len = 4;
     int counts[4] = {0};
     int iterations = 4000;
 
@@ -646,7 +649,7 @@ static void test_rt_random_choice_byte_distribution(void)
     RtRandom *rng = rt_random_create_with_seed(arena, 12345);
 
     unsigned char arr[] = {0x00, 0x55, 0xAA, 0xFF};
-    long len = 4;
+    long long len = 4;
     int counts[4] = {0};
     int iterations = 4000;
 
@@ -923,7 +926,7 @@ static void test_rt_random_select_weighted_index_basic(void)
 
     /* Cumulative distribution: [0.7, 0.95, 1.0] */
     double cumulative[] = {0.7, 0.95, 1.0};
-    long len = 3;
+    long long len = 3;
 
     /* Test values in first range [0, 0.7) -> index 0 */
     TEST_ASSERT(rt_random_select_weighted_index(0.0, cumulative, len) == 0, "0.0 should select index 0");
@@ -945,7 +948,7 @@ static void test_rt_random_select_weighted_index_edge_zero(void)
 {
 
     double cumulative[] = {0.25, 0.5, 0.75, 1.0};
-    long len = 4;
+    long long len = 4;
 
     /* Value 0.0 should always select first element */
     TEST_ASSERT(rt_random_select_weighted_index(0.0, cumulative, len) == 0, "0.0 should select index 0");
@@ -959,7 +962,7 @@ static void test_rt_random_select_weighted_index_edge_near_one(void)
 {
 
     double cumulative[] = {0.25, 0.5, 0.75, 1.0};
-    long len = 4;
+    long long len = 4;
 
     /* Values very close to 1.0 should select last element */
     TEST_ASSERT(rt_random_select_weighted_index(0.9999, cumulative, len) == 3, "0.9999 should select index 3");
@@ -977,7 +980,7 @@ static void test_rt_random_select_weighted_index_single_element(void)
 {
 
     double cumulative[] = {1.0};
-    long len = 1;
+    long long len = 1;
 
     /* Any value should return index 0 */
     TEST_ASSERT(rt_random_select_weighted_index(0.0, cumulative, len) == 0, "0.0 should select index 0");
@@ -991,7 +994,7 @@ static void test_rt_random_select_weighted_index_two_elements(void)
 
     /* Equal weights -> [0.5, 1.0] */
     double cumulative[] = {0.5, 1.0};
-    long len = 2;
+    long long len = 2;
 
     /* Values < 0.5 should select index 0 */
     TEST_ASSERT(rt_random_select_weighted_index(0.0, cumulative, len) == 0, "0.0 should select index 0");
@@ -1008,7 +1011,7 @@ static void test_rt_random_select_weighted_index_boundary_values(void)
 
     /* Cumulative distribution: [0.25, 0.50, 0.75, 1.0] */
     double cumulative[] = {0.25, 0.50, 0.75, 1.0};
-    long len = 4;
+    long long len = 4;
 
     /* Test at exact boundaries - value should go to next index */
     TEST_ASSERT(rt_random_select_weighted_index(0.25, cumulative, len) == 1, "0.25 (boundary) should select index 1");
@@ -1044,7 +1047,7 @@ static void test_rt_random_select_weighted_index_large_array(void)
 
     /* 10-element cumulative distribution [0.1, 0.2, 0.3, ..., 1.0] */
     double cumulative[] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
-    long len = 10;
+    long long len = 10;
 
     /* Test several positions */
     TEST_ASSERT(rt_random_select_weighted_index(0.05, cumulative, len) == 0, "0.05 should select index 0");
@@ -1068,8 +1071,8 @@ static void test_rt_random_static_weighted_choice_long_basic(void)
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     /* Create array with values {10, 20, 30} */
-    long data[] = {10, 20, 30};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={10, 20, 30};
+    long long *arr =rt_array_create_long(arena, 3, data);
     TEST_ASSERT_NOT_NULL(arr, "Array should be created");
 
     /* Create weights {0.7, 0.25, 0.05} */
@@ -1080,7 +1083,7 @@ static void test_rt_random_static_weighted_choice_long_basic(void)
     /* Call multiple times and verify result is always from array */
     int found_10 = 0, found_20 = 0, found_30 = 0;
     for (int i = 0; i < 100; i++) {
-        long result = rt_random_static_weighted_choice_long(arr, weights);
+        long long result =rt_random_static_weighted_choice_long(arr, weights);
         if (result == 10) found_10++;
         else if (result == 20) found_20++;
         else if (result == 30) found_30++;
@@ -1103,14 +1106,14 @@ static void test_rt_random_static_weighted_choice_long_single_element(void)
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     /* Single element array */
-    long data[] = {42};
-    long *arr = rt_array_create_long(arena, 1, data);
+    long long data[] ={42};
+    long long *arr =rt_array_create_long(arena, 1, data);
     double weight_data[] = {1.0};
     double *weights = rt_array_create_double(arena, 1, weight_data);
 
     /* Should always return the single element */
     for (int i = 0; i < 10; i++) {
-        long result = rt_random_static_weighted_choice_long(arr, weights);
+        long long result =rt_random_static_weighted_choice_long(arr, weights);
         TEST_ASSERT(result == 42, "Should always return single element");
     }
 
@@ -1125,7 +1128,7 @@ static void test_rt_random_static_weighted_choice_long_null_arr(void)
     double weight_data[] = {1.0, 2.0};
     double *weights = rt_array_create_double(arena, 2, weight_data);
 
-    long result = rt_random_static_weighted_choice_long(NULL, weights);
+    long long result =rt_random_static_weighted_choice_long(NULL, weights);
     TEST_ASSERT(result == 0, "Should return 0 for NULL array");
 
 
@@ -1136,10 +1139,10 @@ static void test_rt_random_static_weighted_choice_long_null_weights(void)
 {
 
     RtArena *arena = rt_arena_create(NULL);
-    long data[] = {10, 20, 30};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={10, 20, 30};
+    long long *arr =rt_array_create_long(arena, 3, data);
 
-    long result = rt_random_static_weighted_choice_long(arr, NULL);
+    long long result =rt_random_static_weighted_choice_long(arr, NULL);
     TEST_ASSERT(result == 0, "Should return 0 for NULL weights");
 
 
@@ -1151,19 +1154,19 @@ static void test_rt_random_static_weighted_choice_long_invalid_weights(void)
 
     RtArena *arena = rt_arena_create(NULL);
 
-    long data[] = {10, 20, 30};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={10, 20, 30};
+    long long *arr =rt_array_create_long(arena, 3, data);
 
     /* Negative weight */
     double neg_weight_data[] = {1.0, -1.0, 1.0};
     double *neg_weights = rt_array_create_double(arena, 3, neg_weight_data);
-    long result1 = rt_random_static_weighted_choice_long(arr, neg_weights);
+    long long result1 =rt_random_static_weighted_choice_long(arr, neg_weights);
     TEST_ASSERT(result1 == 0, "Should return 0 for negative weights");
 
     /* Zero weight */
     double zero_weight_data[] = {1.0, 0.0, 1.0};
     double *zero_weights = rt_array_create_double(arena, 3, zero_weight_data);
-    long result2 = rt_random_static_weighted_choice_long(arr, zero_weights);
+    long long result2 =rt_random_static_weighted_choice_long(arr, zero_weights);
     TEST_ASSERT(result2 == 0, "Should return 0 for zero weight");
 
 
@@ -1177,8 +1180,8 @@ static void test_rt_random_static_weighted_choice_long_distribution(void)
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
     /* Create array with values {1, 2, 3, 4} */
-    long data[] = {1, 2, 3, 4};
-    long *arr = rt_array_create_long(arena, 4, data);
+    long long data[] ={1, 2, 3, 4};
+    long long *arr =rt_array_create_long(arena, 4, data);
 
     /* Equal weights -> should be roughly equal distribution */
     double weight_data[] = {1.0, 1.0, 1.0, 1.0};
@@ -1188,7 +1191,7 @@ static void test_rt_random_static_weighted_choice_long_distribution(void)
     int iterations = 4000;
 
     for (int i = 0; i < iterations; i++) {
-        long result = rt_random_static_weighted_choice_long(arr, weights);
+        long long result =rt_random_static_weighted_choice_long(arr, weights);
         if (result >= 1 && result <= 4) {
             counts[result - 1]++;
         }
@@ -1533,8 +1536,8 @@ static void test_rt_random_weighted_choice_long_basic(void)
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Create array with values {10, 20, 30} */
-    long data[] = {10, 20, 30};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={10, 20, 30};
+    long long *arr =rt_array_create_long(arena, 3, data);
     TEST_ASSERT_NOT_NULL(arr, "Array should be created");
 
     /* Create weights {0.7, 0.25, 0.05} */
@@ -1545,7 +1548,7 @@ static void test_rt_random_weighted_choice_long_basic(void)
     /* Call multiple times and verify result is always from array */
     int found_10 = 0, found_20 = 0, found_30 = 0;
     for (int i = 0; i < 100; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         if (result == 10) found_10++;
         else if (result == 20) found_20++;
         else if (result == 30) found_30++;
@@ -1571,14 +1574,14 @@ static void test_rt_random_weighted_choice_long_single_element(void)
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Single element array */
-    long data[] = {42};
-    long *arr = rt_array_create_long(arena, 1, data);
+    long long data[] ={42};
+    long long *arr =rt_array_create_long(arena, 1, data);
     double weight_data[] = {1.0};
     double *weights = rt_array_create_double(arena, 1, weight_data);
 
     /* Should always return the single element */
     for (int i = 0; i < 10; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         TEST_ASSERT(result == 42, "Should always return single element");
     }
 
@@ -1590,12 +1593,12 @@ static void test_rt_random_weighted_choice_long_null_rng(void)
 {
 
     RtArena *arena = rt_arena_create(NULL);
-    long data[] = {10, 20, 30};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={10, 20, 30};
+    long long *arr =rt_array_create_long(arena, 3, data);
     double weight_data[] = {1.0, 2.0, 3.0};
     double *weights = rt_array_create_double(arena, 3, weight_data);
 
-    long result = rt_random_weighted_choice_long(NULL, arr, weights);
+    long long result =rt_random_weighted_choice_long(NULL, arr, weights);
     TEST_ASSERT(result == 0, "Should return 0 for NULL rng");
 
 
@@ -1610,7 +1613,7 @@ static void test_rt_random_weighted_choice_long_null_arr(void)
     double weight_data[] = {1.0, 2.0};
     double *weights = rt_array_create_double(arena, 2, weight_data);
 
-    long result = rt_random_weighted_choice_long(rng, NULL, weights);
+    long long result =rt_random_weighted_choice_long(rng, NULL, weights);
     TEST_ASSERT(result == 0, "Should return 0 for NULL array");
 
 
@@ -1622,10 +1625,10 @@ static void test_rt_random_weighted_choice_long_null_weights(void)
 
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
-    long data[] = {10, 20, 30};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={10, 20, 30};
+    long long *arr =rt_array_create_long(arena, 3, data);
 
-    long result = rt_random_weighted_choice_long(rng, arr, NULL);
+    long long result =rt_random_weighted_choice_long(rng, arr, NULL);
     TEST_ASSERT(result == 0, "Should return 0 for NULL weights");
 
 
@@ -1638,19 +1641,19 @@ static void test_rt_random_weighted_choice_long_invalid_weights(void)
     RtArena *arena = rt_arena_create(NULL);
     RtRandom *rng = rt_random_create_with_seed(arena, 42);
 
-    long data[] = {10, 20, 30};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={10, 20, 30};
+    long long *arr =rt_array_create_long(arena, 3, data);
 
     /* Negative weight */
     double neg_weight_data[] = {1.0, -1.0, 1.0};
     double *neg_weights = rt_array_create_double(arena, 3, neg_weight_data);
-    long result1 = rt_random_weighted_choice_long(rng, arr, neg_weights);
+    long long result1 =rt_random_weighted_choice_long(rng, arr, neg_weights);
     TEST_ASSERT(result1 == 0, "Should return 0 for negative weights");
 
     /* Zero weight */
     double zero_weight_data[] = {1.0, 0.0, 1.0};
     double *zero_weights = rt_array_create_double(arena, 3, zero_weight_data);
-    long result2 = rt_random_weighted_choice_long(rng, arr, zero_weights);
+    long long result2 =rt_random_weighted_choice_long(rng, arr, zero_weights);
     TEST_ASSERT(result2 == 0, "Should return 0 for zero weight");
 
 
@@ -1663,8 +1666,8 @@ static void test_rt_random_weighted_choice_long_reproducible(void)
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] ={10, 20, 30, 40, 50};
+    long long *arr =rt_array_create_long(arena, 5, data);
     double weight_data[] = {1.0, 2.0, 3.0, 2.0, 1.0};
     double *weights = rt_array_create_double(arena, 5, weight_data);
 
@@ -1696,8 +1699,8 @@ static void test_rt_random_weighted_choice_long_distribution(void)
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Create array with values {1, 2, 3, 4} */
-    long data[] = {1, 2, 3, 4};
-    long *arr = rt_array_create_long(arena, 4, data);
+    long long data[] ={1, 2, 3, 4};
+    long long *arr =rt_array_create_long(arena, 4, data);
 
     /* Equal weights -> should be roughly equal distribution */
     double weight_data[] = {1.0, 1.0, 1.0, 1.0};
@@ -1707,7 +1710,7 @@ static void test_rt_random_weighted_choice_long_distribution(void)
     int iterations = 4000;
 
     for (int i = 0; i < iterations; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         if (result >= 1 && result <= 4) {
             counts[result - 1]++;
         }
@@ -2162,8 +2165,8 @@ static void test_weighted_distribution_equal_weights_uniform(void)
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Create array with 5 elements, all with equal weights */
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] ={10, 20, 30, 40, 50};
+    long long *arr =rt_array_create_long(arena, 5, data);
     double weight_data[] = {1.0, 1.0, 1.0, 1.0, 1.0};
     double *weights = rt_array_create_double(arena, 5, weight_data);
 
@@ -2171,7 +2174,7 @@ static void test_weighted_distribution_equal_weights_uniform(void)
     int iterations = 5000;
 
     for (int i = 0; i < iterations; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         if (result == 10) counts[0]++;
         else if (result == 20) counts[1]++;
         else if (result == 30) counts[2]++;
@@ -2203,8 +2206,8 @@ static void test_weighted_distribution_extreme_ratio(void)
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Create array with 2 elements: weight 1000 vs weight 1 */
-    long data[] = {100, 200};
-    long *arr = rt_array_create_long(arena, 2, data);
+    long long data[] ={100, 200};
+    long long *arr =rt_array_create_long(arena, 2, data);
     double weight_data[] = {1000.0, 1.0};
     double *weights = rt_array_create_double(arena, 2, weight_data);
 
@@ -2212,7 +2215,7 @@ static void test_weighted_distribution_extreme_ratio(void)
     int iterations = 10010;  /* Divisible by 1001 for easier math */
 
     for (int i = 0; i < iterations; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         if (result == 100) count_100++;
         else if (result == 200) count_200++;
     }
@@ -2244,20 +2247,20 @@ static void test_weighted_distribution_single_element(void)
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Single element array */
-    long data[] = {42};
-    long *arr = rt_array_create_long(arena, 1, data);
+    long long data[] ={42};
+    long long *arr =rt_array_create_long(arena, 1, data);
     double weight_data[] = {1.0};
     double *weights = rt_array_create_double(arena, 1, weight_data);
 
     /* Should always return 42, no matter how many times called */
     for (int i = 0; i < 100; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         TEST_ASSERT(result == 42, "Single element should always be returned");
     }
 
     /* Also test static version */
     for (int i = 0; i < 100; i++) {
-        long result = rt_random_static_weighted_choice_long(arr, weights);
+        long long result =rt_random_static_weighted_choice_long(arr, weights);
         TEST_ASSERT(result == 42, "Single element should always be returned (static)");
     }
 
@@ -2276,8 +2279,8 @@ static void test_weighted_distribution_large_sample_accuracy(void)
     TEST_ASSERT_NOT_NULL(rng, "RNG should be created");
 
     /* Create array with specific weights: 50%, 30%, 15%, 5% */
-    long data[] = {1, 2, 3, 4};
-    long *arr = rt_array_create_long(arena, 4, data);
+    long long data[] ={1, 2, 3, 4};
+    long long *arr =rt_array_create_long(arena, 4, data);
     double weight_data[] = {50.0, 30.0, 15.0, 5.0};  /* Total = 100 */
     double *weights = rt_array_create_double(arena, 4, weight_data);
 
@@ -2285,7 +2288,7 @@ static void test_weighted_distribution_large_sample_accuracy(void)
     int iterations = 10000;  /* Large sample for accuracy */
 
     for (int i = 0; i < iterations; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         if (result >= 1 && result <= 4) {
             counts[result - 1]++;
         }
@@ -2312,8 +2315,8 @@ static void test_weighted_distribution_seeded_prng_reproducible(void)
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] ={10, 20, 30, 40, 50};
+    long long *arr =rt_array_create_long(arena, 5, data);
     double weight_data[] = {1.0, 2.0, 3.0, 2.0, 1.0};
     double *weights = rt_array_create_double(arena, 5, weight_data);
 
@@ -2343,14 +2346,14 @@ static void test_weighted_distribution_os_entropy_varies(void)
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
-    long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-    long *arr = rt_array_create_long(arena, 10, data);
+    long long data[] ={1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    long long *arr =rt_array_create_long(arena, 10, data);
     double weight_data[] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0};
     double *weights = rt_array_create_double(arena, 10, weight_data);
 
     /* Generate a sequence using OS entropy (static function) */
     int iterations = 100;
-    long results[100];
+    long long results[100];
 
     for (int i = 0; i < iterations; i++) {
         results[i] = rt_random_static_weighted_choice_long(arr, weights);
@@ -2382,8 +2385,8 @@ static void test_weighted_distribution_static_vs_instance(void)
     RtArena *arena = rt_arena_create(NULL);
     TEST_ASSERT_NOT_NULL(arena, "Arena should be created");
 
-    long data[] = {1, 2, 3};
-    long *arr = rt_array_create_long(arena, 3, data);
+    long long data[] ={1, 2, 3};
+    long long *arr =rt_array_create_long(arena, 3, data);
     double weight_data[] = {1.0, 2.0, 3.0};  /* Total weight 6 */
     double *weights = rt_array_create_double(arena, 3, weight_data);
 
@@ -2392,7 +2395,7 @@ static void test_weighted_distribution_static_vs_instance(void)
     int iterations = 6000;
 
     for (int i = 0; i < iterations; i++) {
-        long result = rt_random_static_weighted_choice_long(arr, weights);
+        long long result =rt_random_static_weighted_choice_long(arr, weights);
         if (result >= 1 && result <= 3) {
             static_counts[result - 1]++;
         }
@@ -2403,7 +2406,7 @@ static void test_weighted_distribution_static_vs_instance(void)
     int instance_counts[3] = {0, 0, 0};
 
     for (int i = 0; i < iterations; i++) {
-        long result = rt_random_weighted_choice_long(rng, arr, weights);
+        long long result =rt_random_weighted_choice_long(rng, arr, weights);
         if (result >= 1 && result <= 3) {
             instance_counts[result - 1]++;
         }
@@ -2622,8 +2625,8 @@ static void test_rt_random_choice_statistical_chi_squared(void)
 
     RtArena *arena = rt_arena_create(NULL);
 
-    long data[] = {10, 20, 30, 40, 50};
-    long *arr = rt_array_create_long(arena, 5, data);
+    long long data[] ={10, 20, 30, 40, 50};
+    long long *arr =rt_array_create_long(arena, 5, data);
 
     int counts[5] = {0, 0, 0, 0, 0};
     int num_trials = 50000;

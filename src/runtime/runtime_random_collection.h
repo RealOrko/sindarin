@@ -18,8 +18,8 @@
  * Instance Batch Generation Methods (Seeded PRNG)
  * ============================================================================ */
 
-/* Array of random integers in range [min, max] inclusive */
-long *rt_random_int_many(RtArena *arena, RtRandom *rng, long min, long max, long count);
+/* Array of random integers in range [min, max] inclusive - uses long long for 64-bit portability */
+long long *rt_random_int_many(RtArena *arena, RtRandom *rng, long long min, long long max, long count);
 
 /* Array of random longs in range [min, max] inclusive */
 long long *rt_random_long_many(RtArena *arena, RtRandom *rng, long long min, long long max, long count);
@@ -37,8 +37,8 @@ double *rt_random_gaussian_many(RtArena *arena, RtRandom *rng, double mean, doub
  * Instance Shuffle Functions (Seeded PRNG)
  * ============================================================================ */
 
-/* Shuffle long array in place */
-void rt_random_shuffle_long(RtRandom *rng, long *arr);
+/* Shuffle long array in place - uses long long for 64-bit portability */
+void rt_random_shuffle_long(RtRandom *rng, long long *arr);
 
 /* Shuffle double array in place */
 void rt_random_shuffle_double(RtRandom *rng, double *arr);
@@ -56,8 +56,8 @@ void rt_random_shuffle_byte(RtRandom *rng, unsigned char *arr);
  * Instance Sample Functions (Seeded PRNG)
  * ============================================================================ */
 
-/* Random sample without replacement from long array */
-long *rt_random_sample_long(RtArena *arena, RtRandom *rng, long *arr, long count);
+/* Random sample without replacement from long array - uses long long for 64-bit portability */
+long long *rt_random_sample_long(RtArena *arena, RtRandom *rng, long long *arr, long count);
 
 /* Random sample without replacement from double array */
 double *rt_random_sample_double(RtArena *arena, RtRandom *rng, double *arr, long count);

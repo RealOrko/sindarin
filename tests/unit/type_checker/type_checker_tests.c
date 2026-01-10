@@ -15,7 +15,7 @@
 #include "../symbol_table.h"
 #include "../test_harness.h"
 
-void setup_token(Token *tok, TokenType type, const char *lexeme, int line, const char *filename, Arena *arena) {
+void setup_token(Token *tok, SnTokenType type, const char *lexeme, int line, const char *filename, Arena *arena) {
     tok->type = type;
     tok->line = line;
     size_t lex_len = strlen(lexeme);
@@ -26,7 +26,7 @@ void setup_token(Token *tok, TokenType type, const char *lexeme, int line, const
     tok->filename = filename;
 }
 
-static void setup_literal_token(Token *token, TokenType type, const char *lexeme_str, int line, const char *filename, Arena *arena)
+static void setup_literal_token(Token *token, SnTokenType type, const char *lexeme_str, int line, const char *filename, Arena *arena)
 {
     setup_token(token, type, lexeme_str, line, filename, arena);
 }

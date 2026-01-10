@@ -6,8 +6,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include "platform/platform.h"
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW is POSIX-compatible */
+    #include <unistd.h>
+    #include <sys/stat.h>
+    #endif
+#else
 #include <unistd.h>
 #include <sys/stat.h>
+#endif
 
 int main(int argc, char **argv)
 {

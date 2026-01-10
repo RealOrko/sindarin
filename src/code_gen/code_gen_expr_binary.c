@@ -53,7 +53,7 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
     Type *right_type = expr->right->expr_type;
     /* Use promoted type for mixed numeric operations */
     Type *type = get_binary_promoted_type(left_type, right_type);
-    TokenType op = expr->operator;
+    SnTokenType op = expr->operator;
     if (op == TOKEN_AND)
     {
         return arena_sprintf(gen->arena, "((%s != 0 && %s != 0) ? 1L : 0L)", left_str, right_str);

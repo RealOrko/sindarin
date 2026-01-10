@@ -25,13 +25,14 @@
 
 /*
  * Static: Array of random integers in range [min, max] inclusive.
+ * Uses long long for 64-bit portability on Windows.
  */
-long *rt_random_static_int_many(RtArena *arena, long min, long max, long count) {
+long long *rt_random_static_int_many(RtArena *arena, long long min, long long max, long count) {
     if (arena == NULL || count <= 0) {
         return NULL;
     }
 
-    long *result = rt_arena_alloc(arena, (size_t)count * sizeof(long));
+    long long *result = rt_arena_alloc(arena, (size_t)count * sizeof(long long));
 
     for (long i = 0; i < count; i++) {
         result[i] = rt_random_static_int(min, max);
@@ -117,8 +118,9 @@ double *rt_random_static_gaussian_many(RtArena *arena, double mean, double stdde
 /*
  * Static: Random element from long array.
  * Returns 0 if array is NULL or empty.
+ * Uses long long for 64-bit portability on Windows.
  */
-long rt_random_static_choice_long(long *arr, long len) {
+long long rt_random_static_choice_long(long long *arr, long len) {
     if (arr == NULL || len <= 0) {
         return 0;
     }
@@ -328,8 +330,9 @@ long rt_random_select_weighted_index(double random_val, double *cumulative, long
  * Static: Weighted random choice from long array.
  * Returns a random element with probability proportional to its weight.
  * Returns 0 if inputs are invalid (NULL arrays, invalid weights).
+ * Uses long long for 64-bit portability on Windows.
  */
-long rt_random_static_weighted_choice_long(long *arr, double *weights) {
+long long rt_random_static_weighted_choice_long(long long *arr, double *weights) {
     /* Handle NULL inputs */
     if (arr == NULL || weights == NULL) {
         return 0;
@@ -366,7 +369,7 @@ long rt_random_static_weighted_choice_long(long *arr, double *weights) {
     long index = rt_random_select_weighted_index(random_val, cumulative, len);
 
     /* Get the selected value */
-    long result = arr[index];
+    long long result = arr[index];
 
     /* Clean up temporary arena */
     rt_arena_destroy(temp_arena);
@@ -487,8 +490,9 @@ char *rt_random_static_weighted_choice_string(char **arr, double *weights) {
  * For i from n-1 down to 1:
  *   j = random index in [0, i]
  *   swap arr[i] and arr[j]
+ * Uses long long for 64-bit portability on Windows.
  */
-void rt_random_static_shuffle_long(long *arr) {
+void rt_random_static_shuffle_long(long long *arr) {
     if (arr == NULL) {
         return;
     }
@@ -504,7 +508,7 @@ void rt_random_static_shuffle_long(long *arr) {
         size_t j = (size_t)rt_random_static_int(0, (long)i);
 
         /* Swap arr[i] and arr[j] */
-        long temp = arr[i];
+        long long temp = arr[i];
         arr[i] = arr[j];
         arr[j] = temp;
     }
@@ -615,8 +619,9 @@ void rt_random_static_shuffle_byte(unsigned char *arr) {
  *   - count > array length (invalid sample size)
  *
  * Returns: Arena-allocated array of `count` randomly selected elements.
+ * Uses long long for 64-bit portability on Windows.
  */
-long *rt_random_static_sample_long(RtArena *arena, long *arr, long count) {
+long long *rt_random_static_sample_long(RtArena *arena, long long *arr, long count) {
     /* Validate arena and array */
     if (arena == NULL || arr == NULL) {
         return NULL;
@@ -641,11 +646,11 @@ long *rt_random_static_sample_long(RtArena *arena, long *arr, long count) {
         return NULL;
     }
 
-    long *temp = rt_arena_alloc(temp_arena, n * sizeof(long));
-    memcpy(temp, arr, n * sizeof(long));
+    long long *temp = rt_arena_alloc(temp_arena, n * sizeof(long long));
+    memcpy(temp, arr, n * sizeof(long long));
 
     /* Allocate result array using arena */
-    long *result = rt_array_create_long(arena, count, NULL);
+    long long *result = rt_array_create_long(arena, count, NULL);
     if (result == NULL) {
         rt_arena_destroy(temp_arena);
         return NULL;
@@ -657,7 +662,7 @@ long *rt_random_static_sample_long(RtArena *arena, long *arr, long count) {
         size_t j = (size_t)rt_random_static_int((long)i, (long)(n - 1));
 
         /* Swap temp[i] and temp[j] */
-        long swap = temp[i];
+        long long swap = temp[i];
         temp[i] = temp[j];
         temp[j] = swap;
 

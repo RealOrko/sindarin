@@ -163,8 +163,15 @@ char *rt_env_get(RtArena *arena, const char *name) {
     char *buffer = rt_arena_alloc(arena, size);
     DWORD result = GetEnvironmentVariableA(name, buffer, size);
 
-    if (result == 0 || result >= size) {
-        /* Error or buffer too small (shouldn't happen) */
+    /* result is the number of characters copied, not including null terminator.
+     * For an empty string, result == 0 is valid (size would be 1 for just null).
+     * For errors, result == 0 AND GetLastError() != 0. */
+    if (result == 0 && size > 1) {
+        /* Error - expected some characters but got none */
+        return NULL;
+    }
+    if (result >= size) {
+        /* Buffer too small (shouldn't happen since we sized it correctly) */
         return NULL;
     }
 
@@ -246,7 +253,6 @@ char ***rt_env_list(RtArena *arena) {
             char *eq = strchr(ptr, '=');
             if (eq != NULL) {
                 size_t name_len = eq - ptr;
-                size_t value_len = strlen(eq + 1);
 
                 /* Create pair array [name, value] */
                 char **pair = rt_array_create_string(arena, 2, NULL);

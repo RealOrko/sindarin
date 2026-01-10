@@ -86,7 +86,7 @@ char *rt_string_append(char *dest, const char *src);
  * Type-to-String Conversion Functions
  * ============================================================================ */
 
-char *rt_to_string_long(RtArena *arena, long val);
+char *rt_to_string_long(RtArena *arena, long long val);
 char *rt_to_string_double(RtArena *arena, double val);
 char *rt_to_string_char(RtArena *arena, char val);
 char *rt_to_string_bool(RtArena *arena, int val);
@@ -99,7 +99,7 @@ char *rt_to_string_pointer(RtArena *arena, void *p);
  * Format Functions (with format specifiers)
  * ============================================================================ */
 
-char *rt_format_long(RtArena *arena, long val, const char *fmt);
+char *rt_format_long(RtArena *arena, long long val, const char *fmt);
 char *rt_format_double(RtArena *arena, double val, const char *fmt);
 char *rt_format_string(RtArena *arena, const char *val, const char *fmt);
 
@@ -107,15 +107,15 @@ char *rt_format_string(RtArena *arena, const char *val, const char *fmt);
  * Print Functions
  * ============================================================================ */
 
-void rt_print_long(long val);
+void rt_print_long(long long val);
 void rt_print_double(double val);
 void rt_print_char(long c);
 void rt_print_string(const char *s);
 void rt_print_bool(long b);
 void rt_print_byte(unsigned char b);
 
-/* Array print functions */
-void rt_print_array_long(long *arr);
+/* Array print functions (declared in runtime_array.h, included here for convenience) */
+void rt_print_array_long(long long *arr);
 void rt_print_array_double(double *arr);
 void rt_print_array_char(char *arr);
 void rt_print_array_bool(int *arr);
