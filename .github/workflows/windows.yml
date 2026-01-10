@@ -108,12 +108,40 @@ jobs:
         )
         echo Unit tests passed!
 
+    - name: Debug - Check runtime objects
+      shell: cmd
+      run: |
+        echo === Checking bin directory structure ===
+        dir /s bin\lib
+        echo.
+        echo === Checking for arena.o ===
+        if exist "bin\lib\clang\arena.o" (
+          echo FOUND: bin\lib\clang\arena.o
+        ) else (
+          echo MISSING: bin\lib\clang\arena.o
+        )
+
+    - name: Debug - Test single compile
+      shell: cmd
+      env:
+        SN_CC: clang
+      run: |
+        echo === Testing single compile with verbose output ===
+        bin\sn.exe tests\integration\hello_world.sn -o build\hello_test.exe -l 3 -v
+        if errorlevel 1 (
+          echo Compile failed!
+          exit /b 1
+        )
+        echo === Running compiled test ===
+        build\hello_test.exe
+
     - name: Run integration tests
       shell: pwsh
       env:
         SN_CC: clang
       run: |
         Write-Host "Running integration tests..."
+        Write-Host "SN_CC = $env:SN_CC"
 
         # Use the test runner script
         & .\scripts\run_integration_test.ps1 -TestType integration -All -Compiler bin\sn.exe

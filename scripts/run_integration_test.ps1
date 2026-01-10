@@ -322,9 +322,15 @@ function Run-Test {
 
         if ($result.ExitCode -ne 0) {
             Write-Host "FAIL (compile error)" -ForegroundColor Red
-            $ErrorLines = ($result.Error -split "`n" | Select-Object -First 3) -join "`n    "
+            # Show more error lines for debugging
+            $ErrorLines = ($result.Error -split "`n" | Select-Object -First 10) -join "`n    "
             if ($ErrorLines) {
                 Write-Host "    $ErrorLines"
+            }
+            # Also show stdout in case error is there
+            $OutLines = ($result.Output -split "`n" | Select-Object -First 5) -join "`n    "
+            if ($OutLines) {
+                Write-Host "    [stdout]: $OutLines"
             }
             return "fail"
         }

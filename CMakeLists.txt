@@ -238,130 +238,63 @@ endif()
 
 # Build runtime object files for linking with generated code
 # On Windows with Clang/MinGW, put in bin/lib/clang/
-# The gcc_backend expects individual .o files, not a static library
+# The gcc_backend expects individual .o files
 if(WIN32 AND NOT MSVC)
     set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
     file(MAKE_DIRECTORY ${RUNTIME_LIB_DIR})
 
-    # Runtime-only sources (subset needed for generated code)
-    set(SN_RUNTIME_LIB_SOURCES
-        ${CMAKE_SOURCE_DIR}/src/arena.c
-        ${CMAKE_SOURCE_DIR}/src/debug.c
-        ${CMAKE_SOURCE_DIR}/src/runtime.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_arena.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_string.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_array.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_text_file.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_binary_file.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_io.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_byte.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_path.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_date.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_time.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_thread.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_process.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_net.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_core.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_basic.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_static.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_choice.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_collection.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_uuid.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_sha1.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c
+    # Common include directories for runtime compilation
+    set(RUNTIME_INCLUDES
+        -I${CMAKE_SOURCE_DIR}/src
+        -I${CMAKE_SOURCE_DIR}/src/runtime
+        -I${CMAKE_SOURCE_DIR}/src/platform
     )
 
-    # Create object library for runtime (generates .o files)
-    add_library(sn_runtime OBJECT ${SN_RUNTIME_LIB_SOURCES})
+    # Compile each runtime source file directly to the target location
+    # This avoids issues with different generators (Ninja vs Make) using different paths
+    set(RUNTIME_OBJECTS)
 
-    target_include_directories(sn_runtime PRIVATE
-        ${CMAKE_SOURCE_DIR}/src
-        ${CMAKE_SOURCE_DIR}/src/runtime
-        ${CMAKE_SOURCE_DIR}/src/platform
-    )
+    # Helper macro to add a runtime object compilation
+    macro(add_runtime_object SOURCE_FILE OUTPUT_NAME)
+        set(OUTPUT_FILE ${RUNTIME_LIB_DIR}/${OUTPUT_NAME}.o)
+        add_custom_command(
+            OUTPUT ${OUTPUT_FILE}
+            COMMAND ${CMAKE_C_COMPILER} -c ${SOURCE_FILE} -o ${OUTPUT_FILE} ${RUNTIME_INCLUDES}
+            DEPENDS ${SOURCE_FILE}
+            COMMENT "Compiling ${OUTPUT_NAME}.o"
+        )
+        list(APPEND RUNTIME_OBJECTS ${OUTPUT_FILE})
+    endmacro()
 
-    # Custom target to copy object files to bin/lib/clang/ with expected names
-    # Use a dummy static library that depends on the object library to trigger the copy
-    add_custom_target(sn_runtime_install ALL
-        DEPENDS sn_runtime
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/arena.c.obj
-            ${RUNTIME_LIB_DIR}/arena.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/debug.c.obj
-            ${RUNTIME_LIB_DIR}/debug.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime.c.obj
-            ${RUNTIME_LIB_DIR}/runtime.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_arena.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_arena.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_string.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_string.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_array.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_array.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_text_file.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_text_file.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_binary_file.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_binary_file.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_io.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_io.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_byte.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_byte.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_path.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_path.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_date.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_date.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_time.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_time.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_thread.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_thread.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_process.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_process.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_net.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_net.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_core.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_random_core.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_basic.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_random_basic.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_static.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_random_static.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_choice.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_random_choice.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random_collection.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_random_collection.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_random.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_random.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_uuid.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_uuid.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_sha1.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_sha1.o
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_BINARY_DIR}/CMakeFiles/sn_runtime.dir/src/runtime/runtime_env.c.obj
-            ${RUNTIME_LIB_DIR}/runtime_env.o
-        COMMENT "Installing runtime objects to ${RUNTIME_LIB_DIR}"
-    )
+    # Add all runtime objects
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/arena.c arena)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/debug.c debug)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime.c runtime)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_arena.c runtime_arena)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_string.c runtime_string)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_array.c runtime_array)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_text_file.c runtime_text_file)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_binary_file.c runtime_binary_file)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_io.c runtime_io)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_byte.c runtime_byte)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_path.c runtime_path)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_date.c runtime_date)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_time.c runtime_time)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_thread.c runtime_thread)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_process.c runtime_process)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_net.c runtime_net)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_core.c runtime_random_core)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_basic.c runtime_random_basic)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_static.c runtime_random_static)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_choice.c runtime_random_choice)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_collection.c runtime_random_collection)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random.c runtime_random)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_uuid.c runtime_uuid)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_sha1.c runtime_sha1)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c runtime_env)
+
+    # Custom target that depends on all runtime objects
+    add_custom_target(sn_runtime ALL DEPENDS ${RUNTIME_OBJECTS})
 endif()
 
 # Custom target to run tests
