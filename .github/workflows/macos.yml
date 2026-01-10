@@ -76,6 +76,8 @@ jobs:
     - name: Run integration tests
       env:
         SN_CC: clang
+        # Exclude tests that have ASAN compatibility issues on macOS
+        SN_EXCLUDE_TESTS: "test_thread_panic_propagate"
       run: |
         echo "Running integration tests..."
         ./scripts/run_tests.sh integration

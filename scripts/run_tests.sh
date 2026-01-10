@@ -38,6 +38,10 @@ NC='\033[0m'
 TEST_TYPE="${1:-integration}"
 SN="${2:-bin/sn}"
 
+# Excluded tests (space-separated list via environment variable)
+# Example: SN_EXCLUDE_TESTS="test_foo test_bar" ./scripts/run_tests.sh
+EXCLUDE_TESTS="${SN_EXCLUDE_TESTS:-}"
+
 # Directories
 # Use SN_TEST_DIR if set, otherwise try /tmp. If /tmp has noexec, fall back to ./build/test_runner
 if [ -n "$SN_TEST_DIR" ]; then
@@ -104,6 +108,14 @@ for test_file in "$TEST_DIR"/$PATTERN; do
     [ -f "$test_file" ] || continue
 
     test_name=$(basename "$test_file" .sn)
+
+    # Check if test is excluded
+    if [ -n "$EXCLUDE_TESTS" ] && echo "$EXCLUDE_TESTS" | grep -qw "$test_name"; then
+        printf "  %-45s ${YELLOW}SKIP${NC} (excluded)\n" "$test_name"
+        skipped=$((skipped + 1))
+        continue
+    fi
+
     expected_file="${test_file%.sn}.expected"
     panic_file="${test_file%.sn}.panic"
     exe_file="$TEMP_DIR/$test_name"
