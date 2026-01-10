@@ -44,8 +44,6 @@ static void test_rt_env_get_missing_variable(void)
 
 static void test_rt_env_get_empty_value(void)
 {
-    printf("Testing rt_env_get with empty value...\n");
-
     RtArena *arena = rt_arena_create(NULL);
 
     /* Set a test variable with empty string */
