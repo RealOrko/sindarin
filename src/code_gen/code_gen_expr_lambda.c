@@ -9,9 +9,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#ifdef _WIN32
 #include "../platform/compat_io.h"
-#endif
 
 /* is_primitive_type is defined in type_checker_util.c */
 
