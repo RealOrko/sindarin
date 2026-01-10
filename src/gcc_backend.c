@@ -18,6 +18,11 @@
 #endif
 #include <limits.h>
 
+/* macOS needs mach-o/dyld.h for _NSGetExecutablePath */
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
+
 /* MinGW needs sn_get_executable_path (provided by compat_windows.h for MSVC) */
 #if defined(_WIN32) && (defined(__MINGW32__) || defined(__MINGW64__))
 #include <windows.h>
@@ -88,11 +93,22 @@ static const char *backend_lib_subdir(BackendType backend)
 {
     switch (backend)
     {
+#ifdef _WIN32
+        /* On Windows, each compiler may need its own object files */
         case BACKEND_CLANG:  return "lib/clang";
         case BACKEND_TINYCC: return "lib/tinycc";
         case BACKEND_MSVC:   return "lib/msvc";
         case BACKEND_GCC:
         default:             return "lib/gcc";
+#else
+        /* On Unix (Linux/macOS), gcc and clang produce compatible object files,
+         * so we use lib/gcc for both. TinyCC still needs its own directory. */
+        case BACKEND_TINYCC: return "lib/tinycc";
+        case BACKEND_CLANG:
+        case BACKEND_MSVC:
+        case BACKEND_GCC:
+        default:             return "lib/gcc";
+#endif
     }
 }
 
@@ -206,12 +222,31 @@ static char *find_last_path_sep(char *path)
 static BackendType detect_backend_from_exe(void)
 {
     char exe_path[PATH_MAX];
+    bool got_path = false;
+
 #ifdef _WIN32
     ssize_t len = sn_get_executable_path(exe_path, sizeof(exe_path));
+    if (len != -1)
+    {
+        exe_path[len] = '\0';
+        got_path = true;
+    }
+#elif defined(__APPLE__)
+    uint32_t size = sizeof(exe_path);
+    if (_NSGetExecutablePath(exe_path, &size) == 0)
+    {
+        got_path = true;
+    }
 #else
     ssize_t len = readlink("/proc/self/exe", exe_path, sizeof(exe_path) - 1);
+    if (len != -1)
+    {
+        exe_path[len] = '\0';
+        got_path = true;
+    }
 #endif
-    if (len == -1)
+
+    if (!got_path)
     {
 #ifdef _WIN32
         return BACKEND_MSVC; /* Default to MSVC on Windows */
@@ -219,7 +254,6 @@ static BackendType detect_backend_from_exe(void)
         return BACKEND_GCC;  /* Default to GCC on Unix */
 #endif
     }
-    exe_path[len] = '\0';
 
     /* Get basename */
     char *base = find_last_path_sep(exe_path);
@@ -568,6 +602,24 @@ const char *gcc_get_compiler_dir(const char *argv0)
     ssize_t len = sn_get_executable_path(compiler_dir_buf, sizeof(compiler_dir_buf));
     if (len != -1)
     {
+        /* Get the directory part */
+        char *dir = dirname(compiler_dir_buf);
+        /* Copy back since dirname may modify in place */
+        memmove(compiler_dir_buf, dir, strlen(dir) + 1);
+        return compiler_dir_buf;
+    }
+#elif defined(__APPLE__)
+    /* macOS: use _NSGetExecutablePath */
+    uint32_t size = sizeof(compiler_dir_buf);
+    if (_NSGetExecutablePath(compiler_dir_buf, &size) == 0)
+    {
+        /* Resolve any symlinks to get the real path */
+        char real_path[PATH_MAX];
+        if (realpath(compiler_dir_buf, real_path) != NULL)
+        {
+            strncpy(compiler_dir_buf, real_path, sizeof(compiler_dir_buf) - 1);
+            compiler_dir_buf[sizeof(compiler_dir_buf) - 1] = '\0';
+        }
         /* Get the directory part */
         char *dir = dirname(compiler_dir_buf);
         /* Copy back since dirname may modify in place */
