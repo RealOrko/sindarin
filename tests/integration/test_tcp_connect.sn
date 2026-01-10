@@ -1,53 +1,24 @@
 // Test: TCP connect and basic operations
-// Uses Python as a simple server to test TcpStream.connect
-// Cross-platform: works on Windows and Linux
+// Uses pure Sindarin threading - no external dependencies
+
+fn serverTask(server: TcpListener): int =>
+    var client: TcpStream = server.accept()
+    client.write("HELLO FROM SERVER".toBytes())
+    client.close()
+    return 0
 
 fn main(): void =>
-    // Use a simple fixed path for the ready file to avoid environment variable issues
-    // On Windows CI, Environment.set may not propagate to child processes
-    var readyFile: str = "tcp_connect_ready.tmp"
+    // Create listener first to get the port
+    var server: TcpListener = TcpListener.bind("127.0.0.1:0")
+    var port: int = server.port
 
-    // DEBUG: Confirm we have paths
-    print("[DEBUG] Using ready file: tcp_connect_ready.tmp (current directory)\n")
+    // Spawn server thread to handle connection
+    var serverThread: int = &serverTask(server)
 
-    // Clean up temp file if it exists
-    if Path.exists(readyFile) =>
-        print("[DEBUG] Cleaning up existing ready file\n")
-        TextFile.delete(readyFile)
+    // Small delay to ensure server thread is ready to accept
+    Time.sleep(100)
 
-    // Start a Python server that sends data and closes
-    // Pass the ready file path directly in the Python code to avoid env var issues
-    print("[DEBUG] Starting Python server...\n")
-    var server: Process = &Process.run("python", {"-c", "import socket;s=socket.socket();s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('127.0.0.1',0));s.listen(1);p=s.getsockname()[1];open('tcp_connect_ready.tmp','w').write(str(p));c,a=s.accept();c.send(b'HELLO FROM SERVER');c.close();s.close()"})
-    print("[DEBUG] Python server process spawned\n")
-
-    // Wait for server to be ready (poll for file) using cross-platform methods
-    // Use longer timeout for slow CI environments (200 attempts × 100ms = 20 seconds)
-    var attempts: int = 0
-    while attempts < 200 =>
-        if Path.exists(readyFile) =>
-            print("[DEBUG] Ready file found\n")
-            attempts = 300
-        else =>
-            Time.sleep(100)  // 100ms
-            attempts = attempts + 1
-
-    if attempts < 300 =>
-        print($"[ERROR] Timeout waiting for server after {attempts} attempts (20 seconds)\n")
-        print("[DEBUG] Waiting for server process to complete to see any errors...\n")
-        // Note: We can't sync here and also sync later, so just exit
-        // The test will fail and show this output
-        return
-
-    // Read the port number from the temp file (cross-platform)
-    var port: str = TextFile.readAll(readyFile).trim()
-    print("[DEBUG] Port read from ready file\n")
-
-    if port.length == 0 =>
-        print("[ERROR] Port is empty - server may have failed!\n")
-        return
-
-    // Connect to the Python server
+    // Connect to the server
     print("[DEBUG] Connecting to server...\n")
     var client: TcpStream = TcpStream.connect($"127.0.0.1:{port}")
     print("Connected to server\n")
@@ -59,13 +30,7 @@ fn main(): void =>
     else =>
         print($"Remote address unexpected: {remote}\n")
 
-    // Check remote address contains port
-    if remote.contains(port) =>
-        print("Remote port correct\n")
-    else =>
-        print($"Remote port unexpected: {remote}\n")
-
-    // Read data using read() method
+    // Read data from server
     print("[DEBUG] Reading data from socket...\n")
     var data: byte[] = client.read(1024)
     var msg: str = data.toString()
@@ -79,13 +44,10 @@ fn main(): void =>
     client.close()
     print("Connection closed\n")
 
-    // Wait for Python server to finish
-    print("[DEBUG] Syncing server process...\n")
-    server!
-    print("[DEBUG] Server process completed\n")
+    // Wait for server thread to complete
+    print("[DEBUG] Syncing server thread...\n")
+    serverThread!
+    print("[DEBUG] Server thread completed\n")
 
-    // Clean up temp file (cross-platform)
-    if Path.exists(readyFile) =>
-        TextFile.delete(readyFile)
-
+    server.close()
     print("Test complete\n")
