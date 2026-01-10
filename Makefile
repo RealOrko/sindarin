@@ -142,7 +142,7 @@ build:
 	@$(MAKE) -C $(SRC_DIR) BACKEND=tinycc PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) ../$(BIN_DIR)/sn-tcc$(EXE_EXT) >> $(LOG_DIR)/build-output.log 2>&1
 	@# Set sn symlink/copy to gcc by default
 	@$(RM) $(BIN_DIR)/sn$(EXE_EXT)
-	$(call CREATE_SYMLINK,$(BIN_DIR)/sn-gcc$(EXE_EXT),$(BIN_DIR)/sn$(EXE_EXT))
+	$(call CREATE_SYMLINK,sn-gcc$(EXE_EXT),$(BIN_DIR)/sn$(EXE_EXT))
 	@cp -n etc/*.cfg $(BIN_DIR)/ 2>>$(LOG_DIR)/build-warnings.log || true
 	@echo "Built: sn-gcc$(EXE_EXT), sn-clang$(EXE_EXT), sn-tcc$(EXE_EXT) (sn -> sn-gcc)"
 	@find $(BIN_DIR) -maxdepth 1 \( -name "*.d" -o -name "*.o" \) -delete 2>$(NULL_DEV) || true
