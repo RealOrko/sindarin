@@ -153,6 +153,8 @@ set(SN_RUNTIME_SOURCES
     src/runtime/runtime_uuid.c
     src/runtime/runtime_sha1.c
     src/runtime/runtime_env.c
+    src/runtime/runtime_any.c
+    src/runtime/runtime_intercept.c
 )
 
 # All compiler sources (excluding main.c for library usage)
@@ -310,6 +312,8 @@ if(NOT MSVC)
     add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_uuid.c runtime_uuid)
     add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_sha1.c runtime_sha1)
     add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c runtime_env)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_any.c runtime_any)
+    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_intercept.c runtime_intercept)
 
     # Custom target that depends on all runtime objects
     add_custom_target(sn_runtime ALL DEPENDS ${RUNTIME_OBJECTS})
