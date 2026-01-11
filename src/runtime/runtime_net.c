@@ -46,6 +46,7 @@ static void ensure_winsock_initialized(void)
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -77,6 +78,81 @@ static void ensure_winsock_initialized(void)
  * It supports TCP (TcpListener, TcpStream) and UDP (UdpSocket) operations.
  * All network handles integrate with arena-based memory management.
  * ============================================================================ */
+
+/* ============================================================================
+ * Send Helper with Retry Logic
+ * ============================================================================
+ *
+ * Handles transient errors (EAGAIN, EWOULDBLOCK, EINTR) by retrying with
+ * exponential backoff. This improves reliability in high-concurrency scenarios
+ * where sockets may temporarily be unable to accept data.
+ * ============================================================================ */
+
+/* Check if an error code is transient and should be retried */
+static int is_transient_error(int err)
+{
+#ifdef _WIN32
+    return err == WSAEWOULDBLOCK || err == WSAEINTR || err == WSAENOBUFS;
+#else
+    return err == EAGAIN || err == EWOULDBLOCK || err == EINTR || err == ENOBUFS;
+#endif
+}
+
+/* Check if an error code is connection-related and might benefit from retry */
+static int is_connection_error(int err)
+{
+#ifdef _WIN32
+    return err == WSAECONNRESET || err == WSAENOTCONN || err == WSAESHUTDOWN;
+#else
+    return err == EPIPE || err == ECONNRESET || err == ENOTCONN;
+#endif
+}
+
+/* Platform-specific microsecond sleep */
+static void sleep_microseconds(int us)
+{
+#ifdef _WIN32
+    Sleep((us + 999) / 1000);  /* Convert to milliseconds, round up */
+#else
+    usleep(us);
+#endif
+}
+
+/* Send data with retry logic for transient and connection errors.
+ * Returns bytes written on success, -1 on permanent failure.
+ * Uses exponential backoff: 100us, 200us, 400us, ... up to max_retries.
+ */
+static ssize_t send_with_retry(socket_t fd, const char *data, size_t len, int flags)
+{
+    const int max_retries = 10;
+    int retry_delay_us = 100;  /* Start with 100 microseconds */
+
+    for (int attempt = 0; attempt <= max_retries; attempt++) {
+        ssize_t written = send(fd, data, (int)len, flags);
+        if (written >= 0) {
+            return written;
+        }
+
+        /* Capture error immediately before any other calls might change it */
+        int err = socket_errno();
+
+        /* Check if error is retryable (transient or connection-related) */
+        if (!is_transient_error(err) && !is_connection_error(err)) {
+            return -1;  /* Permanent error - don't retry */
+        }
+
+        /* Retryable error - wait and try again */
+        if (attempt < max_retries) {
+            sleep_microseconds(retry_delay_us);
+            retry_delay_us *= 2;  /* Exponential backoff */
+            if (retry_delay_us > 50000) {
+                retry_delay_us = 50000;  /* Cap at 50ms */
+            }
+        }
+    }
+
+    return -1;  /* Max retries exceeded */
+}
 
 /* ============================================================================
  * Address Parsing Helper
@@ -464,11 +540,29 @@ RtTcpStream *rt_tcp_stream_connect(RtArena *arena, const char *address)
         exit(1);
     }
 
-    /* Connect */
-    if (connect(fd, (struct sockaddr *)&addr, addrlen) < 0) {
-        socket_close(fd);
-        fprintf(stderr, "TcpStream.connect: failed to connect to '%s'\n", address);
-        exit(1);
+    /* Connect with retry for transient errors */
+    int max_connect_retries = 5;
+    int connect_delay_us = 1000;  /* Start with 1ms */
+    for (int attempt = 0; attempt <= max_connect_retries; attempt++) {
+        if (connect(fd, (struct sockaddr *)&addr, addrlen) == 0) {
+            break;  /* Success */
+        }
+
+        int err = socket_errno();
+#ifdef _WIN32
+        int is_retryable = (err == WSAECONNREFUSED || err == WSAETIMEDOUT);
+#else
+        int is_retryable = (err == ECONNREFUSED || err == ETIMEDOUT);
+#endif
+        if (!is_retryable || attempt == max_connect_retries) {
+            socket_close(fd);
+            fprintf(stderr, "TcpStream.connect: failed to connect to '%s'\n", address);
+            exit(1);
+        }
+
+        /* Retry after delay */
+        sleep_microseconds(connect_delay_us);
+        connect_delay_us *= 2;
     }
 
     /* Allocate stream */
@@ -510,21 +604,58 @@ unsigned char *rt_tcp_stream_read(RtArena *arena, RtTcpStream *stream, long max_
         exit(1);
     }
 
-    /* Read data */
-    ssize_t bytes_read = recv(stream->fd, (char *)buffer, (int)max_bytes, 0);
-    if (bytes_read < 0) {
-        fprintf(stderr, "TcpStream.read: recv failed\n");
-        exit(1);
+    /* Read data - try to gather more data if available for better batching.
+     * This helps when multiple small writes arrive in quick succession. */
+    size_t total_read = 0;
+    int max_gather_attempts = 3;
+
+    for (int i = 0; i < max_gather_attempts && total_read < (size_t)max_bytes; i++) {
+        ssize_t bytes_read = recv(stream->fd, (char *)buffer + total_read, (int)(max_bytes - (long)total_read), 0);
+        if (bytes_read < 0) {
+            if (total_read > 0) {
+                /* We have some data, return what we got */
+                break;
+            }
+            fprintf(stderr, "TcpStream.read: recv failed\n");
+            exit(1);
+        }
+        if (bytes_read == 0) {
+            /* EOF */
+            break;
+        }
+        total_read += (size_t)bytes_read;
+
+        /* If we got some data, briefly check if more is immediately available */
+        if (i < max_gather_attempts - 1) {
+#ifdef _WIN32
+            /* On Windows, use ioctlsocket to check for pending data */
+            u_long pending = 0;
+            if (ioctlsocket(stream->fd, FIONREAD, &pending) == 0 && pending == 0) {
+                /* No more data immediately available, give it a tiny moment */
+                Sleep(1);  /* 1ms */
+                ioctlsocket(stream->fd, FIONREAD, &pending);
+                if (pending == 0) break;  /* Still nothing, return what we have */
+            }
+#else
+            /* On POSIX, use ioctl FIONREAD */
+            int pending = 0;
+            if (ioctl(stream->fd, FIONREAD, &pending) == 0 && pending == 0) {
+                /* No more data immediately available, give it a tiny moment */
+                usleep(1000);  /* 1ms */
+                ioctl(stream->fd, FIONREAD, &pending);
+                if (pending == 0) break;  /* Still nothing, return what we have */
+            }
+#endif
+        }
     }
 
-    /* Adjust array size to actual bytes read */
-    if (bytes_read == 0) {
-        /* Return empty array on EOF */
+    /* Return empty array on no data */
+    if (total_read == 0) {
         return rt_array_create_byte(arena, 0, NULL);
     }
 
     /* Create array with actual data */
-    return rt_array_create_byte(arena, (size_t)bytes_read, buffer);
+    return rt_array_create_byte(arena, total_read, buffer);
 }
 
 unsigned char *rt_tcp_stream_read_all(RtArena *arena, RtTcpStream *stream)
@@ -664,10 +795,17 @@ long rt_tcp_stream_write(RtTcpStream *stream, unsigned char *data)
         return 0;
     }
 
-    /* Loop to handle partial writes */
+    /* Use MSG_NOSIGNAL to avoid SIGPIPE on broken connections */
+#ifdef MSG_NOSIGNAL
+    int flags = MSG_NOSIGNAL;
+#else
+    int flags = 0;
+#endif
+
+    /* Loop to handle partial writes, with retry for transient errors */
     size_t total_written = 0;
     while (total_written < len) {
-        ssize_t bytes_written = send(stream->fd, (const char *)(data + total_written), (int)(len - total_written), 0);
+        ssize_t bytes_written = send_with_retry(stream->fd, (const char *)(data + total_written), len - total_written, flags);
         if (bytes_written < 0) {
             fprintf(stderr, "TcpStream.write: send failed\n");
             exit(1);
@@ -699,23 +837,23 @@ void rt_tcp_stream_write_line(RtTcpStream *stream, const char *text)
     int flags = 0;
 #endif
 
-    /* Write the text content with loop for partial writes */
-    size_t len = strlen(text);
+    /* Concatenate text and newline into single buffer for atomic send.
+     * This reduces the chance of connection being closed between sends. */
+    size_t text_len = strlen(text);
+    size_t total_len = text_len + 1;  /* +1 for newline */
+    char *buffer = alloca(total_len);
+    memcpy(buffer, text, text_len);
+    buffer[text_len] = '\n';
+
+    /* Send all data with loop for partial writes and retry for transient errors */
     size_t total_written = 0;
-    while (total_written < len) {
-        ssize_t written = send(stream->fd, text + total_written, (int)(len - total_written), flags);
+    while (total_written < total_len) {
+        ssize_t written = send_with_retry(stream->fd, buffer + total_written, total_len - total_written, flags);
         if (written < 0) {
             fprintf(stderr, "TcpStream.writeLine: send failed\n");
             exit(1);
         }
         total_written += (size_t)written;
-    }
-
-    /* Send newline - loop in case of partial write (unlikely for 1 byte but correct) */
-    ssize_t written = send(stream->fd, "\n", 1, flags);
-    if (written < 0) {
-        fprintf(stderr, "TcpStream.writeLine: send newline failed\n");
-        exit(1);
     }
 }
 
