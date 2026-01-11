@@ -48,4 +48,9 @@ RtProcess *rt_process_run(RtArena *arena, const char *cmd);
  */
 RtProcess *rt_process_run_with_args(RtArena *arena, const char *cmd, char **args);
 
+/* Exit the program with the specified exit code.
+ * This is a wrapper around the C exit() function for Sindarin programs.
+ */
+void rt_exit(int code);
+
 #endif /* RUNTIME_PROCESS_H */

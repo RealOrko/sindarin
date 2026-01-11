@@ -93,6 +93,18 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     Type *printErrLn_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_VOID), builtin_params, 1);
     symbol_table_add_symbol_with_kind(parser->symbol_table, printErrLn_token, printErrLn_type, SYMBOL_GLOBAL);
 
+    // exit(code: int) -> void
+    Token exit_token;
+    exit_token.start = arena_strdup(arena, "exit");
+    exit_token.length = 4;
+    exit_token.type = TOKEN_IDENTIFIER;
+    exit_token.line = 0;
+    exit_token.filename = arena_strdup(arena, "<built-in>");
+    Type **exit_params = arena_alloc(arena, sizeof(Type *));
+    exit_params[0] = ast_create_primitive_type(arena, TYPE_INT);
+    Type *exit_type = ast_create_function_type(arena, ast_create_primitive_type(arena, TYPE_VOID), exit_params, 1);
+    symbol_table_add_symbol_with_kind(parser->symbol_table, exit_token, exit_type, SYMBOL_GLOBAL);
+
     // Note: Other array operations (push, pop, rev, rem, ins) are now method-style only:
     //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
 

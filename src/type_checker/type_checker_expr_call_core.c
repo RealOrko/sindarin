@@ -73,6 +73,19 @@ Type *type_check_call_expression(Expr *expr, SymbolTable *table)
         return ast_create_primitive_type(table->arena, TYPE_INT);
     }
 
+    // exit(code: int) -> void
+    if (is_builtin_name(callee, "exit") && expr->as.call.arg_count == 1)
+    {
+        Type *arg_type = type_check_expr(expr->as.call.arguments[0], table);
+        if (arg_type == NULL) return NULL;
+        if (arg_type->kind != TYPE_INT)
+        {
+            type_error(expr->token, "exit() requires int argument");
+            return NULL;
+        }
+        return ast_create_primitive_type(table->arena, TYPE_VOID);
+    }
+
     // Note: Other array operations are method-style only:
     //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
 

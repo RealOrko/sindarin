@@ -520,3 +520,9 @@ RtProcess *rt_process_run(RtArena *arena, const char *cmd)
 {
     return rt_process_run_with_args(arena, cmd, NULL);
 }
+
+/* Exit the program with the specified exit code. */
+void rt_exit(int code)
+{
+    exit(code);
+}
