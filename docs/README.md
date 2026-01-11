@@ -31,6 +31,7 @@ Core documentation for the Sindarin programming language:
 | [NAMESPACES.md](language/NAMESPACES.md) | Namespaced imports for collision resolution |
 | [NETWORK_IO.md](language/NETWORK_IO.md) | TCP and UDP network operations |
 | [INTEROP.md](language/INTEROP.md) | C interoperability and native functions |
+| [INTERCEPTORS.md](language/INTERCEPTORS.md) | Function interception for debugging and mocking |
 
 ## Draft Specifications
 

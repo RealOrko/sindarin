@@ -184,7 +184,9 @@ RUNTIME_MODULE_SRCS := \
     runtime/runtime_random.c \
     runtime/runtime_uuid.c \
     runtime/runtime_sha1.c \
-    runtime/runtime_env.c
+    runtime/runtime_env.c \
+    runtime/runtime_any.c \
+    runtime/runtime_intercept.c
 
 # All compiler sources
 SRCS := $(CORE_SRCS) $(LEXER_SRCS) $(AST_SRCS) $(PARSER_SRCS) \
@@ -219,7 +221,9 @@ RUNTIME_HEADERS := \
     runtime/runtime_random.h \
     runtime/runtime_uuid.h \
     runtime/runtime_sha1.h \
-    runtime/runtime_env.h
+    runtime/runtime_env.h \
+    runtime/runtime_any.h \
+    runtime/runtime_intercept.h
 
 #------------------------------------------------------------------------------
 # Object Files
@@ -325,7 +329,8 @@ RUNTIME_OBJ_NAMES := runtime.o runtime_arena.o runtime_string.o runtime_array.o 
     runtime_path.o runtime_date.o runtime_time.o runtime_thread.o \
     runtime_process.o runtime_net.o runtime_random_core.o runtime_random_basic.o \
     runtime_random_static.o runtime_random_choice.o runtime_random_collection.o \
-    runtime_random.o runtime_uuid.o runtime_sha1.o runtime_env.o
+    runtime_random.o runtime_uuid.o runtime_sha1.o runtime_env.o \
+    runtime_any.o runtime_intercept.o
 
 TEST_RUNTIME_GCC   := $(addprefix $(BIN_DIR)/, $(RUNTIME_OBJ_NAMES))
 TEST_RUNTIME_CLANG := $(addprefix $(BIN_DIR)/lib/clang/, $(RUNTIME_OBJ_NAMES))

@@ -86,6 +86,13 @@ char *code_gen_assign_expression(CodeGen *gen, AssignExpr *expr)
     }
     Type *type = symbol->type;
 
+    // Handle boxing when assigning to 'any' type
+    if (type->kind == TYPE_ANY && expr->value->expr_type != NULL &&
+        expr->value->expr_type->kind != TYPE_ANY)
+    {
+        value_str = code_gen_box_value(gen, value_str, expr->value->expr_type);
+    }
+
     // Handle 'as ref' - dereference pointer for assignment
     if (symbol->mem_qual == MEM_AS_REF)
     {

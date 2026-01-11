@@ -695,6 +695,8 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     char runtime_uuid_obj[PATH_MAX];
     char runtime_sha1_obj[PATH_MAX];
     char runtime_env_obj[PATH_MAX];
+    char runtime_any_obj[PATH_MAX];
+    char runtime_intercept_obj[PATH_MAX];
     char command[PATH_MAX * 16];
     char extra_libs[PATH_MAX];
     char filtered_mode_cflags[1024];
@@ -770,6 +772,8 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     snprintf(runtime_uuid_obj, sizeof(runtime_uuid_obj), "%s" SN_PATH_SEP_STR "runtime_uuid.o", lib_dir);
     snprintf(runtime_sha1_obj, sizeof(runtime_sha1_obj), "%s" SN_PATH_SEP_STR "runtime_sha1.o", lib_dir);
     snprintf(runtime_env_obj, sizeof(runtime_env_obj), "%s" SN_PATH_SEP_STR "runtime_env.o", lib_dir);
+    snprintf(runtime_any_obj, sizeof(runtime_any_obj), "%s" SN_PATH_SEP_STR "runtime_any.o", lib_dir);
+    snprintf(runtime_intercept_obj, sizeof(runtime_intercept_obj), "%s" SN_PATH_SEP_STR "runtime_intercept.o", lib_dir);
 
     /* Check that runtime objects exist (skip for MSVC which uses sn_runtime.lib) */
     if (backend != BACKEND_MSVC)
@@ -903,6 +907,16 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
             fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_env_obj);
             return false;
         }
+        if (access(runtime_any_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_any_obj);
+            return false;
+        }
+        if (access(runtime_intercept_obj, R_OK) != 0)
+        {
+            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_intercept_obj);
+            return false;
+        }
     }
 
     /* Build C compiler command using configuration.
@@ -1000,7 +1014,7 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         snprintf(command, sizeof(command),
             "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" "
             "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
+            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
             "-lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
             cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir,
             c_file_normalized, arena_obj, debug_obj, runtime_obj, runtime_arena_obj,
@@ -1008,7 +1022,7 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
             runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj,
             runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj,
             runtime_process_obj, runtime_net_obj, runtime_random_core_obj, runtime_random_basic_obj,
-            runtime_random_static_obj, runtime_random_choice_obj, runtime_random_collection_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj,
+            runtime_random_static_obj, runtime_random_choice_obj, runtime_random_collection_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj, runtime_any_obj, runtime_intercept_obj,
             extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
     }
 

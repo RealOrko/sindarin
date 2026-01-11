@@ -318,3 +318,4 @@ Note: The default runtime objects are compiled with GCC's LTO. To use a differen
 - [PROCESSES.md](PROCESSES.md) - Process execution and output capture
 - [NAMESPACES.md](NAMESPACES.md) - Namespaced imports for collision resolution
 - [INTEROP.md](INTEROP.md) - C interoperability and native functions
+- [INTERCEPTORS.md](INTERCEPTORS.md) - Function interception for debugging and mocking

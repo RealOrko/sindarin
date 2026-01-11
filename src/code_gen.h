@@ -90,6 +90,11 @@ typedef struct {
     char **pragma_links;            // List of libraries to link (e.g., "m", "pthread")
     int pragma_link_count;
     int pragma_link_capacity;
+
+    /* Interceptor thunk support */
+    int thunk_count;                // Counter for unique thunk IDs
+    char *thunk_forward_decls;      // Buffer for thunk forward declarations
+    char *thunk_definitions;        // Buffer for thunk function bodies
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);

@@ -602,6 +602,7 @@ Methods:
 | `Stderr` | Standard error stream |
 | `Bytes` | Byte array conversions |
 | `Environment` | Environment variable access |
+| `Interceptor` | Function interception for debugging and mocking |
 
 ## Type Annotations
 
@@ -679,3 +680,4 @@ var text: str = bytes.toString()
 - [ENVIRONMENT.md](ENVIRONMENT.md) - Environment variables
 - [MEMORY.md](MEMORY.md) - Memory management and type lifetimes
 - [INTEROP.md](INTEROP.md) - C interoperability and pointer types
+- [INTERCEPTORS.md](INTERCEPTORS.md) - Function interception

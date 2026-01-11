@@ -260,6 +260,108 @@ static char *code_gen_as_val_expression(CodeGen *gen, Expr *expr)
     }
 }
 
+/**
+ * Get the runtime type tag constant for a type.
+ */
+static const char *get_type_tag_constant(TypeKind kind)
+{
+    switch (kind)
+    {
+        case TYPE_NIL: return "RT_ANY_NIL";
+        case TYPE_INT: return "RT_ANY_INT";
+        case TYPE_LONG: return "RT_ANY_LONG";
+        case TYPE_INT32: return "RT_ANY_INT32";
+        case TYPE_UINT: return "RT_ANY_UINT";
+        case TYPE_UINT32: return "RT_ANY_UINT32";
+        case TYPE_DOUBLE: return "RT_ANY_DOUBLE";
+        case TYPE_FLOAT: return "RT_ANY_FLOAT";
+        case TYPE_STRING: return "RT_ANY_STRING";
+        case TYPE_CHAR: return "RT_ANY_CHAR";
+        case TYPE_BOOL: return "RT_ANY_BOOL";
+        case TYPE_BYTE: return "RT_ANY_BYTE";
+        case TYPE_ARRAY: return "RT_ANY_ARRAY";
+        case TYPE_FUNCTION: return "RT_ANY_FUNCTION";
+        case TYPE_TEXT_FILE: return "RT_ANY_TEXT_FILE";
+        case TYPE_BINARY_FILE: return "RT_ANY_BINARY_FILE";
+        case TYPE_DATE: return "RT_ANY_DATE";
+        case TYPE_TIME: return "RT_ANY_TIME";
+        case TYPE_PROCESS: return "RT_ANY_PROCESS";
+        case TYPE_TCP_LISTENER: return "RT_ANY_TCP_LISTENER";
+        case TYPE_TCP_STREAM: return "RT_ANY_TCP_STREAM";
+        case TYPE_UDP_SOCKET: return "RT_ANY_UDP_SOCKET";
+        case TYPE_RANDOM: return "RT_ANY_RANDOM";
+        case TYPE_UUID: return "RT_ANY_UUID";
+        case TYPE_ANY: return "RT_ANY_NIL";  /* any has no fixed tag */
+        default: return "RT_ANY_NIL";
+    }
+}
+
+/**
+ * Generate code for typeof expression.
+ * typeof(value) - returns runtime type tag of any value
+ * typeof(Type) - returns compile-time type tag constant
+ */
+static char *code_gen_typeof_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating typeof expression");
+
+    TypeofExpr *typeof_expr = &expr->as.typeof_expr;
+
+    if (typeof_expr->type_literal != NULL)
+    {
+        /* typeof(int), typeof(str), etc. - compile-time constant */
+        return arena_sprintf(gen->arena, "%s", get_type_tag_constant(typeof_expr->type_literal->kind));
+    }
+    else
+    {
+        /* typeof(value) - get runtime type tag */
+        char *operand_code = code_gen_expression(gen, typeof_expr->operand);
+        Type *operand_type = typeof_expr->operand->expr_type;
+
+        if (operand_type->kind == TYPE_ANY)
+        {
+            /* For any type, get the runtime tag */
+            return arena_sprintf(gen->arena, "rt_any_get_tag(%s)", operand_code);
+        }
+        else
+        {
+            /* For concrete types, return compile-time constant */
+            return arena_sprintf(gen->arena, "%s", get_type_tag_constant(operand_type->kind));
+        }
+    }
+}
+
+/**
+ * Generate code for 'is' type check expression.
+ * expr is Type - checks if any value is of the specified type
+ */
+static char *code_gen_is_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating is expression");
+
+    IsExpr *is_expr = &expr->as.is_expr;
+    char *operand_code = code_gen_expression(gen, is_expr->operand);
+    const char *type_tag = get_type_tag_constant(is_expr->check_type->kind);
+
+    return arena_sprintf(gen->arena, "((%s).tag == %s)", operand_code, type_tag);
+}
+
+/**
+ * Generate code for 'as Type' cast expression.
+ * expr as Type - casts any value to concrete type (panics on mismatch)
+ */
+static char *code_gen_as_type_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating as type expression");
+
+    AsTypeExpr *as_type = &expr->as.as_type;
+    char *operand_code = code_gen_expression(gen, as_type->operand);
+    Type *target_type = as_type->target_type;
+
+    /* Use the unbox helper function */
+    return code_gen_unbox_value(gen, operand_code, target_type);
+}
+
 char *code_gen_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_expression");
@@ -317,6 +419,12 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         exit(1);
     case EXPR_AS_VAL:
         return code_gen_as_val_expression(gen, expr);
+    case EXPR_TYPEOF:
+        return code_gen_typeof_expression(gen, expr);
+    case EXPR_IS:
+        return code_gen_is_expression(gen, expr);
+    case EXPR_AS_TYPE:
+        return code_gen_as_type_expression(gen, expr);
     default:
         exit(1);
     }

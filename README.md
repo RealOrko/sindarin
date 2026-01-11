@@ -96,6 +96,7 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 | [PROCESSES](docs/language/PROCESSES.md) | Process execution and output capture |
 | [NAMESPACES](docs/language/NAMESPACES.md) | Namespaced imports for collision resolution |
 | [INTEROP](docs/language/INTEROP.md) | C interoperability and native functions |
+| [INTERCEPTORS](docs/language/INTERCEPTORS.md) | Function interception for debugging and mocking |
 
 ## Architecture
 

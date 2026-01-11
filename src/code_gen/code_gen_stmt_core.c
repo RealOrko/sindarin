@@ -241,6 +241,14 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
             init_str = arena_sprintf(gen->arena, "rt_to_string_string(%s, %s)", ARENA_VAR(gen), init_str);
         }
 
+        // Handle boxing when assigning to 'any' type
+        // If the variable is 'any' and initializer is a concrete type, wrap with boxing function
+        if (stmt->type->kind == TYPE_ANY && stmt->initializer->expr_type != NULL &&
+            stmt->initializer->expr_type->kind != TYPE_ANY)
+        {
+            init_str = code_gen_box_value(gen, init_str, stmt->initializer->expr_type);
+        }
+
         // Handle 'as val' - create a copy for arrays and strings
         if (stmt->mem_qualifier == MEM_AS_VAL)
         {
@@ -714,6 +722,14 @@ void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt, int indent)
     if (stmt->value && !is_void_return)
     {
         char *value_str = code_gen_expression(gen, stmt->value);
+
+        /* Handle boxing when function returns 'any' but expression is a concrete type */
+        if (gen->current_return_type != NULL && gen->current_return_type->kind == TYPE_ANY &&
+            stmt->value->expr_type != NULL && stmt->value->expr_type->kind != TYPE_ANY)
+        {
+            value_str = code_gen_box_value(gen, value_str, stmt->value->expr_type);
+        }
+
         indented_fprintf(gen, indent, "_return_value = %s;\n", value_str);
     }
 

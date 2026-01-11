@@ -257,6 +257,10 @@ Type *parser_type(Parser *parser)
     {
         type = ast_create_primitive_type(parser->arena, TYPE_ENVIRONMENT);
     }
+    else if (parser_match(parser, TOKEN_ANY))
+    {
+        type = ast_create_primitive_type(parser->arena, TYPE_ANY);
+    }
     else if (parser_check(parser, TOKEN_IDENTIFIER))
     {
         /* Check for file types: TextFile, BinaryFile */
@@ -408,6 +412,7 @@ static const char *static_type_names[] = {
     "Random",
     "UUID",
     "Environment",
+    "Interceptor",
     NULL
 };
 

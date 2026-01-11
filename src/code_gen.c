@@ -84,6 +84,11 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->pragma_link_count = 0;
     gen->pragma_link_capacity = 0;
 
+    /* Initialize interceptor thunk support */
+    gen->thunk_count = 0;
+    gen->thunk_forward_decls = arena_strdup(arena, "");
+    gen->thunk_definitions = arena_strdup(arena, "");
+
     if (gen->output == NULL)
     {
         exit(1);
@@ -901,6 +906,14 @@ void code_gen_module(CodeGen *gen, Module *module)
         indented_fprintf(gen, 0, "\n");
     }
 
+    /* Output accumulated interceptor thunk forward declarations */
+    if (gen->thunk_forward_decls && strlen(gen->thunk_forward_decls) > 0)
+    {
+        indented_fprintf(gen, 0, "/* Interceptor thunk forward declarations */\n");
+        fprintf(gen->output, "%s", gen->thunk_forward_decls);
+        indented_fprintf(gen, 0, "\n");
+    }
+
     /* Now copy the buffered function definitions */
     fseek(func_temp, 0, SEEK_END);
     long func_size = ftell(func_temp);
@@ -919,5 +932,12 @@ void code_gen_module(CodeGen *gen, Module *module)
     {
         indented_fprintf(gen, 0, "\n/* Lambda function definitions */\n");
         fprintf(gen->output, "%s", gen->lambda_definitions);
+    }
+
+    /* Output accumulated interceptor thunk definitions */
+    if (gen->thunk_definitions && strlen(gen->thunk_definitions) > 0)
+    {
+        indented_fprintf(gen, 0, "\n/* Interceptor thunk definitions */\n");
+        fprintf(gen->output, "%s", gen->thunk_definitions);
     }
 }

@@ -145,7 +145,7 @@ const char *get_c_type(Arena *arena, Type *type)
     case TYPE_NIL:
         return arena_strdup(arena, "void *");
     case TYPE_ANY:
-        return arena_strdup(arena, "void *");
+        return arena_strdup(arena, "RtAny");
     case TYPE_TEXT_FILE:
         return arena_strdup(arena, "RtTextFile *");
     case TYPE_BINARY_FILE:
@@ -337,10 +337,236 @@ const char *get_default_value(Type *type)
     {
         return "NULL";
     }
+    else if (type->kind == TYPE_ANY)
+    {
+        return "rt_box_nil()";
+    }
     else
     {
         return "0";
     }
+}
+
+/* ============================================================================
+ * Any Type Boxing/Unboxing Helpers
+ * ============================================================================ */
+
+const char *get_boxing_function(Type *type)
+{
+    DEBUG_VERBOSE("Entering get_boxing_function");
+    if (type == NULL) return "rt_box_nil";
+
+    switch (type->kind)
+    {
+    case TYPE_INT:
+    case TYPE_LONG:
+        return "rt_box_int";
+    case TYPE_INT32:
+        return "rt_box_int32";
+    case TYPE_UINT:
+        return "rt_box_uint";
+    case TYPE_UINT32:
+        return "rt_box_uint32";
+    case TYPE_DOUBLE:
+        return "rt_box_double";
+    case TYPE_FLOAT:
+        return "rt_box_float";
+    case TYPE_STRING:
+        return "rt_box_string";
+    case TYPE_CHAR:
+        return "rt_box_char";
+    case TYPE_BOOL:
+        return "rt_box_bool";
+    case TYPE_BYTE:
+        return "rt_box_byte";
+    case TYPE_ARRAY:
+        return "rt_box_array";
+    case TYPE_FUNCTION:
+        return "rt_box_function";
+    case TYPE_TEXT_FILE:
+        return "rt_box_text_file";
+    case TYPE_BINARY_FILE:
+        return "rt_box_binary_file";
+    case TYPE_DATE:
+        return "rt_box_date";
+    case TYPE_TIME:
+        return "rt_box_time";
+    case TYPE_PROCESS:
+        return "rt_box_process";
+    case TYPE_TCP_LISTENER:
+        return "rt_box_tcp_listener";
+    case TYPE_TCP_STREAM:
+        return "rt_box_tcp_stream";
+    case TYPE_UDP_SOCKET:
+        return "rt_box_udp_socket";
+    case TYPE_RANDOM:
+        return "rt_box_random";
+    case TYPE_UUID:
+        return "rt_box_uuid";
+    case TYPE_NIL:
+    case TYPE_VOID:
+        return "rt_box_nil";
+    case TYPE_ANY:
+        return NULL;  /* Already boxed */
+    default:
+        return "rt_box_nil";
+    }
+}
+
+const char *get_unboxing_function(Type *type)
+{
+    DEBUG_VERBOSE("Entering get_unboxing_function");
+    if (type == NULL) return NULL;
+
+    switch (type->kind)
+    {
+    case TYPE_INT:
+    case TYPE_LONG:
+        return "rt_unbox_int";
+    case TYPE_INT32:
+        return "rt_unbox_int32";
+    case TYPE_UINT:
+        return "rt_unbox_uint";
+    case TYPE_UINT32:
+        return "rt_unbox_uint32";
+    case TYPE_DOUBLE:
+        return "rt_unbox_double";
+    case TYPE_FLOAT:
+        return "rt_unbox_float";
+    case TYPE_STRING:
+        return "rt_unbox_string";
+    case TYPE_CHAR:
+        return "rt_unbox_char";
+    case TYPE_BOOL:
+        return "rt_unbox_bool";
+    case TYPE_BYTE:
+        return "rt_unbox_byte";
+    case TYPE_ARRAY:
+        return "rt_unbox_array";
+    case TYPE_FUNCTION:
+        return "rt_unbox_function";
+    case TYPE_TEXT_FILE:
+        return "rt_unbox_text_file";
+    case TYPE_BINARY_FILE:
+        return "rt_unbox_binary_file";
+    case TYPE_DATE:
+        return "rt_unbox_date";
+    case TYPE_TIME:
+        return "rt_unbox_time";
+    case TYPE_PROCESS:
+        return "rt_unbox_process";
+    case TYPE_TCP_LISTENER:
+        return "rt_unbox_tcp_listener";
+    case TYPE_TCP_STREAM:
+        return "rt_unbox_tcp_stream";
+    case TYPE_UDP_SOCKET:
+        return "rt_unbox_udp_socket";
+    case TYPE_RANDOM:
+        return "rt_unbox_random";
+    case TYPE_UUID:
+        return "rt_unbox_uuid";
+    default:
+        return NULL;
+    }
+}
+
+/* Get the RtAnyTag constant for an element type (for boxing arrays) */
+const char *get_element_type_tag(Type *element_type)
+{
+    if (element_type == NULL) return "RT_ANY_NIL";
+
+    switch (element_type->kind)
+    {
+    case TYPE_INT:
+    case TYPE_LONG:
+        return "RT_ANY_INT";
+    case TYPE_INT32:
+        return "RT_ANY_INT32";
+    case TYPE_UINT:
+        return "RT_ANY_UINT";
+    case TYPE_UINT32:
+        return "RT_ANY_UINT32";
+    case TYPE_DOUBLE:
+        return "RT_ANY_DOUBLE";
+    case TYPE_FLOAT:
+        return "RT_ANY_FLOAT";
+    case TYPE_STRING:
+        return "RT_ANY_STRING";
+    case TYPE_CHAR:
+        return "RT_ANY_CHAR";
+    case TYPE_BOOL:
+        return "RT_ANY_BOOL";
+    case TYPE_BYTE:
+        return "RT_ANY_BYTE";
+    case TYPE_ARRAY:
+        return "RT_ANY_ARRAY";
+    case TYPE_ANY:
+        return "RT_ANY_NIL";  /* any[] - element types vary */
+    default:
+        return "RT_ANY_NIL";
+    }
+}
+
+char *code_gen_box_value(CodeGen *gen, const char *value_str, Type *value_type)
+{
+    DEBUG_VERBOSE("Entering code_gen_box_value");
+
+    if (value_type == NULL)
+    {
+        return arena_sprintf(gen->arena, "rt_box_nil()");
+    }
+
+    /* Already an any type - no boxing needed */
+    if (value_type->kind == TYPE_ANY)
+    {
+        return arena_strdup(gen->arena, value_str);
+    }
+
+    const char *box_func = get_boxing_function(value_type);
+    if (box_func == NULL)
+    {
+        return arena_strdup(gen->arena, value_str);
+    }
+
+    /* Arrays need the element type tag as second argument */
+    if (value_type->kind == TYPE_ARRAY)
+    {
+        const char *elem_tag = get_element_type_tag(value_type->as.array.element_type);
+        return arena_sprintf(gen->arena, "%s(%s, %s)", box_func, value_str, elem_tag);
+    }
+
+    return arena_sprintf(gen->arena, "%s(%s)", box_func, value_str);
+}
+
+char *code_gen_unbox_value(CodeGen *gen, const char *any_str, Type *target_type)
+{
+    DEBUG_VERBOSE("Entering code_gen_unbox_value");
+
+    if (target_type == NULL)
+    {
+        return arena_strdup(gen->arena, any_str);
+    }
+
+    /* Target is any - no unboxing needed */
+    if (target_type->kind == TYPE_ANY)
+    {
+        return arena_strdup(gen->arena, any_str);
+    }
+
+    const char *unbox_func = get_unboxing_function(target_type);
+    if (unbox_func == NULL)
+    {
+        return arena_strdup(gen->arena, any_str);
+    }
+
+    /* Arrays need a cast after unboxing */
+    if (target_type->kind == TYPE_ARRAY)
+    {
+        const char *c_type = get_c_type(gen->arena, target_type);
+        return arena_sprintf(gen->arena, "(%s)%s(%s)", c_type, unbox_func, any_str);
+    }
+
+    return arena_sprintf(gen->arena, "%s(%s)", unbox_func, any_str);
 }
 
 char *get_var_name(Arena *arena, Token name)

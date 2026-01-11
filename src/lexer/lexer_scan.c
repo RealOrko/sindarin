@@ -23,7 +23,17 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
     switch (lexer->start[0])
     {
     case 'a':
-        return lexer_check_keyword(lexer, 1, 1, "s", TOKEN_AS);
+        if (lexer->current - lexer->start > 1)
+        {
+            switch (lexer->start[1])
+            {
+            case 's':
+                return lexer_check_keyword(lexer, 2, 0, "", TOKEN_AS);
+            case 'n':
+                return lexer_check_keyword(lexer, 2, 1, "y", TOKEN_ANY);
+            }
+        }
+        break;
     case 'b':
         if (lexer->current - lexer->start > 1)
         {
@@ -100,6 +110,8 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
                     return lexer_check_keyword(lexer, 2, 3, "t32", TOKEN_INT32);
                 }
                 return lexer_check_keyword(lexer, 2, 1, "t", TOKEN_INT);
+            case 's':
+                return lexer_check_keyword(lexer, 2, 0, "", TOKEN_IS);
             }
         }
         break;
@@ -154,6 +166,11 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
             case 'r':
                 return lexer_check_keyword(lexer, 2, 2, "ue", TOKEN_BOOL_LITERAL);
             case 'y':
+                // Check for "type" (4 chars) vs "typeof" (6 chars)
+                if (lexer->current - lexer->start == 6)
+                {
+                    return lexer_check_keyword(lexer, 2, 4, "peof", TOKEN_TYPEOF);
+                }
                 return lexer_check_keyword(lexer, 2, 2, "pe", TOKEN_KEYWORD_TYPE);
             }
         }

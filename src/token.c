@@ -143,6 +143,12 @@ const char *token_type_to_string(SnTokenType type)
         return "UUID";
     case TOKEN_ENV:
         return "ENV";
+    case TOKEN_ANY:
+        return "ANY";
+    case TOKEN_TYPEOF:
+        return "TYPEOF";
+    case TOKEN_IS:
+        return "IS";
     case TOKEN_PLUS:
         return "PLUS";
     case TOKEN_MINUS:

@@ -189,7 +189,11 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         return;
     }
 
-    if (init_type && !ast_type_equals(init_type, decl_type))
+    // Allow assigning any concrete type to an 'any' variable (boxing)
+    bool types_compatible = ast_type_equals(init_type, decl_type) ||
+                           (decl_type->kind == TYPE_ANY && init_type != NULL);
+
+    if (init_type && !types_compatible)
     {
         if (stmt->as.var_decl.initializer &&
             stmt->as.var_decl.initializer->type == EXPR_THREAD_SPAWN)

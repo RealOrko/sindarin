@@ -2332,6 +2332,88 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         }
     }
 
+    /* Interceptor static methods - function interception for debugging/mocking */
+    if (token_equals(type_name, "Interceptor"))
+    {
+        if (token_equals(method_name, "register"))
+        {
+            /* Interceptor.register(handler: fn(str, any[], fn(): any): any): void */
+            if (call->arg_count != 1)
+            {
+                type_error(&method_name, "Interceptor.register requires exactly 1 argument (handler function)");
+                return NULL;
+            }
+            Type *handler_type = call->arguments[0]->expr_type;
+            if (handler_type == NULL || handler_type->kind != TYPE_FUNCTION)
+            {
+                type_error(&method_name, "Interceptor.register requires a function argument");
+                return NULL;
+            }
+            /* TODO: Validate handler signature is fn(str, any[], fn(): any): any */
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "registerWhere"))
+        {
+            /* Interceptor.registerWhere(handler: fn(str, any[], fn(): any): any, pattern: str): void */
+            if (call->arg_count != 2)
+            {
+                type_error(&method_name, "Interceptor.registerWhere requires exactly 2 arguments (handler, pattern)");
+                return NULL;
+            }
+            Type *handler_type = call->arguments[0]->expr_type;
+            Type *pattern_type = call->arguments[1]->expr_type;
+            if (handler_type == NULL || handler_type->kind != TYPE_FUNCTION)
+            {
+                type_error(&method_name, "Interceptor.registerWhere first argument must be a function");
+                return NULL;
+            }
+            if (pattern_type == NULL || pattern_type->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Interceptor.registerWhere second argument must be a pattern string");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "clearAll"))
+        {
+            /* Interceptor.clearAll(): void */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Interceptor.clearAll takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_VOID);
+        }
+        else if (token_equals(method_name, "isActive"))
+        {
+            /* Interceptor.isActive(): bool */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Interceptor.isActive takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_BOOL);
+        }
+        else if (token_equals(method_name, "count"))
+        {
+            /* Interceptor.count(): int */
+            if (call->arg_count != 0)
+            {
+                type_error(&method_name, "Interceptor.count takes no arguments");
+                return NULL;
+            }
+            return ast_create_primitive_type(table->arena, TYPE_INT);
+        }
+        else
+        {
+            char msg[128];
+            snprintf(msg, sizeof(msg), "Unknown Interceptor static method '%.*s'",
+                     method_name.length, method_name.start);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
     type_error(&type_name, "Unknown static type");
     return NULL;
 }

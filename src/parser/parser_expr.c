@@ -165,6 +165,40 @@ Expr *parser_unary(Parser *parser)
         Expr *right = parser_unary(parser);
         return ast_create_unary_expr(parser->arena, operator, right, &op);
     }
+    /* typeof operator: typeof expr or typeof(expr) or typeof int or typeof(int) */
+    if (parser_match(parser, TOKEN_TYPEOF))
+    {
+        Token typeof_token = parser->previous;
+        bool has_parens = parser_match(parser, TOKEN_LEFT_PAREN);
+
+        /* Check if this is typeof <type> (e.g., typeof int, typeof str) */
+        /* We need to check for type keywords first */
+        if (parser_check(parser, TOKEN_INT) || parser_check(parser, TOKEN_INT32) ||
+            parser_check(parser, TOKEN_UINT) || parser_check(parser, TOKEN_UINT32) ||
+            parser_check(parser, TOKEN_LONG) || parser_check(parser, TOKEN_DOUBLE) ||
+            parser_check(parser, TOKEN_FLOAT) || parser_check(parser, TOKEN_CHAR) ||
+            parser_check(parser, TOKEN_STR) || parser_check(parser, TOKEN_BOOL) ||
+            parser_check(parser, TOKEN_BYTE) || parser_check(parser, TOKEN_VOID) ||
+            parser_check(parser, TOKEN_ANY))
+        {
+            Type *type_literal = parser_type(parser);
+            if (has_parens)
+            {
+                parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after typeof type");
+            }
+            return ast_create_typeof_expr(parser->arena, NULL, type_literal, &typeof_token);
+        }
+        else
+        {
+            /* typeof expression */
+            Expr *operand = parser_unary(parser);
+            if (has_parens)
+            {
+                parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after typeof expression");
+            }
+            return ast_create_typeof_expr(parser->arena, operand, NULL, &typeof_token);
+        }
+    }
     /* Thread spawn: &fn() or &fn()!
      * We need to parse only the call expression without postfix operators,
      * because parser_postfix() would consume the ! and turn it into a sync
@@ -267,6 +301,7 @@ Expr *parser_postfix(Parser *parser)
         else if (parser_match(parser, TOKEN_AS))
         {
             /* "as val" postfix operator: expr as val - dereferences pointer to value */
+            /* "as <type>" postfix operator: expr as int - casts any to concrete type */
             Token as_token = parser->previous;
             if (parser_match(parser, TOKEN_VAL))
             {
@@ -274,7 +309,30 @@ Expr *parser_postfix(Parser *parser)
             }
             else
             {
-                parser_error_at_current(parser, "Expected 'val' after 'as' in expression");
+                /* Parse a type for type casting */
+                Type *target_type = parser_type(parser);
+                if (target_type == NULL)
+                {
+                    parser_error_at_current(parser, "Expected type after 'as'");
+                }
+                else
+                {
+                    expr = ast_create_as_type_expr(parser->arena, expr, target_type, &as_token);
+                }
+            }
+        }
+        else if (parser_match(parser, TOKEN_IS))
+        {
+            /* "is <type>" postfix operator: expr is int - checks if any value is of type */
+            Token is_token = parser->previous;
+            Type *check_type = parser_type(parser);
+            if (check_type == NULL)
+            {
+                parser_error_at_current(parser, "Expected type after 'is'");
+            }
+            else
+            {
+                expr = ast_create_is_expr(parser->arena, expr, check_type, &is_token);
             }
         }
         else

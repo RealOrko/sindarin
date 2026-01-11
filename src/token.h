@@ -57,6 +57,10 @@ typedef enum
     TOKEN_UUID,
     // Environment access keyword
     TOKEN_ENV,
+    // Any type and type operators
+    TOKEN_ANY,
+    TOKEN_TYPEOF,
+    TOKEN_IS,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,

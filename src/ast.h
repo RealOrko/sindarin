@@ -127,7 +127,10 @@ typedef enum
     EXPR_THREAD_SPAWN,
     EXPR_THREAD_SYNC,
     EXPR_SYNC_LIST,
-    EXPR_AS_VAL
+    EXPR_AS_VAL,
+    EXPR_TYPEOF,
+    EXPR_IS,
+    EXPR_AS_TYPE
 } ExprType;
 
 typedef struct
@@ -261,6 +264,27 @@ typedef struct
     bool is_noop;        // True if operand is already array type (ptr[0..len] produces array)
 } AsValExpr;
 
+/* typeof operator - returns the runtime type of an any value or a type literal */
+typedef struct
+{
+    Expr *operand;       /* Expression to get type of (can be value or type name) */
+    Type *type_literal;  /* If typeof(int), the type itself; NULL if typeof(value) */
+} TypeofExpr;
+
+/* is operator - checks if an any value is of a specific type */
+typedef struct
+{
+    Expr *operand;       /* The any value to check */
+    Type *check_type;    /* The type to check against */
+} IsExpr;
+
+/* as operator - casts an any value to a concrete type */
+typedef struct
+{
+    Expr *operand;       /* The any value to cast */
+    Type *target_type;   /* The type to cast to */
+} AsTypeExpr;
+
 typedef struct
 {
     Parameter *params;
@@ -308,6 +332,9 @@ struct Expr
         ThreadSyncExpr thread_sync;
         SyncListExpr sync_list;
         AsValExpr as_val;
+        TypeofExpr typeof_expr;
+        IsExpr is_expr;
+        AsTypeExpr as_type;
     } as;
 
     Type *expr_type;

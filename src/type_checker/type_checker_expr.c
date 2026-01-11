@@ -309,7 +309,10 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
         type_error(&expr->as.assign.name, "Cannot assign void thread spawn to variable");
         return NULL;
     }
-    if (!ast_type_equals(sym->type, value_type))
+    // Allow assigning any concrete type to an 'any' variable (boxing)
+    bool types_compatible = ast_type_equals(sym->type, value_type) ||
+                           (sym->type->kind == TYPE_ANY && value_type != NULL);
+    if (!types_compatible)
     {
         type_error(&expr->as.assign.name, "Type mismatch in assignment");
         return NULL;
@@ -1088,6 +1091,89 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
                     expr->as.as_val.is_noop = false;
                     DEBUG_VERBOSE("'as val' unwraps pointer to type: %d", t->kind);
                 }
+            }
+        }
+        break;
+    case EXPR_TYPEOF:
+        /* typeof operator returns a type tag value for runtime comparison */
+        /* typeof(value) - returns runtime type of any value */
+        /* typeof(Type) - returns the type tag for that type */
+        {
+            if (expr->as.typeof_expr.type_literal != NULL)
+            {
+                /* typeof(int), typeof(str), etc. - always valid */
+                t = ast_create_primitive_type(table->arena, TYPE_INT);  /* Type tag is int */
+                DEBUG_VERBOSE("typeof type literal: returns type tag");
+            }
+            else if (expr->as.typeof_expr.operand != NULL)
+            {
+                Type *operand_type = type_check_expr(expr->as.typeof_expr.operand, table);
+                if (operand_type == NULL)
+                {
+                    type_error(expr->token, "Invalid operand in typeof expression");
+                    t = NULL;
+                }
+                else if (operand_type->kind != TYPE_ANY)
+                {
+                    /* For non-any types, typeof is a compile-time constant */
+                    t = ast_create_primitive_type(table->arena, TYPE_INT);  /* Type tag is int */
+                    DEBUG_VERBOSE("typeof non-any value: compile-time type tag");
+                }
+                else
+                {
+                    /* For any type, typeof is a runtime operation */
+                    t = ast_create_primitive_type(table->arena, TYPE_INT);  /* Type tag is int */
+                    DEBUG_VERBOSE("typeof any value: runtime type tag");
+                }
+            }
+            else
+            {
+                type_error(expr->token, "typeof requires an operand or type");
+                t = NULL;
+            }
+        }
+        break;
+    case EXPR_IS:
+        /* 'is' operator: checks if an any value is of a specific type */
+        /* Returns bool */
+        {
+            Type *operand_type = type_check_expr(expr->as.is_expr.operand, table);
+            if (operand_type == NULL)
+            {
+                type_error(expr->token, "Invalid operand in 'is' expression");
+                t = NULL;
+            }
+            else if (operand_type->kind != TYPE_ANY)
+            {
+                type_error(expr->token, "'is' operator requires an 'any' type operand");
+                t = NULL;
+            }
+            else
+            {
+                t = ast_create_primitive_type(table->arena, TYPE_BOOL);
+                DEBUG_VERBOSE("'is' type check: returns bool");
+            }
+        }
+        break;
+    case EXPR_AS_TYPE:
+        /* 'as Type' operator: casts an any value to a concrete type */
+        /* Returns the target type */
+        {
+            Type *operand_type = type_check_expr(expr->as.as_type.operand, table);
+            if (operand_type == NULL)
+            {
+                type_error(expr->token, "Invalid operand in 'as' cast expression");
+                t = NULL;
+            }
+            else if (operand_type->kind != TYPE_ANY)
+            {
+                type_error(expr->token, "'as <type>' cast requires an 'any' type operand");
+                t = NULL;
+            }
+            else
+            {
+                t = expr->as.as_type.target_type;
+                DEBUG_VERBOSE("'as' type cast: returns target type %d", t->kind);
             }
         }
         break;

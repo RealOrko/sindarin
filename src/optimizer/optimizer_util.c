@@ -321,6 +321,29 @@ void collect_used_variables(Expr *expr, Token **used_vars, int *used_count,
         collect_used_variables(expr->as.thread_sync.handle, used_vars, used_count, used_capacity, arena);
         break;
 
+    case EXPR_TYPEOF:
+        /* typeof uses its operand expression */
+        if (expr->as.typeof_expr.operand)
+        {
+            collect_used_variables(expr->as.typeof_expr.operand, used_vars, used_count, used_capacity, arena);
+        }
+        break;
+
+    case EXPR_IS:
+        /* is uses its operand expression */
+        collect_used_variables(expr->as.is_expr.operand, used_vars, used_count, used_capacity, arena);
+        break;
+
+    case EXPR_AS_TYPE:
+        /* as uses its operand expression */
+        collect_used_variables(expr->as.as_type.operand, used_vars, used_count, used_capacity, arena);
+        break;
+
+    case EXPR_AS_VAL:
+        /* as val uses its operand expression */
+        collect_used_variables(expr->as.as_val.operand, used_vars, used_count, used_capacity, arena);
+        break;
+
     case EXPR_LITERAL:
     default:
         break;

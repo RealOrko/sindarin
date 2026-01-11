@@ -805,6 +805,36 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         }
     }
 
+    /* Interceptor static methods */
+    if (codegen_token_equals(type_name, "Interceptor"))
+    {
+        /* Interceptor.register(handler) -> rt_interceptor_register((RtInterceptHandler)handler) */
+        if (codegen_token_equals(method_name, "register"))
+        {
+            return arena_sprintf(gen->arena, "(rt_interceptor_register((RtInterceptHandler)%s), (void)0)", arg0);
+        }
+        /* Interceptor.registerWhere(handler, pattern) -> rt_interceptor_register_where((RtInterceptHandler)handler, pattern) */
+        else if (codegen_token_equals(method_name, "registerWhere"))
+        {
+            return arena_sprintf(gen->arena, "(rt_interceptor_register_where((RtInterceptHandler)%s, %s), (void)0)", arg0, arg1);
+        }
+        /* Interceptor.clearAll() -> rt_interceptor_clear_all() */
+        else if (codegen_token_equals(method_name, "clearAll"))
+        {
+            return arena_sprintf(gen->arena, "(rt_interceptor_clear_all(), (void)0)");
+        }
+        /* Interceptor.isActive() -> rt_interceptor_is_active() */
+        else if (codegen_token_equals(method_name, "isActive"))
+        {
+            return arena_sprintf(gen->arena, "rt_interceptor_is_active()");
+        }
+        /* Interceptor.count() -> rt_interceptor_count() */
+        else if (codegen_token_equals(method_name, "count"))
+        {
+            return arena_sprintf(gen->arena, "rt_interceptor_count()");
+        }
+    }
+
     /* Fallback for unimplemented static methods */
     return arena_sprintf(gen->arena,
         "(fprintf(stderr, \"Static method call not yet implemented: %.*s.%.*s\\n\"), exit(1), (void *)0)",
