@@ -294,8 +294,8 @@ function Run-Test {
         $ExpectedError = (Get-Content $ExpectedPath -First 1 -Encoding UTF8 -ErrorAction SilentlyContinue)
         $CompileError = $result.Error
 
-        # Use -like with wildcards instead of regex for safer pattern matching
-        if ($CompileError -like "*$ExpectedError*") {
+        # Use Contains() for literal substring matching (avoids wildcard issues with [] etc.)
+        if ($CompileError -and $ExpectedError -and $CompileError.Contains($ExpectedError)) {
             Write-Host "PASS" -ForegroundColor Green
             return "pass"
         } else {
