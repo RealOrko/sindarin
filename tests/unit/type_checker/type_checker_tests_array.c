@@ -173,6 +173,7 @@ static void test_type_check_array_literal_empty()
 
 static void test_type_check_array_literal_heterogeneous()
 {
+    // Mixed-type array literals now return any[] type instead of erroring
     DEBUG_INFO("Starting test_type_check_array_literal_heterogeneous");
 
     Arena arena;
@@ -206,7 +207,13 @@ static void test_type_check_array_literal_heterogeneous()
     ast_module_add_statement(&arena, &module, expr_stmt);
 
     int no_error = type_check_module(&module, &table);
-    assert(no_error == 0);
+    assert(no_error == 1); // Should succeed - mixed types produce any[]
+
+    // Verify the result type is any[]
+    assert(arr_lit->expr_type != NULL);
+    assert(arr_lit->expr_type->kind == TYPE_ARRAY);
+    assert(arr_lit->expr_type->as.array.element_type != NULL);
+    assert(arr_lit->expr_type->as.array.element_type->kind == TYPE_ANY);
 
     symbol_table_cleanup(&table);
     arena_free(&arena);

@@ -80,6 +80,15 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
 {
     (void)return_type;
     DEBUG_VERBOSE("Type checking variable declaration: %.*s", stmt->as.var_decl.name.length, stmt->as.var_decl.name.start);
+
+    // Check for redeclaration in the current scope
+    Symbol *existing = symbol_table_lookup_symbol_current(table, stmt->as.var_decl.name);
+    if (existing != NULL)
+    {
+        type_error(&stmt->as.var_decl.name, "Variable is already declared in this scope");
+        return;
+    }
+
     Type *decl_type = stmt->as.var_decl.type;
     Type *init_type = NULL;
     if (stmt->as.var_decl.initializer)
@@ -190,8 +199,31 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
     }
 
     // Allow assigning any concrete type to an 'any' variable (boxing)
+    // Also allow assigning T[] to any[], T[][] to any[][], etc. (each element will be boxed)
     bool types_compatible = ast_type_equals(init_type, decl_type) ||
                            (decl_type->kind == TYPE_ANY && init_type != NULL);
+
+    // Check for any[] assignment compatibility at any nesting level
+    if (!types_compatible && decl_type->kind == TYPE_ARRAY && init_type != NULL && init_type->kind == TYPE_ARRAY)
+    {
+        // Walk down both types to find the innermost element types
+        Type *decl_elem = decl_type->as.array.element_type;
+        Type *init_elem = init_type->as.array.element_type;
+
+        // Count nesting levels and check structure matches
+        while (decl_elem != NULL && init_elem != NULL &&
+               decl_elem->kind == TYPE_ARRAY && init_elem->kind == TYPE_ARRAY)
+        {
+            decl_elem = decl_elem->as.array.element_type;
+            init_elem = init_elem->as.array.element_type;
+        }
+
+        // If decl's innermost element is any and init's innermost element is a concrete type, allow it
+        if (decl_elem != NULL && decl_elem->kind == TYPE_ANY && init_elem != NULL)
+        {
+            types_compatible = true;
+        }
+    }
 
     if (init_type && !types_compatible)
     {

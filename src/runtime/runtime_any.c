@@ -542,7 +542,16 @@ char *rt_any_to_string(RtArena *arena, RtAny value) {
             snprintf(buffer, sizeof(buffer), "%g", (double)value.value.f);
             return rt_arena_strdup(arena, buffer);
         case RT_ANY_STRING:
-            return value.value.s ? rt_arena_strdup(arena, value.value.s) : rt_arena_strdup(arena, "null");
+            if (value.value.s) {
+                size_t len = strlen(value.value.s);
+                char *result = rt_arena_alloc(arena, len + 3);  /* "str" + null */
+                result[0] = '"';
+                memcpy(result + 1, value.value.s, len);
+                result[len + 1] = '"';
+                result[len + 2] = '\0';
+                return result;
+            }
+            return rt_arena_strdup(arena, "null");
         case RT_ANY_CHAR:
             snprintf(buffer, sizeof(buffer), "%c", value.value.c);
             return rt_arena_strdup(arena, buffer);

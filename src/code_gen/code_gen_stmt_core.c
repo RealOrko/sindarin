@@ -275,6 +275,145 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
             init_str = code_gen_box_value(gen, init_str, stmt->initializer->expr_type);
         }
 
+        // Handle conversion when assigning typed array to any[], any[][], or any[][][]
+        if (stmt->type->kind == TYPE_ARRAY &&
+            stmt->type->as.array.element_type != NULL &&
+            stmt->initializer->expr_type != NULL &&
+            stmt->initializer->expr_type->kind == TYPE_ARRAY &&
+            stmt->initializer->expr_type->as.array.element_type != NULL)
+        {
+            Type *decl_elem = stmt->type->as.array.element_type;
+            Type *src_elem = stmt->initializer->expr_type->as.array.element_type;
+
+            // Check for 3D array: any[][][] = T[][][]
+            if (decl_elem->kind == TYPE_ARRAY &&
+                decl_elem->as.array.element_type != NULL &&
+                decl_elem->as.array.element_type->kind == TYPE_ARRAY &&
+                decl_elem->as.array.element_type->as.array.element_type != NULL &&
+                decl_elem->as.array.element_type->as.array.element_type->kind == TYPE_ANY &&
+                src_elem->kind == TYPE_ARRAY &&
+                src_elem->as.array.element_type != NULL &&
+                src_elem->as.array.element_type->kind == TYPE_ARRAY &&
+                src_elem->as.array.element_type->as.array.element_type != NULL &&
+                src_elem->as.array.element_type->as.array.element_type->kind != TYPE_ANY)
+            {
+                Type *innermost_src = src_elem->as.array.element_type->as.array.element_type;
+                const char *conv_func = NULL;
+                switch (innermost_src->kind)
+                {
+                case TYPE_INT:
+                case TYPE_INT32:
+                case TYPE_UINT:
+                case TYPE_UINT32:
+                case TYPE_LONG:
+                    conv_func = "rt_array3_to_any_long";
+                    break;
+                case TYPE_DOUBLE:
+                case TYPE_FLOAT:
+                    conv_func = "rt_array3_to_any_double";
+                    break;
+                case TYPE_CHAR:
+                    conv_func = "rt_array3_to_any_char";
+                    break;
+                case TYPE_BOOL:
+                    conv_func = "rt_array3_to_any_bool";
+                    break;
+                case TYPE_BYTE:
+                    conv_func = "rt_array3_to_any_byte";
+                    break;
+                case TYPE_STRING:
+                    conv_func = "rt_array3_to_any_string";
+                    break;
+                default:
+                    break;
+                }
+                if (conv_func != NULL)
+                {
+                    init_str = arena_sprintf(gen->arena, "%s(%s, %s)", conv_func, ARENA_VAR(gen), init_str);
+                }
+            }
+            // Check for 2D array: any[][] = T[][]
+            else if (decl_elem->kind == TYPE_ARRAY &&
+                decl_elem->as.array.element_type != NULL &&
+                decl_elem->as.array.element_type->kind == TYPE_ANY &&
+                src_elem->kind == TYPE_ARRAY &&
+                src_elem->as.array.element_type != NULL &&
+                src_elem->as.array.element_type->kind != TYPE_ANY)
+            {
+                Type *inner_src = src_elem->as.array.element_type;
+                const char *conv_func = NULL;
+                switch (inner_src->kind)
+                {
+                case TYPE_INT:
+                case TYPE_INT32:
+                case TYPE_UINT:
+                case TYPE_UINT32:
+                case TYPE_LONG:
+                    conv_func = "rt_array2_to_any_long";
+                    break;
+                case TYPE_DOUBLE:
+                case TYPE_FLOAT:
+                    conv_func = "rt_array2_to_any_double";
+                    break;
+                case TYPE_CHAR:
+                    conv_func = "rt_array2_to_any_char";
+                    break;
+                case TYPE_BOOL:
+                    conv_func = "rt_array2_to_any_bool";
+                    break;
+                case TYPE_BYTE:
+                    conv_func = "rt_array2_to_any_byte";
+                    break;
+                case TYPE_STRING:
+                    conv_func = "rt_array2_to_any_string";
+                    break;
+                default:
+                    break;
+                }
+                if (conv_func != NULL)
+                {
+                    init_str = arena_sprintf(gen->arena, "%s(%s, %s)", conv_func, ARENA_VAR(gen), init_str);
+                }
+            }
+            // Check for 1D array: any[] = T[]
+            else if (decl_elem->kind == TYPE_ANY && src_elem->kind != TYPE_ANY)
+            {
+                const char *conv_func = NULL;
+                switch (src_elem->kind)
+                {
+                case TYPE_INT:
+                case TYPE_INT32:
+                case TYPE_UINT:
+                case TYPE_UINT32:
+                case TYPE_LONG:
+                    conv_func = "rt_array_to_any_long";
+                    break;
+                case TYPE_DOUBLE:
+                case TYPE_FLOAT:
+                    conv_func = "rt_array_to_any_double";
+                    break;
+                case TYPE_CHAR:
+                    conv_func = "rt_array_to_any_char";
+                    break;
+                case TYPE_BOOL:
+                    conv_func = "rt_array_to_any_bool";
+                    break;
+                case TYPE_BYTE:
+                    conv_func = "rt_array_to_any_byte";
+                    break;
+                case TYPE_STRING:
+                    conv_func = "rt_array_to_any_string";
+                    break;
+                default:
+                    break;
+                }
+                if (conv_func != NULL)
+                {
+                    init_str = arena_sprintf(gen->arena, "%s(%s, %s)", conv_func, ARENA_VAR(gen), init_str);
+                }
+            }
+        }
+
         // Handle 'as val' - create a copy for arrays and strings
         if (stmt->mem_qualifier == MEM_AS_VAL)
         {

@@ -357,8 +357,53 @@ static char *code_gen_as_type_expression(CodeGen *gen, Expr *expr)
     AsTypeExpr *as_type = &expr->as.as_type;
     char *operand_code = code_gen_expression(gen, as_type->operand);
     Type *target_type = as_type->target_type;
+    Type *operand_type = as_type->operand->expr_type;
 
-    /* Use the unbox helper function */
+    /* Check if this is an any[] to T[] cast */
+    if (operand_type != NULL &&
+        operand_type->kind == TYPE_ARRAY &&
+        operand_type->as.array.element_type != NULL &&
+        operand_type->as.array.element_type->kind == TYPE_ANY &&
+        target_type->kind == TYPE_ARRAY &&
+        target_type->as.array.element_type != NULL)
+    {
+        Type *target_elem = target_type->as.array.element_type;
+        const char *conv_func = NULL;
+        switch (target_elem->kind)
+        {
+        case TYPE_INT:
+        case TYPE_INT32:
+        case TYPE_UINT:
+        case TYPE_UINT32:
+        case TYPE_LONG:
+            conv_func = "rt_array_from_any_long";
+            break;
+        case TYPE_DOUBLE:
+        case TYPE_FLOAT:
+            conv_func = "rt_array_from_any_double";
+            break;
+        case TYPE_CHAR:
+            conv_func = "rt_array_from_any_char";
+            break;
+        case TYPE_BOOL:
+            conv_func = "rt_array_from_any_bool";
+            break;
+        case TYPE_BYTE:
+            conv_func = "rt_array_from_any_byte";
+            break;
+        case TYPE_STRING:
+            conv_func = "rt_array_from_any_string";
+            break;
+        default:
+            break;
+        }
+        if (conv_func != NULL)
+        {
+            return arena_sprintf(gen->arena, "%s(%s, %s)", conv_func, ARENA_VAR(gen), operand_code);
+        }
+    }
+
+    /* Use the unbox helper function for single any values */
     return code_gen_unbox_value(gen, operand_code, target_type);
 }
 

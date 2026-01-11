@@ -26,6 +26,7 @@ Type *type_check_array(Expr *expr, SymbolTable *table)
 
     Type *elem_type = NULL;
     bool valid = true;
+    bool has_mixed_types = false;
     for (int i = 0; i < expr->as.array.element_count; i++)
     {
         Expr *element = expr->as.array.elements[i];
@@ -70,14 +71,20 @@ Type *type_check_array(Expr *expr, SymbolTable *table)
             }
             if (!equal)
             {
-                type_error(expr->token, "Array elements must have the same type");
-                valid = false;
-                return NULL;
+                // Mixed types detected - array will be typed as any[]
+                has_mixed_types = true;
+                DEBUG_VERBOSE("Mixed types detected in array literal");
             }
         }
     }
     if (valid && elem_type != NULL)
     {
+        // If mixed types were detected, return any[] type instead
+        if (has_mixed_types)
+        {
+            DEBUG_VERBOSE("Returning any[] type for mixed-type array");
+            return ast_create_array_type(table->arena, ast_create_primitive_type(table->arena, TYPE_ANY));
+        }
         DEBUG_VERBOSE("Returning array type with element type: %d", elem_type->kind);
         return ast_create_array_type(table->arena, elem_type);
     }

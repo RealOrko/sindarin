@@ -197,6 +197,10 @@ test-clang:
 	$(call TEST_BACKEND,Clang,clang)
 
 test-tcc:
+	@# TinyCC lacks __thread support - exclude thread+interceptor tests that require TLS
+	@SN_EXCLUDE_TESTS="test_interceptor_thread_counter" $(MAKE) --no-print-directory _test-tcc-impl
+
+_test-tcc-impl:
 	$(call TEST_BACKEND,TinyCC,tcc)
 
 #------------------------------------------------------------------------------

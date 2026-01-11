@@ -273,7 +273,22 @@ const char *get_rt_to_string_func_for_type(Type *type)
         /* Check for nested arrays (2D arrays) */
         if (elem_kind == TYPE_ARRAY && elem_type->as.array.element_type != NULL)
         {
-            TypeKind inner_kind = elem_type->as.array.element_type->kind;
+            Type *inner_type = elem_type->as.array.element_type;
+            TypeKind inner_kind = inner_type->kind;
+
+            /* Check for 3D arrays */
+            if (inner_kind == TYPE_ARRAY && inner_type->as.array.element_type != NULL)
+            {
+                TypeKind innermost_kind = inner_type->as.array.element_type->kind;
+                /* Currently only support 3D any arrays */
+                if (innermost_kind == TYPE_ANY)
+                {
+                    return "rt_to_string_array3_any";
+                }
+                /* 3D+ arrays of other types - fallback to pointer */
+                return "rt_to_string_pointer";
+            }
+
             switch (inner_kind)
             {
             case TYPE_INT:
@@ -293,8 +308,10 @@ const char *get_rt_to_string_func_for_type(Type *type)
                 return "rt_to_string_array2_byte";
             case TYPE_STRING:
                 return "rt_to_string_array2_string";
+            case TYPE_ANY:
+                return "rt_to_string_array2_any";
             default:
-                /* 3D+ arrays - fallback to pointer */
+                /* Other nested types - fallback to pointer */
                 return "rt_to_string_pointer";
             }
         }
@@ -319,6 +336,8 @@ const char *get_rt_to_string_func_for_type(Type *type)
             return "rt_to_string_array_byte";
         case TYPE_STRING:
             return "rt_to_string_array_string";
+        case TYPE_ANY:
+            return "rt_to_string_array_any";
         default:
             /* Other complex element types - fallback to pointer */
             return "rt_to_string_pointer";

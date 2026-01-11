@@ -958,6 +958,322 @@ void rt_print_array_string(char **arr) {
 }
 
 /* ============================================================================
+ * Array to Any Conversion Functions
+ * ============================================================================
+ * Convert typed arrays to any[] by boxing each element.
+ */
+
+RtAny *rt_array_to_any_long(RtArena *arena, long long *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_long(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_double(RtArena *arena, double *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_double(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_char(RtArena *arena, char *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_char(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_bool(RtArena *arena, int *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_bool(arr[i] != 0));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_byte(RtArena *arena, unsigned char *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_byte(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_string(RtArena *arena, char **arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_string(arr[i]));
+    }
+    return result;
+}
+
+/* 2D array to any[][] conversion functions */
+
+RtAny **rt_array2_to_any_long(RtArena *arena, long long **arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny **result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny *inner = rt_array_to_any_long(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny **rt_array2_to_any_double(RtArena *arena, double **arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny **result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny *inner = rt_array_to_any_double(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny **rt_array2_to_any_char(RtArena *arena, char **arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny **result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny *inner = rt_array_to_any_char(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny **rt_array2_to_any_bool(RtArena *arena, int **arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny **result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny *inner = rt_array_to_any_bool(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny **rt_array2_to_any_byte(RtArena *arena, unsigned char **arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny **result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny *inner = rt_array_to_any_byte(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny **rt_array2_to_any_string(RtArena *arena, char ***arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny **result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny *inner = rt_array_to_any_string(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+/* 3D array to any[][][] conversion functions */
+
+RtAny ***rt_array3_to_any_long(RtArena *arena, long long ***arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny ***result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny **inner = rt_array2_to_any_long(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny ***rt_array3_to_any_double(RtArena *arena, double ***arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny ***result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny **inner = rt_array2_to_any_double(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny ***rt_array3_to_any_char(RtArena *arena, char ***arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny ***result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny **inner = rt_array2_to_any_char(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny ***rt_array3_to_any_bool(RtArena *arena, int ***arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny ***result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny **inner = rt_array2_to_any_bool(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny ***rt_array3_to_any_byte(RtArena *arena, unsigned char ***arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny ***result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny **inner = rt_array2_to_any_byte(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+RtAny ***rt_array3_to_any_string(RtArena *arena, char ****arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny ***result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        RtAny **inner = rt_array2_to_any_string(arena, arr[i]);
+        result = rt_array_push_ptr(arena, result, inner);
+    }
+    return result;
+}
+
+/* ============================================================================
+ * Any Array to Typed Array Conversion Functions
+ * ============================================================================
+ * Convert any[] to typed arrays by unboxing each element.
+ */
+
+long long *rt_array_from_any_long(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    long long *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_long(arena, result, rt_unbox_long(arr[i]));
+    }
+    return result;
+}
+
+double *rt_array_from_any_double(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    double *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_double(arena, result, rt_unbox_double(arr[i]));
+    }
+    return result;
+}
+
+char *rt_array_from_any_char(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    char *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_char(arena, result, rt_unbox_char(arr[i]));
+    }
+    return result;
+}
+
+int *rt_array_from_any_bool(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    int *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_bool(arena, result, rt_unbox_bool(arr[i]) ? 1 : 0);
+    }
+    return result;
+}
+
+unsigned char *rt_array_from_any_byte(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    unsigned char *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_byte(arena, result, rt_unbox_byte(arr[i]));
+    }
+    return result;
+}
+
+char **rt_array_from_any_string(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    char **result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_string(arena, result, rt_unbox_string(arr[i]));
+    }
+    return result;
+}
+
+/* ============================================================================
  * Array ToString Functions
  * ============================================================================
  * Convert array to string representation for interpolation.
@@ -1139,6 +1455,45 @@ char *rt_to_string_array_string(RtArena *arena, char **arr) {
             const char *null_str = "null";
             while (*null_str) *p++ = *null_str++;
         }
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_any(RtArena *arena, RtAny *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+
+    /* First pass: convert each element to string and calculate total length */
+    char **elem_strs = rt_arena_alloc(arena, len * sizeof(char *));
+    if (elem_strs == NULL) return "{}";
+
+    size_t total_len = 2; /* {} */
+    for (size_t i = 0; i < len; i++) {
+        elem_strs[i] = rt_any_to_string(arena, arr[i]);
+        if (i > 0) total_len += 2; /* ", " */
+        total_len += strlen(elem_strs[i]);
+    }
+
+    /* Build result string */
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        const char *s = elem_strs[i];
+        while (*s) *p++ = *s++;
     }
 
     *p++ = '}';
@@ -1336,6 +1691,66 @@ char *rt_to_string_array2_string(RtArena *arena, char ***arr) {
     return result;
 }
 
+char *rt_to_string_array2_any(RtArena *arena, RtAny **arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2;
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array_any(arena, arr[i]);
+        if (i > 0) total_len += 2;
+        total_len += strlen(inner_strs[i]);
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array3_any(RtArena *arena, RtAny ***arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2;
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array2_any(arena, arr[i]);
+        if (i > 0) total_len += 2;
+        total_len += strlen(inner_strs[i]);
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
 /* ============================================================================
  * Array Create Functions
  * ============================================================================
@@ -1366,6 +1781,7 @@ DEFINE_ARRAY_CREATE(double, double)
 DEFINE_ARRAY_CREATE(char, char)
 DEFINE_ARRAY_CREATE(bool, int)
 DEFINE_ARRAY_CREATE(byte, unsigned char)
+DEFINE_ARRAY_CREATE(any, RtAny)
 
 /* Create an uninitialized byte array for filling in later (e.g., file reads) */
 unsigned char *rt_array_create_byte_uninit(RtArena *arena, size_t count) {

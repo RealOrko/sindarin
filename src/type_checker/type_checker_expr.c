@@ -310,8 +310,32 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
         return NULL;
     }
     // Allow assigning any concrete type to an 'any' variable (boxing)
+    // Also allow assigning T[] to any[], T[][] to any[][], etc. (element-wise boxing)
     bool types_compatible = ast_type_equals(sym->type, value_type) ||
                            (sym->type->kind == TYPE_ANY && value_type != NULL);
+
+    // Check for any[] assignment compatibility at any nesting level
+    if (!types_compatible && sym->type->kind == TYPE_ARRAY && value_type != NULL && value_type->kind == TYPE_ARRAY)
+    {
+        // Walk down both types to find the innermost element types
+        Type *decl_elem = sym->type->as.array.element_type;
+        Type *init_elem = value_type->as.array.element_type;
+
+        // Count nesting levels and check structure matches
+        while (decl_elem != NULL && init_elem != NULL &&
+               decl_elem->kind == TYPE_ARRAY && init_elem->kind == TYPE_ARRAY)
+        {
+            decl_elem = decl_elem->as.array.element_type;
+            init_elem = init_elem->as.array.element_type;
+        }
+
+        // If decl's innermost element is any and init's innermost element is a concrete type, allow it
+        if (decl_elem != NULL && decl_elem->kind == TYPE_ANY && init_elem != NULL)
+        {
+            types_compatible = true;
+        }
+    }
+
     if (!types_compatible)
     {
         type_error(&expr->as.assign.name, "Type mismatch in assignment");
@@ -1160,20 +1184,38 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         /* Returns the target type */
         {
             Type *operand_type = type_check_expr(expr->as.as_type.operand, table);
+            Type *target_type = expr->as.as_type.target_type;
             if (operand_type == NULL)
             {
                 type_error(expr->token, "Invalid operand in 'as' cast expression");
                 t = NULL;
             }
-            else if (operand_type->kind != TYPE_ANY)
+            else if (operand_type->kind == TYPE_ANY)
             {
-                type_error(expr->token, "'as <type>' cast requires an 'any' type operand");
-                t = NULL;
+                /* Single any value cast to concrete type */
+                t = target_type;
+                DEBUG_VERBOSE("'as' type cast: returns target type %d", t->kind);
+            }
+            else if (operand_type->kind == TYPE_ARRAY &&
+                     operand_type->as.array.element_type != NULL &&
+                     operand_type->as.array.element_type->kind == TYPE_ANY)
+            {
+                /* any[] cast to T[] */
+                if (target_type->kind != TYPE_ARRAY)
+                {
+                    type_error(expr->token, "'as <type>' cast from any[] requires array target type");
+                    t = NULL;
+                }
+                else
+                {
+                    t = target_type;
+                    DEBUG_VERBOSE("'as' array type cast: returns target type %d", t->kind);
+                }
             }
             else
             {
-                t = expr->as.as_type.target_type;
-                DEBUG_VERBOSE("'as' type cast: returns target type %d", t->kind);
+                type_error(expr->token, "'as <type>' cast requires an 'any' or 'any[]' type operand");
+                t = NULL;
             }
         }
         break;

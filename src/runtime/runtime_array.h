@@ -202,6 +202,7 @@ int *rt_array_create_bool(RtArena *arena, size_t count, const int *data);
 unsigned char *rt_array_create_byte(RtArena *arena, size_t count, const unsigned char *data);
 char **rt_array_create_string(RtArena *arena, size_t count, const char **data);
 void **rt_array_create_ptr(RtArena *arena, size_t count, void **data);
+RtAny *rt_array_create_any(RtArena *arena, size_t count, const RtAny *data);
 unsigned char *rt_array_create_byte_uninit(RtArena *arena, size_t count);
 
 /* Create str[] array from command-line arguments (argc/argv).
@@ -263,6 +264,47 @@ char *rt_to_string_array_char(RtArena *arena, char *arr);
 char *rt_to_string_array_bool(RtArena *arena, int *arr);
 char *rt_to_string_array_byte(RtArena *arena, unsigned char *arr);
 char *rt_to_string_array_string(RtArena *arena, char **arr);
+char *rt_to_string_array_any(RtArena *arena, RtAny *arr);
+
+/* ============================================================================
+ * Array to Any Conversion Functions
+ * ============================================================================
+ * Convert typed arrays to any[] by boxing each element.
+ */
+RtAny *rt_array_to_any_long(RtArena *arena, long long *arr);
+RtAny *rt_array_to_any_double(RtArena *arena, double *arr);
+RtAny *rt_array_to_any_char(RtArena *arena, char *arr);
+RtAny *rt_array_to_any_bool(RtArena *arena, int *arr);
+RtAny *rt_array_to_any_byte(RtArena *arena, unsigned char *arr);
+RtAny *rt_array_to_any_string(RtArena *arena, char **arr);
+
+/* 2D array to any[][] conversion functions */
+RtAny **rt_array2_to_any_long(RtArena *arena, long long **arr);
+RtAny **rt_array2_to_any_double(RtArena *arena, double **arr);
+RtAny **rt_array2_to_any_char(RtArena *arena, char **arr);
+RtAny **rt_array2_to_any_bool(RtArena *arena, int **arr);
+RtAny **rt_array2_to_any_byte(RtArena *arena, unsigned char **arr);
+RtAny **rt_array2_to_any_string(RtArena *arena, char ***arr);
+
+/* 3D array to any[][][] conversion functions */
+RtAny ***rt_array3_to_any_long(RtArena *arena, long long ***arr);
+RtAny ***rt_array3_to_any_double(RtArena *arena, double ***arr);
+RtAny ***rt_array3_to_any_char(RtArena *arena, char ***arr);
+RtAny ***rt_array3_to_any_bool(RtArena *arena, int ***arr);
+RtAny ***rt_array3_to_any_byte(RtArena *arena, unsigned char ***arr);
+RtAny ***rt_array3_to_any_string(RtArena *arena, char ****arr);
+
+/* ============================================================================
+ * Any Array to Typed Array Conversion Functions
+ * ============================================================================
+ * Convert any[] to typed arrays by unboxing each element.
+ */
+long long *rt_array_from_any_long(RtArena *arena, RtAny *arr);
+double *rt_array_from_any_double(RtArena *arena, RtAny *arr);
+char *rt_array_from_any_char(RtArena *arena, RtAny *arr);
+int *rt_array_from_any_bool(RtArena *arena, RtAny *arr);
+unsigned char *rt_array_from_any_byte(RtArena *arena, RtAny *arr);
+char **rt_array_from_any_string(RtArena *arena, RtAny *arr);
 
 /* ============================================================================
  * Nested Array ToString Functions (2D arrays)
@@ -276,5 +318,7 @@ char *rt_to_string_array2_char(RtArena *arena, char **arr);
 char *rt_to_string_array2_bool(RtArena *arena, int **arr);
 char *rt_to_string_array2_byte(RtArena *arena, unsigned char **arr);
 char *rt_to_string_array2_string(RtArena *arena, char ***arr);
+char *rt_to_string_array2_any(RtArena *arena, RtAny **arr);
+char *rt_to_string_array3_any(RtArena *arena, RtAny ***arr);
 
 #endif /* RUNTIME_ARRAY_H */
