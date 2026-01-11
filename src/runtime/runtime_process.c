@@ -526,3 +526,13 @@ void rt_exit(int code)
 {
     exit(code);
 }
+
+/* Assert that a condition is true. */
+void rt_assert(int condition, const char *message)
+{
+    if (!condition)
+    {
+        fprintf(stderr, "%s\n", message);
+        exit(1);
+    }
+}

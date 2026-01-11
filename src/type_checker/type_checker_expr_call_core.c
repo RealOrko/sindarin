@@ -86,6 +86,26 @@ Type *type_check_call_expression(Expr *expr, SymbolTable *table)
         return ast_create_primitive_type(table->arena, TYPE_VOID);
     }
 
+    // assert(condition: bool, message: str) -> void
+    if (is_builtin_name(callee, "assert") && expr->as.call.arg_count == 2)
+    {
+        Type *cond_type = type_check_expr(expr->as.call.arguments[0], table);
+        if (cond_type == NULL) return NULL;
+        if (cond_type->kind != TYPE_BOOL)
+        {
+            type_error(expr->token, "assert() first argument must be bool");
+            return NULL;
+        }
+        Type *msg_type = type_check_expr(expr->as.call.arguments[1], table);
+        if (msg_type == NULL) return NULL;
+        if (msg_type->kind != TYPE_STRING)
+        {
+            type_error(expr->token, "assert() second argument must be str");
+            return NULL;
+        }
+        return ast_create_primitive_type(table->arena, TYPE_VOID);
+    }
+
     // Note: Other array operations are method-style only:
     //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
 

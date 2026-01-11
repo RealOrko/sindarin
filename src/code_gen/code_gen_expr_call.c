@@ -1367,7 +1367,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             if (strcmp(name, "print") != 0 && strcmp(name, "len") != 0 &&
                 strcmp(name, "readLine") != 0 && strcmp(name, "println") != 0 &&
                 strcmp(name, "printErr") != 0 && strcmp(name, "printErrLn") != 0 &&
-                strcmp(name, "exit") != 0)
+                strcmp(name, "exit") != 0 && strcmp(name, "assert") != 0)
             {
                 /* Check if this is a named function or a closure variable */
                 Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
@@ -1564,6 +1564,11 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         else if (strcmp(callee_name, "exit") == 0 && call->arg_count == 1)
         {
             return arena_sprintf(gen->arena, "rt_exit(%s)", arg_strs[0]);
+        }
+        // assert(condition: bool, message: str) -> rt_assert(condition, message)
+        else if (strcmp(callee_name, "assert") == 0 && call->arg_count == 2)
+        {
+            return arena_sprintf(gen->arena, "rt_assert(%s, %s)", arg_strs[0], arg_strs[1]);
         }
         // Note: Other array operations are method-style only:
         //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)

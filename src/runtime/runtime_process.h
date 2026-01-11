@@ -53,4 +53,9 @@ RtProcess *rt_process_run_with_args(RtArena *arena, const char *cmd, char **args
  */
 void rt_exit(int code);
 
+/* Assert that a condition is true.
+ * If the condition is false, writes the message to stderr and exits with code 1.
+ */
+void rt_assert(int condition, const char *message);
+
 #endif /* RUNTIME_PROCESS_H */
