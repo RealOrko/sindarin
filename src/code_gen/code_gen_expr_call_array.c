@@ -44,6 +44,9 @@ static char *code_gen_array_push(CodeGen *gen, Expr *object, Type *element_type,
         case TYPE_ARRAY:
             push_func = "rt_array_push_ptr";
             break;
+        case TYPE_ANY:
+            push_func = "rt_array_push_any";
+            break;
         default:
             fprintf(stderr, "Error: Unsupported array element type for push\n");
             exit(1);

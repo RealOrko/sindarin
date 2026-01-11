@@ -185,6 +185,32 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
     DEBUG_VERBOSE("Entering code_gen_var_declaration");
     char *var_name = get_var_name(gen->arena, stmt->name);
 
+    // Detect global scope: no current arena means we're at file scope
+    // Global arrays with empty initializers must be initialized to NULL since C
+    // doesn't allow function calls or compound literals in global initializers.
+    // Arrays with actual values need runtime initialization (handled separately).
+    bool is_global_scope = (gen->current_arena_var == NULL);
+    if (is_global_scope && stmt->type->kind == TYPE_ARRAY)
+    {
+        // Check if this is an empty initializer or no initializer
+        bool is_empty = (stmt->initializer == NULL);
+        if (!is_empty && stmt->initializer->type == EXPR_ARRAY)
+        {
+            is_empty = (stmt->initializer->as.array.element_count == 0);
+        }
+
+        if (is_empty)
+        {
+            const char *type_c = get_c_type(gen->arena, stmt->type);
+            symbol_table_add_symbol_full(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL, stmt->mem_qualifier);
+            indented_fprintf(gen, indent, "%s %s = NULL;\n", type_c, var_name);
+            return;
+        }
+        // Non-empty global arrays will fall through and get the function call initializer,
+        // which may cause C compile errors. This is a known limitation - global arrays
+        // with values should be avoided or initialized in main().
+    }
+
     // Check if this is a thread spawn assignment.
     // For thread spawns with primitive types, we declare TWO variables:
     //   1. __varname_pending__ of type RtThreadHandle* to hold the handle

@@ -4,6 +4,7 @@
 #include <limits.h>
 #include "runtime_array.h"
 #include "runtime_arena.h"
+#include "runtime_any.h"
 
 /* ============================================================================
  * Array Operations Implementation
@@ -92,6 +93,7 @@ DEFINE_ARRAY_PUSH(char, char, element)
 DEFINE_ARRAY_PUSH(bool, int, element)
 DEFINE_ARRAY_PUSH(byte, unsigned char, element)
 DEFINE_ARRAY_PUSH(ptr, void *, element)  /* For closures/function pointers and other pointer types */
+DEFINE_ARRAY_PUSH(any, RtAny, element)   /* For any[] arrays */
 
 /* String arrays need special handling for strdup */
 char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {

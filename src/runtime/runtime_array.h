@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "runtime_arena.h"
+#include "runtime_any.h"
 
 /* ============================================================================
  * Array Metadata
@@ -53,6 +54,7 @@ int *rt_array_push_bool(RtArena *arena, int *arr, int element);
 unsigned char *rt_array_push_byte(RtArena *arena, unsigned char *arr, unsigned char element);
 void **rt_array_push_ptr(RtArena *arena, void **arr, void *element);
 char **rt_array_push_string(RtArena *arena, char **arr, const char *element);
+RtAny *rt_array_push_any(RtArena *arena, RtAny *arr, RtAny element);
 
 /* ============================================================================
  * Array Pop Functions

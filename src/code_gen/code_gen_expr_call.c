@@ -479,6 +479,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_ARRAY:
                         push_func = "rt_array_push_ptr";
                         break;
+                    case TYPE_ANY:
+                        push_func = "rt_array_push_any";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for push\n");
                         exit(1);
