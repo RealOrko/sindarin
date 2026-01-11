@@ -1,0 +1,7 @@
+Testing any type with arrays
+  any type checking: PASS
+  any casting: PASS
+  any with double: PASS
+  nested any operations: PASS
+  any parameter forwarding: PASS
+All any array tests passed!

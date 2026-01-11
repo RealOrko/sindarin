@@ -442,13 +442,15 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool main_has_args = is_main && stmt->param_count == 1;  // Type checker validated it's str[]
     bool is_private = stmt->modifier == FUNC_PRIVATE;
     bool is_shared = stmt->modifier == FUNC_SHARED;
-    // Functions returning heap-allocated types (closures, strings, arrays) must be
+    // Functions returning heap-allocated types (closures, strings, arrays, any) must be
     // implicitly shared to avoid arena lifetime issues - the returned value must
-    // live in caller's arena, not the function's arena which is destroyed on return
+    // live in caller's arena, not the function's arena which is destroyed on return.
+    // 'any' is included because it may contain strings or arrays at runtime.
     bool returns_heap_type = stmt->return_type && (
         stmt->return_type->kind == TYPE_FUNCTION ||
         stmt->return_type->kind == TYPE_STRING ||
-        stmt->return_type->kind == TYPE_ARRAY);
+        stmt->return_type->kind == TYPE_ARRAY ||
+        stmt->return_type->kind == TYPE_ANY);
     if (returns_heap_type && !is_main) {
         is_shared = true;
     }

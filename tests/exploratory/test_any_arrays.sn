@@ -1,0 +1,95 @@
+// Test: any type with arrays
+// Verifies any[] access patterns used in interceptors
+
+fn main(): void =>
+    print("Testing any type with arrays\n")
+
+    // Test type checking with individual any values
+    var intResult: str = checkTypes(42, "hello", true)
+    assert(intResult == "int,str,bool", "checkTypes should identify int,str,bool")
+    print("  any type checking: PASS\n")
+
+    // Test any casting
+    var castResult: int = castAndSum(10, 20, 30)
+    assert(castResult == 60, "castAndSum should return 60")
+    print("  any casting: PASS\n")
+
+    // Test any with different types
+    var doubleResult: double = processDouble(3.14)
+    assert(doubleResult > 6.2 && doubleResult < 6.3, "processDouble should double 3.14")
+    print("  any with double: PASS\n")
+
+    // Test nested any operations
+    var nestedResult: int = nestedAnyOps(5)
+    assert(nestedResult == 15, "nestedAnyOps should return 5*2 + 5 = 15")
+    print("  nested any operations: PASS\n")
+
+    // Test any parameter forwarding
+    var fwdResult: int = forwardAny(100)
+    assert(fwdResult == 200, "forwardAny should double 100")
+    print("  any parameter forwarding: PASS\n")
+
+    print("All any array tests passed!\n")
+
+fn checkTypes(a: any, b: any, c: any): str =>
+    var result: str = ""
+    if a is int =>
+        result = "int"
+    if b is str =>
+        result = $"{result},str"
+    if c is bool =>
+        result = $"{result},bool"
+    return result
+
+fn castAndSum(a: any, b: any, c: any): int =>
+    var sum: int = 0
+    if a is int =>
+        sum = sum + (a as int)
+    if b is int =>
+        sum = sum + (b as int)
+    if c is int =>
+        sum = sum + (c as int)
+    return sum
+
+fn processDouble(d: any): double =>
+    if d is double =>
+        var dbl: double = d as double
+        return dbl * 2.0
+    return 0.0
+
+fn nestedAnyOps(n: any): int =>
+    var doubled: any = doubleAny(n)
+    var result: any = addAnys(doubled, n)
+    if result is int =>
+        return result as int
+    return 0
+
+fn doubleAny(x: any): any =>
+    if x is int =>
+        var v: int = x as int
+        var r: any = v * 2
+        return r
+    var r: any = 0
+    return r
+
+fn addAnys(a: any, b: any): any =>
+    if a is int && b is int =>
+        var av: int = a as int
+        var bv: int = b as int
+        var r: any = av + bv
+        return r
+    var r: any = 0
+    return r
+
+fn forwardAny(x: any): int =>
+    var forwarded: any = passThrough(x)
+    if forwarded is int =>
+        return forwarded as int
+    return 0
+
+fn passThrough(a: any): any =>
+    if a is int =>
+        var v: int = a as int
+        var r: any = v * 2
+        return r
+    return a

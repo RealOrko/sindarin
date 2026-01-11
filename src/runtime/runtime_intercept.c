@@ -273,7 +273,8 @@ static RtAny call_next_interceptor(void)
     RtAny *wrapped_args = wrap_args_as_sindarin_array(ctx->args, ctx->arg_count);
 
     // Call the interceptor with wrapped args
-    RtAny result = entry->handler(ctx->name, wrapped_args, ctx->arg_count, call_next_interceptor);
+    // Use __rt_thunk_arena which was set by the calling code before invoking rt_call_intercepted
+    RtAny result = entry->handler((RtArena *)__rt_thunk_arena, ctx->name, wrapped_args, ctx->arg_count, call_next_interceptor);
 
     // Copy any modifications back to the original args array
     if (wrapped_args != ctx->args && ctx->arg_count > 0)

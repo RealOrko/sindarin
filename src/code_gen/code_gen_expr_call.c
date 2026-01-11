@@ -163,7 +163,13 @@ static char *code_gen_intercepted_call(CodeGen *gen, const char *func_name,
     else
     {
         const char *box_func = get_boxing_function(return_type);
-        if (return_type && return_type->kind == TYPE_ARRAY)
+        if (box_func == NULL)
+        {
+            /* Return type is 'any' - already boxed, no boxing needed */
+            thunk_def = arena_sprintf(arena, "%s    RtAny __result = %s(%s);\n",
+                                      thunk_def, callee_str, unboxed_args);
+        }
+        else if (return_type && return_type->kind == TYPE_ARRAY)
         {
             const char *elem_tag = get_element_type_tag(return_type->as.array.element_type);
             thunk_def = arena_sprintf(arena, "%s    RtAny __result = %s(%s(%s), %s);\n",
@@ -222,7 +228,13 @@ static char *code_gen_intercepted_call(CodeGen *gen, const char *func_name,
     {
         Type *arg_type = call->arguments[i]->expr_type;
         const char *box_func = get_boxing_function(arg_type);
-        if (arg_type && arg_type->kind == TYPE_ARRAY)
+        if (box_func == NULL)
+        {
+            /* Argument is already 'any' - no boxing needed */
+            result = arena_sprintf(arena, "%s        __args[%d] = %s;\n",
+                                   result, i, arg_strs[i]);
+        }
+        else if (arg_type && arg_type->kind == TYPE_ARRAY)
         {
             const char *elem_tag = get_element_type_tag(arg_type->as.array.element_type);
             result = arena_sprintf(arena, "%s        __args[%d] = %s(%s, %s);\n",
@@ -237,16 +249,12 @@ static char *code_gen_intercepted_call(CodeGen *gen, const char *func_name,
 
     /* Set thread-local args and arena for thunk */
     result = arena_sprintf(arena, "%s        __rt_thunk_args = __args;\n", result);
-    if (callee_is_shared)
+    /* Set the thunk arena for interceptors - they return 'any' and need an arena.
+     * Only set it when we have an arena; otherwise leave it unchanged so it can
+     * inherit from an outer scope (e.g., thread wrapper) */
+    if (gen->current_arena_var != NULL)
     {
-        if (gen->current_arena_var != NULL)
-        {
-            result = arena_sprintf(arena, "%s        __rt_thunk_arena = %s;\n", result, gen->current_arena_var);
-        }
-        else
-        {
-            result = arena_sprintf(arena, "%s        __rt_thunk_arena = NULL;\n", result);
-        }
+        result = arena_sprintf(arena, "%s        __rt_thunk_arena = %s;\n", result, gen->current_arena_var);
     }
 
     /* Call through interceptor chain */
@@ -1860,7 +1868,8 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         else if (expr->expr_type != NULL && (
             expr->expr_type->kind == TYPE_STRING ||
             expr->expr_type->kind == TYPE_ARRAY ||
-            expr->expr_type->kind == TYPE_FUNCTION))
+            expr->expr_type->kind == TYPE_FUNCTION ||
+            expr->expr_type->kind == TYPE_ANY))
         {
             callee_is_shared = true;
         }

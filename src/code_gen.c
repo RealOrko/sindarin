@@ -566,13 +566,15 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
     char *fn_name_str = fn_name;  // Already computed above
     bool is_main = strcmp(fn_name_str, "main") == 0;
     bool is_shared = fn->modifier == FUNC_SHARED;
-    /* Functions returning heap-allocated types (closures, strings, arrays) must be
+    /* Functions returning heap-allocated types (closures, strings, arrays, any) must be
      * implicitly shared to avoid arena lifetime issues - the returned value must
-     * live in caller's arena, not the function's arena which is destroyed on return */
+     * live in caller's arena, not the function's arena which is destroyed on return.
+     * 'any' is included because it may contain strings or arrays at runtime. */
     bool returns_heap_type = fn->return_type && (
         fn->return_type->kind == TYPE_FUNCTION ||
         fn->return_type->kind == TYPE_STRING ||
-        fn->return_type->kind == TYPE_ARRAY);
+        fn->return_type->kind == TYPE_ARRAY ||
+        fn->return_type->kind == TYPE_ANY);
     if (returns_heap_type && !is_main)
     {
         is_shared = true;

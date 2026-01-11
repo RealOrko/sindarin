@@ -23,6 +23,7 @@ typedef RtAny (*RtContinueFn)(void);
 /**
  * Interceptor handler function type.
  *
+ * @param arena     Arena for memory allocations (from caller's context)
  * @param name      The name of the function being called
  * @param args      Array of boxed arguments (can be modified)
  * @param arg_count Number of arguments
@@ -30,6 +31,7 @@ typedef RtAny (*RtContinueFn)(void);
  * @return The result to return to the caller (can substitute the real result)
  */
 typedef RtAny (*RtInterceptHandler)(
+    RtArena *arena,
     const char *name,
     RtAny *args,
     int arg_count,
