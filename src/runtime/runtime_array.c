@@ -956,6 +956,385 @@ void rt_print_array_string(char **arr) {
 }
 
 /* ============================================================================
+ * Array ToString Functions
+ * ============================================================================
+ * Convert array to string representation for interpolation.
+ * Format: {elem1, elem2, elem3}
+ */
+
+char *rt_to_string_array_long(RtArena *arena, long long *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    /* Estimate: "{" + numbers (up to 20 chars each) + ", " separators + "}" */
+    size_t buf_size = 2 + len * 22;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        p += snprintf(p, buf_size - (p - result), "%lld", arr[i]);
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_double(RtArena *arena, double *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    size_t buf_size = 2 + len * 32;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        p += snprintf(p, buf_size - (p - result), "%g", arr[i]);
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_char(RtArena *arena, char *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    /* Each char: 'x' = 3 chars, plus ", " */
+    size_t buf_size = 2 + len * 5;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        *p++ = '\'';
+        *p++ = arr[i];
+        *p++ = '\'';
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_bool(RtArena *arena, int *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    /* "true" = 4, "false" = 5, plus ", " */
+    size_t buf_size = 2 + len * 8;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        const char *val = arr[i] ? "true" : "false";
+        while (*val) *p++ = *val++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_byte(RtArena *arena, unsigned char *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    /* Each byte: up to 3 digits, plus ", " */
+    size_t buf_size = 2 + len * 6;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        p += snprintf(p, buf_size - (p - result), "%u", arr[i]);
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_string(RtArena *arena, char **arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+
+    /* Calculate required size: strings with quotes */
+    size_t total_len = 2; /* {} */
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) total_len += 2; /* ", " */
+        if (arr[i]) {
+            total_len += strlen(arr[i]) + 2; /* "str" */
+        } else {
+            total_len += 4; /* null */
+        }
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        if (arr[i]) {
+            *p++ = '"';
+            const char *s = arr[i];
+            while (*s) *p++ = *s++;
+            *p++ = '"';
+        } else {
+            const char *null_str = "null";
+            while (*null_str) *p++ = *null_str++;
+        }
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+/* ============================================================================
+ * Nested Array ToString Functions (2D arrays)
+ * ============================================================================
+ * Convert nested arrays to string representation.
+ * Format: {{elem1, elem2}, {elem3, elem4}}
+ */
+
+char *rt_to_string_array2_long(RtArena *arena, long long **arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+
+    /* First pass: convert all inner arrays and calculate total size */
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2; /* {} */
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array_long(arena, arr[i]);
+        if (i > 0) total_len += 2; /* ", " */
+        total_len += strlen(inner_strs[i]);
+    }
+
+    /* Build result string */
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array2_double(RtArena *arena, double **arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2;
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array_double(arena, arr[i]);
+        if (i > 0) total_len += 2;
+        total_len += strlen(inner_strs[i]);
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array2_char(RtArena *arena, char **arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2;
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array_char(arena, arr[i]);
+        if (i > 0) total_len += 2;
+        total_len += strlen(inner_strs[i]);
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array2_bool(RtArena *arena, int **arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2;
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array_bool(arena, arr[i]);
+        if (i > 0) total_len += 2;
+        total_len += strlen(inner_strs[i]);
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array2_byte(RtArena *arena, unsigned char **arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2;
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array_byte(arena, arr[i]);
+        if (i > 0) total_len += 2;
+        total_len += strlen(inner_strs[i]);
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array2_string(RtArena *arena, char ***arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t outer_len = rt_array_length(arr);
+    char **inner_strs = rt_arena_alloc(arena, outer_len * sizeof(char *));
+    size_t total_len = 2;
+
+    for (size_t i = 0; i < outer_len; i++) {
+        inner_strs[i] = rt_to_string_array_string(arena, arr[i]);
+        if (i > 0) total_len += 2;
+        total_len += strlen(inner_strs[i]);
+    }
+
+    char *result = rt_arena_alloc(arena, total_len + 1);
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < outer_len; i++) {
+        if (i > 0) { *p++ = ','; *p++ = ' '; }
+        const char *s = inner_strs[i];
+        while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+/* ============================================================================
  * Array Create Functions
  * ============================================================================
  * Create runtime array from static C array.
@@ -1018,6 +1397,24 @@ char **rt_array_create_string(RtArena *arena, size_t count, const char **data) {
     char **arr = (char **)(meta + 1);
     for (size_t i = 0; i < count; i++) {
         arr[i] = (data && data[i]) ? rt_arena_strdup(arena, data[i]) : NULL;
+    }
+    return arr;
+}
+
+/* Pointer array create for nested arrays and function pointers */
+void **rt_array_create_ptr(RtArena *arena, size_t count, void **data) {
+    size_t capacity = count > 4 ? count : 4;
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(void *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_create_ptr: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = capacity;
+    void **arr = (void **)(meta + 1);
+    for (size_t i = 0; i < count; i++) {
+        arr[i] = data ? data[i] : NULL;
     }
     return arr;
 }

@@ -259,6 +259,76 @@ const char *get_rt_to_string_func(TypeKind kind)
     return NULL;
 }
 
+const char *get_rt_to_string_func_for_type(Type *type)
+{
+    DEBUG_VERBOSE("Entering get_rt_to_string_func_for_type");
+    if (type == NULL) return "rt_to_string_pointer";
+
+    /* Handle arrays specially - need to look at element type */
+    if (type->kind == TYPE_ARRAY && type->as.array.element_type != NULL)
+    {
+        Type *elem_type = type->as.array.element_type;
+        TypeKind elem_kind = elem_type->kind;
+
+        /* Check for nested arrays (2D arrays) */
+        if (elem_kind == TYPE_ARRAY && elem_type->as.array.element_type != NULL)
+        {
+            TypeKind inner_kind = elem_type->as.array.element_type->kind;
+            switch (inner_kind)
+            {
+            case TYPE_INT:
+            case TYPE_INT32:
+            case TYPE_UINT:
+            case TYPE_UINT32:
+            case TYPE_LONG:
+                return "rt_to_string_array2_long";
+            case TYPE_DOUBLE:
+            case TYPE_FLOAT:
+                return "rt_to_string_array2_double";
+            case TYPE_CHAR:
+                return "rt_to_string_array2_char";
+            case TYPE_BOOL:
+                return "rt_to_string_array2_bool";
+            case TYPE_BYTE:
+                return "rt_to_string_array2_byte";
+            case TYPE_STRING:
+                return "rt_to_string_array2_string";
+            default:
+                /* 3D+ arrays - fallback to pointer */
+                return "rt_to_string_pointer";
+            }
+        }
+
+        /* 1D arrays */
+        switch (elem_kind)
+        {
+        case TYPE_INT:
+        case TYPE_INT32:
+        case TYPE_UINT:
+        case TYPE_UINT32:
+        case TYPE_LONG:
+            return "rt_to_string_array_long";
+        case TYPE_DOUBLE:
+        case TYPE_FLOAT:
+            return "rt_to_string_array_double";
+        case TYPE_CHAR:
+            return "rt_to_string_array_char";
+        case TYPE_BOOL:
+            return "rt_to_string_array_bool";
+        case TYPE_BYTE:
+            return "rt_to_string_array_byte";
+        case TYPE_STRING:
+            return "rt_to_string_array_string";
+        default:
+            /* Other complex element types - fallback to pointer */
+            return "rt_to_string_pointer";
+        }
+    }
+
+    /* For non-arrays, use the existing function */
+    return get_rt_to_string_func(type->kind);
+}
+
 const char *get_default_value(Type *type)
 {
     DEBUG_VERBOSE("Entering get_default_value");

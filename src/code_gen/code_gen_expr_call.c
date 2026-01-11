@@ -1524,7 +1524,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
             else
             {
-                const char *to_str_func = get_rt_to_string_func(arg_type->kind);
+                const char *to_str_func = get_rt_to_string_func_for_type(arg_type);
                 return arena_sprintf(gen->arena, "rt_println(%s(%s, %s))",
                                      to_str_func, ARENA_VAR(gen), arg_strs[0]);
             }
@@ -1539,7 +1539,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
             else
             {
-                const char *to_str_func = get_rt_to_string_func(arg_type->kind);
+                const char *to_str_func = get_rt_to_string_func_for_type(arg_type);
                 return arena_sprintf(gen->arena, "rt_print_err(%s(%s, %s))",
                                      to_str_func, ARENA_VAR(gen), arg_strs[0]);
             }
@@ -1554,7 +1554,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
             else
             {
-                const char *to_str_func = get_rt_to_string_func(arg_type->kind);
+                const char *to_str_func = get_rt_to_string_func_for_type(arg_type);
                 return arena_sprintf(gen->arena, "rt_print_err_ln(%s(%s, %s))",
                                      to_str_func, ARENA_VAR(gen), arg_strs[0]);
             }

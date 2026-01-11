@@ -76,6 +76,7 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
         case TYPE_BOOL: suffix = "bool"; break;
         case TYPE_BYTE: suffix = "byte"; break;
         case TYPE_STRING: suffix = "string"; break;
+        case TYPE_ARRAY: suffix = "ptr"; break;  /* Nested arrays use pointer arrays */
         default: suffix = NULL; break;
     }
 
@@ -142,7 +143,15 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
 
     // Generate: rt_array_create_<suffix>(arena, count, (elem_type[]){...})
     // For bool arrays, use "int" for compound literal since runtime uses int internally
-    const char *literal_type = (elem_type->kind == TYPE_BOOL) ? "int" : elem_c;
+    // For nested arrays, use "void *" since rt_array_create_ptr expects void**
+    const char *literal_type;
+    if (elem_type->kind == TYPE_BOOL) {
+        literal_type = "int";
+    } else if (elem_type->kind == TYPE_ARRAY) {
+        literal_type = "void *";
+    } else {
+        literal_type = elem_c;
+    }
     return arena_sprintf(gen->arena, "rt_array_create_%s(%s, %d, (%s[]){%s})",
                          suffix, ARENA_VAR(gen), arr->element_count, literal_type, inits);
 }

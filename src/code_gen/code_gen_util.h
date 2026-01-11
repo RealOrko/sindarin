@@ -19,6 +19,7 @@ char *escape_c_string(Arena *arena, const char *str);
 /* Type conversion helpers */
 const char *get_c_type(Arena *arena, Type *type);
 const char *get_rt_to_string_func(TypeKind kind);
+const char *get_rt_to_string_func_for_type(Type *type);
 const char *get_default_value(Type *type);
 const char *get_rt_result_type(Type *type);
 

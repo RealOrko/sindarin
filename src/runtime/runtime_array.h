@@ -199,6 +199,7 @@ char *rt_array_create_char(RtArena *arena, size_t count, const char *data);
 int *rt_array_create_bool(RtArena *arena, size_t count, const int *data);
 unsigned char *rt_array_create_byte(RtArena *arena, size_t count, const unsigned char *data);
 char **rt_array_create_string(RtArena *arena, size_t count, const char **data);
+void **rt_array_create_ptr(RtArena *arena, size_t count, void **data);
 unsigned char *rt_array_create_byte_uninit(RtArena *arena, size_t count);
 
 /* ============================================================================
@@ -243,5 +244,31 @@ void rt_print_array_char(char *arr);
 void rt_print_array_bool(int *arr);
 void rt_print_array_byte(unsigned char *arr);
 void rt_print_array_string(char **arr);
+
+/* ============================================================================
+ * Array ToString Functions
+ * ============================================================================
+ * Convert array to string representation for interpolation.
+ * Format: {elem1, elem2, elem3}
+ */
+char *rt_to_string_array_long(RtArena *arena, long long *arr);
+char *rt_to_string_array_double(RtArena *arena, double *arr);
+char *rt_to_string_array_char(RtArena *arena, char *arr);
+char *rt_to_string_array_bool(RtArena *arena, int *arr);
+char *rt_to_string_array_byte(RtArena *arena, unsigned char *arr);
+char *rt_to_string_array_string(RtArena *arena, char **arr);
+
+/* ============================================================================
+ * Nested Array ToString Functions (2D arrays)
+ * ============================================================================
+ * Convert nested arrays to string representation.
+ * Format: {{elem1, elem2}, {elem3, elem4}}
+ */
+char *rt_to_string_array2_long(RtArena *arena, long long **arr);
+char *rt_to_string_array2_double(RtArena *arena, double **arr);
+char *rt_to_string_array2_char(RtArena *arena, char **arr);
+char *rt_to_string_array2_bool(RtArena *arena, int **arr);
+char *rt_to_string_array2_byte(RtArena *arena, unsigned char **arr);
+char *rt_to_string_array2_string(RtArena *arena, char ***arr);
 
 #endif /* RUNTIME_ARRAY_H */

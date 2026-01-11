@@ -139,7 +139,7 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
             else
             {
                 /* Fallback: convert to string first, then format */
-                const char *to_str = get_rt_to_string_func(part_types[i]->kind);
+                const char *to_str = get_rt_to_string_func_for_type(part_types[i]);
                 result = arena_sprintf(gen->arena, "%s        char *_tmp%d = %s(%s, %s);\n",
                                        result, temp_var_count, to_str, ARENA_VAR(gen), part_strs[i]);
                 result = arena_sprintf(gen->arena, "%s        char *_p%d = rt_format_string(%s, _tmp%d, \"%s\");\n",
@@ -151,7 +151,7 @@ char *code_gen_interpolated_expression(CodeGen *gen, InterpolExpr *expr)
         else if (part_types[i]->kind != TYPE_STRING)
         {
             /* Non-string needs conversion (no format specifier) */
-            const char *to_str = get_rt_to_string_func(part_types[i]->kind);
+            const char *to_str = get_rt_to_string_func_for_type(part_types[i]);
             result = arena_sprintf(gen->arena, "%s        char *_p%d = %s(%s, %s);\n",
                                    result, temp_var_count, to_str, ARENA_VAR(gen), part_strs[i]);
             use_strs[i] = arena_sprintf(gen->arena, "_p%d", temp_var_count);
