@@ -401,6 +401,34 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         }
     }
 
+    /* Special validation for main function parameters.
+     * main() can optionally accept a single str[] parameter for command-line args. */
+    bool is_main_func = (stmt->as.function.name.length == 4 &&
+                         strncmp(stmt->as.function.name.start, "main", 4) == 0);
+
+    if (is_main_func && stmt->as.function.param_count > 0)
+    {
+        if (stmt->as.function.param_count != 1)
+        {
+            type_error(&stmt->as.function.name,
+                       "main function can only have one parameter: str[]");
+            return;
+        }
+
+        Type *param_type = stmt->as.function.params[0].type;
+        bool is_string_array = (param_type != NULL &&
+                               param_type->kind == TYPE_ARRAY &&
+                               param_type->as.array.element_type != NULL &&
+                               param_type->as.array.element_type->kind == TYPE_STRING);
+
+        if (!is_string_array)
+        {
+            type_error(&stmt->as.function.params[0].name,
+                       "main function parameter must be of type str[]");
+            return;
+        }
+    }
+
     /* Create function type from declaration */
     Arena *arena = table->arena;
     Type **param_types = (Type **)arena_alloc(arena, sizeof(Type *) * stmt->as.function.param_count);

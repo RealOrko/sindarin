@@ -1419,6 +1419,26 @@ void **rt_array_create_ptr(RtArena *arena, size_t count, void **data) {
     return arr;
 }
 
+/* Create str[] array from command-line arguments (argc/argv).
+ * Copies all arguments into the arena and creates an array with metadata. */
+char **rt_args_create(RtArena *arena, int argc, char **argv) {
+    size_t count = (argc > 0) ? (size_t)argc : 0;
+    size_t capacity = count > 4 ? count : 4;
+    ArrayMetadata *meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + capacity * sizeof(char *));
+    if (meta == NULL) {
+        fprintf(stderr, "rt_args_create: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = capacity;
+    char **arr = (char **)(meta + 1);
+    for (size_t i = 0; i < count; i++) {
+        arr[i] = (argv && argv[i]) ? rt_arena_strdup(arena, argv[i]) : NULL;
+    }
+    return arr;
+}
+
 /* ============================================================================
  * Array Equality Functions
  * ============================================================================

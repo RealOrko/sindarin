@@ -431,6 +431,7 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     gen->current_func_modifier = stmt->modifier;
 
     bool is_main = strcmp(gen->current_function, "main") == 0;
+    bool main_has_args = is_main && stmt->param_count == 1;  // Type checker validated it's str[]
     bool is_private = stmt->modifier == FUNC_PRIVATE;
     bool is_shared = stmt->modifier == FUNC_SHARED;
     // Functions returning heap-allocated types (closures, strings, arrays) must be
@@ -490,43 +491,51 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
 
     indented_fprintf(gen, 0, "%s %s(", ret_c, gen->current_function);
 
-    // Shared functions receive caller's arena as first parameter
-    if (is_shared)
+    // Main with args gets special C signature: int main(int argc, char **argv)
+    if (main_has_args)
     {
-        fprintf(gen->output, "RtArena *__caller_arena__");
-        if (stmt->param_count > 0)
-        {
-            fprintf(gen->output, ", ");
-        }
+        fprintf(gen->output, "int argc, char **argv");
     }
-
-    for (int i = 0; i < stmt->param_count; i++)
+    else
     {
-        const char *param_type_c = get_c_type(gen->arena, stmt->params[i].type);
-        char *param_name = get_var_name(gen->arena, stmt->params[i].name);
-
-        /* 'as ref' primitive parameters become pointer types */
-        bool is_ref_primitive = false;
-        if (stmt->params[i].mem_qualifier == MEM_AS_REF && stmt->params[i].type != NULL)
+        // Shared functions receive caller's arena as first parameter
+        if (is_shared)
         {
-            TypeKind kind = stmt->params[i].type->kind;
-            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
-                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
-                               kind == TYPE_BYTE);
-        }
-        if (is_ref_primitive)
-        {
-            fprintf(gen->output, "%s *%s", param_type_c, param_name);
-        }
-        else
-        {
-            fprintf(gen->output, "%s %s", param_type_c, param_name);
+            fprintf(gen->output, "RtArena *__caller_arena__");
+            if (stmt->param_count > 0)
+            {
+                fprintf(gen->output, ", ");
+            }
         }
 
-        if (i < stmt->param_count - 1)
+        for (int i = 0; i < stmt->param_count; i++)
         {
-            fprintf(gen->output, ", ");
+            const char *param_type_c = get_c_type(gen->arena, stmt->params[i].type);
+            char *param_name = get_var_name(gen->arena, stmt->params[i].name);
+
+            /* 'as ref' primitive parameters become pointer types */
+            bool is_ref_primitive = false;
+            if (stmt->params[i].mem_qualifier == MEM_AS_REF && stmt->params[i].type != NULL)
+            {
+                TypeKind kind = stmt->params[i].type->kind;
+                is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                   kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                   kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                   kind == TYPE_BYTE);
+            }
+            if (is_ref_primitive)
+            {
+                fprintf(gen->output, "%s *%s", param_type_c, param_name);
+            }
+            else
+            {
+                fprintf(gen->output, "%s %s", param_type_c, param_name);
+            }
+
+            if (i < stmt->param_count - 1)
+            {
+                fprintf(gen->output, ", ");
+            }
         }
     }
     indented_fprintf(gen, 0, ") {\n");
@@ -542,6 +551,14 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     {
         const char *default_val = is_main ? "0" : get_default_value(gen->current_return_type);
         indented_fprintf(gen, 1, "%s _return_value = %s;\n", ret_c, default_val);
+    }
+
+    // Initialize args array for main if it has parameters
+    if (main_has_args)
+    {
+        char *param_name = get_var_name(gen->arena, stmt->params[0].name);
+        indented_fprintf(gen, 1, "char **%s = rt_args_create(%s, argc, argv);\n",
+                         param_name, gen->current_arena_var);
     }
 
     // Clone 'as val' array parameters to ensure copy semantics

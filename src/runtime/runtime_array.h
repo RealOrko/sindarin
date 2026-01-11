@@ -202,6 +202,10 @@ char **rt_array_create_string(RtArena *arena, size_t count, const char **data);
 void **rt_array_create_ptr(RtArena *arena, size_t count, void **data);
 unsigned char *rt_array_create_byte_uninit(RtArena *arena, size_t count);
 
+/* Create str[] array from command-line arguments (argc/argv).
+ * Used by main() when it accepts a str[] parameter. */
+char **rt_args_create(RtArena *arena, int argc, char **argv);
+
 /* ============================================================================
  * Array Alloc Functions
  * ============================================================================
