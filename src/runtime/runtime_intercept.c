@@ -4,6 +4,7 @@
 
 #include "runtime_intercept.h"
 #include "runtime.h"
+#include "runtime_array.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -39,6 +40,48 @@ __thread void *__rt_thunk_arena = NULL;
 // Interceptor registry
 static RtInterceptorEntry interceptor_registry[MAX_INTERCEPTORS];
 static int interceptor_registry_count = 0;
+
+/* Maximum number of arguments for intercepted functions.
+ * Functions with more arguments than this cannot use args.length in interceptors. */
+#define MAX_INTERCEPT_ARGS 32
+
+/* Static thread-local buffer for wrapped args (avoids allocations).
+ * Layout: [RtArrayMetadata][RtAny data...] */
+#ifdef _WIN32
+__declspec(thread) char __rt_wrapped_args_buffer[sizeof(RtArrayMetadata) + MAX_INTERCEPT_ARGS * sizeof(RtAny)];
+#elif defined(__TINYC__)
+char __rt_wrapped_args_buffer[sizeof(RtArrayMetadata) + MAX_INTERCEPT_ARGS * sizeof(RtAny)];
+#else
+__thread char __rt_wrapped_args_buffer[sizeof(RtArrayMetadata) + MAX_INTERCEPT_ARGS * sizeof(RtAny)];
+#endif
+
+/* Wrap raw RtAny* args into a proper Sindarin array with metadata.
+ * Uses a static thread-local buffer to avoid allocations. */
+static RtAny *wrap_args_as_sindarin_array(RtAny *raw_args, int arg_count)
+{
+    /* If too many args, fall back to raw args (no length support) */
+    if (arg_count > MAX_INTERCEPT_ARGS)
+    {
+        return raw_args;
+    }
+
+    /* Point to the data area after the metadata */
+    RtAny *wrapped_args = (RtAny *)(__rt_wrapped_args_buffer + sizeof(RtArrayMetadata));
+
+    /* Set up the metadata */
+    RtArrayMetadata *meta = ((RtArrayMetadata *)wrapped_args) - 1;
+    meta->arena = NULL;  /* Not arena-managed */
+    meta->size = arg_count;
+    meta->capacity = MAX_INTERCEPT_ARGS;
+
+    /* Copy the args data */
+    if (arg_count > 0 && raw_args != NULL)
+    {
+        memcpy(wrapped_args, raw_args, arg_count * sizeof(RtAny));
+    }
+
+    return wrapped_args;
+}
 
 // Simple mutex for thread safety (platform-specific)
 #ifdef _WIN32
@@ -226,8 +269,17 @@ static RtAny call_next_interceptor(void)
     // Increment depth before calling handler
     __rt_intercept_depth++;
 
-    // Call the interceptor with our continue callback
-    RtAny result = entry->handler(ctx->name, ctx->args, ctx->arg_count, call_next_interceptor);
+    // Wrap args into a proper Sindarin array so handlers can use args.length
+    RtAny *wrapped_args = wrap_args_as_sindarin_array(ctx->args, ctx->arg_count);
+
+    // Call the interceptor with wrapped args
+    RtAny result = entry->handler(ctx->name, wrapped_args, ctx->arg_count, call_next_interceptor);
+
+    // Copy any modifications back to the original args array
+    if (wrapped_args != ctx->args && ctx->arg_count > 0)
+    {
+        memcpy(ctx->args, wrapped_args, ctx->arg_count * sizeof(RtAny));
+    }
 
     // Decrement depth after handler returns
     __rt_intercept_depth--;

@@ -397,6 +397,19 @@ char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
      * (those that return heap types like strings/arrays). */
     bool target_needs_arena_arg = (modifier == FUNC_SHARED) || is_implicitly_shared;
 
+    /* Check if this is a user-defined function that should be intercepted */
+    bool is_user_function = false;
+    const char *func_name_for_intercept = NULL;
+    if (call->callee->type == EXPR_VARIABLE)
+    {
+        Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
+        if (sym != NULL && sym->is_function && !sym->is_native)
+        {
+            is_user_function = true;
+            func_name_for_intercept = get_var_name(gen->arena, call->callee->as.variable.name);
+        }
+    }
+
     /* Build argument list - prepend __arena__ for functions that need it */
     char *call_args;
     if (target_needs_arena_arg)
@@ -418,9 +431,347 @@ char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
         call_args = arena_sprintf(gen->arena, "%sargs->arg%d", call_args, i);
     }
 
-    if (is_void_return)
+    /* Generate thunk for interceptor support if this is a user function */
+    char *thunk_name = NULL;
+    if (is_user_function)
     {
-        /* Void function - just call it */
+        int thunk_id = gen->thunk_count++;
+        thunk_name = arena_sprintf(gen->arena, "__thread_thunk_%d", thunk_id);
+
+        /* Generate thunk forward declaration - add to lambda_forward_decls so it comes
+         * before the thread wrapper that uses it */
+        gen->lambda_forward_decls = arena_sprintf(gen->arena, "%sstatic RtAny %s(void);\n",
+                                                  gen->lambda_forward_decls, thunk_name);
+
+        /* Generate thunk definition - reads from __rt_thunk_args */
+        char *thunk_def = arena_sprintf(gen->arena, "static RtAny %s(void) {\n", thunk_name);
+
+        /* For 'as ref' primitives, declare local variables to hold unboxed values */
+        for (int i = 0; i < call->arg_count; i++)
+        {
+            Type *arg_type = call->arguments[i]->expr_type;
+            bool is_ref_primitive = false;
+            if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+                arg_type != NULL)
+            {
+                TypeKind kind = arg_type->kind;
+                is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                   kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                   kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                   kind == TYPE_BYTE);
+            }
+            if (is_ref_primitive)
+            {
+                const char *c_type = get_c_type(gen->arena, arg_type);
+                const char *unbox_func = get_unboxing_function(arg_type);
+                thunk_def = arena_sprintf(gen->arena,
+                    "%s    %s __ref_%d = %s(__rt_thunk_args[%d]);\n",
+                    thunk_def, c_type, i, unbox_func, i);
+            }
+        }
+
+        /* Build unboxed argument list for the thunk */
+        char *unboxed_args;
+        if (target_needs_arena_arg)
+        {
+            unboxed_args = arena_strdup(gen->arena, "(RtArena *)__rt_thunk_arena");
+        }
+        else
+        {
+            unboxed_args = arena_strdup(gen->arena, "");
+        }
+
+        for (int i = 0; i < call->arg_count; i++)
+        {
+            Type *arg_type = call->arguments[i]->expr_type;
+            const char *unbox_func = get_unboxing_function(arg_type);
+            bool need_comma = (i > 0) || target_needs_arena_arg;
+            if (need_comma)
+            {
+                unboxed_args = arena_sprintf(gen->arena, "%s, ", unboxed_args);
+            }
+
+            /* Check if this is an 'as ref' primitive parameter */
+            bool is_ref_primitive = false;
+            if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+                arg_type != NULL)
+            {
+                TypeKind kind = arg_type->kind;
+                is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                   kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                   kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                   kind == TYPE_BYTE);
+            }
+
+            if (is_ref_primitive)
+            {
+                /* Pass address of local variable for as ref primitives */
+                unboxed_args = arena_sprintf(gen->arena, "%s&__ref_%d", unboxed_args, i);
+            }
+            else if (unbox_func == NULL)
+            {
+                /* For 'any' type or unknown, pass directly */
+                unboxed_args = arena_sprintf(gen->arena, "%s__rt_thunk_args[%d]", unboxed_args, i);
+            }
+            else
+            {
+                unboxed_args = arena_sprintf(gen->arena, "%s%s(__rt_thunk_args[%d])", unboxed_args, unbox_func, i);
+            }
+        }
+
+        /* Make the actual function call in the thunk */
+        if (is_void_return)
+        {
+            thunk_def = arena_sprintf(gen->arena, "%s    %s(%s);\n",
+                                      thunk_def, callee_str, unboxed_args);
+        }
+        else
+        {
+            const char *box_func = get_boxing_function(return_type);
+            if (return_type && return_type->kind == TYPE_ARRAY)
+            {
+                const char *elem_tag = get_element_type_tag(return_type->as.array.element_type);
+                thunk_def = arena_sprintf(gen->arena,
+                    "%s    RtAny __result = %s(%s(%s), %s);\n",
+                    thunk_def, box_func, callee_str, unboxed_args, elem_tag);
+            }
+            else
+            {
+                thunk_def = arena_sprintf(gen->arena,
+                    "%s    RtAny __result = %s(%s(%s));\n",
+                    thunk_def, box_func, callee_str, unboxed_args);
+            }
+        }
+
+        /* Write back modified values for 'as ref' primitives */
+        for (int i = 0; i < call->arg_count; i++)
+        {
+            Type *arg_type = call->arguments[i]->expr_type;
+            bool is_ref_primitive = false;
+            if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+                arg_type != NULL)
+            {
+                TypeKind kind = arg_type->kind;
+                is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                   kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                   kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                   kind == TYPE_BYTE);
+            }
+            if (is_ref_primitive)
+            {
+                const char *box_func = get_boxing_function(arg_type);
+                thunk_def = arena_sprintf(gen->arena,
+                    "%s    __rt_thunk_args[%d] = %s(__ref_%d);\n",
+                    thunk_def, i, box_func, i);
+            }
+        }
+
+        /* Return result */
+        if (is_void_return)
+        {
+            thunk_def = arena_sprintf(gen->arena, "%s    return rt_box_nil();\n", thunk_def);
+        }
+        else
+        {
+            thunk_def = arena_sprintf(gen->arena, "%s    return __result;\n", thunk_def);
+        }
+        thunk_def = arena_sprintf(gen->arena, "%s}\n", thunk_def);
+        gen->thunk_definitions = arena_sprintf(gen->arena, "%s%s\n", gen->thunk_definitions, thunk_def);
+    }
+
+    /* Generate the function call code with interceptor support */
+    if (is_user_function)
+    {
+        /* Generate interceptor-aware call */
+        if (is_void_return)
+        {
+            wrapper_def = arena_sprintf(gen->arena,
+                "%s"
+                "    /* Call the function with interceptor support */\n"
+                "    if (__rt_interceptor_count > 0) {\n"
+                "        RtAny __args[%d];\n",
+                wrapper_def, call->arg_count > 0 ? call->arg_count : 1);
+
+            /* Box arguments - for 'as ref' primitives, dereference the pointer */
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                Type *arg_type = call->arguments[i]->expr_type;
+                const char *box_func = get_boxing_function(arg_type);
+
+                /* Check if this is an 'as ref' primitive parameter */
+                bool is_ref_primitive = false;
+                if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+                    arg_type != NULL)
+                {
+                    TypeKind kind = arg_type->kind;
+                    is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                       kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                       kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                       kind == TYPE_BYTE);
+                }
+
+                if (arg_type && arg_type->kind == TYPE_ARRAY)
+                {
+                    const char *elem_tag = get_element_type_tag(arg_type->as.array.element_type);
+                    wrapper_def = arena_sprintf(gen->arena,
+                        "%s        __args[%d] = %s(args->arg%d, %s);\n",
+                        wrapper_def, i, box_func, i, elem_tag);
+                }
+                else if (is_ref_primitive)
+                {
+                    /* Dereference pointer for as ref primitives */
+                    wrapper_def = arena_sprintf(gen->arena,
+                        "%s        __args[%d] = %s(*args->arg%d);\n",
+                        wrapper_def, i, box_func, i);
+                }
+                else
+                {
+                    wrapper_def = arena_sprintf(gen->arena,
+                        "%s        __args[%d] = %s(args->arg%d);\n",
+                        wrapper_def, i, box_func, i);
+                }
+            }
+
+            /* Generate write-back code for as ref primitives after interception */
+            char *writeback_code = arena_strdup(gen->arena, "");
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                Type *arg_type = call->arguments[i]->expr_type;
+                bool is_ref_primitive = false;
+                if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+                    arg_type != NULL)
+                {
+                    TypeKind kind = arg_type->kind;
+                    is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                       kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                       kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                       kind == TYPE_BYTE);
+                }
+                if (is_ref_primitive)
+                {
+                    const char *unbox_func = get_unboxing_function(arg_type);
+                    writeback_code = arena_sprintf(gen->arena,
+                        "%s        *args->arg%d = %s(__args[%d]);\n",
+                        writeback_code, i, unbox_func, i);
+                }
+            }
+
+            wrapper_def = arena_sprintf(gen->arena,
+                "%s        __rt_thunk_args = __args;\n"
+                "        __rt_thunk_arena = __arena__;\n"
+                "        rt_call_intercepted(\"%s\", __args, %d, %s);\n"
+                "%s"
+                "    } else {\n"
+                "        %s(%s);\n"
+                "    }\n"
+                "\n"
+                "    /* Clear panic context on successful completion */\n"
+                "    rt_thread_panic_context_clear();\n"
+                "    return NULL;\n"
+                "}\n\n",
+                wrapper_def, func_name_for_intercept, call->arg_count, thunk_name,
+                writeback_code, callee_str, call_args);
+        }
+        else
+        {
+            const char *unbox_func = get_unboxing_function(return_type);
+            wrapper_def = arena_sprintf(gen->arena,
+                "%s"
+                "    /* Call the function with interceptor support */\n"
+                "    %s __result__;\n"
+                "    if (__rt_interceptor_count > 0) {\n"
+                "        RtAny __args[%d];\n",
+                wrapper_def, ret_c_type, call->arg_count > 0 ? call->arg_count : 1);
+
+            /* Box arguments - for 'as ref' primitives, dereference the pointer */
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                Type *arg_type = call->arguments[i]->expr_type;
+                const char *box_func = get_boxing_function(arg_type);
+
+                /* Check if this is an 'as ref' primitive parameter */
+                bool is_ref_primitive = false;
+                if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+                    arg_type != NULL)
+                {
+                    TypeKind kind = arg_type->kind;
+                    is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                       kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                       kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                       kind == TYPE_BYTE);
+                }
+
+                if (arg_type && arg_type->kind == TYPE_ARRAY)
+                {
+                    const char *elem_tag = get_element_type_tag(arg_type->as.array.element_type);
+                    wrapper_def = arena_sprintf(gen->arena,
+                        "%s        __args[%d] = %s(args->arg%d, %s);\n",
+                        wrapper_def, i, box_func, i, elem_tag);
+                }
+                else if (is_ref_primitive)
+                {
+                    /* Dereference pointer for as ref primitives */
+                    wrapper_def = arena_sprintf(gen->arena,
+                        "%s        __args[%d] = %s(*args->arg%d);\n",
+                        wrapper_def, i, box_func, i);
+                }
+                else
+                {
+                    wrapper_def = arena_sprintf(gen->arena,
+                        "%s        __args[%d] = %s(args->arg%d);\n",
+                        wrapper_def, i, box_func, i);
+                }
+            }
+
+            /* Generate write-back code for as ref primitives after interception */
+            char *writeback_code = arena_strdup(gen->arena, "");
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                Type *arg_type = call->arguments[i]->expr_type;
+                bool is_ref_primitive = false;
+                if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
+                    arg_type != NULL)
+                {
+                    TypeKind kind = arg_type->kind;
+                    is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                                       kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                                       kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                                       kind == TYPE_BYTE);
+                }
+                if (is_ref_primitive)
+                {
+                    const char *unbox = get_unboxing_function(arg_type);
+                    writeback_code = arena_sprintf(gen->arena,
+                        "%s        *args->arg%d = %s(__args[%d]);\n",
+                        writeback_code, i, unbox, i);
+                }
+            }
+
+            wrapper_def = arena_sprintf(gen->arena,
+                "%s        __rt_thunk_args = __args;\n"
+                "        __rt_thunk_arena = __arena__;\n"
+                "        RtAny __intercepted = rt_call_intercepted(\"%s\", __args, %d, %s);\n"
+                "%s"
+                "        __result__ = %s(__intercepted);\n"
+                "    } else {\n"
+                "        __result__ = %s(%s);\n"
+                "    }\n"
+                "\n"
+                "    /* Store result in thread result structure using runtime function */\n"
+                "    RtArena *__result_arena__ = args->thread_arena ? args->thread_arena : args->caller_arena;\n"
+                "    rt_thread_result_set_value(args->result, &__result__, sizeof(%s), __result_arena__);\n"
+                "\n"
+                "    /* Clear panic context on successful completion */\n"
+                "    rt_thread_panic_context_clear();\n"
+                "    return NULL;\n"
+                "}\n\n",
+                wrapper_def, func_name_for_intercept, call->arg_count, thunk_name,
+                writeback_code, unbox_func, callee_str, call_args, ret_c_type);
+        }
+    }
+    else if (is_void_return)
+    {
+        /* Non-interceptable void function - just call it */
         wrapper_def = arena_sprintf(gen->arena,
             "%s"
             "    /* Call the function */\n"
@@ -434,7 +785,7 @@ char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
     }
     else
     {
-        /* Non-void function - store result using rt_thread_result_set_value */
+        /* Non-interceptable non-void function - store result */
         wrapper_def = arena_sprintf(gen->arena,
             "%s"
             "    /* Call the function and store result */\n"
