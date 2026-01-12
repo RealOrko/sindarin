@@ -6,8 +6,12 @@ name: Windows Build
 on:
   push:
     branches: [ main, master ]  # Only run on merges to main/master
+    paths-ignore:
+      - 'docs/**'
   pull_request:
     branches: [ main, master, develop ]
+    paths-ignore:
+      - 'docs/**'
   workflow_dispatch:  # Allow manual triggering
 
 jobs:

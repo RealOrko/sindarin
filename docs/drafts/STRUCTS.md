@@ -73,8 +73,8 @@ struct ServerConfig =>
     port: int = 8080
     maxConnections: int = 100
 
-# For C interop (no defaults - must match C layout)
-struct ZStream =>
+# For C interop - native struct required due to pointer fields
+native struct ZStream =>
     next_in: *byte
     avail_in: uint
     total_in: uint
@@ -357,11 +357,11 @@ fn bad() private: NamedPoint =>
 #### Structs with Pointer Fields: Cannot Escape
 
 ```sindarin
-struct BufferView =>
+native struct BufferView =>
     data: *byte    # Pointer to external memory
     length: int
 
-fn bad() private: BufferView =>
+native fn bad() private: BufferView =>
     var view: BufferView = BufferView { data: get_buffer(), length: 100 }
     return view  # COMPILE ERROR: struct contains pointer
 ```
@@ -597,7 +597,8 @@ With struct support, zlib streaming becomes possible in pure Sindarin:
 #pragma include "<zlib.h>"
 #pragma link "z"
 
-struct ZStream =>
+# Native struct required - contains pointer fields
+native struct ZStream =>
     next_in: *byte
     avail_in: uint
     total_in: uint
@@ -617,7 +618,8 @@ native fn deflateInit(strm: ZStream as ref, level: int): int
 native fn deflate(strm: ZStream as ref, flush: int): int
 native fn deflateEnd(strm: ZStream as ref): int
 
-fn compress_stream(input: byte[], output: byte[]): int =>
+# Must be native fn to use native struct
+native fn compress_stream(input: byte[], output: byte[]): int =>
     var strm: ZStream = ZStream {}
 
     if deflateInit(strm, -1) != 0 =>  # Z_DEFAULT_COMPRESSION (compiler passes &strm)
@@ -846,13 +848,14 @@ if p1 != p3 =>
 - Efficient (single memcmp operation)
 - Useful for caching, deduplication, change detection
 
-**Note:** For structs containing pointers, equality compares pointer values (addresses), not pointed-to data. This matches C semantics.
+**Note:** For native structs containing pointers, equality compares pointer values (addresses), not pointed-to data. This matches C semantics.
 
 ```sindarin
-struct Buffer =>
+native struct Buffer =>
     data: *byte
     length: int
 
+# Inside native fn context:
 var b1: Buffer = Buffer { data: get_data(), length: 10 }
 var b2: Buffer = b1  # Copy - same pointer value
 var b3: Buffer = Buffer { data: get_data(), length: 10 }  # Different pointer
@@ -1019,6 +1022,57 @@ if condition =>
 
 **For C interop pointers:** Use C allocation functions (`malloc`, etc.) within `native fn` context when explicit heap pointers are needed.
 
+### 15. Pointer Fields Require `native struct`
+
+**Chosen:** Structs containing pointer fields must be declared with `native struct`
+
+```sindarin
+# Regular struct - no pointer fields allowed
+struct Point =>
+    x: double
+    y: double
+
+# Native struct - pointer fields allowed (for C interop)
+native struct ZStream =>
+    next_in: *byte
+    avail_in: uint
+    next_out: *byte
+    avail_out: uint
+    # ...
+
+native struct Buffer =>
+    data: *byte
+    length: int
+    capacity: int
+```
+
+**Usage restrictions:**
+
+```sindarin
+# Regular struct - can be used anywhere
+var p: Point = Point { x: 1.0, y: 2.0 }
+
+# Native struct - can only be instantiated/used in native fn context
+native fn compress(input: byte[]): byte[] =>
+    var strm: ZStream = ZStream {}  # OK: inside native fn
+    # ...
+
+fn regular(): void =>
+    var strm: ZStream = ZStream {}  # COMPILE ERROR: native struct in regular fn
+```
+
+**Rationale:**
+- Maintains the safety boundary: pointer types only in `native` context
+- Consistent with existing rule: pointer types only allowed in `native fn`
+- Regular Sindarin code remains pointer-free and safe
+- Clear visual distinction between safe structs and interop structs
+- Compiler can enforce safety at declaration site
+
+**Compile-time checks:**
+1. `struct` with pointer field → compile error, suggest `native struct`
+2. `native struct` used outside `native fn` → compile error
+3. `native struct` can be passed to/from `native fn` freely
+
 ---
 
 ## Implementation Considerations
@@ -1070,7 +1124,7 @@ None - all design decisions have been made.
 - No pointer types in structs
 
 ### Phase 2: Interop Enhancement
-- Pointer fields
+- `native struct` for structs with pointer fields
 - Pass to native functions with `as ref`
 - Auto-promotion to arena (large structs, escaping structs)
 - Nested struct initialization
