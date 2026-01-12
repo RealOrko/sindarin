@@ -160,6 +160,8 @@ build-gcc:
 
 build-clang:
 	$(call BUILD_BACKEND,Clang,clang)
+	@# On Unix, clang backend uses lib/gcc runtime (gcc/clang produce compatible objects)
+	@$(MAKE) -C $(SRC_DIR) runtime BACKEND=gcc PLATFORM=$(PLATFORM) EXE_EXT=$(EXE_EXT) > /dev/null 2>&1
 
 build-tcc:
 	$(call BUILD_BACKEND,TinyCC,tinycc)
