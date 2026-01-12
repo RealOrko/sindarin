@@ -255,7 +255,7 @@ char *rt_to_string_bool(RtArena *arena, int val)
 char *rt_to_string_byte(RtArena *arena, unsigned char val)
 {
     char buf[8];
-    snprintf(buf, sizeof(buf), "0x%02X", val);
+    snprintf(buf, sizeof(buf), "%u", (unsigned int)val);
     return rt_arena_strdup(arena, buf);
 }
 

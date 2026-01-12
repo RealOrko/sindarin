@@ -90,7 +90,12 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
     // Determine the runtime function suffix based on element type
     const char *suffix = NULL;
     switch (elem_type->kind) {
-        case TYPE_INT: suffix = "long"; break;
+        case TYPE_INT:
+        case TYPE_LONG: suffix = "long"; break;
+        case TYPE_INT32: suffix = "int32"; break;
+        case TYPE_UINT: suffix = "uint"; break;
+        case TYPE_UINT32: suffix = "uint32"; break;
+        case TYPE_FLOAT: suffix = "float"; break;
         case TYPE_DOUBLE: suffix = "double"; break;
         case TYPE_CHAR: suffix = "char"; break;
         case TYPE_BOOL: suffix = "bool"; break;
@@ -247,6 +252,18 @@ char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
             case TYPE_INT:
                 create_func = "rt_array_create_long";
                 break;
+            case TYPE_INT32:
+                create_func = "rt_array_create_int32";
+                break;
+            case TYPE_UINT:
+                create_func = "rt_array_create_uint";
+                break;
+            case TYPE_UINT32:
+                create_func = "rt_array_create_uint32";
+                break;
+            case TYPE_FLOAT:
+                create_func = "rt_array_create_float";
+                break;
             case TYPE_DOUBLE:
                 create_func = "rt_array_create_double";
                 break;
@@ -271,6 +288,18 @@ char *code_gen_array_slice_expression(CodeGen *gen, Expr *expr)
         case TYPE_LONG:
         case TYPE_INT:
             slice_func = "rt_array_slice_long";
+            break;
+        case TYPE_INT32:
+            slice_func = "rt_array_slice_int32";
+            break;
+        case TYPE_UINT:
+            slice_func = "rt_array_slice_uint";
+            break;
+        case TYPE_UINT32:
+            slice_func = "rt_array_slice_uint32";
+            break;
+        case TYPE_FLOAT:
+            slice_func = "rt_array_slice_float";
             break;
         case TYPE_DOUBLE:
             slice_func = "rt_array_slice_double";

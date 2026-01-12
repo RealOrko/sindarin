@@ -482,6 +482,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_ANY:
                         push_func = "rt_array_push_any";
                         break;
+                    case TYPE_INT32:
+                        push_func = "rt_array_push_int32";
+                        break;
+                    case TYPE_UINT:
+                        push_func = "rt_array_push_uint";
+                        break;
+                    case TYPE_UINT32:
+                        push_func = "rt_array_push_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        push_func = "rt_array_push_float";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for push\n");
                         exit(1);
@@ -532,6 +544,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_ARRAY:
                         pop_func = "rt_array_pop_ptr";
                         break;
+                    case TYPE_INT32:
+                        pop_func = "rt_array_pop_int32";
+                        break;
+                    case TYPE_UINT:
+                        pop_func = "rt_array_pop_uint";
+                        break;
+                    case TYPE_UINT32:
+                        pop_func = "rt_array_pop_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        pop_func = "rt_array_pop_float";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for pop\n");
                         exit(1);
@@ -572,6 +596,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_ARRAY:
                         concat_func = "rt_array_concat_ptr";
                         break;
+                    case TYPE_INT32:
+                        concat_func = "rt_array_concat_int32";
+                        break;
+                    case TYPE_UINT:
+                        concat_func = "rt_array_concat_uint";
+                        break;
+                    case TYPE_UINT32:
+                        concat_func = "rt_array_concat_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        concat_func = "rt_array_concat_float";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for concat\n");
                         exit(1);
@@ -609,6 +645,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BYTE:
                         indexof_func = "rt_array_indexOf_byte";
                         break;
+                    case TYPE_INT32:
+                        indexof_func = "rt_array_indexOf_int32";
+                        break;
+                    case TYPE_UINT:
+                        indexof_func = "rt_array_indexOf_uint";
+                        break;
+                    case TYPE_UINT32:
+                        indexof_func = "rt_array_indexOf_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        indexof_func = "rt_array_indexOf_float";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for indexOf\n");
                         exit(1);
@@ -640,6 +688,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BYTE:
                         contains_func = "rt_array_contains_byte";
                         break;
+                    case TYPE_INT32:
+                        contains_func = "rt_array_contains_int32";
+                        break;
+                    case TYPE_UINT:
+                        contains_func = "rt_array_contains_uint";
+                        break;
+                    case TYPE_UINT32:
+                        contains_func = "rt_array_contains_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        contains_func = "rt_array_contains_float";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for contains\n");
                         exit(1);
@@ -669,6 +729,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         break;
                     case TYPE_BYTE:
                         clone_func = "rt_array_clone_byte";
+                        break;
+                    case TYPE_INT32:
+                        clone_func = "rt_array_clone_int32";
+                        break;
+                    case TYPE_UINT:
+                        clone_func = "rt_array_clone_uint";
+                        break;
+                    case TYPE_UINT32:
+                        clone_func = "rt_array_clone_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        clone_func = "rt_array_clone_float";
                         break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for clone\n");
@@ -701,6 +773,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BYTE:
                         join_func = "rt_array_join_byte";
                         break;
+                    case TYPE_INT32:
+                        join_func = "rt_array_join_int32";
+                        break;
+                    case TYPE_UINT:
+                        join_func = "rt_array_join_uint";
+                        break;
+                    case TYPE_UINT32:
+                        join_func = "rt_array_join_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        join_func = "rt_array_join_float";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for join\n");
                         exit(1);
@@ -730,6 +814,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         break;
                     case TYPE_BYTE:
                         rev_func = "rt_array_rev_byte";
+                        break;
+                    case TYPE_INT32:
+                        rev_func = "rt_array_rev_int32";
+                        break;
+                    case TYPE_UINT:
+                        rev_func = "rt_array_rev_uint";
+                        break;
+                    case TYPE_UINT32:
+                        rev_func = "rt_array_rev_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        rev_func = "rt_array_rev_float";
                         break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for reverse\n");
@@ -767,6 +863,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     case TYPE_BYTE:
                         ins_func = "rt_array_ins_byte";
                         break;
+                    case TYPE_INT32:
+                        ins_func = "rt_array_ins_int32";
+                        break;
+                    case TYPE_UINT:
+                        ins_func = "rt_array_ins_uint";
+                        break;
+                    case TYPE_UINT32:
+                        ins_func = "rt_array_ins_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        ins_func = "rt_array_ins_float";
+                        break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for insert\n");
                         exit(1);
@@ -801,6 +909,18 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         break;
                     case TYPE_BYTE:
                         rem_func = "rt_array_rem_byte";
+                        break;
+                    case TYPE_INT32:
+                        rem_func = "rt_array_rem_int32";
+                        break;
+                    case TYPE_UINT:
+                        rem_func = "rt_array_rem_uint";
+                        break;
+                    case TYPE_UINT32:
+                        rem_func = "rt_array_rem_uint32";
+                        break;
+                    case TYPE_FLOAT:
+                        rem_func = "rt_array_rem_float";
                         break;
                     default:
                         fprintf(stderr, "Error: Unsupported array element type for remove\n");
@@ -1652,9 +1772,10 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             {
                 /* Check if this is a named function or a closure variable */
                 Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
-                if (sym != NULL && !sym->is_function)
+                if (sym == NULL || !sym->is_function)
                 {
-                    /* This is a closure variable (not a named function) */
+                    /* This is a closure variable (not a named function).
+                     * Also handles lambda parameters which are not in the symbol table. */
                     is_closure_call = true;
                 }
             }

@@ -25,6 +25,18 @@ static char *code_gen_array_push(CodeGen *gen, Expr *object, Type *element_type,
         case TYPE_INT:
             push_func = "rt_array_push_long";
             break;
+        case TYPE_INT32:
+            push_func = "rt_array_push_int32";
+            break;
+        case TYPE_UINT:
+            push_func = "rt_array_push_uint";
+            break;
+        case TYPE_UINT32:
+            push_func = "rt_array_push_uint32";
+            break;
+        case TYPE_FLOAT:
+            push_func = "rt_array_push_float";
+            break;
         case TYPE_DOUBLE:
             push_func = "rt_array_push_double";
             break;
@@ -89,6 +101,18 @@ static char *code_gen_array_pop(CodeGen *gen, Expr *object, Type *element_type)
         case TYPE_INT:
             pop_func = "rt_array_pop_long";
             break;
+        case TYPE_INT32:
+            pop_func = "rt_array_pop_int32";
+            break;
+        case TYPE_UINT:
+            pop_func = "rt_array_pop_uint";
+            break;
+        case TYPE_UINT32:
+            pop_func = "rt_array_pop_uint32";
+            break;
+        case TYPE_FLOAT:
+            pop_func = "rt_array_pop_float";
+            break;
         case TYPE_DOUBLE:
             pop_func = "rt_array_pop_double";
             break;
@@ -134,6 +158,18 @@ static char *code_gen_array_concat(CodeGen *gen, Expr *object, Type *element_typ
         case TYPE_LONG:
         case TYPE_INT:
             concat_func = "rt_array_concat_long";
+            break;
+        case TYPE_INT32:
+            concat_func = "rt_array_concat_int32";
+            break;
+        case TYPE_UINT:
+            concat_func = "rt_array_concat_uint";
+            break;
+        case TYPE_UINT32:
+            concat_func = "rt_array_concat_uint32";
+            break;
+        case TYPE_FLOAT:
+            concat_func = "rt_array_concat_float";
             break;
         case TYPE_DOUBLE:
             concat_func = "rt_array_concat_double";
@@ -183,6 +219,18 @@ static char *code_gen_array_indexof(CodeGen *gen, Expr *object, Type *element_ty
         case TYPE_INT:
             indexof_func = "rt_array_indexOf_long";
             break;
+        case TYPE_INT32:
+            indexof_func = "rt_array_indexOf_int32";
+            break;
+        case TYPE_UINT:
+            indexof_func = "rt_array_indexOf_uint";
+            break;
+        case TYPE_UINT32:
+            indexof_func = "rt_array_indexOf_uint32";
+            break;
+        case TYPE_FLOAT:
+            indexof_func = "rt_array_indexOf_float";
+            break;
         case TYPE_DOUBLE:
             indexof_func = "rt_array_indexOf_double";
             break;
@@ -219,6 +267,18 @@ static char *code_gen_array_contains(CodeGen *gen, Expr *object, Type *element_t
         case TYPE_INT:
             contains_func = "rt_array_contains_long";
             break;
+        case TYPE_INT32:
+            contains_func = "rt_array_contains_int32";
+            break;
+        case TYPE_UINT:
+            contains_func = "rt_array_contains_uint";
+            break;
+        case TYPE_UINT32:
+            contains_func = "rt_array_contains_uint32";
+            break;
+        case TYPE_FLOAT:
+            contains_func = "rt_array_contains_float";
+            break;
         case TYPE_DOUBLE:
             contains_func = "rt_array_contains_double";
             break;
@@ -252,6 +312,18 @@ static char *code_gen_array_clone(CodeGen *gen, Expr *object, Type *element_type
         case TYPE_LONG:
         case TYPE_INT:
             clone_func = "rt_array_clone_long";
+            break;
+        case TYPE_INT32:
+            clone_func = "rt_array_clone_int32";
+            break;
+        case TYPE_UINT:
+            clone_func = "rt_array_clone_uint";
+            break;
+        case TYPE_UINT32:
+            clone_func = "rt_array_clone_uint32";
+            break;
+        case TYPE_FLOAT:
+            clone_func = "rt_array_clone_float";
             break;
         case TYPE_DOUBLE:
             clone_func = "rt_array_clone_double";
@@ -289,6 +361,18 @@ static char *code_gen_array_join(CodeGen *gen, Expr *object, Type *element_type,
         case TYPE_INT:
             join_func = "rt_array_join_long";
             break;
+        case TYPE_INT32:
+            join_func = "rt_array_join_int32";
+            break;
+        case TYPE_UINT:
+            join_func = "rt_array_join_uint";
+            break;
+        case TYPE_UINT32:
+            join_func = "rt_array_join_uint32";
+            break;
+        case TYPE_FLOAT:
+            join_func = "rt_array_join_float";
+            break;
         case TYPE_DOUBLE:
             join_func = "rt_array_join_double";
             break;
@@ -322,6 +406,18 @@ static char *code_gen_array_reverse(CodeGen *gen, Expr *object, Type *element_ty
         case TYPE_LONG:
         case TYPE_INT:
             rev_func = "rt_array_rev_long";
+            break;
+        case TYPE_INT32:
+            rev_func = "rt_array_rev_int32";
+            break;
+        case TYPE_UINT:
+            rev_func = "rt_array_rev_uint";
+            break;
+        case TYPE_UINT32:
+            rev_func = "rt_array_rev_uint32";
+            break;
+        case TYPE_FLOAT:
+            rev_func = "rt_array_rev_float";
             break;
         case TYPE_DOUBLE:
             rev_func = "rt_array_rev_double";
@@ -364,6 +460,18 @@ static char *code_gen_array_insert(CodeGen *gen, Expr *object, Type *element_typ
         case TYPE_INT:
             ins_func = "rt_array_ins_long";
             break;
+        case TYPE_INT32:
+            ins_func = "rt_array_ins_int32";
+            break;
+        case TYPE_UINT:
+            ins_func = "rt_array_ins_uint";
+            break;
+        case TYPE_UINT32:
+            ins_func = "rt_array_ins_uint32";
+            break;
+        case TYPE_FLOAT:
+            ins_func = "rt_array_ins_float";
+            break;
         case TYPE_DOUBLE:
             ins_func = "rt_array_ins_double";
             break;
@@ -405,6 +513,18 @@ static char *code_gen_array_remove(CodeGen *gen, Expr *object, Type *element_typ
         case TYPE_LONG:
         case TYPE_INT:
             rem_func = "rt_array_rem_long";
+            break;
+        case TYPE_INT32:
+            rem_func = "rt_array_rem_int32";
+            break;
+        case TYPE_UINT:
+            rem_func = "rt_array_rem_uint";
+            break;
+        case TYPE_UINT32:
+            rem_func = "rt_array_rem_uint32";
+            break;
+        case TYPE_FLOAT:
+            rem_func = "rt_array_rem_float";
             break;
         case TYPE_DOUBLE:
             rem_func = "rt_array_rem_double";

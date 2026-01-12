@@ -257,7 +257,21 @@ Type *get_promoted_type(Arena *arena, Type *left, Type *right)
         if ((left->kind == TYPE_INT && right->kind == TYPE_INT) ||
             (left->kind == TYPE_UINT && right->kind == TYPE_UINT))
             return left;
-        /* Mixed int/uint - no automatic promotion, types must match */
+        /* int promotes to int32/uint32 when mixed */
+        if (left->kind == TYPE_INT32 && right->kind == TYPE_INT)
+            return left;
+        if (left->kind == TYPE_INT && right->kind == TYPE_INT32)
+            return right;
+        if (left->kind == TYPE_UINT32 && right->kind == TYPE_INT)
+            return left;
+        if (left->kind == TYPE_INT && right->kind == TYPE_UINT32)
+            return right;
+        /* int promotes to uint when mixed */
+        if (left->kind == TYPE_UINT && right->kind == TYPE_INT)
+            return left;
+        if (left->kind == TYPE_INT && right->kind == TYPE_UINT)
+            return right;
+        /* Mixed int/uint - no automatic promotion for other cases */
         return NULL;
     }
 

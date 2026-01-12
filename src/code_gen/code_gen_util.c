@@ -378,8 +378,9 @@ const char *get_boxing_function(Type *type)
     switch (type->kind)
     {
     case TYPE_INT:
-    case TYPE_LONG:
         return "rt_box_int";
+    case TYPE_LONG:
+        return "rt_box_long";
     case TYPE_INT32:
         return "rt_box_int32";
     case TYPE_UINT:
@@ -440,8 +441,9 @@ const char *get_unboxing_function(Type *type)
     switch (type->kind)
     {
     case TYPE_INT:
-    case TYPE_LONG:
         return "rt_unbox_int";
+    case TYPE_LONG:
+        return "rt_unbox_long";
     case TYPE_INT32:
         return "rt_unbox_int32";
     case TYPE_UINT:
@@ -497,8 +499,9 @@ const char *get_element_type_tag(Type *element_type)
     switch (element_type->kind)
     {
     case TYPE_INT:
-    case TYPE_LONG:
         return "RT_ANY_INT";
+    case TYPE_LONG:
+        return "RT_ANY_LONG";
     case TYPE_INT32:
         return "RT_ANY_INT32";
     case TYPE_UINT:
@@ -1085,6 +1088,16 @@ bool can_use_native_operator(SnTokenType op)
 char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *right_str,
                             SnTokenType op, Type *type)
 {
+    /* Booleans always use native C operators (no overflow issues) */
+    if (type->kind == TYPE_BOOL && can_use_native_operator(op))
+    {
+        const char *c_op = get_native_c_operator(op);
+        if (c_op != NULL)
+        {
+            return arena_sprintf(gen->arena, "((%s) %s (%s))", left_str, c_op, right_str);
+        }
+    }
+
     if (gen->arithmetic_mode != ARITH_UNCHECKED)
     {
         return NULL;  /* Not in unchecked mode, use runtime functions */
@@ -1113,11 +1126,6 @@ char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *righ
     {
         /* For integers, result is long long (64-bit on all platforms) */
         return arena_sprintf(gen->arena, "((long long)((%s) %s (%s)))", left_str, c_op, right_str);
-    }
-    else if (type->kind == TYPE_BOOL)
-    {
-        /* For booleans, comparison operations return 0 or 1 */
-        return arena_sprintf(gen->arena, "((%s) %s (%s))", left_str, c_op, right_str);
     }
 
     return NULL;  /* Unsupported type */

@@ -94,6 +94,10 @@ DEFINE_ARRAY_PUSH(bool, int, element)
 DEFINE_ARRAY_PUSH(byte, unsigned char, element)
 DEFINE_ARRAY_PUSH(ptr, void *, element)  /* For closures/function pointers and other pointer types */
 DEFINE_ARRAY_PUSH(any, RtAny, element)   /* For any[] arrays */
+DEFINE_ARRAY_PUSH(int32, int32_t, element)
+DEFINE_ARRAY_PUSH(uint32, uint32_t, element)
+DEFINE_ARRAY_PUSH(uint, uint64_t, element)
+DEFINE_ARRAY_PUSH(float, float, element)
 
 /* String arrays need special handling for strdup */
 char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
@@ -173,6 +177,10 @@ DEFINE_ARRAY_POP(char, char, '\0')
 DEFINE_ARRAY_POP(bool, int, 0)
 DEFINE_ARRAY_POP(byte, unsigned char, 0)
 DEFINE_ARRAY_POP(ptr, void *, NULL)  /* For closures/function pointers and other pointer types */
+DEFINE_ARRAY_POP(int32, int32_t, 0)
+DEFINE_ARRAY_POP(uint32, uint32_t, 0)
+DEFINE_ARRAY_POP(uint, uint64_t, 0)
+DEFINE_ARRAY_POP(float, float, 0.0f)
 
 /* String arrays - same implementation, no special handling needed for pop */
 char *rt_array_pop_string(char **arr) {
@@ -226,6 +234,10 @@ DEFINE_ARRAY_CONCAT(char, char)
 DEFINE_ARRAY_CONCAT(bool, int)
 DEFINE_ARRAY_CONCAT(byte, unsigned char)
 DEFINE_ARRAY_CONCAT(ptr, void *)  /* For closures/function pointers and other pointer types */
+DEFINE_ARRAY_CONCAT(int32, int32_t)
+DEFINE_ARRAY_CONCAT(uint32, uint32_t)
+DEFINE_ARRAY_CONCAT(uint, uint64_t)
+DEFINE_ARRAY_CONCAT(float, float)
 
 /* String arrays need special handling for strdup */
 char **rt_array_concat_string(RtArena *arena, char **arr1, char **arr2) {
@@ -321,6 +333,10 @@ DEFINE_ARRAY_SLICE(double, double)
 DEFINE_ARRAY_SLICE(char, char)
 DEFINE_ARRAY_SLICE(bool, int)
 DEFINE_ARRAY_SLICE(byte, unsigned char)
+DEFINE_ARRAY_SLICE(int32, int32_t)
+DEFINE_ARRAY_SLICE(uint32, uint32_t)
+DEFINE_ARRAY_SLICE(uint, uint64_t)
+DEFINE_ARRAY_SLICE(float, float)
 
 /* String slice needs special handling to strdup elements */
 char **rt_array_slice_string(RtArena *arena, char **arr, long start, long end, long step) {
@@ -415,6 +431,10 @@ DEFINE_ARRAY_REV(double, double)
 DEFINE_ARRAY_REV(char, char)
 DEFINE_ARRAY_REV(bool, int)
 DEFINE_ARRAY_REV(byte, unsigned char)
+DEFINE_ARRAY_REV(int32, int32_t)
+DEFINE_ARRAY_REV(uint32, uint32_t)
+DEFINE_ARRAY_REV(uint, uint64_t)
+DEFINE_ARRAY_REV(float, float)
 
 /* String reverse needs special handling to strdup elements */
 char **rt_array_rev_string(RtArena *arena, char **arr) {
@@ -485,6 +505,10 @@ DEFINE_ARRAY_REM(double, double)
 DEFINE_ARRAY_REM(char, char)
 DEFINE_ARRAY_REM(bool, int)
 DEFINE_ARRAY_REM(byte, unsigned char)
+DEFINE_ARRAY_REM(int32, int32_t)
+DEFINE_ARRAY_REM(uint32, uint32_t)
+DEFINE_ARRAY_REM(uint, uint64_t)
+DEFINE_ARRAY_REM(float, float)
 
 /* String remove needs special handling to strdup elements */
 char **rt_array_rem_string(RtArena *arena, char **arr, long index) {
@@ -556,6 +580,10 @@ DEFINE_ARRAY_INS(double, double)
 DEFINE_ARRAY_INS(char, char)
 DEFINE_ARRAY_INS(bool, int)
 DEFINE_ARRAY_INS(byte, unsigned char)
+DEFINE_ARRAY_INS(int32, int32_t)
+DEFINE_ARRAY_INS(uint32, uint32_t)
+DEFINE_ARRAY_INS(uint, uint64_t)
+DEFINE_ARRAY_INS(float, float)
 
 /* String insert needs special handling to strdup elements */
 char **rt_array_ins_string(RtArena *arena, char **arr, const char *elem, long index) {
@@ -608,6 +636,10 @@ DEFINE_ARRAY_INDEXOF(double, double, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(char, char, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(bool, int, arr[i] == elem)
 DEFINE_ARRAY_INDEXOF(byte, unsigned char, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(int32, int32_t, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(uint32, uint32_t, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(uint, uint64_t, arr[i] == elem)
+DEFINE_ARRAY_INDEXOF(float, float, arr[i] == elem)
 
 /* String indexOf needs special comparison */
 long rt_array_indexOf_string(char **arr, const char *elem) {
@@ -642,6 +674,10 @@ DEFINE_ARRAY_CONTAINS(double, double)
 DEFINE_ARRAY_CONTAINS(char, char)
 DEFINE_ARRAY_CONTAINS(bool, int)
 DEFINE_ARRAY_CONTAINS(byte, unsigned char)
+DEFINE_ARRAY_CONTAINS(int32, int32_t)
+DEFINE_ARRAY_CONTAINS(uint32, uint32_t)
+DEFINE_ARRAY_CONTAINS(uint, uint64_t)
+DEFINE_ARRAY_CONTAINS(float, float)
 
 /* String contains uses string indexOf */
 int rt_array_contains_string(char **arr, const char *elem) {
@@ -682,6 +718,10 @@ DEFINE_ARRAY_CLONE(double, double)
 DEFINE_ARRAY_CLONE(char, char)
 DEFINE_ARRAY_CLONE(bool, int)
 DEFINE_ARRAY_CLONE(byte, unsigned char)
+DEFINE_ARRAY_CLONE(int32, int32_t)
+DEFINE_ARRAY_CLONE(uint32, uint32_t)
+DEFINE_ARRAY_CLONE(uint, uint64_t)
+DEFINE_ARRAY_CLONE(float, float)
 
 /* String clone needs special handling to strdup elements */
 char **rt_array_clone_string(RtArena *arena, char **arr) {
@@ -876,6 +916,105 @@ char *rt_array_join_string(RtArena *arena, char **arr, const char *separator) {
     return result;
 }
 
+char *rt_array_join_int32(RtArena *arena, int32_t *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    /* Estimate buffer size: each int32 can be up to 11 chars + separators */
+    size_t buf_size = len * 12 + (len - 1) * sep_len + 1;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_int32: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "%d", arr[i]);
+    }
+    return result;
+}
+
+char *rt_array_join_uint32(RtArena *arena, uint32_t *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    /* Estimate buffer size: each uint32 can be up to 10 chars + separators */
+    size_t buf_size = len * 11 + (len - 1) * sep_len + 1;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_uint32: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "%u", arr[i]);
+    }
+    return result;
+}
+
+char *rt_array_join_uint(RtArena *arena, uint64_t *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    /* Estimate buffer size: each uint64 can be up to 20 chars + separators */
+    size_t buf_size = len * 21 + (len - 1) * sep_len + 1;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_uint: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "%lu", (unsigned long)arr[i]);
+    }
+    return result;
+}
+
+char *rt_array_join_float(RtArena *arena, float *arr, const char *separator) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "");
+    }
+    size_t len = rt_array_length(arr);
+    size_t sep_len = separator ? strlen(separator) : 0;
+
+    size_t buf_size = len * 32 + (len - 1) * sep_len + 1;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) {
+        fprintf(stderr, "rt_array_join_float: allocation failed\n");
+        exit(1);
+    }
+
+    char *ptr = result;
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0 && separator) {
+            ptr += sprintf(ptr, "%s", separator);
+        }
+        ptr += sprintf(ptr, "%.5f", (double)arr[i]);
+    }
+    return result;
+}
+
 /* ============================================================================
  * Array Print Functions
  * ============================================================================
@@ -957,6 +1096,54 @@ void rt_print_array_string(char **arr) {
     printf("]");
 }
 
+void rt_print_array_int32(int32_t *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("%d", arr[i]);
+        }
+    }
+    printf("]");
+}
+
+void rt_print_array_uint32(uint32_t *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("%u", arr[i]);
+        }
+    }
+    printf("]");
+}
+
+void rt_print_array_uint(uint64_t *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("%lu", (unsigned long)arr[i]);
+        }
+    }
+    printf("]");
+}
+
+void rt_print_array_float(float *arr) {
+    printf("[");
+    if (arr != NULL) {
+        size_t len = rt_array_length(arr);
+        for (size_t i = 0; i < len; i++) {
+            if (i > 0) printf(", ");
+            printf("%.5f", (double)arr[i]);
+        }
+    }
+    printf("]");
+}
+
 /* ============================================================================
  * Array to Any Conversion Functions
  * ============================================================================
@@ -1031,6 +1218,54 @@ RtAny *rt_array_to_any_string(RtArena *arena, char **arr) {
     RtAny *result = NULL;
     for (size_t i = 0; i < len; i++) {
         result = rt_array_push_any(arena, result, rt_box_string(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_int32(RtArena *arena, int32_t *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_int32(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_uint32(RtArena *arena, uint32_t *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_uint32(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_uint(RtArena *arena, uint64_t *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_uint(arr[i]));
+    }
+    return result;
+}
+
+RtAny *rt_array_to_any_float(RtArena *arena, float *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    RtAny *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_any(arena, result, rt_box_float(arr[i]));
     }
     return result;
 }
@@ -1273,6 +1508,54 @@ char **rt_array_from_any_string(RtArena *arena, RtAny *arr) {
     return result;
 }
 
+int32_t *rt_array_from_any_int32(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    int32_t *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_int32(arena, result, rt_unbox_int32(arr[i]));
+    }
+    return result;
+}
+
+uint32_t *rt_array_from_any_uint32(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    uint32_t *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_uint32(arena, result, rt_unbox_uint32(arr[i]));
+    }
+    return result;
+}
+
+uint64_t *rt_array_from_any_uint(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    uint64_t *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_uint(arena, result, rt_unbox_uint(arr[i]));
+    }
+    return result;
+}
+
+float *rt_array_from_any_float(RtArena *arena, RtAny *arr) {
+    if (arr == NULL) return NULL;
+    size_t len = rt_array_length(arr);
+    if (len == 0) return NULL;
+
+    float *result = NULL;
+    for (size_t i = 0; i < len; i++) {
+        result = rt_array_push_float(arena, result, rt_unbox_float(arr[i]));
+    }
+    return result;
+}
+
 /* ============================================================================
  * Array ToString Functions
  * ============================================================================
@@ -1494,6 +1777,111 @@ char *rt_to_string_array_any(RtArena *arena, RtAny *arr) {
         }
         const char *s = elem_strs[i];
         while (*s) *p++ = *s++;
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_int32(RtArena *arena, int32_t *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    /* Estimate: "{" + numbers (up to 11 chars each) + ", " separators + "}" */
+    size_t buf_size = 2 + len * 13;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        p += snprintf(p, buf_size - (p - result), "%d", arr[i]);
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_uint32(RtArena *arena, uint32_t *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    size_t buf_size = 2 + len * 13;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        p += snprintf(p, buf_size - (p - result), "%u", arr[i]);
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_uint(RtArena *arena, uint64_t *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    size_t buf_size = 2 + len * 22;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        p += snprintf(p, buf_size - (p - result), "%lu", (unsigned long)arr[i]);
+    }
+
+    *p++ = '}';
+    *p = '\0';
+    return result;
+}
+
+char *rt_to_string_array_float(RtArena *arena, float *arr) {
+    if (arr == NULL || rt_array_length(arr) == 0) {
+        return rt_arena_strdup(arena, "{}");
+    }
+
+    size_t len = rt_array_length(arr);
+    size_t buf_size = 2 + len * 32;
+    char *result = rt_arena_alloc(arena, buf_size);
+    if (result == NULL) return "{}";
+
+    char *p = result;
+    *p++ = '{';
+
+    for (size_t i = 0; i < len; i++) {
+        if (i > 0) {
+            *p++ = ',';
+            *p++ = ' ';
+        }
+        p += snprintf(p, buf_size - (p - result), "%g", (double)arr[i]);
     }
 
     *p++ = '}';
@@ -1782,6 +2170,10 @@ DEFINE_ARRAY_CREATE(char, char)
 DEFINE_ARRAY_CREATE(bool, int)
 DEFINE_ARRAY_CREATE(byte, unsigned char)
 DEFINE_ARRAY_CREATE(any, RtAny)
+DEFINE_ARRAY_CREATE(int32, int32_t)
+DEFINE_ARRAY_CREATE(uint32, uint32_t)
+DEFINE_ARRAY_CREATE(uint, uint64_t)
+DEFINE_ARRAY_CREATE(float, float)
 
 /* Create an uninitialized byte array for filling in later (e.g., file reads) */
 unsigned char *rt_array_create_byte_uninit(RtArena *arena, size_t count) {
@@ -1885,6 +2277,10 @@ DEFINE_ARRAY_EQ(double, double, a[i] == b[i])
 DEFINE_ARRAY_EQ(char, char, a[i] == b[i])
 DEFINE_ARRAY_EQ(bool, int, a[i] == b[i])
 DEFINE_ARRAY_EQ(byte, unsigned char, a[i] == b[i])
+DEFINE_ARRAY_EQ(int32, int32_t, a[i] == b[i])
+DEFINE_ARRAY_EQ(uint32, uint32_t, a[i] == b[i])
+DEFINE_ARRAY_EQ(uint, uint64_t, a[i] == b[i])
+DEFINE_ARRAY_EQ(float, float, a[i] == b[i])
 
 /* String array equality needs strcmp */
 int rt_array_eq_string(char **a, char **b) {
@@ -2092,6 +2488,86 @@ char **rt_array_alloc_string(RtArena *arena, size_t count, const char *default_v
     return data;
 }
 
+int32_t *rt_array_alloc_int32(RtArena *arena, size_t count, int32_t default_value) {
+    size_t data_size = count * sizeof(int32_t);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_int32: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    int32_t *data = (int32_t *)(meta + 1);
+    for (size_t i = 0; i < count; i++) {
+        data[i] = default_value;
+    }
+    return data;
+}
+
+uint32_t *rt_array_alloc_uint32(RtArena *arena, size_t count, uint32_t default_value) {
+    size_t data_size = count * sizeof(uint32_t);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_uint32: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    uint32_t *data = (uint32_t *)(meta + 1);
+    for (size_t i = 0; i < count; i++) {
+        data[i] = default_value;
+    }
+    return data;
+}
+
+uint64_t *rt_array_alloc_uint(RtArena *arena, size_t count, uint64_t default_value) {
+    size_t data_size = count * sizeof(uint64_t);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_uint: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    uint64_t *data = (uint64_t *)(meta + 1);
+    for (size_t i = 0; i < count; i++) {
+        data[i] = default_value;
+    }
+    return data;
+}
+
+float *rt_array_alloc_float(RtArena *arena, size_t count, float default_value) {
+    size_t data_size = count * sizeof(float);
+    size_t total = sizeof(ArrayMetadata) + data_size;
+
+    ArrayMetadata *meta = rt_arena_alloc(arena, total);
+    if (meta == NULL) {
+        fprintf(stderr, "rt_array_alloc_float: allocation failed\n");
+        exit(1);
+    }
+    meta->arena = arena;
+    meta->size = count;
+    meta->capacity = count;
+
+    float *data = (float *)(meta + 1);
+    for (size_t i = 0; i < count; i++) {
+        data[i] = default_value;
+    }
+    return data;
+}
+
 /* ============================================================================
  * Array Push Copy Functions (Non-mutating)
  * ============================================================================
@@ -2124,6 +2600,10 @@ DEFINE_ARRAY_PUSH_COPY(double, double)
 DEFINE_ARRAY_PUSH_COPY(char, char)
 DEFINE_ARRAY_PUSH_COPY(bool, int)
 DEFINE_ARRAY_PUSH_COPY(byte, unsigned char)
+DEFINE_ARRAY_PUSH_COPY(int32, int32_t)
+DEFINE_ARRAY_PUSH_COPY(uint32, uint32_t)
+DEFINE_ARRAY_PUSH_COPY(uint, uint64_t)
+DEFINE_ARRAY_PUSH_COPY(float, float)
 
 /* String push copy needs special handling to strdup elements */
 char **rt_array_push_copy_string(RtArena *arena, char **arr, const char *elem) {

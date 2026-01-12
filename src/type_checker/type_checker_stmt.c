@@ -134,6 +134,70 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
             stmt->as.var_decl.initializer->expr_type = decl_type;
             init_type = decl_type;
         }
+        // For int[] assigned to int32[], uint32[], uint[], or float[], update the expression type
+        // This allows int literals to be used in C interop type array literals
+        if (decl_type && decl_type->kind == TYPE_ARRAY &&
+            init_type->kind == TYPE_ARRAY &&
+            init_type->as.array.element_type->kind == TYPE_INT)
+        {
+            TypeKind decl_elem = decl_type->as.array.element_type->kind;
+            if (decl_elem == TYPE_INT32 || decl_elem == TYPE_UINT32 ||
+                decl_elem == TYPE_UINT || decl_elem == TYPE_FLOAT)
+            {
+                stmt->as.var_decl.initializer->expr_type = decl_type;
+                init_type = decl_type;
+            }
+        }
+        // For double[] assigned to float[], update the expression type
+        if (decl_type && decl_type->kind == TYPE_ARRAY &&
+            decl_type->as.array.element_type->kind == TYPE_FLOAT &&
+            init_type->kind == TYPE_ARRAY &&
+            init_type->as.array.element_type->kind == TYPE_DOUBLE)
+        {
+            stmt->as.var_decl.initializer->expr_type = decl_type;
+            init_type = decl_type;
+        }
+        // For 2D arrays: byte[][] = {{1,2,3},...} - coerce inner arrays from int[] to target element type
+        // Also handles int32[][], uint32[][], uint[][], float[][]
+        if (decl_type && decl_type->kind == TYPE_ARRAY &&
+            decl_type->as.array.element_type->kind == TYPE_ARRAY &&
+            init_type->kind == TYPE_ARRAY &&
+            init_type->as.array.element_type->kind == TYPE_ARRAY)
+        {
+            Type *decl_inner = decl_type->as.array.element_type;
+            Type *init_inner = init_type->as.array.element_type;
+            TypeKind decl_elem = decl_inner->as.array.element_type->kind;
+            TypeKind init_elem = init_inner->as.array.element_type->kind;
+            // If inner types differ but are compatible (int -> byte/int32/uint32/uint/float)
+            bool needs_coercion = init_elem == TYPE_INT &&
+                (decl_elem == TYPE_BYTE || decl_elem == TYPE_INT32 ||
+                 decl_elem == TYPE_UINT32 || decl_elem == TYPE_UINT ||
+                 decl_elem == TYPE_FLOAT);
+            // Also handle double -> float coercion for 2D arrays
+            if (!needs_coercion && init_elem == TYPE_DOUBLE && decl_elem == TYPE_FLOAT)
+            {
+                needs_coercion = true;
+            }
+            if (needs_coercion)
+            {
+                // Update outer array type
+                stmt->as.var_decl.initializer->expr_type = decl_type;
+                // Update each inner array element's type
+                Expr *init = stmt->as.var_decl.initializer;
+                if (init->type == EXPR_ARRAY)
+                {
+                    for (int i = 0; i < init->as.array.element_count; i++)
+                    {
+                        Expr *elem = init->as.array.elements[i];
+                        if (elem->type == EXPR_ARRAY)
+                        {
+                            elem->expr_type = decl_inner;
+                        }
+                    }
+                }
+                init_type = decl_type;
+            }
+        }
     }
 
     // Type inference: if no declared type, infer from initializer

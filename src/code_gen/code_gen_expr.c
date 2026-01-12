@@ -192,7 +192,12 @@ static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
     /* Determine the runtime function suffix based on element type */
     const char *suffix = NULL;
     switch (element_type->kind) {
-        case TYPE_INT: suffix = "long"; break;
+        case TYPE_INT:
+        case TYPE_LONG: suffix = "long"; break;
+        case TYPE_INT32: suffix = "int32"; break;
+        case TYPE_UINT: suffix = "uint"; break;
+        case TYPE_UINT32: suffix = "uint32"; break;
+        case TYPE_FLOAT: suffix = "float"; break;
         case TYPE_DOUBLE: suffix = "double"; break;
         case TYPE_CHAR: suffix = "char"; break;
         case TYPE_BOOL: suffix = "bool"; break;
@@ -213,7 +218,12 @@ static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
     } else {
         /* Use type-appropriate zero value when no default provided */
         switch (element_type->kind) {
-            case TYPE_INT: default_str = "0"; break;
+            case TYPE_INT:
+            case TYPE_LONG: default_str = "0"; break;
+            case TYPE_INT32: default_str = "0"; break;
+            case TYPE_UINT: default_str = "0"; break;
+            case TYPE_UINT32: default_str = "0"; break;
+            case TYPE_FLOAT: default_str = "0.0f"; break;
             case TYPE_DOUBLE: default_str = "0.0"; break;
             case TYPE_CHAR: default_str = "'\\0'"; break;
             case TYPE_BOOL: default_str = "0"; break;
@@ -342,6 +352,16 @@ static char *code_gen_is_expression(CodeGen *gen, Expr *expr)
     IsExpr *is_expr = &expr->as.is_expr;
     char *operand_code = code_gen_expression(gen, is_expr->operand);
     const char *type_tag = get_type_tag_constant(is_expr->check_type->kind);
+
+    /* For array types, also check the element type tag */
+    if (is_expr->check_type->kind == TYPE_ARRAY &&
+        is_expr->check_type->as.array.element_type != NULL)
+    {
+        Type *elem_type = is_expr->check_type->as.array.element_type;
+        const char *elem_tag = get_type_tag_constant(elem_type->kind);
+        return arena_sprintf(gen->arena, "((%s).tag == %s && (%s).element_tag == %s)",
+                             operand_code, type_tag, operand_code, elem_tag);
+    }
 
     return arena_sprintf(gen->arena, "((%s).tag == %s)", operand_code, type_tag);
 }

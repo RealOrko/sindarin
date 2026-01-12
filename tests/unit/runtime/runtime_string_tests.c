@@ -446,14 +446,14 @@ static void test_rt_to_string_byte(void)
 {
     RtArena *arena = rt_arena_create(NULL);
 
-    char *result = rt_to_string_byte(arena, 0x00);
-    assert(strcmp(result, "0x00") == 0);
+    char *result = rt_to_string_byte(arena, 0);
+    assert(strcmp(result, "0") == 0);
 
-    result = rt_to_string_byte(arena, 0xFF);
-    assert(strcmp(result, "0xFF") == 0);
+    result = rt_to_string_byte(arena, 255);
+    assert(strcmp(result, "255") == 0);
 
-    result = rt_to_string_byte(arena, 0xAB);
-    assert(strcmp(result, "0xAB") == 0);
+    result = rt_to_string_byte(arena, 171);
+    assert(strcmp(result, "171") == 0);
 
     rt_arena_destroy(arena);
 }

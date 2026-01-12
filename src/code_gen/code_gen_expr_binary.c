@@ -74,6 +74,18 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
             case TYPE_LONG:
                 arr_suffix = "long";
                 break;
+            case TYPE_INT32:
+                arr_suffix = "int32";
+                break;
+            case TYPE_UINT:
+                arr_suffix = "uint";
+                break;
+            case TYPE_UINT32:
+                arr_suffix = "uint32";
+                break;
+            case TYPE_FLOAT:
+                arr_suffix = "float";
+                break;
             case TYPE_DOUBLE:
                 arr_suffix = "double";
                 break;
@@ -193,7 +205,7 @@ char *code_gen_unary_expression(CodeGen *gen, UnaryExpr *expr)
     switch (expr->operator)
     {
     case TOKEN_MINUS:
-        if (type->kind == TYPE_DOUBLE)
+        if (type->kind == TYPE_DOUBLE || type->kind == TYPE_FLOAT)
         {
             return arena_sprintf(gen->arena, "rt_neg_double(%s)", operand_str);
         }

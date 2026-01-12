@@ -1,6 +1,6 @@
 toBytes length: 5
-First byte (H): 0x48
-Last byte (o): 0x6F
+First byte (H): 72
+Last byte (o): 111
 Round-trip string: Hello
 fromHex result: Hello
 toHex: 414243
