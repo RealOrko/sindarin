@@ -40,6 +40,8 @@ char *code_gen_literal_expression(CodeGen *gen, LiteralExpr *expr)
     }
     case TYPE_BOOL:
         return arena_sprintf(gen->arena, "%ldL", expr->value.bool_value ? 1L : 0L);
+    case TYPE_BYTE:
+        return arena_sprintf(gen->arena, "(uint8_t)%lldLL", (long long)expr->value.int_value);
     case TYPE_NIL:
         return arena_strdup(gen->arena, "NULL");
     default:

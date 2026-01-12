@@ -61,6 +61,8 @@ const char *token_type_to_string(SnTokenType type)
         return "INT_LITERAL";
     case TOKEN_LONG_LITERAL:
         return "LONG_LITERAL";
+    case TOKEN_BYTE_LITERAL:
+        return "BYTE_LITERAL";
     case TOKEN_DOUBLE_LITERAL:
         return "DOUBLE_LITERAL";
     case TOKEN_CHAR_LITERAL:
@@ -246,6 +248,9 @@ void token_print(Token *token)
         break;
     case TOKEN_LONG_LITERAL:
         printf(", value: %" PRId64 "l", token->literal.int_value);
+        break;
+    case TOKEN_BYTE_LITERAL:
+        printf(", value: %" PRId64 "b", token->literal.int_value);
         break;
     case TOKEN_DOUBLE_LITERAL:
         printf(", value: %fd", token->literal.double_value);

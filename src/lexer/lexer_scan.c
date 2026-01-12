@@ -308,6 +308,28 @@ Token lexer_scan_number(Lexer *lexer)
         token_set_int_literal(&token, value);
         return token;
     }
+    if (lexer_peek(lexer) == 'b')
+    {
+        lexer_advance(lexer);
+        Token token = lexer_make_token(lexer, TOKEN_BYTE_LITERAL);
+        char buffer[256];
+        int length = (int)(lexer->current - lexer->start - 1);
+        if (length >= (int)sizeof(buffer))
+        {
+            snprintf(error_buffer, sizeof(error_buffer), "Number literal too long");
+            return lexer_error_token(lexer, error_buffer);
+        }
+        strncpy(buffer, lexer->start, length);
+        buffer[length] = '\0';
+        int64_t value = strtoll(buffer, NULL, 10);
+        if (value < 0 || value > 255)
+        {
+            snprintf(error_buffer, sizeof(error_buffer), "Byte literal out of range (0-255)");
+            return lexer_error_token(lexer, error_buffer);
+        }
+        token_set_int_literal(&token, value);
+        return token;
+    }
     Token token = lexer_make_token(lexer, TOKEN_INT_LITERAL);
     char buffer[256];
     int length = (int)(lexer->current - lexer->start);

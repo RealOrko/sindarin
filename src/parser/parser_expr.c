@@ -357,6 +357,12 @@ Expr *parser_primary(Parser *parser)
         value.int_value = parser->previous.literal.int_value;
         return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_LONG), false, &parser->previous);
     }
+    if (parser_match(parser, TOKEN_BYTE_LITERAL))
+    {
+        LiteralValue value;
+        value.int_value = parser->previous.literal.int_value;
+        return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_BYTE), false, &parser->previous);
+    }
     if (parser_match(parser, TOKEN_DOUBLE_LITERAL))
     {
         LiteralValue value;
