@@ -200,7 +200,9 @@ fn example(): void =>
 
 ### Out Parameters with `as ref`
 
-When C functions need to write results back, use `as ref` parameters:
+When C functions need to write results back, use `as ref` parameters. The compiler automatically handles the address-of operation at the call site.
+
+#### Basic Usage
 
 ```sindarin
 // C function: void get_dimensions(int* width, int* height)
@@ -209,9 +211,72 @@ native fn get_dimensions(width: int as ref, height: int as ref): void
 fn example(): void =>
     var w: int = 0
     var h: int = 0
-    get_dimensions(w, h)    // C writes to w and h
+    get_dimensions(w, h)    // Compiler passes &w, &h automatically
     print($"Size: {w}x{h}\n")
 ```
+
+#### How It Works
+
+When `as ref` is used in a parameter declaration, the code generator:
+1. Creates a local variable to hold the value
+2. Passes `&variable` (address-of) to the C function
+3. After the call, the modified value is available in the original variable
+
+This happens transparently - the caller just passes the variable normally.
+
+#### Native Functions with Bodies
+
+`as ref` also works in native function bodies, allowing you to write Sindarin wrappers that modify out-parameters:
+
+```sindarin
+// Native function with body that writes to out-parameters
+native fn compute_stats(a: int, b: int, sum: int as ref, product: int as ref): void =>
+    sum = a + b
+    product = a * b
+
+// Usage
+var s: int = 0
+var p: int = 0
+compute_stats(7, 6, s, p)
+print($"Sum: {s}, Product: {p}\n")  // Sum: 13, Product: 42
+```
+
+#### Supported Types
+
+`as ref` works with all primitive types:
+
+```sindarin
+native fn modify_int(n: int as ref): void =>
+    n = n * 2
+
+native fn modify_double(d: double as ref): void =>
+    d = d / 2.0
+
+native fn modify_bool(b: bool as ref): void =>
+    b = !b
+```
+
+#### Mixed Parameters
+
+You can mix regular parameters with `as ref` out-parameters:
+
+```sindarin
+native fn divide_with_remainder(
+    dividend: int,
+    divisor: int,
+    quotient: int as ref,
+    remainder: int as ref
+): void =>
+    quotient = dividend / divisor
+    remainder = dividend % divisor
+
+var q: int = 0
+var r: int = 0
+divide_with_remainder(17, 5, q, r)
+print($"17 / 5 = {q} remainder {r}\n")  // 17 / 5 = 3 remainder 2
+```
+
+See `tests/integration/test_as_ref_out_params.sn` and `tests/integration/test_interop_pointers.sn` for comprehensive examples.
 
 ### The `native` Function Boundary
 
@@ -276,11 +341,11 @@ fn example(): void =>
 
 ### Parameter Semantics
 
-| Annotation | Meaning | Use When |
-|------------|---------|----------|
-| (default) | Pass arena pointer | C needs to read (or safely mutate) your data |
-| `as val` | Copy, pass the copy | C mutates data and you want to preserve original |
-| `as ref` | Pass pointer for out-param | C writes results back |
+| Annotation | Meaning | Use When | Code Generated |
+|------------|---------|----------|----------------|
+| (default) | Pass arena pointer | C needs to read (or safely mutate) your data | `func(data)` |
+| `as val` | Copy, pass the copy | C mutates data and you want to preserve original | `func(copy_of_data)` |
+| `as ref` | Pass pointer for out-param | C writes results back to caller's variable | `func(&variable)` |
 
 ```sindarin
 // Default: pass by reference (C sees pointer to arena memory)
@@ -290,8 +355,20 @@ native fn process(data: byte[]): void
 // as val: copy first, then pass the copy
 native fn sort_inplace(data: int[] as val): void
 
-// as ref: C can write back through this parameter
+// as ref: compiler generates &variable, C writes back through pointer
 native fn get_size(width: int as ref, height: int as ref): void
+```
+
+#### Key Difference: `as ref` vs Default
+
+For arrays and strings, the **default** already passes a pointer (to arena memory). Use `as ref` specifically for **primitives** when C needs to write back:
+
+```sindarin
+// Default for arrays - already passes pointer, C can modify contents
+native fn fill_buffer(buf: byte[]): void
+
+// as ref for primitives - enables write-back to caller's variable
+native fn get_count(count: int as ref): void
 ```
 
 ---
