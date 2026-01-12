@@ -682,9 +682,18 @@ static void code_gen_native_extern_declaration(CodeGen *gen, FunctionStmt *fn)
     fprintf(gen->output, ");\n");
 }
 
-/* Helper to add a pragma include */
+/* Helper to add a pragma include (with deduplication) */
 static void code_gen_add_pragma_include(CodeGen *gen, const char *include)
 {
+    /* Check for duplicates */
+    for (int i = 0; i < gen->pragma_include_count; i++)
+    {
+        if (strcmp(gen->pragma_includes[i], include) == 0)
+        {
+            return; /* Already added */
+        }
+    }
+
     if (gen->pragma_include_count >= gen->pragma_include_capacity)
     {
         int new_capacity = gen->pragma_include_capacity == 0 ? 8 : gen->pragma_include_capacity * 2;
@@ -699,9 +708,18 @@ static void code_gen_add_pragma_include(CodeGen *gen, const char *include)
     gen->pragma_includes[gen->pragma_include_count++] = arena_strdup(gen->arena, include);
 }
 
-/* Helper to add a pragma link */
+/* Helper to add a pragma link (with deduplication) */
 static void code_gen_add_pragma_link(CodeGen *gen, const char *link)
 {
+    /* Check for duplicates */
+    for (int i = 0; i < gen->pragma_link_count; i++)
+    {
+        if (strcmp(gen->pragma_links[i], link) == 0)
+        {
+            return; /* Already added */
+        }
+    }
+
     if (gen->pragma_link_count >= gen->pragma_link_capacity)
     {
         int new_capacity = gen->pragma_link_capacity == 0 ? 8 : gen->pragma_link_capacity * 2;
@@ -716,7 +734,7 @@ static void code_gen_add_pragma_link(CodeGen *gen, const char *link)
     gen->pragma_links[gen->pragma_link_count++] = arena_strdup(gen->arena, link);
 }
 
-/* Collect pragma directives from a list of statements */
+/* Collect pragma directives from a list of statements (recursively handles imports) */
 static void code_gen_collect_pragmas(CodeGen *gen, Stmt **statements, int count)
 {
     for (int i = 0; i < count; i++)
@@ -732,6 +750,14 @@ static void code_gen_collect_pragmas(CodeGen *gen, Stmt **statements, int count)
             {
                 code_gen_add_pragma_link(gen, stmt->as.pragma.value);
             }
+        }
+        else if (stmt->type == STMT_IMPORT &&
+                 stmt->as.import.namespace != NULL &&
+                 stmt->as.import.imported_stmts != NULL)
+        {
+            /* Recursively collect pragmas from imported namespaced modules */
+            code_gen_collect_pragmas(gen, stmt->as.import.imported_stmts,
+                                     stmt->as.import.imported_count);
         }
     }
 }

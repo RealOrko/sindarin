@@ -38,6 +38,11 @@ if /i "%~1"=="--explore-errors" (
     shift
     goto :parse_args
 )
+if /i "%~1"=="--sdk" (
+    set "TEST_TYPE=sdk"
+    shift
+    goto :parse_args
+)
 if /i "%~1"=="--errors" (
     set "RUN_ERRORS=1"
     shift
@@ -159,6 +164,19 @@ if "%TEST_TYPE%"=="explore-errors" (
 )
 
 REM ============================================================================
+REM SDK Tests
+REM ============================================================================
+if "%TEST_TYPE%"=="all" goto :run_sdk
+if "%TEST_TYPE%"=="sdk" goto :run_sdk
+goto :skip_sdk
+
+:run_sdk
+powershell.exe -ExecutionPolicy Bypass -File scripts\run_integration_test.ps1 -TestType sdk -All -Compiler "%SN%"
+if errorlevel 1 set "EXIT_CODE=1"
+
+:skip_sdk
+
+REM ============================================================================
 REM Summary
 REM ============================================================================
 echo.
@@ -188,14 +206,16 @@ echo   --integration        Run only integration tests
 echo   --integration-errors Run only integration error tests
 echo   --explore            Run only exploratory tests
 echo   --explore-errors     Run only exploratory error tests
+echo   --sdk                Run only SDK tests
 echo   --errors             Also run error tests with integration/explore tests
 echo   --help, -h           Show this help message
 echo.
 echo Examples:
-echo   test.bat                      Run all tests (unit + integration + explore + errors)
+echo   test.bat                      Run all tests (unit + integration + explore + sdk + errors)
 echo   test.bat --unit               Run unit tests only
 echo   test.bat --integration        Run integration tests (positive only)
 echo   test.bat --integration --errors  Run integration tests including error tests
+echo   test.bat --sdk                Run SDK tests only
 echo.
 echo Note: This script uses PowerShell for integration tests to provide
 echo       proper timeout handling and Windows line ending normalization.
