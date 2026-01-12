@@ -7,7 +7,7 @@
 .PHONY: all build rebuild run clean
 .PHONY: build-gcc build-clang build-tcc
 .PHONY: test test-unit test-integration test-integration-errors
-.PHONY: test-explore test-explore-errors test-threading
+.PHONY: test-explore test-explore-errors test-sdk test-threading
 .PHONY: test-gcc test-clang test-tcc
 .PHONY: assembly measure-optimization benchmark help
 
@@ -113,6 +113,7 @@ define TEST_BACKEND
 	@$(MAKE) --no-print-directory test-unit
 	@$(MAKE) --no-print-directory test-integration test-integration-errors SN=$(BIN_DIR)/sn-$(2)$(EXE_EXT)
 	@$(MAKE) --no-print-directory test-explore test-explore-errors SN=$(BIN_DIR)/sn-$(2)$(EXE_EXT)
+	@$(MAKE) --no-print-directory test-sdk SN=$(BIN_DIR)/sn-$(2)$(EXE_EXT)
 endef
 
 #------------------------------------------------------------------------------
@@ -243,6 +244,9 @@ test-explore:
 test-explore-errors:
 	@./scripts/run_tests.sh explore-errors $(SN)
 
+test-sdk:
+	@./scripts/run_tests.sh sdk $(SN)
+
 #------------------------------------------------------------------------------
 # test-threading - Run all threading tests (positive and negative)
 #------------------------------------------------------------------------------
@@ -338,6 +342,7 @@ help:
 	@echo "    make test-clang   Run all tests with Clang backend"
 	@echo "    make test-tcc     Run all tests with TinyCC backend"
 	@echo "    make test-unit    Run unit tests only"
+	@echo "    make test-sdk     Run SDK tests only"
 	@echo ""
 	@echo "  Analysis:"
 	@echo "    make assembly             Assemble and link assembly files"

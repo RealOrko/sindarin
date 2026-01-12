@@ -1,14 +1,14 @@
 #Requires -Version 5.1
 # Run integration tests on Windows with MSVC
 # Usage: .\run_integration_test.ps1 [-TestType <type>] [-TestFile <file>] [-Compiler <path>]
-# Test types: integration, integration-errors, explore, explore-errors
+# Test types: integration, integration-errors, explore, explore-errors, sdk
 #
 # Exit codes:
 #   0 - All tests passed
 #   1 - One or more tests failed or error occurred
 
 param(
-    [ValidateSet("integration", "integration-errors", "explore", "explore-errors")]
+    [ValidateSet("integration", "integration-errors", "explore", "explore-errors", "sdk")]
     [string]$TestType = "integration",
     [string]$TestFile = "",
     [string]$Compiler = "",
@@ -31,7 +31,7 @@ if ($Help) {
     Write-Host "  .\run_integration_test.ps1 -TestFile <path>            Run single test"
     Write-Host ""
     Write-Host "Parameters:"
-    Write-Host "  -TestType        Type: integration, integration-errors, explore, explore-errors"
+    Write-Host "  -TestType        Type: integration, integration-errors, explore, explore-errors, sdk"
     Write-Host "  -TestFile        Path to a single .sn file to test"
     Write-Host "  -Compiler        Path to compiler (default: bin\sn.exe)"
     Write-Host "  -CompileTimeout  Compile timeout in seconds (default: 10)"
@@ -136,6 +136,13 @@ $TestConfig = @{
         ExpectCompileFail = $true
         Title = "Exploratory Error Tests (expected compile failures)"
         DefaultRunTimeout = 5
+    }
+    "sdk" = @{
+        Dir = "tests\sdk"
+        Pattern = "test_*.sn"
+        ExpectCompileFail = $false
+        Title = "SDK Tests"
+        DefaultRunTimeout = 30
     }
 }
 

@@ -176,6 +176,22 @@ jobs:
 
         Write-Host "All exploratory tests passed!" -ForegroundColor Green
 
+    - name: Run SDK tests
+      shell: pwsh
+      env:
+        SN_CC: clang
+        SN_CFLAGS: --target=x86_64-w64-mingw32 -fuse-ld=lld -rtlib=compiler-rt -unwindlib=none
+      run: |
+        Write-Host "Running SDK tests..."
+
+        & .\scripts\run_integration_test.ps1 -TestType sdk -All -Compiler bin\sn.exe
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "SDK tests failed!" -ForegroundColor Red
+          exit 1
+        }
+
+        Write-Host "All SDK tests passed!" -ForegroundColor Green
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       if: success()

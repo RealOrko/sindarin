@@ -392,6 +392,15 @@ char *code_gen_lambda_stmt_body(CodeGen *gen, LambdaExpr *lambda, int indent,
     gen->current_function = (char *)lambda_func_name;
     gen->current_return_type = return_type;
 
+    /* Add lambda parameters to symbol table so they can be found during code gen.
+     * This ensures function-type parameters are recognized as closure variables,
+     * not as named functions. */
+    symbol_table_push_scope(gen->symbol_table);
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        symbol_table_add_symbol(gen->symbol_table, lambda->params[i].name, lambda->params[i].type);
+    }
+
     /* Generate code for each statement in the lambda body */
     /* We need to capture the output since code_gen_statement writes to gen->output */
     FILE *old_output = gen->output;
@@ -406,6 +415,9 @@ char *code_gen_lambda_stmt_body(CodeGen *gen, LambdaExpr *lambda, int indent,
 
     sn_fclose(gen->output);
     gen->output = old_output;
+
+    /* Pop the lambda parameter scope */
+    symbol_table_pop_scope(gen->symbol_table);
 
     /* Restore context */
     gen->current_function = old_function;
@@ -514,6 +526,16 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
     if (lambda->is_native)
     {
         return code_gen_native_lambda_expression(gen, expr);
+    }
+
+    /* Add lambda parameters to symbol table so they can be found during code gen.
+     * This ensures function-type parameters are recognized as closure variables,
+     * not as named functions. We push a new scope and add params here,
+     * then pop it at the end of this function. */
+    symbol_table_push_scope(gen->symbol_table);
+    for (int i = 0; i < lambda->param_count; i++)
+    {
+        symbol_table_add_symbol(gen->symbol_table, lambda->params[i].name, lambda->params[i].type);
     }
 
     int lambda_id = gen->lambda_count++;
@@ -868,6 +890,9 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         /* Pop this lambda from enclosing context */
         gen->enclosing_lambda_count--;
 
+        /* Pop the lambda parameter scope we pushed at the start */
+        symbol_table_pop_scope(gen->symbol_table);
+
         return closure_init;
     }
     else
@@ -1007,6 +1032,9 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         /* Pop this lambda from enclosing context */
         gen->enclosing_lambda_count--;
+
+        /* Pop the lambda parameter scope we pushed at the start */
+        symbol_table_pop_scope(gen->symbol_table);
 
         /* Return code that creates the closure using generic __Closure__ type */
         return arena_sprintf(gen->arena,

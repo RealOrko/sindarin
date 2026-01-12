@@ -733,6 +733,9 @@ void get_module_symbols(Module *imported_module, SymbolTable *table,
             }
 
             Type *func_type = ast_create_function_type(arena, func->return_type, param_types, func->param_count);
+            /* Carry over variadic and native flags from function statement */
+            func_type->as.function.is_variadic = func->is_variadic;
+            func_type->as.function.is_native = func->is_native;
 
             /* Store parameter memory qualifiers if any non-default exist */
             if (func->param_count > 0)

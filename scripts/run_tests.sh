@@ -86,9 +86,15 @@ case "$TEST_TYPE" in
         EXPECT_COMPILE_FAIL=true
         TITLE="Exploratory Error Tests (expected compile failures)"
         ;;
+    sdk)
+        TEST_DIR="tests/sdk"
+        PATTERN="test_*.sn"
+        EXPECT_COMPILE_FAIL=false
+        TITLE="SDK Tests"
+        ;;
     *)
         echo "Unknown test type: $TEST_TYPE"
-        echo "Valid types: integration, integration-errors, explore, explore-errors"
+        echo "Valid types: integration, integration-errors, explore, explore-errors, sdk"
         exit 1
         ;;
 esac

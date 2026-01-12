@@ -543,6 +543,8 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     Type *func_type = ast_create_function_type(arena, stmt->as.function.return_type, param_types, stmt->as.function.param_count);
     /* Carry over variadic flag from function statement */
     func_type->as.function.is_variadic = stmt->as.function.is_variadic;
+    /* Carry over native flag so code gen emits direct C calls, not closure calls */
+    func_type->as.function.is_native = stmt->as.function.is_native;
 
     /* Store parameter memory qualifiers in the function type for thread safety analysis.
      * This allows detecting 'as ref' primitives when checking thread spawn arguments. */

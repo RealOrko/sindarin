@@ -1770,12 +1770,14 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 strcmp(name, "printErr") != 0 && strcmp(name, "printErrLn") != 0 &&
                 strcmp(name, "exit") != 0 && strcmp(name, "assert") != 0)
             {
-                /* Check if this is a named function or a closure variable */
+                /* Check if this is a named function or a closure variable.
+                 * Only treat as closure if we find a symbol that ISN'T a function.
+                 * If sym is NULL, assume it's a named function - this handles imported
+                 * module functions whose symbols were removed after type checking. */
                 Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
-                if (sym == NULL || !sym->is_function)
+                if (sym != NULL && !sym->is_function)
                 {
-                    /* This is a closure variable (not a named function).
-                     * Also handles lambda parameters which are not in the symbol table. */
+                    /* This is a closure variable (not a named function). */
                     is_closure_call = true;
                 }
             }

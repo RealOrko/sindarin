@@ -95,6 +95,14 @@ jobs:
         ./scripts/run_tests.sh explore-errors
         echo "All exploratory tests passed!"
 
+    - name: Run SDK tests
+      env:
+        SN_CC: clang
+      run: |
+        echo "Running SDK tests..."
+        ./scripts/run_tests.sh sdk
+        echo "All SDK tests passed!"
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       if: success()
