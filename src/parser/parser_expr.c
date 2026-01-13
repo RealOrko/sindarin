@@ -57,6 +57,14 @@ Expr *parser_assignment(Parser *parser)
                 expr->as.array_access.index,
                 value, &equals);
         }
+        else if (expr->type == EXPR_MEMBER)
+        {
+            /* Struct field assignment: point.x = value */
+            return ast_create_member_assign_expr(parser->arena,
+                expr->as.member.object,
+                expr->as.member.member_name,
+                value, &equals);
+        }
         parser_error(parser, "Invalid assignment target");
     }
     return expr;
@@ -197,6 +205,75 @@ Expr *parser_unary(Parser *parser)
                 parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after typeof expression");
             }
             return ast_create_typeof_expr(parser->arena, operand, NULL, &typeof_token);
+        }
+    }
+    /* sizeof operator: sizeof expr or sizeof(expr) or sizeof Type or sizeof(Type) */
+    if (parser_match(parser, TOKEN_SIZEOF))
+    {
+        Token sizeof_token = parser->previous;
+        bool has_parens = parser_match(parser, TOKEN_LEFT_PAREN);
+
+        /* Check if this is sizeof <type> (e.g., sizeof Point, sizeof int)
+         * We need to check for type keywords and struct names first */
+        if (parser_check(parser, TOKEN_INT) || parser_check(parser, TOKEN_INT32) ||
+            parser_check(parser, TOKEN_UINT) || parser_check(parser, TOKEN_UINT32) ||
+            parser_check(parser, TOKEN_LONG) || parser_check(parser, TOKEN_DOUBLE) ||
+            parser_check(parser, TOKEN_FLOAT) || parser_check(parser, TOKEN_CHAR) ||
+            parser_check(parser, TOKEN_STR) || parser_check(parser, TOKEN_BOOL) ||
+            parser_check(parser, TOKEN_BYTE) || parser_check(parser, TOKEN_VOID) ||
+            parser_check(parser, TOKEN_ANY) || parser_check(parser, TOKEN_UUID) ||
+            parser_check(parser, TOKEN_STAR))
+        {
+            /* This is sizeof on a type - parse as type */
+            Type *type_operand = parser_type(parser);
+            if (has_parens)
+            {
+                parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after sizeof type");
+            }
+            return ast_create_sizeof_type_expr(parser->arena, type_operand, &sizeof_token);
+        }
+        else if (parser_check(parser, TOKEN_IDENTIFIER))
+        {
+            /* Could be either a type name (struct) or an expression (variable)
+             * If followed by { it's a struct literal expression
+             * Otherwise, check if it's a known struct type or fall back to expression */
+            Token id = parser->current;
+
+            /* Peek ahead to see what follows the identifier */
+            /* For sizeof, if it's a struct type name, parse as type; otherwise as expression */
+            /* Use the symbol table to check if it's a struct type */
+            Symbol *type_symbol = symbol_table_lookup_type(parser->symbol_table, id);
+            if (type_symbol != NULL && type_symbol->type != NULL &&
+                type_symbol->type->kind == TYPE_STRUCT)
+            {
+                /* It's a struct type name */
+                Type *type_operand = parser_type(parser);
+                if (has_parens)
+                {
+                    parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after sizeof type");
+                }
+                return ast_create_sizeof_type_expr(parser->arena, type_operand, &sizeof_token);
+            }
+            else
+            {
+                /* Parse as expression */
+                Expr *operand = parser_unary(parser);
+                if (has_parens)
+                {
+                    parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after sizeof expression");
+                }
+                return ast_create_sizeof_expr_expr(parser->arena, operand, &sizeof_token);
+            }
+        }
+        else
+        {
+            /* sizeof expression */
+            Expr *operand = parser_unary(parser);
+            if (has_parens)
+            {
+                parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after sizeof expression");
+            }
+            return ast_create_sizeof_expr_expr(parser->arena, operand, &sizeof_token);
         }
     }
     /* Thread spawn: &fn() or &fn()!
@@ -501,6 +578,84 @@ Expr *parser_primary(Parser *parser)
     if (parser_match(parser, TOKEN_IDENTIFIER))
     {
         Token var_token = parser->previous;
+
+        /* Check for struct literal: TypeName { field: value, ... } or TypeName {} */
+        if (parser_check(parser, TOKEN_LEFT_BRACE))
+        {
+            /* Check if this identifier is a known struct type */
+            Symbol *type_symbol = symbol_table_lookup_type(parser->symbol_table, var_token);
+            if (type_symbol != NULL && type_symbol->type != NULL &&
+                type_symbol->type->kind == TYPE_STRUCT)
+            {
+                /* This is a struct literal */
+                Token struct_name = var_token;
+                struct_name.start = arena_strndup(parser->arena, var_token.start, var_token.length);
+                if (struct_name.start == NULL)
+                {
+                    parser_error(parser, "Out of memory");
+                    return NULL;
+                }
+
+                parser_advance(parser);  /* consume '{' */
+                Token left_brace = parser->previous;
+
+                FieldInitializer *fields = NULL;
+                int field_count = 0;
+                int field_capacity = 0;
+
+                if (!parser_check(parser, TOKEN_RIGHT_BRACE))
+                {
+                    do
+                    {
+                        /* Parse field name */
+                        if (!parser_check(parser, TOKEN_IDENTIFIER))
+                        {
+                            parser_error_at_current(parser, "Expected field name in struct literal");
+                            break;
+                        }
+                        Token field_name = parser->current;
+                        parser_advance(parser);
+
+                        /* Parse colon */
+                        parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
+
+                        /* Parse field value */
+                        Expr *field_value = parser_expression(parser);
+                        if (field_value == NULL)
+                        {
+                            parser_error(parser, "Expected field value");
+                            break;
+                        }
+
+                        /* Add to fields array */
+                        if (field_count >= field_capacity)
+                        {
+                            field_capacity = field_capacity == 0 ? 4 : field_capacity * 2;
+                            FieldInitializer *new_fields = arena_alloc(parser->arena,
+                                sizeof(FieldInitializer) * field_capacity);
+                            if (new_fields == NULL)
+                            {
+                                parser_error(parser, "Out of memory");
+                                return NULL;
+                            }
+                            if (fields != NULL && field_count > 0)
+                            {
+                                memcpy(new_fields, fields, sizeof(FieldInitializer) * field_count);
+                            }
+                            fields = new_fields;
+                        }
+                        fields[field_count].name = field_name;
+                        fields[field_count].value = field_value;
+                        field_count++;
+                    } while (parser_match(parser, TOKEN_COMMA));
+                }
+
+                parser_consume(parser, TOKEN_RIGHT_BRACE, "Expected '}' after struct literal");
+
+                return ast_create_struct_literal_expr(parser->arena, struct_name, fields,
+                                                       field_count, &left_brace);
+            }
+        }
 
         /* Check for static method call: TypeName.method() */
         if (parser_check(parser, TOKEN_DOT) &&

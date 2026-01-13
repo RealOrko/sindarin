@@ -41,9 +41,24 @@ Token lexer_scan_token(Lexer *lexer)
             {
                 lexer_advance(lexer);
             }
+            /* Check if this is a comment-only line (skip indent processing)
+             * Note: #pragma is NOT a comment, so we must check for it specifically */
+            int is_comment_line = 0;
             if (lexer_is_at_end(lexer) || lexer_peek(lexer) == '\n' || lexer_peek(lexer) == '\r' ||
-                (lexer_peek(lexer) == '/' && lexer_peek_next(lexer) == '/') ||
-                lexer_peek(lexer) == '#')
+                (lexer_peek(lexer) == '/' && lexer_peek_next(lexer) == '/'))
+            {
+                is_comment_line = 1;
+            }
+            else if (lexer_peek(lexer) == '#')
+            {
+                /* Only treat as comment if NOT followed by 'pragma' */
+                /* lexer->current points at '#', so check current+1 for 'pragma' */
+                if (strncmp(lexer->current + 1, "pragma", 6) != 0)
+                {
+                    is_comment_line = 1;
+                }
+            }
+            if (is_comment_line)
             {
                 DEBUG_VERBOSE("Line %d: Ignoring line (whitespace or comment only)", lexer->line);
                 lexer->current = indent_start;
@@ -333,6 +348,12 @@ skip_indent_processing:
                 lexer->current += 4;
                 DEBUG_VERBOSE("Line %d: Emitting PRAGMA_LINK", lexer->line);
                 return lexer_make_token(lexer, TOKEN_PRAGMA_LINK);
+            }
+            else if (strncmp(lexer->current, "pack", 4) == 0)
+            {
+                lexer->current += 4;
+                DEBUG_VERBOSE("Line %d: Emitting PRAGMA_PACK", lexer->line);
+                return lexer_make_token(lexer, TOKEN_PRAGMA_PACK);
             }
             else
             {

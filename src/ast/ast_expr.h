@@ -29,5 +29,11 @@ Expr *ast_create_as_val_expr(Arena *arena, Expr *operand, const Token *loc_token
 Expr *ast_create_typeof_expr(Arena *arena, Expr *operand, Type *type_literal, const Token *loc_token);
 Expr *ast_create_is_expr(Arena *arena, Expr *operand, Type *check_type, const Token *loc_token);
 Expr *ast_create_as_type_expr(Arena *arena, Expr *operand, Type *target_type, const Token *loc_token);
+Expr *ast_create_struct_literal_expr(Arena *arena, Token struct_name, FieldInitializer *fields,
+                                      int field_count, const Token *loc_token);
+Expr *ast_create_member_access_expr(Arena *arena, Expr *object, Token field_name, const Token *loc_token);
+Expr *ast_create_member_assign_expr(Arena *arena, Expr *object, Token field_name, Expr *value, const Token *loc_token);
+Expr *ast_create_sizeof_type_expr(Arena *arena, Type *type_operand, const Token *loc_token);
+Expr *ast_create_sizeof_expr_expr(Arena *arena, Expr *expr_operand, const Token *loc_token);
 
 #endif /* AST_EXPR_H */

@@ -578,8 +578,19 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         Type *return_type = stmt->as.function.return_type;
         if (!can_escape_private(return_type))
         {
-            type_error(&stmt->as.function.name,
-                       "Private function can only return primitive types (int, double, bool, char)");
+            const char *reason = get_private_escape_block_reason(return_type);
+            char error_msg[512];
+            if (reason != NULL)
+            {
+                snprintf(error_msg, sizeof(error_msg),
+                         "Private function cannot return this type: %s", reason);
+            }
+            else
+            {
+                snprintf(error_msg, sizeof(error_msg),
+                         "Private function can only return primitive types or structs with only primitive fields");
+            }
+            type_error(&stmt->as.function.name, error_msg);
         }
     }
 
@@ -651,11 +662,13 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         else if (param.mem_qualifier == MEM_AS_REF)
         {
             /* 'as ref' on primitive parameters allows caller to pass a reference
-             * that the function can modify. This enables shared mutable state. */
-            if (!is_primitive_type(param.type))
+             * that the function can modify. This enables shared mutable state.
+             * 'as ref' on struct parameters passes a pointer to the struct,
+             * matching C semantics for out-parameters (e.g., gettimeofday(tv, tz)). */
+            if (!is_primitive_type(param.type) && param.type->kind != TYPE_STRUCT)
             {
-                /* 'as ref' only makes sense for primitives - arrays are already references */
-                type_error(&param.name, "'as ref' only applies to primitive parameters");
+                /* 'as ref' only makes sense for primitives and structs - arrays are already references */
+                type_error(&param.name, "'as ref' only applies to primitive or struct parameters");
             }
         }
 
@@ -694,6 +707,25 @@ static void type_check_return(Stmt *stmt, SymbolTable *table, Type *return_type)
         value_type = type_check_expr(stmt->as.return_stmt.value, table);
         if (value_type == NULL)
             return;
+
+        /* Escape analysis: detect when returning a local variable.
+         * Local variables (declared inside function, scope_depth >= 2) escape when returned.
+         * Note: After symbol_table_init, global scope has depth 1. Function body scope is >= 2.
+         * Parameters (SYMBOL_PARAM) and globals (scope_depth == 1) don't escape. */
+        Expr *return_expr = stmt->as.return_stmt.value;
+        if (return_expr->type == EXPR_VARIABLE)
+        {
+            Symbol *sym = symbol_table_lookup_symbol(table, return_expr->as.variable.name);
+            if (sym != NULL && sym->kind != SYMBOL_PARAM && sym->declaration_scope_depth >= 2)
+            {
+                /* Local variable is escaping via return - mark it */
+                ast_expr_mark_escapes(return_expr);
+                DEBUG_VERBOSE("Escape detected: local variable '%.*s' (scope_depth %d) returned from function",
+                              return_expr->as.variable.name.length,
+                              return_expr->as.variable.name.start,
+                              sym->declaration_scope_depth);
+            }
+        }
     }
     else
     {
@@ -872,6 +904,136 @@ static void type_check_for_each(Stmt *stmt, SymbolTable *table, Type *return_typ
  *   - Namespaced symbols are NOT added to global scope directly
  *   - They are only accessible via namespace.symbol syntax
  */
+/* Type check a struct declaration.
+ * Validates:
+ * 1. All field types are valid (primitives, arrays, strings, or defined struct/opaque types)
+ * 2. Pointer fields are only allowed in native structs
+ * 3. Default value types match field types
+ */
+static void type_check_struct_decl(Stmt *stmt, SymbolTable *table)
+{
+    StructDeclStmt *struct_decl = &stmt->as.struct_decl;
+
+    DEBUG_VERBOSE("Type checking struct declaration: %.*s with %d fields",
+                  struct_decl->name.length, struct_decl->name.start,
+                  struct_decl->field_count);
+
+    /* Check each field */
+    for (int i = 0; i < struct_decl->field_count; i++)
+    {
+        StructField *field = &struct_decl->fields[i];
+        Type *field_type = field->type;
+
+        if (field_type == NULL)
+        {
+            char msg[256];
+            snprintf(msg, sizeof(msg), "Field '%s' has no type", field->name);
+            type_error(&struct_decl->name, msg);
+            continue;
+        }
+
+        /* Validate the field type is resolvable */
+        if (!is_valid_field_type(field_type, table))
+        {
+            char msg[512];
+            /* Get struct name for error message */
+            char struct_name_buf[128];
+            int struct_name_len = struct_decl->name.length < 127 ? struct_decl->name.length : 127;
+            memcpy(struct_name_buf, struct_decl->name.start, struct_name_len);
+            struct_name_buf[struct_name_len] = '\0';
+
+            /* Get type name for undefined struct types */
+            const char *type_name = "unknown";
+            if (field_type->kind == TYPE_STRUCT && field_type->as.struct_type.name != NULL)
+            {
+                type_name = field_type->as.struct_type.name;
+            }
+
+            snprintf(msg, sizeof(msg),
+                     "In struct '%s': field '%s' has undefined type '%s'",
+                     struct_name_buf, field->name, type_name);
+            type_error(&struct_decl->name, msg);
+            continue;
+        }
+
+        /* Pointer fields require native struct (already checked in parser, but double-check) */
+        if (!struct_decl->is_native && field_type->kind == TYPE_POINTER)
+        {
+            char msg[512];
+            /* Get struct name for error message */
+            char sname[128];
+            int sname_len = struct_decl->name.length < 127 ? struct_decl->name.length : 127;
+            memcpy(sname, struct_decl->name.start, sname_len);
+            sname[sname_len] = '\0';
+
+            snprintf(msg, sizeof(msg),
+                     "Pointer field '%s' not allowed in struct '%s'. "
+                     "Use 'native struct' for structs with pointer fields:\n"
+                     "    native struct %s =>\n"
+                     "        %s: *...",
+                     field->name, sname, sname, field->name);
+            type_error(&struct_decl->name, msg);
+        }
+
+        /* Type check default value if present */
+        if (field->default_value != NULL)
+        {
+            Type *default_type = type_check_expr(field->default_value, table);
+            if (default_type != NULL && !ast_type_equals(default_type, field_type))
+            {
+                char msg[256];
+                snprintf(msg, sizeof(msg),
+                         "Default value type does not match field '%s' type",
+                         field->name);
+                type_error(&struct_decl->name, msg);
+            }
+        }
+
+        DEBUG_VERBOSE("  Field '%s' type validated", field->name);
+    }
+
+    /* Check for circular dependencies in struct types.
+     * Build a temporary Type for the struct declaration to check. */
+    Type temp_struct_type;
+    temp_struct_type.kind = TYPE_STRUCT;
+    temp_struct_type.as.struct_type.name = NULL;
+
+    /* Create null-terminated struct name */
+    char struct_name[128];
+    int name_len = struct_decl->name.length < 127 ? struct_decl->name.length : 127;
+    memcpy(struct_name, struct_decl->name.start, name_len);
+    struct_name[name_len] = '\0';
+    temp_struct_type.as.struct_type.name = struct_name;
+
+    temp_struct_type.as.struct_type.fields = struct_decl->fields;
+    temp_struct_type.as.struct_type.field_count = struct_decl->field_count;
+    temp_struct_type.as.struct_type.is_native = struct_decl->is_native;
+    temp_struct_type.as.struct_type.size = 0;
+    temp_struct_type.as.struct_type.alignment = 0;
+
+    char cycle_chain[512];
+    if (detect_struct_circular_dependency(&temp_struct_type, table, cycle_chain, sizeof(cycle_chain)))
+    {
+        char msg[768];
+        snprintf(msg, sizeof(msg),
+                 "Circular dependency detected in struct '%s': %s",
+                 struct_name, cycle_chain);
+        type_error(&struct_decl->name, msg);
+        return; /* Cannot calculate layout for circular struct */
+    }
+
+    /* Look up the struct type from the symbol table and calculate its layout */
+    Symbol *struct_sym = symbol_table_lookup_type(table, struct_decl->name);
+    if (struct_sym != NULL && struct_sym->type != NULL && struct_sym->type->kind == TYPE_STRUCT)
+    {
+        calculate_struct_layout(struct_sym->type);
+        DEBUG_VERBOSE("Struct '%s' layout: size=%zu, alignment=%zu",
+                      struct_name,
+                      struct_sym->type->as.struct_type.size,
+                      struct_sym->type->as.struct_type.alignment);
+    }
+}
+
 static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
 {
     ImportStmt *import = &stmt->as.import;
@@ -1149,6 +1311,10 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
             type_error(&stmt->as.type_decl.name,
                        "Type declaration must be 'opaque' or 'native fn(...)'");
         }
+        break;
+
+    case STMT_STRUCT_DECL:
+        type_check_struct_decl(stmt, table);
         break;
     }
 }

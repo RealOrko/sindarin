@@ -671,6 +671,7 @@ var text: str = bytes.toString()
 
 - [STRINGS.md](STRINGS.md) - String methods and interpolation
 - [ARRAYS.md](ARRAYS.md) - Array operations
+- [STRUCTS.md](STRUCTS.md) - Struct declarations and fields
 - [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile types
 - [NETWORK_IO.md](NETWORK_IO.md) - TCP and UDP networking
 - [DATE.md](DATE.md) - Date type operations

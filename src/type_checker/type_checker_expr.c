@@ -10,8 +10,75 @@
 #include "type_checker/type_checker_expr_lambda.h"
 #include "type_checker/type_checker_util.h"
 #include "type_checker/type_checker_stmt.h"
+#include "symbol_table/symbol_table_thread.h"
 #include "debug.h"
 #include <string.h>
+
+/* Helper to get the base scope depth from an expression.
+ * For EXPR_VARIABLE: returns the symbol's declaration_scope_depth
+ * For EXPR_MEMBER_ACCESS: returns the already-computed scope_depth (propagated from base)
+ * Returns -1 if unable to determine scope depth. */
+static int get_expr_scope_depth(Expr *expr, SymbolTable *table)
+{
+    if (expr == NULL) return -1;
+
+    if (expr->type == EXPR_VARIABLE)
+    {
+        Symbol *sym = symbol_table_lookup_symbol(table, expr->as.variable.name);
+        if (sym != NULL)
+        {
+            return sym->declaration_scope_depth;
+        }
+    }
+    else if (expr->type == EXPR_MEMBER_ACCESS)
+    {
+        /* After type checking, member access has scope_depth set */
+        return expr->as.member_access.scope_depth;
+    }
+
+    return -1;
+}
+
+/* Helper to mark ALL member access nodes in a chain as escaped.
+ * For an expression like outer.a.b, this marks both outer.a and outer.a.b.
+ * This walks up the chain to mark all intermediate member accesses. */
+static void mark_member_access_chain_escaped(Expr *expr)
+{
+    while (expr != NULL && expr->type == EXPR_MEMBER_ACCESS)
+    {
+        expr->as.member_access.escaped = true;
+        ast_expr_mark_escapes(expr);
+        DEBUG_VERBOSE("Marked member access in chain as escaped");
+        /* Walk up to the object (which may be another member access) */
+        expr = expr->as.member_access.object;
+    }
+}
+
+/* Helper to get the BASE (root variable) scope depth from a member access chain.
+ * For outer.a.b, this returns the scope depth of 'outer' (the root variable).
+ * This ensures we compare RHS scope against the actual base object scope. */
+static int get_base_scope_depth(Expr *expr, SymbolTable *table)
+{
+    if (expr == NULL) return -1;
+
+    /* Walk down to the base of the chain */
+    while (expr != NULL && expr->type == EXPR_MEMBER_ACCESS)
+    {
+        expr = expr->as.member_access.object;
+    }
+
+    /* Now expr should be the base variable */
+    if (expr != NULL && expr->type == EXPR_VARIABLE)
+    {
+        Symbol *sym = symbol_table_lookup_symbol(table, expr->as.variable.name);
+        if (sym != NULL)
+        {
+            return sym->declaration_scope_depth;
+        }
+    }
+
+    return -1;
+}
 
 static Type *type_check_binary(Expr *expr, SymbolTable *table)
 {
@@ -348,8 +415,19 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
     int current_depth = symbol_table_get_arena_depth(table);
     if (current_depth > sym->arena_depth && !can_escape_private(value_type))
     {
-        type_error(&expr->as.assign.name,
-                   "Cannot assign non-primitive type to variable declared outside private block");
+        const char *reason = get_private_escape_block_reason(value_type);
+        char error_msg[512];
+        if (reason != NULL)
+        {
+            snprintf(error_msg, sizeof(error_msg),
+                     "Cannot assign to variable declared outside private block: %s", reason);
+        }
+        else
+        {
+            snprintf(error_msg, sizeof(error_msg),
+                     "Cannot assign non-primitive type to variable declared outside private block");
+        }
+        type_error(&expr->as.assign.name, error_msg);
         return NULL;
     }
 
@@ -357,6 +435,23 @@ static Type *type_check_assign(Expr *expr, SymbolTable *table)
     if (value_expr->type == EXPR_THREAD_SPAWN && value_type->kind != TYPE_VOID)
     {
         symbol_table_mark_pending(sym);
+    }
+
+    /* Escape analysis: detect when RHS variable escapes to outer scope.
+     * If RHS is a variable declared in a deeper scope than LHS, the value escapes. */
+    if (value_expr->type == EXPR_VARIABLE)
+    {
+        Symbol *rhs_sym = symbol_table_lookup_symbol(table, value_expr->as.variable.name);
+        if (rhs_sym != NULL && rhs_sym->declaration_scope_depth > sym->declaration_scope_depth)
+        {
+            /* RHS variable is from a deeper scope - it escapes to outer scope */
+            ast_expr_mark_escapes(value_expr);
+            DEBUG_VERBOSE("Escape detected: variable '%.*s' (scope %d) escaping to '%.*s' (scope %d)",
+                          value_expr->as.variable.name.length, value_expr->as.variable.name.start,
+                          rhs_sym->declaration_scope_depth,
+                          expr->as.assign.name.length, expr->as.assign.name.start,
+                          sym->declaration_scope_depth);
+        }
     }
 
     DEBUG_VERBOSE("Assignment type matches: %d", sym->type->kind);
@@ -673,6 +768,54 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
             return result;
         }
         /* Fall through to error handling if not a valid UUID method */
+    }
+
+    /* Handle struct field access via EXPR_MEMBER */
+    if (object_type->kind == TYPE_STRUCT)
+    {
+        Token field_name = expr->as.member.member_name;
+        for (int i = 0; i < object_type->as.struct_type.field_count; i++)
+        {
+            StructField *field = &object_type->as.struct_type.fields[i];
+            if (field_name.length == (int)strlen(field->name) &&
+                strncmp(field_name.start, field->name, field_name.length) == 0)
+            {
+                return field->type;
+            }
+        }
+        /* Field not found - fall through to error handling */
+    }
+
+    /* Handle pointer-to-struct field access via EXPR_MEMBER */
+    if (object_type->kind == TYPE_POINTER &&
+        object_type->as.pointer.base_type != NULL &&
+        object_type->as.pointer.base_type->kind == TYPE_STRUCT)
+    {
+        /* Check native context requirement */
+        if (!native_context_is_active())
+        {
+            Type *struct_type = object_type->as.pointer.base_type;
+            char msg[512];
+            snprintf(msg, sizeof(msg),
+                     "Pointer to struct member access requires native function context. "
+                     "Declare the function with 'native fn' to access '*%s' fields",
+                     struct_type->as.struct_type.name);
+            type_error(expr->token, msg);
+            return NULL;
+        }
+
+        Type *struct_type = object_type->as.pointer.base_type;
+        Token field_name = expr->as.member.member_name;
+        for (int i = 0; i < struct_type->as.struct_type.field_count; i++)
+        {
+            StructField *field = &struct_type->as.struct_type.fields[i];
+            if (field_name.length == (int)strlen(field->name) &&
+                strncmp(field_name.start, field->name, field_name.length) == 0)
+            {
+                return field->type;
+            }
+        }
+        /* Field not found - fall through to error handling */
     }
 
     /* No valid method found */
@@ -1058,12 +1201,11 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         t = NULL;
         break;
     case EXPR_AS_VAL:
-        /* 'as val' dereferences a pointer to get the underlying value type.
-         * For *int: result is int. For *double: result is double. etc.
-         * Special case: *char => str (null-terminated C string conversion).
-         * Special case: ptr[0..len] as val => byte[] (pointer slice to array).
-         * Arrays are also accepted (no-op, returns same type) to support
-         * pointer slices which already produce array types. */
+        /* 'as val' has multiple uses:
+         * 1. Pointer dereference: *int -> int, *double -> double, etc.
+         * 2. C string conversion: *char -> str (null-terminated string)
+         * 3. Struct deep copy: Struct as val -> Struct (with array fields copied)
+         * 4. Array pass-through: used with pointer slices (ptr[0..len] as val) */
         {
             /* Enter as_val context so pointer slices know they're wrapped */
             as_val_context_enter();
@@ -1082,11 +1224,23 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
                 t = operand_type;
                 expr->as.as_val.is_cstr_to_str = false;
                 expr->as.as_val.is_noop = true;
+                expr->as.as_val.is_struct_deep_copy = false;
                 DEBUG_VERBOSE("'as val' on array type (no-op): returns same array type");
+            }
+            else if (operand_type->kind == TYPE_STRUCT)
+            {
+                /* Struct type: 'as val' creates a deep copy of the struct.
+                 * Array fields inside the struct are independently copied.
+                 * This ensures modifications to the copy don't affect the original. */
+                t = operand_type;
+                expr->as.as_val.is_cstr_to_str = false;
+                expr->as.as_val.is_noop = false;
+                expr->as.as_val.is_struct_deep_copy = true;
+                DEBUG_VERBOSE("'as val' on struct type: returns deep copy of struct");
             }
             else if (operand_type->kind != TYPE_POINTER)
             {
-                type_error(expr->token, "'as val' requires a pointer or array type operand");
+                type_error(expr->token, "'as val' requires a pointer, array, or struct type operand");
                 t = NULL;
             }
             else if (operand_type->as.pointer.base_type != NULL &&
@@ -1105,6 +1259,7 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
                     t = ast_create_primitive_type(table->arena, TYPE_STRING);
                     expr->as.as_val.is_cstr_to_str = true;
                     expr->as.as_val.is_noop = false;
+                    expr->as.as_val.is_struct_deep_copy = false;
                     DEBUG_VERBOSE("'as val' converts *char to str (null-terminated string)");
                 }
                 else
@@ -1113,6 +1268,7 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
                     t = base_type;
                     expr->as.as_val.is_cstr_to_str = false;
                     expr->as.as_val.is_noop = false;
+                    expr->as.as_val.is_struct_deep_copy = false;
                     DEBUG_VERBOSE("'as val' unwraps pointer to type: %d", t->kind);
                 }
             }
@@ -1215,6 +1371,594 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
             else
             {
                 type_error(expr->token, "'as <type>' cast requires an 'any' or 'any[]' type operand");
+                t = NULL;
+            }
+        }
+        break;
+    case EXPR_STRUCT_LITERAL:
+        /* Struct literal: StructName { field1: value1, field2: value2, ... } */
+        {
+            Token struct_name = expr->as.struct_literal.struct_name;
+            Symbol *struct_sym = symbol_table_lookup_type(table, struct_name);
+            if (struct_sym == NULL || struct_sym->type == NULL)
+            {
+                type_error(&struct_name, "Unknown struct type");
+                t = NULL;
+            }
+            else if (struct_sym->type->kind != TYPE_STRUCT)
+            {
+                type_error(&struct_name, "Expected struct type");
+                t = NULL;
+            }
+            else
+            {
+                Type *struct_type = struct_sym->type;
+
+                /* Native struct usage context validation:
+                 * Native structs can only be instantiated inside native fn context */
+                if (struct_type->as.struct_type.is_native && !native_context_is_active())
+                {
+                    char msg[512];
+                    snprintf(msg, sizeof(msg),
+                             "Native struct '%s' can only be used in native function context. "
+                             "Declare the function with 'native fn':\n"
+                             "    native fn example(): void =>\n"
+                             "        var x: %s = %s { ... }",
+                             struct_type->as.struct_type.name,
+                             struct_type->as.struct_type.name,
+                             struct_type->as.struct_type.name);
+                    type_error(&struct_name, msg);
+                    t = NULL;
+                }
+                else
+                {
+                    /* Store resolved struct type for code generation */
+                    expr->as.struct_literal.struct_type = struct_type;
+
+                    /* Allocate and initialize the fields_initialized tracking array */
+                    int total_fields = struct_type->as.struct_type.field_count;
+                    expr->as.struct_literal.total_field_count = total_fields;
+                    if (total_fields > 0)
+                    {
+                        expr->as.struct_literal.fields_initialized = arena_alloc(table->arena, sizeof(bool) * total_fields);
+                        if (expr->as.struct_literal.fields_initialized == NULL)
+                        {
+                            type_error(&struct_name, "Out of memory allocating field initialization tracking");
+                            t = NULL;
+                            break;
+                        }
+                        /* Initialize all fields as not initialized */
+                        for (int i = 0; i < total_fields; i++)
+                        {
+                            expr->as.struct_literal.fields_initialized[i] = false;
+                        }
+                    }
+
+                    /* Type check each field initializer and mark fields as initialized */
+                    for (int i = 0; i < expr->as.struct_literal.field_count; i++)
+                    {
+                        FieldInitializer *init = &expr->as.struct_literal.fields[i];
+                        Type *init_type = type_check_expr(init->value, table);
+
+                        /* Find the field in the struct definition */
+                        bool found = false;
+                        for (int j = 0; j < struct_type->as.struct_type.field_count; j++)
+                        {
+                            StructField *field = &struct_type->as.struct_type.fields[j];
+                            if (init->name.length == strlen(field->name) &&
+                                strncmp(init->name.start, field->name, init->name.length) == 0)
+                            {
+                                found = true;
+                                /* Mark this field as explicitly initialized */
+                                if (expr->as.struct_literal.fields_initialized != NULL)
+                                {
+                                    expr->as.struct_literal.fields_initialized[j] = true;
+                                }
+                                /* Type check: initializer type must match field type */
+                                if (init_type != NULL && field->type != NULL &&
+                                    !ast_type_equals(init_type, field->type))
+                                {
+                                    char msg[256];
+                                    snprintf(msg, sizeof(msg),
+                                             "Type mismatch for field '%s' in struct literal",
+                                             field->name);
+                                    type_error(&init->name, msg);
+                                }
+                                break;
+                            }
+                        }
+                        if (!found)
+                        {
+                            char msg[256];
+                            snprintf(msg, sizeof(msg),
+                                     "Unknown field '%.*s' in struct literal",
+                                     init->name.length, init->name.start);
+                            type_error(&init->name, msg);
+                        }
+                    }
+
+                    /* Apply default values for uninitialized fields that have defaults.
+                     * Count how many defaults we need to add, then reallocate the fields array. */
+                    int defaults_to_add = 0;
+                    for (int i = 0; i < total_fields; i++)
+                    {
+                        if (!expr->as.struct_literal.fields_initialized[i] &&
+                            struct_type->as.struct_type.fields[i].default_value != NULL)
+                        {
+                            defaults_to_add++;
+                        }
+                    }
+
+                    if (defaults_to_add > 0)
+                    {
+                        /* Reallocate the fields array to hold additional synthetic initializers */
+                        int new_field_count = expr->as.struct_literal.field_count + defaults_to_add;
+                        FieldInitializer *new_fields = arena_alloc(table->arena, sizeof(FieldInitializer) * new_field_count);
+                        if (new_fields == NULL)
+                        {
+                            type_error(&struct_name, "Out of memory allocating field initializers for defaults");
+                            t = NULL;
+                            break;
+                        }
+
+                        /* Copy existing field initializers */
+                        for (int i = 0; i < expr->as.struct_literal.field_count; i++)
+                        {
+                            new_fields[i] = expr->as.struct_literal.fields[i];
+                        }
+
+                        /* Add synthetic initializers for fields with default values */
+                        int added = 0;
+                        for (int i = 0; i < total_fields; i++)
+                        {
+                            if (!expr->as.struct_literal.fields_initialized[i] &&
+                                struct_type->as.struct_type.fields[i].default_value != NULL)
+                            {
+                                StructField *field = &struct_type->as.struct_type.fields[i];
+
+                                /* Type-check the default value */
+                                Type *default_type = type_check_expr(field->default_value, table);
+                                if (default_type != NULL && field->type != NULL &&
+                                    !ast_type_equals(default_type, field->type))
+                                {
+                                    char msg[256];
+                                    snprintf(msg, sizeof(msg),
+                                             "Type mismatch for default value of field '%s' in struct '%s'",
+                                             field->name, struct_type->as.struct_type.name);
+                                    type_error(expr->token, msg);
+                                }
+
+                                /* Create synthetic field initializer with the default value */
+                                int idx = expr->as.struct_literal.field_count + added;
+
+                                /* Create a Token for the field name */
+                                new_fields[idx].name.start = field->name;
+                                new_fields[idx].name.length = strlen(field->name);
+                                new_fields[idx].name.line = expr->token ? expr->token->line : 0;
+                                new_fields[idx].name.type = TOKEN_IDENTIFIER;
+                                new_fields[idx].name.filename = expr->token ? expr->token->filename : NULL;
+                                new_fields[idx].value = field->default_value;
+
+                                /* Mark this field as initialized (via default) */
+                                expr->as.struct_literal.fields_initialized[i] = true;
+
+                                added++;
+                            }
+                        }
+
+                        /* Update the struct literal with the new fields array */
+                        expr->as.struct_literal.fields = new_fields;
+                        expr->as.struct_literal.field_count = new_field_count;
+                    }
+
+                    /* Check for uninitialized fields that have no default values.
+                     * These are required fields that must be explicitly provided. */
+                    int missing_count = 0;
+                    char missing_fields[512] = "";
+                    int missing_pos = 0;
+
+                    for (int i = 0; i < total_fields; i++)
+                    {
+                        if (!expr->as.struct_literal.fields_initialized[i])
+                        {
+                            StructField *field = &struct_type->as.struct_type.fields[i];
+                            /* This field is not initialized and has no default - it's required */
+                            if (missing_count > 0 && missing_pos < (int)sizeof(missing_fields) - 3)
+                            {
+                                missing_pos += snprintf(missing_fields + missing_pos,
+                                                        sizeof(missing_fields) - missing_pos, ", ");
+                            }
+                            if (missing_pos < (int)sizeof(missing_fields) - 1)
+                            {
+                                missing_pos += snprintf(missing_fields + missing_pos,
+                                                        sizeof(missing_fields) - missing_pos, "'%s'",
+                                                        field->name);
+                            }
+                            missing_count++;
+                        }
+                    }
+
+                    if (missing_count > 0)
+                    {
+                        char msg[768];
+                        if (missing_count == 1)
+                        {
+                            snprintf(msg, sizeof(msg),
+                                     "Missing required field %s in struct literal '%s'",
+                                     missing_fields, struct_type->as.struct_type.name);
+                        }
+                        else
+                        {
+                            snprintf(msg, sizeof(msg),
+                                     "Missing %d required fields in struct literal '%s': %s",
+                                     missing_count, struct_type->as.struct_type.name, missing_fields);
+                        }
+                        type_error(&struct_name, msg);
+                        t = NULL;
+                    }
+                    else
+                    {
+                        t = struct_type;
+                    }
+                    DEBUG_VERBOSE("Struct literal type check: returns struct type '%s'",
+                                  struct_type->as.struct_type.name);
+                }
+            }
+        }
+        break;
+    case EXPR_MEMBER_ACCESS:
+        /* Member access: expr.field_name */
+        {
+            Type *object_type = type_check_expr(expr->as.member_access.object, table);
+            if (object_type == NULL)
+            {
+                type_error(expr->token, "Invalid object in member access");
+                t = NULL;
+            }
+            else if (object_type->kind == TYPE_STRUCT)
+            {
+                /* Direct struct access */
+                Token field_name = expr->as.member_access.field_name;
+                bool found = false;
+                for (int i = 0; i < object_type->as.struct_type.field_count; i++)
+                {
+                    StructField *field = &object_type->as.struct_type.fields[i];
+                    if (field_name.length == strlen(field->name) &&
+                        strncmp(field_name.start, field->name, field_name.length) == 0)
+                    {
+                        found = true;
+                        expr->as.member_access.field_index = i;
+                        t = field->type;
+
+                        /* Set scope depth for escape analysis.
+                         * For nested chains (a.b.c), propagate scope depth from base:
+                         * - If object is EXPR_VARIABLE, use the variable's declaration scope depth
+                         * - If object is EXPR_MEMBER_ACCESS, propagate its scope_depth
+                         * - Otherwise, use current scope depth as fallback */
+                        Expr *object = expr->as.member_access.object;
+                        if (object->type == EXPR_VARIABLE)
+                        {
+                            Symbol *base_sym = symbol_table_lookup_symbol(table, object->as.variable.name);
+                            if (base_sym != NULL)
+                            {
+                                expr->as.member_access.scope_depth = base_sym->declaration_scope_depth;
+                            }
+                            else
+                            {
+                                expr->as.member_access.scope_depth = symbol_table_get_scope_depth(table);
+                            }
+                        }
+                        else if (object->type == EXPR_MEMBER_ACCESS)
+                        {
+                            /* Propagate scope depth from the nested member access */
+                            expr->as.member_access.scope_depth = object->as.member_access.scope_depth;
+                        }
+                        else
+                        {
+                            expr->as.member_access.scope_depth = symbol_table_get_scope_depth(table);
+                        }
+                        DEBUG_VERBOSE("Member access: field '%s' has type %d, scope_depth=%d",
+                                      field->name, t->kind, expr->as.member_access.scope_depth);
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    char msg[256];
+                    snprintf(msg, sizeof(msg),
+                             "Unknown field '%.*s' in struct '%s'",
+                             field_name.length, field_name.start,
+                             object_type->as.struct_type.name);
+                    type_error(&field_name, msg);
+                    t = NULL;
+                }
+            }
+            else if (object_type->kind == TYPE_POINTER &&
+                     object_type->as.pointer.base_type != NULL &&
+                     object_type->as.pointer.base_type->kind == TYPE_STRUCT)
+            {
+                /* Pointer to struct access (auto-deref like C's ->) - only in native context */
+                if (!native_context_is_active())
+                {
+                    Type *struct_type = object_type->as.pointer.base_type;
+                    char msg[512];
+                    snprintf(msg, sizeof(msg),
+                             "Pointer to struct member access requires native function context. "
+                             "Declare the function with 'native fn' to access '*%s' fields",
+                             struct_type->as.struct_type.name);
+                    type_error(expr->token, msg);
+                    t = NULL;
+                }
+                else
+                {
+                    Type *struct_type = object_type->as.pointer.base_type;
+                    Token field_name = expr->as.member_access.field_name;
+                    bool found = false;
+                    for (int i = 0; i < struct_type->as.struct_type.field_count; i++)
+                    {
+                        StructField *field = &struct_type->as.struct_type.fields[i];
+                        if (field_name.length == strlen(field->name) &&
+                            strncmp(field_name.start, field->name, field_name.length) == 0)
+                        {
+                            found = true;
+                            expr->as.member_access.field_index = i;
+                            t = field->type;
+
+                            /* Set scope depth for escape analysis.
+                             * For nested chains, propagate scope depth from base. */
+                            Expr *object = expr->as.member_access.object;
+                            if (object->type == EXPR_VARIABLE)
+                            {
+                                Symbol *base_sym = symbol_table_lookup_symbol(table, object->as.variable.name);
+                                if (base_sym != NULL)
+                                {
+                                    expr->as.member_access.scope_depth = base_sym->declaration_scope_depth;
+                                }
+                                else
+                                {
+                                    expr->as.member_access.scope_depth = symbol_table_get_scope_depth(table);
+                                }
+                            }
+                            else if (object->type == EXPR_MEMBER_ACCESS)
+                            {
+                                expr->as.member_access.scope_depth = object->as.member_access.scope_depth;
+                            }
+                            else
+                            {
+                                expr->as.member_access.scope_depth = symbol_table_get_scope_depth(table);
+                            }
+                            DEBUG_VERBOSE("Pointer member access: field '%s' has type %d, scope_depth=%d",
+                                          field->name, t->kind, expr->as.member_access.scope_depth);
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        char msg[256];
+                        snprintf(msg, sizeof(msg),
+                                 "Unknown field '%.*s' in struct '%s'",
+                                 field_name.length, field_name.start,
+                                 struct_type->as.struct_type.name);
+                        type_error(&field_name, msg);
+                        t = NULL;
+                    }
+                }
+            }
+            else
+            {
+                type_error(expr->token, "Member access requires struct or pointer to struct type");
+                t = NULL;
+            }
+        }
+        break;
+    case EXPR_MEMBER_ASSIGN:
+        /* Member assignment: expr.field_name = value */
+        {
+            Type *object_type = type_check_expr(expr->as.member_assign.object, table);
+            Type *value_type = type_check_expr(expr->as.member_assign.value, table);
+            if (object_type == NULL)
+            {
+                type_error(expr->token, "Invalid object in member assignment");
+                t = NULL;
+            }
+            else if (object_type->kind == TYPE_STRUCT)
+            {
+                /* Direct struct field assignment */
+                Token field_name = expr->as.member_assign.field_name;
+                bool found = false;
+                for (int i = 0; i < object_type->as.struct_type.field_count; i++)
+                {
+                    StructField *field = &object_type->as.struct_type.fields[i];
+                    if (field_name.length == strlen(field->name) &&
+                        strncmp(field_name.start, field->name, field_name.length) == 0)
+                    {
+                        found = true;
+                        /* Type check: value type must match field type */
+                        if (value_type != NULL && field->type != NULL &&
+                            !ast_type_equals(value_type, field->type))
+                        {
+                            char msg[256];
+                            snprintf(msg, sizeof(msg),
+                                     "Type mismatch for field '%s' assignment",
+                                     field->name);
+                            type_error(&field_name, msg);
+                        }
+                        t = field->type;
+                        DEBUG_VERBOSE("Member assign: field '%s' has type %d", field->name, t->kind);
+
+                        /* Escape analysis: detect when RHS value escapes to outer scope via field assignment.
+                         * If RHS is a variable declared in a deeper scope than the LHS object's BASE scope,
+                         * the value escapes and ALL nodes in the LHS field access chain should be marked as escaped.
+                         * For nested chains like outer.a.b = local, we compare against 'outer's scope, not 'outer.a'. */
+                        Expr *value_expr = expr->as.member_assign.value;
+                        Expr *object_expr = expr->as.member_assign.object;
+                        /* Get the BASE scope depth (the root variable of the chain) */
+                        int lhs_scope_depth = get_base_scope_depth(object_expr, table);
+                        int rhs_scope_depth = -1;
+
+                        if (value_expr->type == EXPR_VARIABLE)
+                        {
+                            rhs_scope_depth = get_expr_scope_depth(value_expr, table);
+                        }
+                        else if (value_expr->type == EXPR_MEMBER_ACCESS)
+                        {
+                            rhs_scope_depth = value_expr->as.member_access.scope_depth;
+                        }
+
+                        if (lhs_scope_depth >= 0 && rhs_scope_depth >= 0 &&
+                            rhs_scope_depth > lhs_scope_depth)
+                        {
+                            /* RHS is from a deeper scope - value escapes to outer scope.
+                             * Mark ALL nodes in the LHS member access chain as escaped. */
+                            mark_member_access_chain_escaped(object_expr);
+                            ast_expr_mark_escapes(value_expr);
+                            DEBUG_VERBOSE("Escape detected in field assign: RHS (scope %d) escaping to LHS field (base scope %d)",
+                                          rhs_scope_depth, lhs_scope_depth);
+                        }
+
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    char msg[256];
+                    snprintf(msg, sizeof(msg),
+                             "Unknown field '%.*s' in struct '%s'",
+                             field_name.length, field_name.start,
+                             object_type->as.struct_type.name);
+                    type_error(&field_name, msg);
+                    t = NULL;
+                }
+            }
+            else if (object_type->kind == TYPE_POINTER &&
+                     object_type->as.pointer.base_type != NULL &&
+                     object_type->as.pointer.base_type->kind == TYPE_STRUCT)
+            {
+                /* Pointer to struct field assignment (auto-deref) */
+                Type *struct_type = object_type->as.pointer.base_type;
+                Token field_name = expr->as.member_assign.field_name;
+                bool found = false;
+                for (int i = 0; i < struct_type->as.struct_type.field_count; i++)
+                {
+                    StructField *field = &struct_type->as.struct_type.fields[i];
+                    if (field_name.length == strlen(field->name) &&
+                        strncmp(field_name.start, field->name, field_name.length) == 0)
+                    {
+                        found = true;
+                        /* Type check: value type must match field type */
+                        if (value_type != NULL && field->type != NULL &&
+                            !ast_type_equals(value_type, field->type))
+                        {
+                            char msg[256];
+                            snprintf(msg, sizeof(msg),
+                                     "Type mismatch for field '%s' assignment",
+                                     field->name);
+                            type_error(&field_name, msg);
+                        }
+                        t = field->type;
+                        DEBUG_VERBOSE("Pointer member assign: field '%s' has type %d", field->name, t->kind);
+
+                        /* Escape analysis for pointer-to-struct field assignment.
+                         * Get BASE scope depth and mark ALL nodes in the chain. */
+                        Expr *value_expr = expr->as.member_assign.value;
+                        Expr *object_expr = expr->as.member_assign.object;
+                        int lhs_scope_depth = get_base_scope_depth(object_expr, table);
+                        int rhs_scope_depth = -1;
+
+                        if (value_expr->type == EXPR_VARIABLE)
+                        {
+                            rhs_scope_depth = get_expr_scope_depth(value_expr, table);
+                        }
+                        else if (value_expr->type == EXPR_MEMBER_ACCESS)
+                        {
+                            rhs_scope_depth = value_expr->as.member_access.scope_depth;
+                        }
+
+                        if (lhs_scope_depth >= 0 && rhs_scope_depth >= 0 &&
+                            rhs_scope_depth > lhs_scope_depth)
+                        {
+                            /* RHS is from a deeper scope - value escapes to outer scope.
+                             * Mark ALL nodes in the LHS member access chain as escaped. */
+                            mark_member_access_chain_escaped(object_expr);
+                            ast_expr_mark_escapes(value_expr);
+                            DEBUG_VERBOSE("Escape detected in ptr field assign: RHS (scope %d) escaping to LHS field (base scope %d)",
+                                          rhs_scope_depth, lhs_scope_depth);
+                        }
+
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    char msg[256];
+                    snprintf(msg, sizeof(msg),
+                             "Unknown field '%.*s' in struct '%s'",
+                             field_name.length, field_name.start,
+                             struct_type->as.struct_type.name);
+                    type_error(&field_name, msg);
+                    t = NULL;
+                }
+            }
+            else
+            {
+                type_error(expr->token, "Member assignment requires struct or pointer to struct type");
+                t = NULL;
+            }
+        }
+        break;
+    case EXPR_SIZEOF:
+        /* sizeof operator: returns the size in bytes of a type or expression */
+        /* sizeof(Type) or sizeof(expr) - returns int */
+        {
+            if (expr->as.sizeof_expr.type_operand != NULL)
+            {
+                /* sizeof(Type) - resolve the type and get its size */
+                Type *type_operand = expr->as.sizeof_expr.type_operand;
+
+                /* If it's a struct type reference, resolve it */
+                if (type_operand->kind == TYPE_STRUCT && type_operand->as.struct_type.fields == NULL)
+                {
+                    /* Forward reference - look up the actual struct */
+                    Token name_token;
+                    name_token.start = type_operand->as.struct_type.name;
+                    name_token.length = strlen(type_operand->as.struct_type.name);
+                    Symbol *struct_sym = symbol_table_lookup_type(table, name_token);
+                    if (struct_sym != NULL && struct_sym->type != NULL &&
+                        struct_sym->type->kind == TYPE_STRUCT)
+                    {
+                        expr->as.sizeof_expr.type_operand = struct_sym->type;
+                    }
+                    else
+                    {
+                        char msg[256];
+                        snprintf(msg, sizeof(msg), "Unknown type '%s' in sizeof",
+                                 type_operand->as.struct_type.name);
+                        type_error(expr->token, msg);
+                        t = NULL;
+                        break;
+                    }
+                }
+                t = ast_create_primitive_type(table->arena, TYPE_INT);
+                DEBUG_VERBOSE("sizeof type: returns int");
+            }
+            else if (expr->as.sizeof_expr.expr_operand != NULL)
+            {
+                /* sizeof(expr) - type check the expression to get its type */
+                Type *operand_type = type_check_expr(expr->as.sizeof_expr.expr_operand, table);
+                if (operand_type == NULL)
+                {
+                    type_error(expr->token, "Invalid operand in sizeof expression");
+                    t = NULL;
+                }
+                else
+                {
+                    t = ast_create_primitive_type(table->arena, TYPE_INT);
+                    DEBUG_VERBOSE("sizeof expression: returns int");
+                }
+            }
+            else
+            {
+                type_error(expr->token, "sizeof requires a type or expression operand");
                 t = NULL;
             }
         }

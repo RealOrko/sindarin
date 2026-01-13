@@ -337,6 +337,7 @@ static void test_token_type_to_string_keywords(void)
     assert(strcmp(token_type_to_string(TOKEN_BOOL), "BOOL") == 0);
     assert(strcmp(token_type_to_string(TOKEN_VOID), "VOID") == 0);
     assert(strcmp(token_type_to_string(TOKEN_NATIVE), "NATIVE") == 0);
+    assert(strcmp(token_type_to_string(TOKEN_STRUCT), "STRUCT") == 0);
 
     DEBUG_INFO("Finished test_token_type_to_string_keywords");
 }

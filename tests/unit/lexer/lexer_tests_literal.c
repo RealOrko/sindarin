@@ -735,6 +735,119 @@ static void test_lexer_environment_in_context(void)
     DEBUG_INFO("Finished test_lexer_environment_in_context");
 }
 
+static void test_lexer_struct_keyword(void)
+{
+    DEBUG_INFO("Starting test_lexer_struct_keyword");
+
+    const char *source = "struct";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_STRUCT);
+    assert(t1.length == 6);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_struct_keyword");
+}
+
+static void test_lexer_struct_in_context(void)
+{
+    DEBUG_INFO("Starting test_lexer_struct_in_context");
+
+    const char *source = "struct Point";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_STRUCT);
+    assert(t1.length == 6);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_IDENTIFIER);
+    assert(t2.length == 5);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_struct_in_context");
+}
+
+static void test_lexer_native_struct_sequence(void)
+{
+    DEBUG_INFO("Starting test_lexer_native_struct_sequence");
+
+    const char *source = "native struct ZStream";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_NATIVE);
+    assert(t1.length == 6);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_STRUCT);
+    assert(t2.length == 6);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_IDENTIFIER);
+    assert(t3.length == 7);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_native_struct_sequence");
+}
+
+static void test_lexer_str_vs_struct_disambiguation(void)
+{
+    DEBUG_INFO("Starting test_lexer_str_vs_struct_disambiguation");
+
+    // Test that 'str' and 'struct' are correctly distinguished
+    const char *source = "str struct string";
+    Arena arena;
+    arena_init(&arena, 1024);
+    Lexer lexer;
+    lexer_init(&arena, &lexer, source, "test.sn");
+
+    Token t1 = lexer_scan_token(&lexer);
+    assert(t1.type == TOKEN_STR);
+    assert(t1.length == 3);
+
+    Token t2 = lexer_scan_token(&lexer);
+    assert(t2.type == TOKEN_STRUCT);
+    assert(t2.length == 6);
+
+    Token t3 = lexer_scan_token(&lexer);
+    assert(t3.type == TOKEN_IDENTIFIER);  // 'string' is an identifier, not a keyword
+    assert(t3.length == 6);
+
+    Token t4 = lexer_scan_token(&lexer);
+    assert(t4.type == TOKEN_EOF);
+
+    lexer_cleanup(&lexer);
+    arena_free(&arena);
+
+    DEBUG_INFO("Finished test_lexer_str_vs_struct_disambiguation");
+}
+
 
 void test_lexer_literal_main(void)
 {
@@ -772,4 +885,9 @@ void test_lexer_literal_main(void)
     // Environment keyword tests
     TEST_RUN("lexer_environment_keyword", test_lexer_environment_keyword);
     TEST_RUN("lexer_environment_in_context", test_lexer_environment_in_context);
+    // Struct keyword tests
+    TEST_RUN("lexer_struct_keyword", test_lexer_struct_keyword);
+    TEST_RUN("lexer_struct_in_context", test_lexer_struct_in_context);
+    TEST_RUN("lexer_native_struct_sequence", test_lexer_native_struct_sequence);
+    TEST_RUN("lexer_str_vs_struct_disambiguation", test_lexer_str_vs_struct_disambiguation);
 }

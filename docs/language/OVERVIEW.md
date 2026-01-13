@@ -96,6 +96,23 @@ var last: int = numbers[-1]
 var slice: int[] = numbers[1..4]
 ```
 
+### Structs
+
+Structs group related data with named fields:
+
+```sindarin
+struct Point =>
+    x: double
+    y: double
+
+struct Config =>
+    timeout: int = 30
+    enabled: bool = true
+
+var p: Point = Point { x: 10.0, y: 20.0 }
+var cfg: Config = Config { timeout: 60 }  // enabled uses default
+```
+
 ### Control Flow
 
 ```sindarin
@@ -305,6 +322,7 @@ Note: The default runtime objects are compiled with GCC's LTO. To use a differen
 - [TYPES.md](TYPES.md) - Primitive and built-in types
 - [STRINGS.md](STRINGS.md) - String methods and interpolation
 - [ARRAYS.md](ARRAYS.md) - Array operations and slicing
+- [STRUCTS.md](STRUCTS.md) - Struct declarations and C interop
 - [LAMBDAS.md](LAMBDAS.md) - Lambda expressions and closures
 - [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile operations
 - [NETWORK_IO.md](NETWORK_IO.md) - TCP and UDP networking

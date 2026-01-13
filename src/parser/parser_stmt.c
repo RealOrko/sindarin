@@ -8,6 +8,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Forward declaration for pragma pack parsing */
+static Stmt *parser_pragma_pack_statement(Parser *parser);
+
 /* Parse optional "as val" or "as ref" memory qualifier */
 MemoryQualifier parser_memory_qualifier(Parser *parser)
 {
@@ -260,9 +263,24 @@ Stmt *parser_declaration(Parser *parser)
     }
     if (parser_match(parser, TOKEN_NATIVE))
     {
-        /* native fn declaration */
-        parser_consume(parser, TOKEN_FN, "Expected 'fn' after 'native'");
-        return parser_native_function_declaration(parser);
+        /* Check for 'native fn' or 'native struct' */
+        if (parser_match(parser, TOKEN_FN))
+        {
+            return parser_native_function_declaration(parser);
+        }
+        else if (parser_match(parser, TOKEN_STRUCT))
+        {
+            return parser_struct_declaration(parser, true);
+        }
+        else
+        {
+            parser_error_at_current(parser, "Expected 'fn' or 'struct' after 'native'");
+            return NULL;
+        }
+    }
+    if (parser_match(parser, TOKEN_STRUCT))
+    {
+        return parser_struct_declaration(parser, false);
     }
     if (parser_match(parser, TOKEN_IMPORT))
     {
@@ -275,6 +293,10 @@ Stmt *parser_declaration(Parser *parser)
     if (parser_match(parser, TOKEN_PRAGMA_LINK))
     {
         return parser_pragma_statement(parser, PRAGMA_LINK);
+    }
+    if (parser_match(parser, TOKEN_PRAGMA_PACK))
+    {
+        return parser_pragma_pack_statement(parser);
     }
     if (parser_match(parser, TOKEN_KEYWORD_TYPE))
     {
@@ -416,6 +438,53 @@ Stmt *parser_pragma_statement(Parser *parser, PragmaType pragma_type)
     }
 
     return ast_create_pragma_stmt(parser->arena, pragma_type, value, &pragma_token);
+}
+
+/* Parse #pragma pack(1) or #pragma pack()
+ * #pragma pack(1) enables packed mode (no padding)
+ * #pragma pack() resets to default alignment
+ * Returns NULL since this doesn't create an AST node - it sets parser state */
+static Stmt *parser_pragma_pack_statement(Parser *parser)
+{
+    Token pragma_token = parser->previous;
+
+    parser_consume(parser, TOKEN_LEFT_PAREN, "Expected '(' after 'pack'");
+
+    if (parser_match(parser, TOKEN_RIGHT_PAREN))
+    {
+        /* #pragma pack() - reset to default alignment */
+        parser->pack_alignment = 0;
+    }
+    else if (parser_match(parser, TOKEN_INT_LITERAL))
+    {
+        /* #pragma pack(N) - set alignment */
+        int pack_value = (int)parser->previous.literal.int_value;
+        if (pack_value != 1)
+        {
+            parser_error(parser, "Only #pragma pack(1) is supported");
+            return NULL;
+        }
+        parser->pack_alignment = 1;
+        parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after pack value");
+    }
+    else
+    {
+        parser_error_at_current(parser, "Expected integer literal or ')' in #pragma pack");
+        return NULL;
+    }
+
+    // Consume optional newline/semicolon
+    if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_check(parser, TOKEN_NEWLINE) && !parser_is_at_end(parser))
+    {
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after pragma directive");
+    }
+    else if (parser_match(parser, TOKEN_SEMICOLON))
+    {
+    }
+
+    /* Create a pragma statement to preserve the directive in the AST */
+    const char *value = parser->pack_alignment == 1 ? "1" : "";
+    return ast_create_pragma_stmt(parser->arena, PRAGMA_PACK, value, &pragma_token);
 }
 
 Stmt *parser_import_statement(Parser *parser)

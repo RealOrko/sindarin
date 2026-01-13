@@ -141,6 +141,8 @@ const char *token_type_to_string(SnTokenType type)
         return "TYPE";
     case TOKEN_OPAQUE:
         return "OPAQUE";
+    case TOKEN_STRUCT:
+        return "STRUCT";
     case TOKEN_UUID:
         return "UUID";
     case TOKEN_ENV:
@@ -151,6 +153,8 @@ const char *token_type_to_string(SnTokenType type)
         return "TYPEOF";
     case TOKEN_IS:
         return "IS";
+    case TOKEN_SIZEOF:
+        return "SIZEOF";
     case TOKEN_PLUS:
         return "PLUS";
     case TOKEN_MINUS:
@@ -219,6 +223,8 @@ const char *token_type_to_string(SnTokenType type)
         return "PRAGMA_INCLUDE";
     case TOKEN_PRAGMA_LINK:
         return "PRAGMA_LINK";
+    case TOKEN_PRAGMA_PACK:
+        return "PRAGMA_PACK";
     case TOKEN_INDENT:
         return "INDENT";
     case TOKEN_DEDENT:

@@ -877,3 +877,11 @@ var loaded: bool = false
 var cache: str = ""
 ```
 
+---
+
+## See Also
+
+- [TYPES.md](TYPES.md) - Primitive and built-in types
+- [ARRAYS.md](ARRAYS.md) - Array operations and memory behavior
+- [STRUCTS.md](STRUCTS.md) - Struct memory model and escape behavior
+- [INTEROP.md](INTEROP.md) - C interoperability and native memory

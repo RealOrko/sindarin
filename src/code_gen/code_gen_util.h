@@ -76,6 +76,31 @@ char *gen_native_arithmetic(CodeGen *gen, const char *left_str, const char *righ
    Returns the expression string, or NULL if runtime function is required. */
 char *gen_native_unary(CodeGen *gen, const char *operand_str, SnTokenType op, Type *type);
 
+/* Arena destination calculation for scope escape */
+
+/* Calculate the target arena for an escaping allocation based on scope depth.
+   When a struct or allocation escapes from an inner scope (source_depth) to an
+   outer scope (target_depth), this function determines which arena to allocate
+   in to ensure the value lives long enough.
+
+   Parameters:
+   - gen: The code generator state containing arena stack
+   - source_depth: The current scope depth where allocation occurs
+   - target_depth: The destination scope depth where value escapes to
+
+   Returns the arena variable name to use for allocation, or the current arena
+   if no escape is needed. Returns "NULL" if escaping to global scope. */
+const char *get_arena_for_scope_escape(CodeGen *gen, int source_depth, int target_depth);
+
+/* Calculate the number of arena levels to traverse in parent chain.
+   Returns the difference between current arena depth and target depth.
+   Used for generating rt_arena_get_parent() chains. */
+int calculate_arena_traversal_depth(CodeGen *gen, int source_depth, int target_depth);
+
+/* Get the arena at a specific depth in the arena stack.
+   Returns NULL if the depth is out of range. */
+const char *get_arena_at_depth(CodeGen *gen, int depth);
+
 /* Arena requirement analysis */
 
 /* Check if a function body needs arena allocation.

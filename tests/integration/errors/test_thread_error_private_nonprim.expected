@@ -1,1 +1,1 @@
-Private function can only return primitive types (int, double, bool, char)
+Private function cannot return this type: array type is heap-allocated

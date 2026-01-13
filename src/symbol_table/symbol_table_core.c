@@ -22,25 +22,89 @@
 
 int get_type_size(Type *type)
 {
+    if (type == NULL) return 0;
+
     DEBUG_VERBOSE("Entering get_type_size with type kind: %d", type->kind);
     switch (type->kind)
     {
-    case TYPE_INT:
-    case TYPE_LONG:
-        DEBUG_VERBOSE("Returning size 8 for TYPE_INT or TYPE_LONG");
-        return 8;
-    case TYPE_DOUBLE:
-        DEBUG_VERBOSE("Returning size 8 for TYPE_DOUBLE");
-        return 8;
-    case TYPE_CHAR:
-        DEBUG_VERBOSE("Returning size 1 for TYPE_CHAR");
-        return 1;
+    /* 1-byte types */
+    case TYPE_BYTE:
     case TYPE_BOOL:
-        DEBUG_VERBOSE("Returning size 1 for TYPE_BOOL");
+    case TYPE_CHAR:
+        DEBUG_VERBOSE("Returning size 1 for byte/bool/char");
         return 1;
+
+    /* 4-byte types */
+    case TYPE_INT32:
+    case TYPE_UINT32:
+    case TYPE_FLOAT:
+        DEBUG_VERBOSE("Returning size 4 for int32/uint32/float");
+        return 4;
+
+    /* 8-byte types */
+    case TYPE_INT:
+    case TYPE_UINT:
+    case TYPE_LONG:
+    case TYPE_DOUBLE:
+        DEBUG_VERBOSE("Returning size 8 for int/uint/long/double");
+        return 8;
+
+    /* Pointer types - always 8 bytes on 64-bit systems */
+    case TYPE_POINTER:
+        DEBUG_VERBOSE("Returning size 8 for pointer");
+        return 8;
+
+    /* String is a pointer in Sindarin runtime */
     case TYPE_STRING:
         DEBUG_VERBOSE("Returning size 8 for TYPE_STRING");
         return 8;
+
+    /* Arrays are pointers in Sindarin runtime */
+    case TYPE_ARRAY:
+        DEBUG_VERBOSE("Returning size 8 for array");
+        return 8;
+
+    /* Opaque types are pointers */
+    case TYPE_OPAQUE:
+        DEBUG_VERBOSE("Returning size 8 for opaque");
+        return 8;
+
+    /* Struct types - return computed size */
+    case TYPE_STRUCT:
+        DEBUG_VERBOSE("Returning computed struct size: %zu", type->as.struct_type.size);
+        return (int)type->as.struct_type.size;
+
+    /* Built-in object types are pointers */
+    case TYPE_TEXT_FILE:
+    case TYPE_BINARY_FILE:
+    case TYPE_DATE:
+    case TYPE_TIME:
+    case TYPE_PROCESS:
+    case TYPE_TCP_LISTENER:
+    case TYPE_TCP_STREAM:
+    case TYPE_UDP_SOCKET:
+    case TYPE_RANDOM:
+    case TYPE_UUID:
+    case TYPE_ENVIRONMENT:
+        DEBUG_VERBOSE("Returning size 8 for built-in object type");
+        return 8;
+
+    /* Function types are pointers */
+    case TYPE_FUNCTION:
+        DEBUG_VERBOSE("Returning size 8 for function");
+        return 8;
+
+    /* Any type is a tagged union (type tag + value), typically 16 bytes */
+    case TYPE_ANY:
+        DEBUG_VERBOSE("Returning size 16 for any");
+        return 16;
+
+    /* Void and nil have no size */
+    case TYPE_VOID:
+    case TYPE_NIL:
+        DEBUG_VERBOSE("Returning size 0 for void/nil");
+        return 0;
+
     default:
         DEBUG_VERBOSE("Returning default size 8 for unknown type kind: %d", type->kind);
         return 8;
@@ -224,6 +288,7 @@ void symbol_table_init(Arena *arena, SymbolTable *table)
     table->scopes_capacity = 8;
     table->current = NULL;
     table->current_arena_depth = 0;
+    table->scope_depth = 0;
 
     DEBUG_VERBOSE("Calling symbol_table_push_scope for initial scope");
     symbol_table_push_scope(table);
@@ -287,8 +352,9 @@ void symbol_table_push_scope(SymbolTable *table)
     scope->next_param_offset = enclosing ? enclosing->next_param_offset : PARAM_BASE_OFFSET;
     scope->arena_depth = table->current_arena_depth;
     table->current = scope;
-    DEBUG_VERBOSE("New scope created: %p, enclosing: %p, local_offset: %d, param_offset: %d, arena_depth: %d",
-                  (void *)scope, (void *)enclosing, scope->next_local_offset, scope->next_param_offset, scope->arena_depth);
+    table->scope_depth++;
+    DEBUG_VERBOSE("New scope created: %p, enclosing: %p, local_offset: %d, param_offset: %d, arena_depth: %d, scope_depth: %d",
+                  (void *)scope, (void *)enclosing, scope->next_local_offset, scope->next_param_offset, scope->arena_depth, table->scope_depth);
 
     if (table->scopes_count >= table->scopes_capacity)
     {
@@ -329,6 +395,10 @@ void symbol_table_pop_scope(SymbolTable *table)
     }
     Scope *to_free = table->current;
     table->current = to_free->enclosing;
+    if (table->scope_depth > 0)
+    {
+        table->scope_depth--;
+    }
     if (table->current != NULL)
     {
         table->current->next_local_offset = MAX(table->current->next_local_offset, to_free->next_local_offset);
@@ -336,7 +406,7 @@ void symbol_table_pop_scope(SymbolTable *table)
         DEBUG_VERBOSE("Updated enclosing scope offsets, local_offset: %d, param_offset: %d",
                       table->current->next_local_offset, table->current->next_param_offset);
     }
-    DEBUG_VERBOSE("Scope popped, new current scope: %p", (void *)table->current);
+    DEBUG_VERBOSE("Scope popped, new current scope: %p, scope_depth: %d", (void *)table->current, table->scope_depth);
 }
 
 /* ============================================================================
@@ -410,6 +480,7 @@ void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *typ
     symbol->name.line = name.line;
     symbol->name.type = name.type;
     symbol->arena_depth = table->current_arena_depth;
+    symbol->declaration_scope_depth = table->scope_depth;
     symbol->mem_qual = MEM_DEFAULT;
     symbol->func_mod = FUNC_DEFAULT;
     symbol->declared_func_mod = FUNC_DEFAULT;

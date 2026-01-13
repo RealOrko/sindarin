@@ -344,6 +344,25 @@ void collect_used_variables(Expr *expr, Token **used_vars, int *used_count,
         collect_used_variables(expr->as.as_val.operand, used_vars, used_count, used_capacity, arena);
         break;
 
+    case EXPR_STRUCT_LITERAL:
+        /* Struct literal field value expressions use variables */
+        for (int i = 0; i < expr->as.struct_literal.field_count; i++)
+        {
+            collect_used_variables(expr->as.struct_literal.fields[i].value, used_vars, used_count, used_capacity, arena);
+        }
+        break;
+
+    case EXPR_MEMBER_ACCESS:
+        /* Member access uses the object expression */
+        collect_used_variables(expr->as.member_access.object, used_vars, used_count, used_capacity, arena);
+        break;
+
+    case EXPR_MEMBER_ASSIGN:
+        /* Member assignment uses both the object and value expressions */
+        collect_used_variables(expr->as.member_assign.object, used_vars, used_count, used_capacity, arena);
+        collect_used_variables(expr->as.member_assign.value, used_vars, used_count, used_capacity, arena);
+        break;
+
     case EXPR_LITERAL:
     default:
         break;
@@ -605,6 +624,22 @@ Expr *simplify_noop_expr(Optimizer *opt, Expr *expr)
         {
             expr->as.sized_array_alloc.default_value = simplify_noop_expr(opt, expr->as.sized_array_alloc.default_value);
         }
+        break;
+
+    case EXPR_STRUCT_LITERAL:
+        for (int i = 0; i < expr->as.struct_literal.field_count; i++)
+        {
+            expr->as.struct_literal.fields[i].value = simplify_noop_expr(opt, expr->as.struct_literal.fields[i].value);
+        }
+        break;
+
+    case EXPR_MEMBER_ACCESS:
+        expr->as.member_access.object = simplify_noop_expr(opt, expr->as.member_access.object);
+        break;
+
+    case EXPR_MEMBER_ASSIGN:
+        expr->as.member_assign.object = simplify_noop_expr(opt, expr->as.member_assign.object);
+        expr->as.member_assign.value = simplify_noop_expr(opt, expr->as.member_assign.value);
         break;
 
     default:

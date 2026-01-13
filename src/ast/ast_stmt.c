@@ -366,3 +366,57 @@ Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Toke
     stmt->token = ast_dup_token(arena, loc_token);
     return stmt;
 }
+
+Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields, int field_count,
+                                   bool is_native, bool is_packed, const Token *loc_token)
+{
+    Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
+    if (stmt == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(stmt, 0, sizeof(Stmt));
+    stmt->type = STMT_STRUCT_DECL;
+
+    char *new_start = arena_strndup(arena, name.start, name.length);
+    if (new_start == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    stmt->as.struct_decl.name.start = new_start;
+    stmt->as.struct_decl.name.length = name.length;
+    stmt->as.struct_decl.name.line = name.line;
+    stmt->as.struct_decl.name.type = name.type;
+    stmt->as.struct_decl.name.filename = name.filename;
+
+    stmt->as.struct_decl.field_count = field_count;
+    stmt->as.struct_decl.is_native = is_native;
+    stmt->as.struct_decl.is_packed = is_packed;
+
+    if (field_count > 0 && fields != NULL)
+    {
+        stmt->as.struct_decl.fields = arena_alloc(arena, sizeof(StructField) * field_count);
+        if (stmt->as.struct_decl.fields == NULL)
+        {
+            DEBUG_ERROR("Out of memory");
+            exit(1);
+        }
+        for (int i = 0; i < field_count; i++)
+        {
+            stmt->as.struct_decl.fields[i].name = fields[i].name
+                ? arena_strdup(arena, fields[i].name) : NULL;
+            stmt->as.struct_decl.fields[i].type = fields[i].type;
+            stmt->as.struct_decl.fields[i].offset = fields[i].offset;
+            stmt->as.struct_decl.fields[i].default_value = fields[i].default_value;
+        }
+    }
+    else
+    {
+        stmt->as.struct_decl.fields = NULL;
+    }
+
+    stmt->token = ast_dup_token(arena, loc_token);
+    return stmt;
+}

@@ -42,4 +42,11 @@ void symbol_table_enter_arena(SymbolTable *table);
 void symbol_table_exit_arena(SymbolTable *table);
 int symbol_table_get_arena_depth(SymbolTable *table);
 
+/* Scope depth tracking for type checking context.
+ * Unlike arena_depth (which tracks private/arena blocks for memory management),
+ * scope_depth tracks general block/function nesting depth.
+ * This is automatically managed by push_scope/pop_scope but can also be
+ * queried directly for type checking decisions (e.g., struct allocation). */
+int symbol_table_get_scope_depth(SymbolTable *table);
+
 #endif

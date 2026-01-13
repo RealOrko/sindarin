@@ -12,7 +12,9 @@
 #include "../ast/ast_expr.h"
 #include "../token.h"
 #include "../type_checker.h"
+#include "../type_checker/type_checker_util.h"
 #include "../symbol_table.h"
+#include "../symbol_table/symbol_table_thread.h"
 #include "../test_harness.h"
 
 void setup_token(Token *tok, SnTokenType type, const char *lexeme, int line, const char *filename, Arena *arena) {
@@ -46,6 +48,7 @@ static void setup_literal_token(Token *token, SnTokenType type, const char *lexe
 #include "type_checker_tests_native_slice.c"
 #include "type_checker_tests_native_pointer.c"
 #include "type_checker_tests_random.c"
+#include "type_checker_tests_struct.c"
 
 void test_type_checker_main()
 {
@@ -64,4 +67,5 @@ void test_type_checker_main()
     test_type_checker_native_slice_main();
     test_type_checker_native_pointer_main();
     test_type_checker_random_main();
+    test_type_checker_struct_main();
 }

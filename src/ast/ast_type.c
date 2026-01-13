@@ -59,6 +59,42 @@ Type *ast_clone_type(Arena *arena, Type *type)
         }
         break;
 
+    case TYPE_STRUCT:
+        if (type->as.struct_type.name != NULL)
+        {
+            clone->as.struct_type.name = arena_strdup(arena, type->as.struct_type.name);
+        }
+        else
+        {
+            clone->as.struct_type.name = NULL;
+        }
+        clone->as.struct_type.field_count = type->as.struct_type.field_count;
+        clone->as.struct_type.size = type->as.struct_type.size;
+        clone->as.struct_type.alignment = type->as.struct_type.alignment;
+        clone->as.struct_type.is_native = type->as.struct_type.is_native;
+        if (type->as.struct_type.field_count > 0)
+        {
+            clone->as.struct_type.fields = arena_alloc(arena, sizeof(StructField) * type->as.struct_type.field_count);
+            if (clone->as.struct_type.fields == NULL)
+            {
+                DEBUG_ERROR("Out of memory when cloning struct fields");
+                exit(1);
+            }
+            for (int i = 0; i < type->as.struct_type.field_count; i++)
+            {
+                clone->as.struct_type.fields[i].name = type->as.struct_type.fields[i].name
+                    ? arena_strdup(arena, type->as.struct_type.fields[i].name) : NULL;
+                clone->as.struct_type.fields[i].type = ast_clone_type(arena, type->as.struct_type.fields[i].type);
+                clone->as.struct_type.fields[i].offset = type->as.struct_type.fields[i].offset;
+                clone->as.struct_type.fields[i].default_value = type->as.struct_type.fields[i].default_value;
+            }
+        }
+        else
+        {
+            clone->as.struct_type.fields = NULL;
+        }
+        break;
+
     case TYPE_ARRAY:
         clone->as.array.element_type = ast_clone_type(arena, type->as.array.element_type);
         break;
@@ -286,6 +322,13 @@ int ast_type_equals(Type *a, Type *b)
         if (a->as.opaque.name == NULL || b->as.opaque.name == NULL)
             return 0;
         return strcmp(a->as.opaque.name, b->as.opaque.name) == 0;
+    case TYPE_STRUCT:
+        /* Struct types are equal if their names match */
+        if (a->as.struct_type.name == NULL && b->as.struct_type.name == NULL)
+            return 1;
+        if (a->as.struct_type.name == NULL || b->as.struct_type.name == NULL)
+            return 0;
+        return strcmp(a->as.struct_type.name, b->as.struct_type.name) == 0;
     default:
         return 1;
     }
@@ -440,6 +483,15 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "opaque");
     }
 
+    case TYPE_STRUCT:
+    {
+        if (type->as.struct_type.name != NULL)
+        {
+            return arena_strdup(arena, type->as.struct_type.name);
+        }
+        return arena_strdup(arena, "struct");
+    }
+
     default:
         return arena_strdup(arena, "unknown");
     }
@@ -453,4 +505,116 @@ int ast_type_is_pointer(Type *type)
 int ast_type_is_opaque(Type *type)
 {
     return type != NULL && type->kind == TYPE_OPAQUE;
+}
+
+int ast_type_is_struct(Type *type)
+{
+    return type != NULL && type->kind == TYPE_STRUCT;
+}
+
+Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields, int field_count, bool is_native, bool is_packed)
+{
+    Type *type = arena_alloc(arena, sizeof(Type));
+    if (type == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(type, 0, sizeof(Type));
+    type->kind = TYPE_STRUCT;
+    type->as.struct_type.name = name ? arena_strdup(arena, name) : NULL;
+    type->as.struct_type.field_count = field_count;
+    type->as.struct_type.size = 0;       /* Computed during type checking */
+    type->as.struct_type.alignment = 0;  /* Computed during type checking */
+    type->as.struct_type.is_native = is_native;
+    type->as.struct_type.is_packed = is_packed;
+
+    if (field_count > 0 && fields != NULL)
+    {
+        type->as.struct_type.fields = arena_alloc(arena, sizeof(StructField) * field_count);
+        if (type->as.struct_type.fields == NULL)
+        {
+            DEBUG_ERROR("Out of memory");
+            exit(1);
+        }
+        for (int i = 0; i < field_count; i++)
+        {
+            type->as.struct_type.fields[i].name = fields[i].name
+                ? arena_strdup(arena, fields[i].name) : NULL;
+            type->as.struct_type.fields[i].type = ast_clone_type(arena, fields[i].type);
+            type->as.struct_type.fields[i].offset = fields[i].offset;
+            type->as.struct_type.fields[i].default_value = fields[i].default_value;
+        }
+    }
+    else
+    {
+        type->as.struct_type.fields = NULL;
+    }
+
+    return type;
+}
+
+StructField *ast_struct_get_field(Type *struct_type, const char *field_name)
+{
+    if (struct_type == NULL || struct_type->kind != TYPE_STRUCT || field_name == NULL)
+    {
+        return NULL;
+    }
+
+    for (int i = 0; i < struct_type->as.struct_type.field_count; i++)
+    {
+        if (struct_type->as.struct_type.fields[i].name != NULL &&
+            strcmp(struct_type->as.struct_type.fields[i].name, field_name) == 0)
+        {
+            return &struct_type->as.struct_type.fields[i];
+        }
+    }
+
+    return NULL;
+}
+
+int ast_struct_get_field_index(Type *struct_type, const char *field_name)
+{
+    if (struct_type == NULL || struct_type->kind != TYPE_STRUCT || field_name == NULL)
+    {
+        return -1;
+    }
+
+    for (int i = 0; i < struct_type->as.struct_type.field_count; i++)
+    {
+        if (struct_type->as.struct_type.fields[i].name != NULL &&
+            strcmp(struct_type->as.struct_type.fields[i].name, field_name) == 0)
+        {
+            return i;
+        }
+    }
+
+    return -1;
+}
+
+bool ast_struct_literal_field_initialized(Expr *struct_literal_expr, int field_index)
+{
+    if (struct_literal_expr == NULL)
+    {
+        return false;
+    }
+
+    if (struct_literal_expr->type != EXPR_STRUCT_LITERAL)
+    {
+        return false;
+    }
+
+    if (struct_literal_expr->as.struct_literal.fields_initialized == NULL)
+    {
+        /* Not yet type-checked */
+        return false;
+    }
+
+    if (field_index < 0 || field_index >= struct_literal_expr->as.struct_literal.total_field_count)
+    {
+        /* Invalid field index */
+        return false;
+    }
+
+    return struct_literal_expr->as.struct_literal.fields_initialized[field_index];
 }

@@ -143,11 +143,22 @@ char *code_gen_array_expression(CodeGen *gen, Expr *e)
 
     // Simple case: no spread or range elements
     // Build the element list
+    // For struct element types, set the flag so struct literals omit their outer cast
+    // (TCC doesn't support nested compound literal casts like (Point[]){(Point){...}})
+    bool is_struct_array = (elem_type->kind == TYPE_STRUCT);
+    if (is_struct_array) {
+        gen->in_array_compound_literal = true;
+    }
+
     char *inits = arena_strdup(gen->arena, "");
     for (int i = 0; i < arr->element_count; i++) {
         char *el = code_gen_expression(gen, arr->elements[i]);
         char *sep = i > 0 ? ", " : "";
         inits = arena_sprintf(gen->arena, "%s%s%s", inits, sep, el);
+    }
+
+    if (is_struct_array) {
+        gen->in_array_compound_literal = false;
     }
 
     if (suffix == NULL) {

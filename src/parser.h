@@ -21,6 +21,7 @@ typedef struct
     int sized_array_pending;   /* Set when parser_type() detects TYPE[expr] syntax */
     Expr *sized_array_size;    /* Size expression parsed from TYPE[expr] syntax */
     int in_native_function;    /* True when parsing body of native function, for native lambdas */
+    int pack_alignment;        /* Current pack alignment: 0 = default, 1 = packed */
 } Parser;
 
 /* Result struct for parser_type_with_size() */

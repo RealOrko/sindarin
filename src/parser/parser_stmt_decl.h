@@ -10,6 +10,7 @@ Stmt *parser_var_declaration(Parser *parser);
 Stmt *parser_function_declaration(Parser *parser);
 Stmt *parser_native_function_declaration(Parser *parser);
 Stmt *parser_type_declaration(Parser *parser);
+Stmt *parser_struct_declaration(Parser *parser, bool is_native);
 
 /* Helper for native function types in type declarations */
 Type *parser_native_function_type(Parser *parser);

@@ -44,11 +44,17 @@ bool is_primitive_type(Type *type);
 bool is_reference_type(Type *type);
 bool can_escape_private(Type *type);
 
+/* Get a description of why a type cannot escape from a private block.
+ * Returns a static string describing the reason, or NULL if the type can escape.
+ * Used for generating helpful error messages. */
+const char *get_private_escape_block_reason(Type *type);
+
 /* Memory context for tracking private blocks/functions */
 typedef struct MemoryContext {
     bool in_private_block;
     bool in_private_function;
     int private_depth;           /* Nesting depth of private blocks */
+    int scope_depth;             /* General scope nesting depth (blocks, functions) */
 } MemoryContext;
 
 /* Memory context management */
@@ -56,6 +62,13 @@ void memory_context_init(MemoryContext *ctx);
 void memory_context_enter_private(MemoryContext *ctx);
 void memory_context_exit_private(MemoryContext *ctx);
 bool memory_context_is_private(MemoryContext *ctx);
+
+/* Scope depth tracking for type checking decisions.
+ * Used to track block/function nesting depth during type checking.
+ * This enables context-aware decisions (e.g., struct allocation strategy). */
+void memory_context_enter_scope(MemoryContext *ctx);
+void memory_context_exit_scope(MemoryContext *ctx);
+int memory_context_get_scope_depth(MemoryContext *ctx);
 
 /* Module symbol extraction for namespaced imports.
  * Walks the imported module AST to find all function definitions
@@ -97,5 +110,44 @@ bool as_val_context_is_active(void);
  * Non-C-compatible types are: str (Sindarin strings), arrays, function types (closures).
  */
 bool is_c_compatible_type(Type *type);
+
+/* Struct field type validation.
+ * Checks if a type is valid for use as a struct field.
+ * Valid types are: primitives, arrays, strings, opaque types, and defined struct types.
+ * Returns true if the type is valid, false otherwise.
+ */
+bool is_valid_field_type(Type *type, SymbolTable *table);
+
+/* Circular dependency detection for struct types.
+ * Checks if a struct type has a circular dependency (directly or indirectly contains itself).
+ * If a cycle is detected, returns true and fills chain_out with the dependency chain string.
+ * The chain_out buffer should be at least 512 bytes.
+ * The table parameter is used to resolve forward-referenced struct types by name.
+ * Returns false if no circular dependency is found.
+ */
+bool detect_struct_circular_dependency(Type *struct_type, SymbolTable *table, char *chain_out, int chain_size);
+
+/* Get the alignment requirement in bytes for a type.
+ * Returns the natural alignment for C-compatible layout.
+ */
+size_t get_type_alignment(Type *type);
+
+/* Calculate the memory layout for a struct type.
+ * Computes:
+ * - field offsets with proper alignment padding
+ * - total struct size including trailing padding
+ * - struct alignment (maximum field alignment)
+ *
+ * This function modifies the struct_type in place, setting:
+ * - fields[i].offset for each field
+ * - struct_type.size (total size with trailing padding)
+ * - struct_type.alignment (max field alignment)
+ *
+ * Uses C-compatible natural alignment rules:
+ * - Fields are aligned to their natural alignment boundary
+ * - Struct alignment is the maximum alignment of all fields
+ * - Total size is rounded up to struct alignment
+ */
+void calculate_struct_layout(Type *struct_type);
 
 #endif /* TYPE_CHECKER_UTIL_H */

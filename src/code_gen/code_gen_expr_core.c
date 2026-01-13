@@ -240,6 +240,35 @@ char *code_gen_assign_expression(CodeGen *gen, AssignExpr *expr)
         return arena_sprintf(gen->arena, "(*%s = %s)", var_name, value_str);
     }
 
+    // Handle escaping struct assignments - copy to outer arena
+    // When a struct value from an inner scope is assigned to an outer scope variable,
+    // we need to ensure the struct data is allocated in the appropriate arena.
+    if (type->kind == TYPE_STRUCT &&
+        expr->value != NULL &&
+        ast_expr_escapes_scope(expr->value) &&
+        gen->current_arena_var != NULL)
+    {
+        // Get the struct type name for sizeof
+        const char *struct_name = type->as.struct_type.name;
+        if (struct_name != NULL)
+        {
+            // Generate: ({ StructType *_tmp = (StructType *)rt_arena_alloc(arena, sizeof(StructType));
+            //             StructType __src_tmp__ = value;
+            //             memcpy(_tmp, &__src_tmp__, sizeof(StructType));
+            //             var = *_tmp; var; })
+            // This allocates in the outer arena first, then copies using memcpy
+            return arena_sprintf(gen->arena,
+                "({ %s *__esc_tmp__ = (%s *)rt_arena_alloc(%s, sizeof(%s)); "
+                "%s __esc_src__ = %s; "
+                "memcpy(__esc_tmp__, &__esc_src__, sizeof(%s)); "
+                "%s = *__esc_tmp__; %s; })",
+                struct_name, struct_name, ARENA_VAR(gen), struct_name,
+                struct_name, value_str,
+                struct_name,
+                var_name, var_name);
+        }
+    }
+
     if (type->kind == TYPE_STRING)
     {
         // Skip freeing old value in arena context - arena handles cleanup

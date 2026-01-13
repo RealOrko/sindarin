@@ -39,6 +39,15 @@ int symbol_table_get_arena_depth(SymbolTable *table)
     return table->current_arena_depth;
 }
 
+int symbol_table_get_scope_depth(SymbolTable *table)
+{
+    if (table == NULL)
+    {
+        return 0;
+    }
+    return table->scope_depth;
+}
+
 /* ============================================================================
  * Thread State Management
  * ============================================================================ */

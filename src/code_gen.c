@@ -89,6 +89,9 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->thunk_forward_decls = arena_strdup(arena, "");
     gen->thunk_definitions = arena_strdup(arena, "");
 
+    /* Initialize array compound literal context flag */
+    gen->in_array_compound_literal = false;
+
     if (gen->output == NULL)
     {
         exit(1);
@@ -566,15 +569,18 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
     char *fn_name_str = fn_name;  // Already computed above
     bool is_main = strcmp(fn_name_str, "main") == 0;
     bool is_shared = fn->modifier == FUNC_SHARED;
-    /* Functions returning heap-allocated types (closures, strings, arrays, any) must be
+    /* Functions returning heap-allocated types (closures, strings, arrays, any, structs) must be
      * implicitly shared to avoid arena lifetime issues - the returned value must
      * live in caller's arena, not the function's arena which is destroyed on return.
-     * 'any' is included because it may contain strings or arrays at runtime. */
+     * 'any' is included because it may contain strings or arrays at runtime.
+     * 'struct' is included because struct fields may contain strings or other heap types,
+     * and the struct data itself may need to outlive the callee's arena. */
     bool returns_heap_type = fn->return_type && (
         fn->return_type->kind == TYPE_FUNCTION ||
         fn->return_type->kind == TYPE_STRING ||
         fn->return_type->kind == TYPE_ARRAY ||
-        fn->return_type->kind == TYPE_ANY);
+        fn->return_type->kind == TYPE_ANY ||
+        fn->return_type->kind == TYPE_STRUCT);
     if (returns_heap_type && !is_main)
     {
         is_shared = true;
@@ -599,17 +605,19 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         {
             fprintf(gen->output, ", ");
         }
-        /* 'as ref' primitive parameters become pointer types */
-        bool is_ref_primitive = false;
+        /* 'as ref' primitive and struct parameters become pointer types */
+        bool is_ref_param = false;
         if (fn->params[i].mem_qualifier == MEM_AS_REF && fn->params[i].type != NULL)
         {
             TypeKind kind = fn->params[i].type->kind;
-            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
-                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
-                               kind == TYPE_BYTE);
+            bool is_prim = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                           kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                           kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                           kind == TYPE_BYTE);
+            bool is_struct = (kind == TYPE_STRUCT);
+            is_ref_param = is_prim || is_struct;
         }
-        if (is_ref_primitive)
+        if (is_ref_param)
         {
             fprintf(gen->output, "%s *", param_type);
         }
@@ -642,17 +650,19 @@ static void code_gen_native_extern_declaration(CodeGen *gen, FunctionStmt *fn)
         {
             fprintf(gen->output, ", ");
         }
-        /* 'as ref' primitive parameters become pointer types */
-        bool is_ref_primitive = false;
+        /* 'as ref' primitive and struct parameters become pointer types */
+        bool is_ref_param = false;
         if (fn->params[i].mem_qualifier == MEM_AS_REF && fn->params[i].type != NULL)
         {
             TypeKind kind = fn->params[i].type->kind;
-            is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
-                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
-                               kind == TYPE_BYTE);
+            bool is_prim = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                           kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                           kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                           kind == TYPE_BYTE);
+            bool is_struct = (kind == TYPE_STRUCT);
+            is_ref_param = is_prim || is_struct;
         }
-        if (is_ref_primitive)
+        if (is_ref_param)
         {
             fprintf(gen->output, "%s *", param_type);
         }
@@ -813,6 +823,46 @@ void code_gen_module(CodeGen *gen, Module *module)
         }
     }
     if (opaque_count > 0)
+    {
+        indented_fprintf(gen, 0, "\n");
+    }
+
+    // Emit struct type definitions
+    int struct_count = 0;
+    for (int i = 0; i < module->count; i++)
+    {
+        Stmt *stmt = module->statements[i];
+        if (stmt->type == STMT_STRUCT_DECL)
+        {
+            StructDeclStmt *struct_decl = &stmt->as.struct_decl;
+            if (struct_count == 0)
+            {
+                indented_fprintf(gen, 0, "/* Struct type definitions */\n");
+            }
+            /* Emit #pragma pack for packed structs */
+            if (struct_decl->is_packed)
+            {
+                indented_fprintf(gen, 0, "#pragma pack(push, 1)\n");
+            }
+            /* Generate: typedef struct { fields... } StructName; */
+            indented_fprintf(gen, 0, "typedef struct {\n");
+            for (int j = 0; j < struct_decl->field_count; j++)
+            {
+                StructField *field = &struct_decl->fields[j];
+                const char *c_type = get_c_type(gen->arena, field->type);
+                indented_fprintf(gen, 1, "%s %s;\n", c_type, field->name);
+            }
+            char *struct_name = arena_strndup(gen->arena, struct_decl->name.start, struct_decl->name.length);
+            indented_fprintf(gen, 0, "} %s;\n", struct_name);
+            /* Close #pragma pack for packed structs */
+            if (struct_decl->is_packed)
+            {
+                indented_fprintf(gen, 0, "#pragma pack(pop)\n");
+            }
+            struct_count++;
+        }
+    }
+    if (struct_count > 0)
     {
         indented_fprintf(gen, 0, "\n");
     }

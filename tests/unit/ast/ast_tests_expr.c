@@ -543,6 +543,64 @@ static void test_ast_create_array_slice_expr()
     cleanup_arena(&arena);
 }
 
+static void test_ast_create_member_access_expr()
+{
+    Arena arena;
+    setup_arena(&arena);
+
+    Token temp_token = create_dummy_token(&arena, "loc");
+    Token *loc = ast_clone_token(&arena, &temp_token);
+
+    /* Create a struct variable expression as the object */
+    Token obj_tok = create_dummy_token(&arena, "point");
+    Expr *obj = ast_create_variable_expr(&arena, obj_tok, loc);
+
+    Token field_tok = create_dummy_token(&arena, "x");
+    Expr *access = ast_create_member_access_expr(&arena, obj, field_tok, loc);
+
+    /* Basic assertions */
+    assert(access != NULL);
+    assert(access->type == EXPR_MEMBER_ACCESS);
+    assert(access->as.member_access.object == obj);
+    assert(strcmp(access->as.member_access.field_name.start, "x") == 0);
+    assert(access->as.member_access.field_name.length == 1);
+    assert(tokens_equal(access->token, loc));
+    assert(access->expr_type == NULL);
+
+    /* Verify field_index is initialized to -1 (set during type checking) */
+    assert(access->as.member_access.field_index == -1);
+
+    /* Verify escape metadata fields are properly initialized */
+    assert(access->as.member_access.escaped == false);
+    assert(access->as.member_access.scope_depth == 0);
+
+    /* Test with different field name */
+    Token field_y_tok = create_dummy_token(&arena, "y");
+    Expr *access_y = ast_create_member_access_expr(&arena, obj, field_y_tok, loc);
+    assert(access_y != NULL);
+    assert(strcmp(access_y->as.member_access.field_name.start, "y") == 0);
+    assert(access_y->as.member_access.escaped == false);
+    assert(access_y->as.member_access.scope_depth == 0);
+
+    /* NULL object */
+    assert(ast_create_member_access_expr(&arena, NULL, field_tok, loc) == NULL);
+
+    /* NULL loc */
+    Expr *access_null_loc = ast_create_member_access_expr(&arena, obj, field_tok, NULL);
+    assert(access_null_loc != NULL);
+    assert(access_null_loc->token == NULL);
+    assert(access_null_loc->as.member_access.escaped == false);
+    assert(access_null_loc->as.member_access.scope_depth == 0);
+
+    /* Test that escape metadata can be modified after creation */
+    access->as.member_access.escaped = true;
+    access->as.member_access.scope_depth = 5;
+    assert(access->as.member_access.escaped == true);
+    assert(access->as.member_access.scope_depth == 5);
+
+    cleanup_arena(&arena);
+}
+
 void test_ast_expr_main()
 {
     TEST_SECTION("AST Expression Tests");
@@ -560,4 +618,5 @@ void test_ast_expr_main()
     TEST_RUN("ast_create_member_expr", test_ast_create_member_expr);
     TEST_RUN("ast_create_comparison_expr", test_ast_create_comparison_expr);
     TEST_RUN("ast_create_array_slice_expr", test_ast_create_array_slice_expr);
+    TEST_RUN("ast_create_member_access_expr", test_ast_create_member_access_expr);
 }

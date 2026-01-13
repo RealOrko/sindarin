@@ -17,6 +17,7 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     parser->sized_array_pending = 0;
     parser->sized_array_size = NULL;
     parser->in_native_function = 0;
+    parser->pack_alignment = 0;  /* 0 = default alignment, 1 = packed */
 
     Token print_token;
     print_token.start = arena_strdup(arena, "print");

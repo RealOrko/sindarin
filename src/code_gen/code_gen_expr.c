@@ -155,6 +155,18 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
         return arena_sprintf(gen->arena, "rt_udp_socket_get_last_sender(%s)", object_str);
     }
 
+    /* Handle struct field access - generates object.field */
+    if (object_type->kind == TYPE_STRUCT) {
+        return arena_sprintf(gen->arena, "%s.%s", object_str, member_name_str);
+    }
+
+    /* Handle pointer-to-struct field access - generates object->field */
+    if (object_type->kind == TYPE_POINTER &&
+        object_type->as.pointer.base_type != NULL &&
+        object_type->as.pointer.base_type->kind == TYPE_STRUCT) {
+        return arena_sprintf(gen->arena, "%s->%s", object_str, member_name_str);
+    }
+
     // Generic struct member access (not currently supported)
     fprintf(stderr, "Error: Unsupported member access on type\n");
     exit(1);
@@ -239,9 +251,102 @@ static char *code_gen_sized_array_alloc_expression(CodeGen *gen, Expr *expr)
 }
 
 /**
- * Generate code for 'as val' expression - pointer dereference/value extraction.
+ * Get the array clone function suffix for a given element type.
+ * Returns NULL if no clone function is available for that type.
+ */
+static const char *get_array_clone_suffix(Type *element_type)
+{
+    if (element_type == NULL) return NULL;
+
+    switch (element_type->kind)
+    {
+        case TYPE_INT:
+        case TYPE_LONG: return "long";
+        case TYPE_INT32: return "int32";
+        case TYPE_UINT: return "uint";
+        case TYPE_UINT32: return "uint32";
+        case TYPE_DOUBLE: return "double";
+        case TYPE_FLOAT: return "float";
+        case TYPE_CHAR: return "char";
+        case TYPE_BOOL: return "bool";
+        case TYPE_BYTE: return "byte";
+        case TYPE_STRING: return "string";
+        default: return NULL;
+    }
+}
+
+/**
+ * Generate code for struct deep copy.
+ * Creates a new struct with all array fields independently copied.
+ */
+static char *code_gen_struct_deep_copy(CodeGen *gen, Type *struct_type, char *operand_code)
+{
+    /* Generate a statement expression that:
+     * 1. Copies the struct itself (shallow copy)
+     * 2. For each array field, creates an independent copy
+     */
+    const char *struct_name = struct_type->as.struct_type.name;
+    int field_count = struct_type->as.struct_type.field_count;
+
+    /* Check if any fields need deep copying (arrays or strings) */
+    bool has_array_fields = false;
+    for (int i = 0; i < field_count; i++)
+    {
+        StructField *field = &struct_type->as.struct_type.fields[i];
+        if (field->type != NULL &&
+            (field->type->kind == TYPE_ARRAY || field->type->kind == TYPE_STRING))
+        {
+            has_array_fields = true;
+            break;
+        }
+    }
+
+    /* If no array fields, just do a simple struct copy */
+    if (!has_array_fields)
+    {
+        return operand_code;
+    }
+
+    /* Generate statement expression for deep copy */
+    char *result = arena_sprintf(gen->arena, "({\n        %s __deep_copy = %s;\n", struct_name, operand_code);
+
+    /* For each array field, generate deep copy */
+    for (int i = 0; i < field_count; i++)
+    {
+        StructField *field = &struct_type->as.struct_type.fields[i];
+        if (field->type != NULL && field->type->kind == TYPE_ARRAY)
+        {
+            /* Get the element type and corresponding clone function */
+            Type *element_type = field->type->as.array.element_type;
+            const char *suffix = get_array_clone_suffix(element_type);
+            if (suffix != NULL)
+            {
+                /* Copy array field using rt_array_clone_<type> */
+                result = arena_sprintf(gen->arena, "%s        __deep_copy.%s = rt_array_clone_%s(%s, __deep_copy.%s);\n",
+                                       result, field->name, suffix, ARENA_VAR(gen), field->name);
+            }
+            /* If no clone function available (e.g., nested arrays), leave as shallow copy */
+        }
+        else if (field->type != NULL && field->type->kind == TYPE_STRING)
+        {
+            /* Copy string field using rt_arena_strdup */
+            result = arena_sprintf(gen->arena,
+                                   "%s        __deep_copy.%s = __deep_copy.%s ? rt_arena_strdup(%s, __deep_copy.%s) : NULL;\n",
+                                   result, field->name, field->name, ARENA_VAR(gen), field->name);
+        }
+    }
+
+    /* Return the deep copied struct */
+    result = arena_sprintf(gen->arena, "%s        __deep_copy;\n    })", result);
+
+    return result;
+}
+
+/**
+ * Generate code for 'as val' expression - pointer dereference/value extraction/struct deep copy.
  * For *int, *double, etc. - dereferences pointer to get value
  * For *char - converts null-terminated C string to Sn str
+ * For structs - creates deep copy with independent array fields
  */
 static char *code_gen_as_val_expression(CodeGen *gen, Expr *expr)
 {
@@ -262,6 +367,17 @@ static char *code_gen_as_val_expression(CodeGen *gen, Expr *expr)
          * Handle NULL pointer by returning empty string. */
         return arena_sprintf(gen->arena, "((%s) ? rt_arena_strdup(%s, %s) : rt_arena_strdup(%s, \"\"))",
                             operand_code, ARENA_VAR(gen), operand_code, ARENA_VAR(gen));
+    }
+    else if (as_val->is_struct_deep_copy)
+    {
+        /* Struct deep copy: copy struct and independently copy array fields */
+        Type *operand_type = as_val->operand->expr_type;
+        if (operand_type != NULL && operand_type->kind == TYPE_STRUCT)
+        {
+            return code_gen_struct_deep_copy(gen, operand_type, operand_code);
+        }
+        /* Fallback: should not happen, but just return operand */
+        return operand_code;
     }
     else
     {
@@ -303,6 +419,33 @@ static const char *get_type_tag_constant(TypeKind kind)
         case TYPE_UUID: return "RT_ANY_UUID";
         case TYPE_ANY: return "RT_ANY_NIL";  /* any has no fixed tag */
         default: return "RT_ANY_NIL";
+    }
+}
+
+/**
+ * Generate code for sizeof expression.
+ * sizeof(Type) - returns size in bytes of the type
+ * sizeof(expr) - returns size in bytes of the expression's type
+ */
+static char *code_gen_sizeof_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating sizeof expression");
+
+    SizeofExpr *sizeof_expr = &expr->as.sizeof_expr;
+
+    if (sizeof_expr->type_operand != NULL)
+    {
+        /* sizeof(Type) - compile-time size of the type */
+        const char *c_type = get_c_type(gen->arena, sizeof_expr->type_operand);
+        return arena_sprintf(gen->arena, "(long long)sizeof(%s)", c_type);
+    }
+    else
+    {
+        /* sizeof(expr) - size of the expression's type */
+        /* For expressions, we get the type from the type-checked expression */
+        Type *expr_type = sizeof_expr->expr_operand->expr_type;
+        const char *c_type = get_c_type(gen->arena, expr_type);
+        return arena_sprintf(gen->arena, "(long long)sizeof(%s)", c_type);
     }
 }
 
@@ -427,6 +570,135 @@ static char *code_gen_as_type_expression(CodeGen *gen, Expr *expr)
     return code_gen_unbox_value(gen, operand_code, target_type);
 }
 
+/**
+ * Generate code for struct literal expression.
+ * Point { x: 1.0, y: 2.0 } -> (Point){ .x = 1.0, .y = 2.0 }
+ */
+static char *code_gen_struct_literal_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating struct literal expression");
+
+    StructLiteralExpr *lit = &expr->as.struct_literal;
+    Type *struct_type = lit->struct_type;
+
+    if (struct_type == NULL || struct_type->kind != TYPE_STRUCT)
+    {
+        fprintf(stderr, "Error: Struct literal has no resolved type\n");
+        exit(1);
+    }
+
+    const char *struct_name = struct_type->as.struct_type.name;
+    int total_fields = struct_type->as.struct_type.field_count;
+
+    /* Build the C compound literal: (StructName){ .field1 = val1, .field2 = val2, ... }
+     * When inside an array compound literal, omit the outer (StructName) cast since
+     * the array type already establishes the element type. This is required for TCC
+     * compatibility which doesn't handle nested compound literal casts. */
+    char *result;
+    if (gen->in_array_compound_literal) {
+        result = arena_strdup(gen->arena, "{ ");
+    } else {
+        result = arena_sprintf(gen->arena, "(%s){ ", struct_name);
+    }
+
+    bool first = true;
+    for (int i = 0; i < total_fields; i++)
+    {
+        StructField *field = &struct_type->as.struct_type.fields[i];
+
+        /* Find if this field was explicitly initialized */
+        Expr *init_value = NULL;
+        for (int j = 0; j < lit->field_count; j++)
+        {
+            const char *init_name = lit->fields[j].name.start;
+            int init_len = lit->fields[j].name.length;
+            if ((int)strlen(field->name) == init_len &&
+                strncmp(field->name, init_name, init_len) == 0)
+            {
+                init_value = lit->fields[j].value;
+                break;
+            }
+        }
+
+        /* Use default value if not explicitly initialized */
+        if (init_value == NULL)
+        {
+            init_value = field->default_value;
+        }
+
+        /* Generate field initializer */
+        if (init_value != NULL)
+        {
+            char *value_code = code_gen_expression(gen, init_value);
+            if (!first)
+            {
+                result = arena_sprintf(gen->arena, "%s, ", result);
+            }
+            result = arena_sprintf(gen->arena, "%s.%s = %s", result, field->name, value_code);
+            first = false;
+        }
+        else
+        {
+            /* No value provided and no default - use C default (zero) */
+            /* For C compound literals, uninitialized fields are zeroed */
+        }
+    }
+
+    result = arena_sprintf(gen->arena, "%s }", result);
+    return result;
+}
+
+/**
+ * Generate code for struct member access expression.
+ * point.x -> point.x
+ * ptr_to_struct.x -> ptr_to_struct->x (auto-dereference)
+ */
+static char *code_gen_member_access_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating member access expression");
+
+    MemberAccessExpr *access = &expr->as.member_access;
+    char *object_code = code_gen_expression(gen, access->object);
+    Type *object_type = access->object->expr_type;
+
+    /* Get field name */
+    char *field_name = arena_strndup(gen->arena, access->field_name.start, access->field_name.length);
+
+    /* Check if this is pointer-to-struct (needs -> instead of .) */
+    if (object_type != NULL && object_type->kind == TYPE_POINTER)
+    {
+        return arena_sprintf(gen->arena, "%s->%s", object_code, field_name);
+    }
+
+    return arena_sprintf(gen->arena, "%s.%s", object_code, field_name);
+}
+
+/**
+ * Generate code for struct member assignment expression.
+ * point.x = 5.0 -> point.x = 5.0
+ * ptr_to_struct.x = 5.0 -> ptr_to_struct->x = 5.0 (auto-dereference)
+ */
+static char *code_gen_member_assign_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating member assign expression");
+
+    MemberAssignExpr *assign = &expr->as.member_assign;
+    char *object_code = code_gen_expression(gen, assign->object);
+    char *value_code = code_gen_expression(gen, assign->value);
+    Type *object_type = assign->object->expr_type;
+
+    /* Get field name */
+    char *field_name = arena_strndup(gen->arena, assign->field_name.start, assign->field_name.length);
+
+    /* Check if this is pointer-to-struct (needs -> instead of .) */
+    if (object_type != NULL && object_type->kind == TYPE_POINTER)
+    {
+        return arena_sprintf(gen->arena, "%s->%s = %s", object_code, field_name, value_code);
+    }
+
+    return arena_sprintf(gen->arena, "%s.%s = %s", object_code, field_name, value_code);
+}
+
 char *code_gen_expression(CodeGen *gen, Expr *expr)
 {
     DEBUG_VERBOSE("Entering code_gen_expression");
@@ -490,6 +762,14 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_is_expression(gen, expr);
     case EXPR_AS_TYPE:
         return code_gen_as_type_expression(gen, expr);
+    case EXPR_STRUCT_LITERAL:
+        return code_gen_struct_literal_expression(gen, expr);
+    case EXPR_MEMBER_ACCESS:
+        return code_gen_member_access_expression(gen, expr);
+    case EXPR_MEMBER_ASSIGN:
+        return code_gen_member_assign_expression(gen, expr);
+    case EXPR_SIZEOF:
+        return code_gen_sizeof_expression(gen, expr);
     default:
         exit(1);
     }

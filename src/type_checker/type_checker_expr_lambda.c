@@ -315,12 +315,12 @@ Type *type_check_lambda(Expr *expr, SymbolTable *table)
     {
         Parameter *param = &lambda->params[i];
 
-        /* 'as ref' is only valid for primitive types (makes them heap-allocated) */
+        /* 'as ref' is only valid for primitive and struct types (makes them heap-allocated/passed by pointer) */
         if (param->mem_qualifier == MEM_AS_REF)
         {
-            if (!is_primitive_type(param->type))
+            if (!is_primitive_type(param->type) && param->type->kind != TYPE_STRUCT)
             {
-                type_error(expr->token, "'as ref' can only be used with primitive types");
+                type_error(expr->token, "'as ref' can only be used with primitive or struct types");
                 return NULL;
             }
         }

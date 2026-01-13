@@ -213,6 +213,15 @@ const char *get_c_type(Arena *arena, Type *type)
         }
         return arena_strdup(arena, "void");  /* Fallback for unnamed opaque types */
     }
+    case TYPE_STRUCT:
+    {
+        /* Struct types use their name as the C type name */
+        if (type->as.struct_type.name != NULL)
+        {
+            return arena_strdup(arena, type->as.struct_type.name);
+        }
+        return arena_strdup(arena, "void");  /* Fallback for unnamed struct types */
+    }
     default:
         fprintf(stderr, "Error: Unknown type kind %d\n", type->kind);
         exit(1);
@@ -359,6 +368,12 @@ const char *get_default_value(Type *type)
     else if (type->kind == TYPE_ANY)
     {
         return "rt_box_nil()";
+    }
+    else if (type->kind == TYPE_STRUCT)
+    {
+        /* Struct default: use C99 compound literal with zeroed fields.
+         * This creates a value-initialized struct at runtime. */
+        return "{0}";
     }
     else
     {
@@ -1449,6 +1464,152 @@ bool function_needs_arena(FunctionStmt *fn)
     }
 
     return false;
+}
+
+/* ============================================================================
+ * Arena Destination Calculation for Scope Escape
+ * ============================================================================ */
+
+/**
+ * Get the arena at a specific depth in the arena stack.
+ * Depth 0 is the outermost (function-level) arena, depth 1 is the first nested
+ * private block, etc.
+ *
+ * Returns NULL if the depth is out of range.
+ */
+const char *get_arena_at_depth(CodeGen *gen, int depth)
+{
+    if (gen == NULL || depth < 0)
+    {
+        return NULL;
+    }
+
+    /* Depth 0 corresponds to the function's base arena (__arena__) */
+    if (depth == 0)
+    {
+        return "__arena__";
+    }
+
+    /* Depths 1+ correspond to nested private block arenas in the stack.
+     * Stack index 0 = depth 1, stack index 1 = depth 2, etc. */
+    int stack_index = depth - 1;
+    if (stack_index < gen->arena_stack_depth)
+    {
+        return gen->arena_stack[stack_index];
+    }
+
+    return NULL;
+}
+
+/**
+ * Calculate the number of arena levels to traverse when escaping from
+ * source_depth to target_depth.
+ *
+ * This is used to determine how many rt_arena_get_parent() calls are needed
+ * to get from the current arena to the destination arena.
+ *
+ * Returns 0 if no traversal is needed (same scope or target is deeper).
+ */
+int calculate_arena_traversal_depth(CodeGen *gen, int source_depth, int target_depth)
+{
+    if (gen == NULL)
+    {
+        return 0;
+    }
+
+    /* If source is not deeper than target, no traversal needed */
+    if (source_depth <= target_depth)
+    {
+        return 0;
+    }
+
+    /* Calculate the number of levels to go up */
+    return source_depth - target_depth;
+}
+
+/**
+ * Calculate the target arena for an escaping allocation based on scope depth.
+ *
+ * When a struct or allocation escapes from an inner scope (source_depth) to an
+ * outer scope (target_depth), this function determines which arena to allocate
+ * in to ensure the value lives long enough.
+ *
+ * For multi-level nesting (e.g., inner block -> middle block -> outer function),
+ * this function either:
+ * 1. Returns the arena variable name directly if it's in the stack
+ * 2. Generates a parent chain traversal expression if needed
+ *
+ * Examples:
+ * - source_depth=3, target_depth=1 -> returns arena at depth 1
+ * - source_depth=2, target_depth=0 -> returns "__arena__" (function level)
+ * - source_depth=1, target_depth=1 -> returns current arena (no escape)
+ */
+const char *get_arena_for_scope_escape(CodeGen *gen, int source_depth, int target_depth)
+{
+    if (gen == NULL)
+    {
+        return "NULL";
+    }
+
+    /* If source is not deeper than target, no escape - use current arena */
+    if (source_depth <= target_depth)
+    {
+        return gen->current_arena_var ? gen->current_arena_var : "NULL";
+    }
+
+    /* Escaping to global/module scope (target_depth <= 0) */
+    if (target_depth <= 0)
+    {
+        return "NULL";
+    }
+
+    /* Try to get the arena directly from the stack if it's a known level.
+     * The arena_depth field tracks the current nesting level (1 = function,
+     * 2+ = nested private blocks). We need to map target_depth to an arena. */
+
+    /* In the code generator:
+     * - arena_depth = 1 means we're in a function with __arena__
+     * - arena_depth = 2 means we're in first nested private block (__arena_2__)
+     * - etc.
+     *
+     * The arena_stack contains names of nested private block arenas (not including
+     * the function's base arena). So:
+     * - arena_stack[0] = first nested private block arena
+     * - arena_stack[1] = second nested private block arena
+     * - etc.
+     */
+
+    /* If the target depth corresponds to the function level, return __arena__ */
+    if (target_depth == 1)
+    {
+        return "__arena__";
+    }
+
+    /* For nested levels, calculate the stack index */
+    int stack_index = target_depth - 2;  /* -2 because depth 2 = stack[0] */
+
+    if (stack_index >= 0 && stack_index < gen->arena_stack_depth)
+    {
+        return gen->arena_stack[stack_index];
+    }
+
+    /* If we can't find the arena directly, generate a parent chain traversal.
+     * This happens when the target arena isn't in our stack (e.g., crossing
+     * function boundaries). Generate code like:
+     * rt_arena_get_parent(rt_arena_get_parent(current_arena)) */
+    int levels_up = source_depth - target_depth;
+    if (levels_up > 0 && gen->current_arena_var != NULL)
+    {
+        char *result = arena_strdup(gen->arena, gen->current_arena_var);
+        for (int i = 0; i < levels_up; i++)
+        {
+            result = arena_sprintf(gen->arena, "rt_arena_get_parent(%s)", result);
+        }
+        return result;
+    }
+
+    /* Fallback: return current arena or NULL */
+    return gen->current_arena_var ? gen->current_arena_var : "NULL";
 }
 
 /* ============================================================================

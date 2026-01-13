@@ -12,6 +12,7 @@
 - **Arrow syntax** (`=>`) for clean, readable code blocks
 - **String interpolation** with `$"Hello {name}!"`
 - **Arrays** with built-in operations (push, pop, slice, join, etc.)
+- **Structs** for structured data and C library interop
 - **String methods** (toUpper, toLower, trim, split, splitLines, isBlank, etc.)
 - **File I/O** with TextFile and BinaryFile types
 - **Control flow** with for, for-each, while, break, continue
@@ -83,6 +84,7 @@ See [docs/README.md](docs/README.md) for the full documentation index.
 | [TYPES](docs/language/TYPES.md) | Primitive and built-in types |
 | [STRINGS](docs/language/STRINGS.md) | String methods and interpolation |
 | [ARRAYS](docs/language/ARRAYS.md) | Array operations and slicing |
+| [STRUCTS](docs/language/STRUCTS.md) | Struct declarations and C interop |
 | [LAMBDAS](docs/language/LAMBDAS.md) | Lambda expressions and closures |
 | [FILE_IO](docs/language/FILE_IO.md) | TextFile and BinaryFile operations |
 | [NETWORK_IO](docs/language/NETWORK_IO.md) | TCP and UDP networking |

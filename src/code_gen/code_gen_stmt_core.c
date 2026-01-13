@@ -5,9 +5,16 @@
 #include "code_gen/code_gen_util.h"
 #include "debug.h"
 #include "symbol_table.h"
+#include "symbol_table/symbol_table_core.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+
+/* Threshold for stack vs heap allocation for structs.
+ * Structs smaller than this are stack-allocated.
+ * Structs >= this size are heap-allocated via rt_arena_alloc.
+ * This matches the same threshold used for fixed arrays. */
+#define STRUCT_STACK_THRESHOLD 8192  /* 8KB */
 
 /* Generate thread sync as a statement - assigns results back to variables
  * For single sync (r!): r = sync_result
@@ -444,6 +451,46 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
                          type_c, var_name, type_c, ARENA_VAR(gen), type_c);
         indented_fprintf(gen, indent, "*%s = %s;\n", var_name, init_str);
     }
+    // Handle large struct allocation (>= 8KB threshold) - heap-allocate via arena
+    else if (stmt->type->kind == TYPE_STRUCT && gen->current_arena_var != NULL)
+    {
+        // Get the struct size - try from the type itself first, otherwise look up from symbol table
+        int struct_size = (int)stmt->type->as.struct_type.size;
+        if (struct_size == 0 && stmt->type->as.struct_type.name != NULL)
+        {
+            // Look up the struct type from the symbol table which has the computed layout
+            Token struct_name_token = {
+                .start = stmt->type->as.struct_type.name,
+                .length = (int)strlen(stmt->type->as.struct_type.name)
+            };
+            Symbol *struct_sym = symbol_table_lookup_type(gen->symbol_table, struct_name_token);
+            if (struct_sym != NULL && struct_sym->type != NULL && struct_sym->type->kind == TYPE_STRUCT)
+            {
+                struct_size = (int)struct_sym->type->as.struct_type.size;
+            }
+        }
+        if (struct_size >= STRUCT_STACK_THRESHOLD)
+        {
+            // Large struct: allocate on arena and store as pointer
+            // e.g., LargeStruct *s = (LargeStruct *)rt_arena_alloc(__arena_1__, sizeof(LargeStruct));
+            //       *s = (LargeStruct){ .field = value, ... };
+            indented_fprintf(gen, indent, "%s *%s = (%s *)rt_arena_alloc(%s, sizeof(%s));\n",
+                             type_c, var_name, type_c, ARENA_VAR(gen), type_c);
+            indented_fprintf(gen, indent, "*%s = %s;\n", var_name, init_str);
+
+            // Update symbol table to mark as pointer for proper access
+            Symbol *sym = symbol_table_lookup_symbol_current(gen->symbol_table, stmt->name);
+            if (sym != NULL)
+            {
+                sym->mem_qual = MEM_AS_REF;  // Mark as pointer for proper dereferencing
+            }
+        }
+        else
+        {
+            // Small struct: stack allocation with value semantics
+            indented_fprintf(gen, indent, "%s %s = %s;\n", type_c, var_name, init_str);
+        }
+    }
     else
     {
         indented_fprintf(gen, indent, "%s %s = %s;\n", type_c, var_name, init_str);
@@ -607,15 +654,18 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool main_has_args = is_main && stmt->param_count == 1;  // Type checker validated it's str[]
     bool is_private = stmt->modifier == FUNC_PRIVATE;
     bool is_shared = stmt->modifier == FUNC_SHARED;
-    // Functions returning heap-allocated types (closures, strings, arrays, any) must be
+    // Functions returning heap-allocated types (closures, strings, arrays, any, structs) must be
     // implicitly shared to avoid arena lifetime issues - the returned value must
     // live in caller's arena, not the function's arena which is destroyed on return.
     // 'any' is included because it may contain strings or arrays at runtime.
+    // 'struct' is included because struct fields may contain strings or other heap types,
+    // and the struct data itself may need to outlive the callee's arena.
     bool returns_heap_type = stmt->return_type && (
         stmt->return_type->kind == TYPE_FUNCTION ||
         stmt->return_type->kind == TYPE_STRING ||
         stmt->return_type->kind == TYPE_ARRAY ||
-        stmt->return_type->kind == TYPE_ANY);
+        stmt->return_type->kind == TYPE_ANY ||
+        stmt->return_type->kind == TYPE_STRUCT);
     if (returns_heap_type && !is_main) {
         is_shared = true;
     }
@@ -688,17 +738,19 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
             const char *param_type_c = get_c_type(gen->arena, stmt->params[i].type);
             char *param_name = get_var_name(gen->arena, stmt->params[i].name);
 
-            /* 'as ref' primitive parameters become pointer types */
-            bool is_ref_primitive = false;
+            /* 'as ref' primitive and struct parameters become pointer types */
+            bool is_ref_param = false;
             if (stmt->params[i].mem_qualifier == MEM_AS_REF && stmt->params[i].type != NULL)
             {
                 TypeKind kind = stmt->params[i].type->kind;
-                is_ref_primitive = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
-                                   kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
-                                   kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
-                                   kind == TYPE_BYTE);
+                bool is_prim = (kind == TYPE_INT || kind == TYPE_INT32 || kind == TYPE_UINT ||
+                               kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+                               kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
+                               kind == TYPE_BYTE);
+                bool is_struct = (kind == TYPE_STRUCT);
+                is_ref_param = is_prim || is_struct;
             }
-            if (is_ref_primitive)
+            if (is_ref_param)
             {
                 fprintf(gen->output, "%s *%s", param_type_c, param_name);
             }
@@ -1023,6 +1075,10 @@ void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
     case STMT_TYPE_DECL:
         /* Type declarations are handled at the module level where forward declarations
          * are emitted. No code generation is needed for the statement itself. */
+        break;
+    case STMT_STRUCT_DECL:
+        /* Struct declarations are handled at the module level where typedef
+         * declarations are emitted. No code generation is needed for the statement itself. */
         break;
     }
 }

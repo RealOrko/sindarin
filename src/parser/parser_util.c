@@ -1,4 +1,5 @@
 #include "parser/parser_util.h"
+#include "ast/ast_type.h"
 #include "diagnostic.h"
 #include "debug.h"
 #include <stdio.h>
@@ -322,8 +323,12 @@ Type *parser_type(Parser *parser)
             }
             else
             {
-                parser_error_at_current(parser, "Expected type");
-                return ast_create_primitive_type(parser->arena, TYPE_NIL);
+                /* Treat unknown identifier as potential struct type reference.
+                 * Create a forward reference TYPE_STRUCT with just the name.
+                 * The type checker will resolve this to the actual struct definition. */
+                char *type_name = arena_strndup(parser->arena, id.start, id.length);
+                parser_advance(parser);
+                type = ast_create_struct_type(parser->arena, type_name, NULL, 0, false, false);
             }
         }
     }

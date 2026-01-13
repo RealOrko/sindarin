@@ -149,6 +149,22 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
         }
     }
 
+    // Handle struct comparison (== and !=) using memcmp
+    if (type->kind == TYPE_STRUCT && (op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL))
+    {
+        const char *struct_name = type->as.struct_type.name;
+        if (op == TOKEN_EQUAL_EQUAL)
+        {
+            return arena_sprintf(gen->arena, "(memcmp(&(%s), &(%s), sizeof(%s)) == 0)",
+                                 left_str, right_str, struct_name);
+        }
+        else
+        {
+            return arena_sprintf(gen->arena, "(memcmp(&(%s), &(%s), sizeof(%s)) != 0)",
+                                 left_str, right_str, struct_name);
+        }
+    }
+
     char *op_str = code_gen_binary_op_str(op);
     char *suffix = code_gen_type_suffix(type);
     if (op == TOKEN_PLUS && type->kind == TYPE_STRING)

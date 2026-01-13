@@ -18,6 +18,7 @@ Core documentation for the Sindarin programming language:
 | [TYPES.md](language/TYPES.md) | Primitive and built-in types |
 | [STRINGS.md](language/STRINGS.md) | String methods, interpolation, and escape sequences |
 | [ARRAYS.md](language/ARRAYS.md) | Array operations, slicing, and methods |
+| [STRUCTS.md](language/STRUCTS.md) | Struct declarations and C interop |
 | [LAMBDAS.md](language/LAMBDAS.md) | Lambda expressions and closures |
 | [FILE_IO.md](language/FILE_IO.md) | TextFile and BinaryFile operations |
 | [DATE.md](language/DATE.md) | Calendar date operations |
@@ -79,6 +80,7 @@ Start with these documents:
 3. **[TYPES.md](language/TYPES.md)** - Data types and type system
 4. **[STRINGS.md](language/STRINGS.md)** - String manipulation
 5. **[ARRAYS.md](language/ARRAYS.md)** - Working with arrays
+6. **[STRUCTS.md](language/STRUCTS.md)** - Structured data and C interop
 
 ## Building
 

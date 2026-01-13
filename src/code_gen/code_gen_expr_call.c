@@ -1995,7 +1995,8 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             expr->expr_type->kind == TYPE_STRING ||
             expr->expr_type->kind == TYPE_ARRAY ||
             expr->expr_type->kind == TYPE_FUNCTION ||
-            expr->expr_type->kind == TYPE_ANY))
+            expr->expr_type->kind == TYPE_ANY ||
+            expr->expr_type->kind == TYPE_STRUCT))
         {
             callee_is_shared = true;
         }
@@ -2068,7 +2069,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             arg_names[i] = code_gen_box_value(gen, arg_names[i], call->arguments[i]->expr_type);
         }
 
-        /* For 'as ref' primitive parameters, pass address of the argument */
+        /* For 'as ref' primitive and struct parameters, pass address of the argument */
         bool is_ref_param = false;
         if (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF &&
             call->arguments[i]->expr_type != NULL)
@@ -2078,7 +2079,8 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                            kind == TYPE_UINT32 || kind == TYPE_LONG || kind == TYPE_DOUBLE ||
                            kind == TYPE_FLOAT || kind == TYPE_CHAR || kind == TYPE_BOOL ||
                            kind == TYPE_BYTE);
-            is_ref_param = is_prim;
+            bool is_struct = (kind == TYPE_STRUCT);
+            is_ref_param = is_prim || is_struct;
         }
         if (is_ref_param)
         {
@@ -2101,12 +2103,13 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
     {
         func_name_for_intercept = get_var_name(gen->arena, call->callee->as.variable.name);
 
-        // Skip pointer parameters and native functions
+        // Skip pointer and struct parameters - not yet supported for boxing
         if (param_types != NULL && !skip_interception)
         {
             for (int i = 0; i < param_count; i++)
             {
-                if (param_types[i] != NULL && param_types[i]->kind == TYPE_POINTER)
+                if (param_types[i] != NULL &&
+                    (param_types[i]->kind == TYPE_POINTER || param_types[i]->kind == TYPE_STRUCT))
                 {
                     skip_interception = true;
                     break;
@@ -2122,9 +2125,9 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             skip_interception = true;
         }
 
-        // Skip functions that return pointer types (not yet supported for boxing)
+        // Skip functions that return pointer or struct types (not yet supported for boxing)
         if (!skip_interception && expr->expr_type != NULL &&
-            expr->expr_type->kind == TYPE_POINTER)
+            (expr->expr_type->kind == TYPE_POINTER || expr->expr_type->kind == TYPE_STRUCT))
         {
             skip_interception = true;
         }

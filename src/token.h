@@ -54,6 +54,8 @@ typedef enum
     // Type declaration keywords
     TOKEN_KEYWORD_TYPE,
     TOKEN_OPAQUE,
+    // Struct keyword
+    TOKEN_STRUCT,
     // UUID type keyword
     TOKEN_UUID,
     // Environment access keyword
@@ -62,6 +64,8 @@ typedef enum
     TOKEN_ANY,
     TOKEN_TYPEOF,
     TOKEN_IS,
+    // Sizeof operator
+    TOKEN_SIZEOF,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,
@@ -96,6 +100,7 @@ typedef enum
     TOKEN_PRAGMA,
     TOKEN_PRAGMA_INCLUDE,
     TOKEN_PRAGMA_LINK,
+    TOKEN_PRAGMA_PACK,        /* #pragma pack(1) or #pragma pack() */
     TOKEN_ERROR
 } SnTokenType;
 

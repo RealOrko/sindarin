@@ -152,9 +152,16 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
             switch (lexer->start[1])
             {
             case 't':
+                // Check for "str" (3 chars) vs "struct" (6 chars)
+                if (lexer->current - lexer->start == 6)
+                {
+                    return lexer_check_keyword(lexer, 2, 4, "ruct", TOKEN_STRUCT);
+                }
                 return lexer_check_keyword(lexer, 2, 1, "r", TOKEN_STR);
             case 'h':
                 return lexer_check_keyword(lexer, 2, 4, "ared", TOKEN_SHARED);
+            case 'i':
+                return lexer_check_keyword(lexer, 2, 4, "zeof", TOKEN_SIZEOF);
             }
         }
         break;

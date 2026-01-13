@@ -48,6 +48,7 @@ typedef struct Symbol
     int offset;
     struct Symbol *next;
     int arena_depth;            /* Which arena depth owns this symbol */
+    int declaration_scope_depth; /* Scope depth at time of declaration */
     MemoryQualifier mem_qual;   /* as val, as ref, or default */
     FunctionModifier func_mod;  /* For function symbols: effective modifier (shared for heap-returning) */
     FunctionModifier declared_func_mod;  /* For function symbols: original declared modifier */
@@ -80,6 +81,7 @@ typedef struct {
     int scopes_count;
     int scopes_capacity;
     int current_arena_depth;    /* Current arena nesting depth */
+    int scope_depth;            /* Current scope nesting depth (blocks, functions) */
 } SymbolTable;
 
 /* Type declaration support (opaque types) - implemented in symbol_table.c */

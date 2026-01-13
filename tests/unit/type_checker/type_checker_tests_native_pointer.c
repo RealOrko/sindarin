@@ -1109,6 +1109,171 @@ static void test_as_ref_param_call_with_vars(void)
 }
 
 /* ============================================================================
+ * Pointer-to-struct member access tests
+ * ============================================================================ */
+
+/* Test: *struct member access is REJECTED in regular (non-native) functions */
+static void test_ptr_struct_member_rejected_in_regular_fn(void)
+{
+    Arena arena;
+    arena_init(&arena, 8192);
+
+    SymbolTable table;
+    symbol_table_init(&arena, &table);
+
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+
+    /* Create native struct: native struct Point => x: int, y: int */
+    StructField fields[2];
+    fields[0].name = arena_strdup(&arena, "x");
+    fields[0].type = int_type;
+    fields[0].offset = 0;
+    fields[0].default_value = NULL;
+    fields[1].name = arena_strdup(&arena, "y");
+    fields[1].type = int_type;
+    fields[1].offset = 4;
+    fields[1].default_value = NULL;
+
+    Token struct_tok;
+    setup_test_token(&struct_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
+
+    Type *point_type = ast_create_struct_type(&arena, "Point", fields, 2, true, false);
+    symbol_table_add_type(&table, struct_tok, point_type);
+
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_tok, fields, 2, true, false, &struct_tok);
+    ast_module_add_statement(&arena, &module, struct_decl);
+
+    /* Create: *Point type */
+    Type *ptr_point_type = ast_create_pointer_type(&arena, point_type);
+
+    /* Create native fn that returns *Point (forward declaration) */
+    Token get_point_tok;
+    setup_test_token(&get_point_tok, TOKEN_IDENTIFIER, "get_point", 2, "test.sn", &arena);
+    Stmt *native_decl = ast_create_function_stmt(&arena, get_point_tok, NULL, 0, ptr_point_type, NULL, 0, &get_point_tok);
+    native_decl->as.function.is_native = true;
+    ast_module_add_statement(&arena, &module, native_decl);
+
+    /* In regular function: var p: *Point = get_point() ... p.x - should FAIL */
+    /* We'll create a member access expression on a pointer-to-struct */
+    Token p_tok;
+    setup_test_token(&p_tok, TOKEN_IDENTIFIER, "p", 3, "test.sn", &arena);
+    Expr *p_ref = ast_create_variable_expr(&arena, p_tok, &p_tok);
+    p_ref->expr_type = ptr_point_type;  /* Pre-set type for the test */
+
+    /* Create member access: p.x */
+    Token x_field_tok;
+    setup_test_token(&x_field_tok, TOKEN_IDENTIFIER, "x", 3, "test.sn", &arena);
+    Expr *member_access = arena_alloc(&arena, sizeof(Expr));
+    memset(member_access, 0, sizeof(Expr));
+    member_access->type = EXPR_MEMBER_ACCESS;
+    member_access->as.member_access.object = p_ref;
+    member_access->as.member_access.field_name = x_field_tok;
+    member_access->token = &x_field_tok;
+
+    Stmt *expr_stmt = ast_create_expr_stmt(&arena, member_access, &x_field_tok);
+
+    /* Create a REGULAR function (not native) */
+    Stmt *body[1] = {expr_stmt};
+    Token func_name_tok;
+    setup_test_token(&func_name_tok, TOKEN_IDENTIFIER, "regular_func", 4, "test.sn", &arena);
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, void_type, body, 1, &func_name_tok);
+    func_decl->as.function.is_native = false;  /* Regular function */
+
+    ast_module_add_statement(&arena, &module, func_decl);
+
+    type_checker_reset_error();
+    int no_error = type_check_module(&module, &table);
+    assert(no_error == 0);  /* Should FAIL - *struct member access not allowed in regular fn */
+
+    symbol_table_cleanup(&table);
+    arena_free(&arena);
+}
+
+/* Test: *struct member access is ACCEPTED in native functions */
+static void test_ptr_struct_member_accepted_in_native_fn(void)
+{
+    Arena arena;
+    arena_init(&arena, 8192);
+
+    SymbolTable table;
+    symbol_table_init(&arena, &table);
+
+    Module module;
+    ast_init_module(&arena, &module, "test.sn");
+
+    Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
+    Type *void_type = ast_create_primitive_type(&arena, TYPE_VOID);
+
+    /* Create native struct: native struct Point => x: int, y: int */
+    StructField fields[2];
+    fields[0].name = arena_strdup(&arena, "x");
+    fields[0].type = int_type;
+    fields[0].offset = 0;
+    fields[0].default_value = NULL;
+    fields[1].name = arena_strdup(&arena, "y");
+    fields[1].type = int_type;
+    fields[1].offset = 4;
+    fields[1].default_value = NULL;
+
+    Token struct_tok;
+    setup_test_token(&struct_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
+
+    Type *point_type = ast_create_struct_type(&arena, "Point", fields, 2, true, false);
+    symbol_table_add_type(&table, struct_tok, point_type);
+
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_tok, fields, 2, true, false, &struct_tok);
+    ast_module_add_statement(&arena, &module, struct_decl);
+
+    /* Create: *Point type */
+    Type *ptr_point_type = ast_create_pointer_type(&arena, point_type);
+
+    /* Create native fn that returns *Point (forward declaration) */
+    Token get_point_tok;
+    setup_test_token(&get_point_tok, TOKEN_IDENTIFIER, "get_point", 2, "test.sn", &arena);
+    Stmt *native_decl = ast_create_function_stmt(&arena, get_point_tok, NULL, 0, ptr_point_type, NULL, 0, &get_point_tok);
+    native_decl->as.function.is_native = true;
+    ast_module_add_statement(&arena, &module, native_decl);
+
+    /* In NATIVE function: var p: *Point = nil ... p.x - should PASS */
+    Token p_tok;
+    setup_test_token(&p_tok, TOKEN_IDENTIFIER, "p", 3, "test.sn", &arena);
+    Expr *p_ref = ast_create_variable_expr(&arena, p_tok, &p_tok);
+    p_ref->expr_type = ptr_point_type;
+
+    /* Create member access: p.x */
+    Token x_field_tok;
+    setup_test_token(&x_field_tok, TOKEN_IDENTIFIER, "x", 3, "test.sn", &arena);
+    Expr *member_access = arena_alloc(&arena, sizeof(Expr));
+    memset(member_access, 0, sizeof(Expr));
+    member_access->type = EXPR_MEMBER_ACCESS;
+    member_access->as.member_access.object = p_ref;
+    member_access->as.member_access.field_name = x_field_tok;
+    member_access->token = &x_field_tok;
+
+    Stmt *expr_stmt = ast_create_expr_stmt(&arena, member_access, &x_field_tok);
+
+    /* Create a NATIVE function */
+    Stmt *body[1] = {expr_stmt};
+    Token func_name_tok;
+    setup_test_token(&func_name_tok, TOKEN_IDENTIFIER, "native_func", 4, "test.sn", &arena);
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, void_type, body, 1, &func_name_tok);
+    func_decl->as.function.is_native = true;  /* Native function */
+
+    ast_module_add_statement(&arena, &module, func_decl);
+
+    type_checker_reset_error();
+    int no_error = type_check_module(&module, &table);
+    assert(no_error == 1);  /* Should PASS - *struct member access allowed in native fn */
+
+    symbol_table_cleanup(&table);
+    arena_free(&arena);
+}
+
+/* ============================================================================
  * Main entry point for pointer tests
  * ============================================================================ */
 
@@ -1135,4 +1300,8 @@ void test_type_checker_native_pointer_main(void)
     TEST_RUN("as_ref_primitive_param_in_native_fn", test_as_ref_primitive_param_in_native_fn);
     TEST_RUN("as_ref_array_param_rejected", test_as_ref_array_param_rejected);
     TEST_RUN("as_ref_param_call_with_vars", test_as_ref_param_call_with_vars);
+
+    /* Pointer-to-struct member access tests */
+    TEST_RUN("ptr_struct_member_rejected_in_regular_fn", test_ptr_struct_member_rejected_in_regular_fn);
+    TEST_RUN("ptr_struct_member_accepted_in_native_fn", test_ptr_struct_member_accepted_in_native_fn);
 }

@@ -637,6 +637,7 @@ int main() {
 ## See Also
 
 - [TYPES.md](TYPES.md) - Primitive and built-in types (includes interop types)
+- [STRUCTS.md](STRUCTS.md) - Struct declarations and native struct interop
 - [MEMORY.md](MEMORY.md) - Arena memory management
 - [ARRAYS.md](ARRAYS.md) - Array types and byte arrays
 - [LAMBDAS.md](LAMBDAS.md) - Lambda expressions (regular vs native)
