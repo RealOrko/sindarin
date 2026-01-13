@@ -236,7 +236,11 @@ fn test_any_boxing(): void =>
     var b: any = y
     assert(b is uint, "boxed large type check")
 
-    // Array boxing skipped - uint[] not supported yet
+    // Array boxing
+    var arr: uint[] = {10, 20, 30}
+    var boxed_arr: any = arr
+    assert(boxed_arr is uint[], "array boxing type check")
+
     print("   PASS\n")
 
 // --- 10. Any Unboxing ---
@@ -253,7 +257,14 @@ fn test_any_unboxing(): void =>
     var unboxed2: uint = b as uint
     assert(unboxed2 > 0, "unboxed large value")
 
-    // Array unboxing skipped - uint[] not supported yet
+    // Array unboxing
+    var arr: uint[] = {10, 20, 30}
+    var boxed: any = arr
+    var unboxed_arr: uint[] = boxed as uint[]
+    assert(unboxed_arr.length == 3, "unboxed array length")
+    assert(unboxed_arr[0] == 10, "unboxed array element 0")
+    assert(unboxed_arr[2] == 30, "unboxed array element 2")
+
     print("   PASS\n")
 
 // --- 11. Type Checking ---
@@ -268,7 +279,13 @@ fn test_type_checking(): void =>
     assert(!(a is double), "is double false")
     assert(!(a is str), "is str false")
 
-    // Array type checking skipped - uint[] not supported yet
+    // Array type checking
+    var arr: uint[] = {1, 2}
+    var boxed: any = arr
+    assert(boxed is uint[], "array is uint[]")
+    assert(!(boxed is int[]), "array is not int[]")
+    assert(!(boxed is uint32[]), "array is not uint32[]")
+
     print("   PASS\n")
 
 // --- 12. Lambdas ---
@@ -344,7 +361,12 @@ fn test_control_flow(): void =>
         count = count + 1
     assert(sum == 10, "while loop") // 0+1+2+3+4=10
 
-    // For loop skipped - uint[] not supported yet
+    // For-each loop with uint[]
+    var arr: uint[] = {1, 2, 3, 4, 5}
+    var arr_sum: uint = 0
+    for v in arr =>
+        arr_sum = arr_sum + v
+    assert(arr_sum == 15, "for-each loop")
 
     print("   PASS\n")
 

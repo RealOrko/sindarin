@@ -250,7 +250,11 @@ fn test_any_boxing(): void =>
     var b: any = y
     assert(b is float, "boxed negative type check")
 
-    // Array boxing skipped - float[] not supported yet
+    // Array boxing
+    var arr: float[] = {1.5, 2.5, 3.5}
+    var boxed_arr: any = arr
+    assert(boxed_arr is float[], "array boxing type check")
+
     print("   PASS\n")
 
 // --- 11. Any Unboxing ---
@@ -267,7 +271,14 @@ fn test_any_unboxing(): void =>
     var unboxed2: float = b as float
     assert(float_eq(unboxed2, -2.5), "unboxed negative")
 
-    // Array unboxing skipped - float[] not supported yet
+    // Array unboxing
+    var arr: float[] = {1.5, 2.5, 3.5}
+    var boxed: any = arr
+    var unboxed_arr: float[] = boxed as float[]
+    assert(unboxed_arr.length == 3, "unboxed array length")
+    assert(float_eq(unboxed_arr[0], 1.5), "unboxed array element 0")
+    assert(float_eq(unboxed_arr[2], 3.5), "unboxed array element 2")
+
     print("   PASS\n")
 
 // --- 12. Type Checking ---
@@ -282,7 +293,13 @@ fn test_type_checking(): void =>
     assert(!(a is int), "is int false")
     assert(!(a is str), "is str false")
 
-    // Array type checking skipped - float[] not supported yet
+    // Array type checking
+    var arr: float[] = {1.0, 2.0}
+    var boxed: any = arr
+    assert(boxed is float[], "array is float[]")
+    assert(!(boxed is int[]), "array is not int[]")
+    assert(!(boxed is double[]), "array is not double[]")
+
     print("   PASS\n")
 
 // --- 13. Lambdas ---

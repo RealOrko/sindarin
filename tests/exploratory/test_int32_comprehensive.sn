@@ -246,7 +246,11 @@ fn test_any_boxing(): void =>
     var b: any = y
     assert(b is int32, "boxed negative type check")
 
-    // Array boxing skipped - int32[] not supported yet
+    // Array boxing
+    var arr: int32[] = {10, 20, 30}
+    var boxed_arr: any = arr
+    assert(boxed_arr is int32[], "array boxing type check")
+
     print("   PASS\n")
 
 // --- 11. Any Unboxing ---
@@ -263,7 +267,14 @@ fn test_any_unboxing(): void =>
     var unboxed2: int32 = b as int32
     assert(unboxed2 == -100, "unboxed negative")
 
-    // Array unboxing skipped - int32[] not supported yet
+    // Array unboxing
+    var arr: int32[] = {10, 20, 30}
+    var boxed: any = arr
+    var unboxed_arr: int32[] = boxed as int32[]
+    assert(unboxed_arr.length == 3, "unboxed array length")
+    assert(unboxed_arr[0] == 10, "unboxed array element 0")
+    assert(unboxed_arr[2] == 30, "unboxed array element 2")
+
     print("   PASS\n")
 
 // --- 12. Type Checking ---
@@ -278,7 +289,13 @@ fn test_type_checking(): void =>
     assert(!(a is double), "is double false")
     assert(!(a is str), "is str false")
 
-    // Array type checking skipped - int32[] not supported yet
+    // Array type checking
+    var arr: int32[] = {1, 2}
+    var boxed: any = arr
+    assert(boxed is int32[], "array is int32[]")
+    assert(!(boxed is int[]), "array is not int[]")
+    assert(!(boxed is uint32[]), "array is not uint32[]")
+
     print("   PASS\n")
 
 // --- 13. Lambdas ---

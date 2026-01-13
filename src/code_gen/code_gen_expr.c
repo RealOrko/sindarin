@@ -549,15 +549,23 @@ static char *code_gen_as_type_expression(CodeGen *gen, Expr *expr)
         switch (target_elem->kind)
         {
         case TYPE_INT:
-        case TYPE_INT32:
-        case TYPE_UINT:
-        case TYPE_UINT32:
         case TYPE_LONG:
             conv_func = "rt_array_from_any_long";
             break;
+        case TYPE_INT32:
+            conv_func = "rt_array_from_any_int32";
+            break;
+        case TYPE_UINT:
+            conv_func = "rt_array_from_any_uint";
+            break;
+        case TYPE_UINT32:
+            conv_func = "rt_array_from_any_uint32";
+            break;
         case TYPE_DOUBLE:
-        case TYPE_FLOAT:
             conv_func = "rt_array_from_any_double";
+            break;
+        case TYPE_FLOAT:
+            conv_func = "rt_array_from_any_float";
             break;
         case TYPE_CHAR:
             conv_func = "rt_array_from_any_char";
