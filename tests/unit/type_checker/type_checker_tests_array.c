@@ -173,7 +173,9 @@ static void test_type_check_array_literal_empty()
 
 static void test_type_check_array_literal_heterogeneous()
 {
-    // Mixed-type array literals now return any[] type instead of erroring
+    // Mixed-type array literals (truly incompatible types) return any[] type
+    // Note: int and double are NOT mixed - they get promoted to double[]
+    // Use int and str for truly incompatible types
     DEBUG_INFO("Starting test_type_check_array_literal_heterogeneous");
 
     Arena arena;
@@ -186,7 +188,7 @@ static void test_type_check_array_literal_heterogeneous()
     ast_init_module(&arena, &module, "test.sn");
 
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
-    Type *double_type = ast_create_primitive_type(&arena, TYPE_DOUBLE);
+    Type *str_type = ast_create_primitive_type(&arena, TYPE_STRING);
 
     Token lit1_tok;
     setup_literal_token(&lit1_tok, TOKEN_INT_LITERAL, "1", 1, "test.sn", &arena);
@@ -194,9 +196,9 @@ static void test_type_check_array_literal_heterogeneous()
     Expr *lit1 = ast_create_literal_expr(&arena, val1, int_type, false, &lit1_tok);
 
     Token lit2_tok;
-    setup_literal_token(&lit2_tok, TOKEN_DOUBLE_LITERAL, "1.5", 1, "test.sn", &arena);
-    LiteralValue val2 = {.double_value = 1.5};
-    Expr *lit2 = ast_create_literal_expr(&arena, val2, double_type, false, &lit2_tok);
+    setup_literal_token(&lit2_tok, TOKEN_STRING_LITERAL, "\"hello\"", 1, "test.sn", &arena);
+    LiteralValue val2 = {.string_value = "hello"};
+    Expr *lit2 = ast_create_literal_expr(&arena, val2, str_type, false, &lit2_tok);
 
     Expr *elements[2] = {lit1, lit2};
     Token arr_tok;

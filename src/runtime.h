@@ -12,6 +12,9 @@
 #include <stdbool.h>
 #include <string.h>
 
+/* Atomic compatibility layer - must come before any code using atomics */
+#include "runtime/runtime_atomic_compat.h"
+
 /* Core modules - arena must be first as other modules depend on it */
 #include "runtime/runtime_arena.h"
 

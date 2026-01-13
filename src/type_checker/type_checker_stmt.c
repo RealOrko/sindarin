@@ -328,10 +328,13 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         {
             types_compatible = true;
         }
-        // Allow implicit narrowing for numeric arrays (e.g., int[] to byte[])
+        // Allow implicit narrowing for integer arrays (e.g., int[] to byte[])
         // This supports cases like: var arr: byte[] = {x, x + 1} where expressions promote to int
+        // Note: Only integer-to-integer narrowing is allowed, not float/double to integer
         else if (decl_elem != NULL && init_elem != NULL &&
-                 is_numeric_type(decl_elem) && is_numeric_type(init_elem))
+                 is_numeric_type(decl_elem) && is_numeric_type(init_elem) &&
+                 decl_elem->kind != TYPE_DOUBLE && decl_elem->kind != TYPE_FLOAT &&
+                 init_elem->kind != TYPE_DOUBLE && init_elem->kind != TYPE_FLOAT)
         {
             types_compatible = true;
         }

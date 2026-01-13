@@ -188,7 +188,7 @@ run:
 #------------------------------------------------------------------------------
 # test - Run all tests with all backends
 #------------------------------------------------------------------------------
-test: test-gcc test-clang test-tcc
+test: build test-gcc test-clang test-tcc
 
 #------------------------------------------------------------------------------
 # Backend-specific test suites
@@ -200,7 +200,7 @@ test-clang:
 	$(call TEST_BACKEND,Clang,clang)
 
 test-tcc:
-	@# TinyCC lacks __thread support - exclude thread+interceptor tests that require TLS
+	@# TinyCC lacks __thread support - exclude tests that require TLS
 	@SN_EXCLUDE_TESTS="test_interceptor_thread_counter" $(MAKE) --no-print-directory _test-tcc-impl
 
 _test-tcc-impl:

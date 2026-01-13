@@ -208,6 +208,7 @@ RUNTIME_SRCS := arena.c debug.c runtime.c $(RUNTIME_MODULE_SRCS)
 #------------------------------------------------------------------------------
 RUNTIME_HEADERS := \
     runtime.h \
+    runtime/runtime_atomic_compat.h \
     runtime/runtime_arena.h \
     runtime/runtime_string.h \
     runtime/runtime_array.h \
