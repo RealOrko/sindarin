@@ -616,6 +616,10 @@ Type *get_promoted_type(Arena *arena, Type *left, Type *right)
             return left;
         if (left->kind == TYPE_INT && right->kind == TYPE_UINT)
             return right;
+        /* byte and char promote to int in arithmetic operations */
+        if (left->kind == TYPE_BYTE || left->kind == TYPE_CHAR ||
+            right->kind == TYPE_BYTE || right->kind == TYPE_CHAR)
+            return ast_create_primitive_type(arena, TYPE_INT);
         /* Mixed int/uint - no automatic promotion for other cases */
         return NULL;
     }

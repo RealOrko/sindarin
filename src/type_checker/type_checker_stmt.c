@@ -312,6 +312,13 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         {
             types_compatible = true;
         }
+        // Allow implicit narrowing for numeric arrays (e.g., int[] to byte[])
+        // This supports cases like: var arr: byte[] = {x, x + 1} where expressions promote to int
+        else if (decl_elem != NULL && init_elem != NULL &&
+                 is_numeric_type(decl_elem) && is_numeric_type(init_elem))
+        {
+            types_compatible = true;
+        }
     }
 
     if (init_type && !types_compatible)

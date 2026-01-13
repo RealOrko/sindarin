@@ -716,10 +716,11 @@ static char *code_gen_compound_assign_expression(CodeGen *gen, Expr *expr)
     /* Generate code for the value */
     char *value_code = code_gen_expression(gen, compound->value);
 
-    /* For sync variables, use atomic operations where available */
+    /* For sync variables, use atomic operations */
     if (symbol != NULL && symbol->sync_mod == SYNC_ATOMIC)
     {
         char *var_name = get_var_name(gen->arena, target->as.variable.name);
+        const char *c_type = get_c_type(gen->arena, target_type);
 
         switch (op)
         {
@@ -729,8 +730,26 @@ static char *code_gen_compound_assign_expression(CodeGen *gen, Expr *expr)
             case TOKEN_MINUS:
                 return arena_sprintf(gen->arena, "__atomic_fetch_sub(&%s, %s, __ATOMIC_SEQ_CST)",
                                      var_name, value_code);
+            case TOKEN_STAR:
+            case TOKEN_SLASH:
+            case TOKEN_MODULO:
+            {
+                /* Use CAS loop for *, /, % since no atomic builtin exists */
+                const char *op_char = (op == TOKEN_STAR) ? "*" : (op == TOKEN_SLASH) ? "/" : "%";
+                int cas_id = gen->temp_count++;
+                return arena_sprintf(gen->arena,
+                    "({ %s __old_%d__, __new_%d__; "
+                    "do { __old_%d__ = __atomic_load_n(&%s, __ATOMIC_SEQ_CST); "
+                    "__new_%d__ = __old_%d__ %s %s; } "
+                    "while (!__atomic_compare_exchange_n(&%s, &__old_%d__, __new_%d__, 0, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)); "
+                    "__old_%d__; })",
+                    c_type, cas_id, cas_id,
+                    cas_id, var_name,
+                    cas_id, cas_id, op_char, value_code,
+                    var_name, cas_id, cas_id,
+                    cas_id);
+            }
             default:
-                /* For *, /, % - no atomic equivalent, fall through to non-atomic */
                 break;
         }
     }

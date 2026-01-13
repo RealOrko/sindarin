@@ -210,6 +210,12 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
         {
             const char *type_c = get_c_type(gen->arena, stmt->type);
             symbol_table_add_symbol_full(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL, stmt->mem_qualifier);
+            /* Set sync modifier if present */
+            if (stmt->sync_modifier == SYNC_ATOMIC)
+            {
+                Symbol *sym = symbol_table_lookup_symbol_current(gen->symbol_table, stmt->name);
+                if (sym != NULL) sym->sync_mod = SYNC_ATOMIC;
+            }
             indented_fprintf(gen, indent, "%s %s = NULL;\n", type_c, var_name);
             return;
         }
@@ -249,6 +255,12 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
 
         // Add to symbol table
         symbol_table_add_symbol_full(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL, stmt->mem_qualifier);
+        /* Set sync modifier if present */
+        if (stmt->sync_modifier == SYNC_ATOMIC)
+        {
+            Symbol *sym = symbol_table_lookup_symbol_current(gen->symbol_table, stmt->name);
+            if (sym != NULL) sym->sync_mod = SYNC_ATOMIC;
+        }
         return;
     }
 
@@ -262,6 +274,12 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
 
     // Add to symbol table with effective qualifier so accesses are dereferenced correctly
     symbol_table_add_symbol_full(gen->symbol_table, stmt->name, stmt->type, SYMBOL_LOCAL, effective_qual);
+    /* Set sync modifier if present */
+    if (stmt->sync_modifier == SYNC_ATOMIC)
+    {
+        Symbol *sym = symbol_table_lookup_symbol_current(gen->symbol_table, stmt->name);
+        if (sym != NULL) sym->sync_mod = SYNC_ATOMIC;
+    }
 
     char *init_str;
     if (stmt->initializer)

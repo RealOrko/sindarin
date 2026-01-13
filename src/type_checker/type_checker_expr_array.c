@@ -69,6 +69,17 @@ Type *type_check_array(Expr *expr, SymbolTable *table)
                     equal = true;
                 }
             }
+            /* Handle numeric type promotion in array literals (e.g., byte and int can mix) */
+            else if (is_numeric_type(elem_type) && is_numeric_type(actual_elem_type))
+            {
+                Type *promoted = get_promoted_type(table->arena, elem_type, actual_elem_type);
+                if (promoted != NULL)
+                {
+                    elem_type = promoted;
+                    equal = true;
+                    DEBUG_VERBOSE("Numeric promotion in array literal to type: %d", promoted->kind);
+                }
+            }
             if (!equal)
             {
                 // Mixed types detected - array will be typed as any[]

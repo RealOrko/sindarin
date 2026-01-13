@@ -303,7 +303,7 @@ print(counter)   // Always 2
 
 ### Compound Assignment with `sync`
 
-Compound assignments `+=` and `-=` are atomic on `sync` variables:
+All compound assignments are atomic on `sync` variables:
 
 ```sindarin
 var total: sync int = 0
@@ -319,7 +319,15 @@ var t3: void = &add_value(30)
 print(total)     // Always 60
 ```
 
-Note: `*=`, `/=`, and `%=` do not have atomic equivalents and will use non-atomic operations even on `sync` variables. For these operations, use external synchronization.
+| Operation | Example | Implementation |
+|-----------|---------|----------------|
+| `+=` | `counter += 5` | `__atomic_fetch_add` |
+| `-=` | `counter -= 3` | `__atomic_fetch_sub` |
+| `*=` | `counter *= 2` | Compare-and-swap loop |
+| `/=` | `counter /= 4` | Compare-and-swap loop |
+| `%=` | `counter %= 3` | Compare-and-swap loop |
+
+For `*=`, `/=`, and `%=`, a CAS (compare-and-swap) loop is used since there are no direct atomic builtins for these operations. The CAS loop ensures atomicity by retrying if another thread modified the value.
 
 ### Function Parameters with `sync`
 
@@ -350,7 +358,6 @@ print(count)     // Always 2
 ### Limitations
 
 - `sync` only applies to integer types (`int`, `long`, `int32`, `uint`, `uint32`, `byte`, `char`)
-- No atomic support for `*=`, `/=`, `%=` operations
 - Complex multi-variable updates still require external synchronization
 - `sync` does not help with read-modify-write sequences spanning multiple statements
 
@@ -389,8 +396,7 @@ fn increment_twice(): void =>
 
 Use `lock` when you need to:
 - Perform multiple operations atomically together
-- Read-modify-write with complex logic
-- Use operations without atomic equivalents (`*=`, `/=`, `%=`)
+- Read-modify-write with complex logic involving multiple statements
 
 ```sindarin
 var value: sync int = 100
@@ -398,7 +404,7 @@ var value: sync int = 100
 fn halve_if_even(): void =>
     lock(value) =>
         if value % 2 == 0 =>
-            value = value / 2  // Division requires lock
+            value = value / 2  // Multiple statements need lock
 ```
 
 ### Thread-Safe Counter with Lock
@@ -472,9 +478,8 @@ fn add_sum(values: int[]): void =>
 | Operation | Use | Example |
 |-----------|-----|---------|
 | Single increment | Atomic | `counter++` |
-| Single add | Atomic | `counter += 5` |
+| Single add/sub/mul/div/mod | Atomic | `counter += 5`, `counter *= 2` |
 | Multiple operations | Lock | `lock(x) => x = x * 2; x += 1` |
-| Division/multiplication | Lock | `lock(x) => x = x / 2` |
 | Read-modify-write sequence | Lock | `lock(x) => if x > 0 => x--` |
 
 ### Restrictions
@@ -729,6 +734,7 @@ The following scenarios are not automatically prevented:
 | `var x: sync int = 0` | Atomic integer variable |
 | `x++`, `x--` | Atomic increment/decrement (on sync) |
 | `x += n`, `x -= n` | Atomic add/subtract (on sync) |
+| `x *= n`, `x /= n`, `x %= n` | Atomic mul/div/mod via CAS (on sync) |
 | `lock(sync_var) => ...` | Mutual exclusion block for sync variable |
 
 ### Compiler Rules
