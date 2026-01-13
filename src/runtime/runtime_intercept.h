@@ -69,8 +69,35 @@ extern volatile int __rt_interceptor_count;
 #ifdef _WIN32
 extern __declspec(thread) int __rt_intercept_depth;
 #elif defined(__TINYC__)
-/* TinyCC doesn't support __thread, fall back to global (not thread-safe) */
-extern int __rt_intercept_depth;
+/* TinyCC: use pthread TLS for thread-safety */
+#include <pthread.h>
+
+/* Maximum args must match runtime_intercept.c */
+#define __RT_MAX_INTERCEPT_ARGS 32
+
+/* Buffer size for wrapped args - must be >= sizeof(RtArrayMetadata) + MAX_ARGS * sizeof(RtAny)
+ * RtArrayMetadata is 24 bytes on 64-bit, RtAny is ~24 bytes, so 32 + 32*32 = 1056 is plenty */
+#define __RT_WRAPPED_ARGS_BUFFER_SIZE 1056
+
+/* Thread-local storage struct for interceptor state */
+typedef struct RtInterceptTLS {
+    int intercept_depth;
+    RtAny *thunk_args;
+    void *thunk_arena;
+    char wrapped_args_buffer[__RT_WRAPPED_ARGS_BUFFER_SIZE];
+    void *current_context;  /* InterceptContext* - void* to avoid forward decl issues */
+} RtInterceptTLS;
+
+/* Get thread-local interceptor state (lazily initialized) */
+RtInterceptTLS *__rt_get_intercept_tls(void);
+
+/* Accessor macros that look like variables */
+#define __rt_intercept_depth (__rt_get_intercept_tls()->intercept_depth)
+#define __rt_thunk_args (__rt_get_intercept_tls()->thunk_args)
+#define __rt_thunk_arena (__rt_get_intercept_tls()->thunk_arena)
+#define __rt_wrapped_args_buffer (__rt_get_intercept_tls()->wrapped_args_buffer)
+#define __rt_current_context ((InterceptContext *)(__rt_get_intercept_tls()->current_context))
+#define __rt_current_context_ptr (&(__rt_get_intercept_tls()->current_context))
 #else
 extern __thread int __rt_intercept_depth;
 #endif
@@ -83,10 +110,7 @@ extern __thread int __rt_intercept_depth;
 #ifdef _WIN32
 extern __declspec(thread) RtAny *__rt_thunk_args;
 extern __declspec(thread) void *__rt_thunk_arena;
-#elif defined(__TINYC__)
-extern RtAny *__rt_thunk_args;
-extern void *__rt_thunk_arena;
-#else
+#elif !defined(__TINYC__)
 extern __thread RtAny *__rt_thunk_args;
 extern __thread void *__rt_thunk_arena;
 #endif

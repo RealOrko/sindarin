@@ -15,12 +15,31 @@
 // Global interceptor count (for fast check at call sites)
 volatile int __rt_interceptor_count = 0;
 
+#ifdef __TINYC__
+/* TinyCC pthread-based TLS implementation */
+#include <pthread.h>
+#include <stdlib.h>
+
+static pthread_key_t __rt_intercept_tls_key;
+static pthread_once_t __rt_intercept_tls_once = PTHREAD_ONCE_INIT;
+
+static void __rt_intercept_tls_init(void) {
+    pthread_key_create(&__rt_intercept_tls_key, free);
+}
+
+RtInterceptTLS *__rt_get_intercept_tls(void) {
+    pthread_once(&__rt_intercept_tls_once, __rt_intercept_tls_init);
+    RtInterceptTLS *tls = (RtInterceptTLS *)pthread_getspecific(__rt_intercept_tls_key);
+    if (tls == NULL) {
+        tls = (RtInterceptTLS *)calloc(1, sizeof(RtInterceptTLS));
+        pthread_setspecific(__rt_intercept_tls_key, tls);
+    }
+    return tls;
+}
+#else
 // Per-thread interception depth
 #ifdef _WIN32
 __declspec(thread) int __rt_intercept_depth = 0;
-#elif defined(__TINYC__)
-/* TinyCC doesn't support __thread, fall back to global (not thread-safe) */
-int __rt_intercept_depth = 0;
 #else
 __thread int __rt_intercept_depth = 0;
 #endif
@@ -29,13 +48,11 @@ __thread int __rt_intercept_depth = 0;
 #ifdef _WIN32
 __declspec(thread) RtAny *__rt_thunk_args = NULL;
 __declspec(thread) void *__rt_thunk_arena = NULL;
-#elif defined(__TINYC__)
-RtAny *__rt_thunk_args = NULL;
-void *__rt_thunk_arena = NULL;
 #else
 __thread RtAny *__rt_thunk_args = NULL;
 __thread void *__rt_thunk_arena = NULL;
 #endif
+#endif /* __TINYC__ */
 
 // Interceptor registry
 static RtInterceptorEntry interceptor_registry[MAX_INTERCEPTORS];
@@ -49,9 +66,8 @@ static int interceptor_registry_count = 0;
  * Layout: [RtArrayMetadata][RtAny data...] */
 #ifdef _WIN32
 __declspec(thread) char __rt_wrapped_args_buffer[sizeof(RtArrayMetadata) + MAX_INTERCEPT_ARGS * sizeof(RtAny)];
-#elif defined(__TINYC__)
-char __rt_wrapped_args_buffer[sizeof(RtArrayMetadata) + MAX_INTERCEPT_ARGS * sizeof(RtAny)];
-#else
+#elif !defined(__TINYC__)
+/* TCC uses __rt_wrapped_args_buffer macro from header pointing to TLS struct */
 __thread char __rt_wrapped_args_buffer[sizeof(RtArrayMetadata) + MAX_INTERCEPT_ARGS * sizeof(RtAny)];
 #endif
 
@@ -242,8 +258,8 @@ typedef struct InterceptContext
 #ifdef _WIN32
 static __declspec(thread) InterceptContext *current_context = NULL;
 #elif defined(__TINYC__)
-/* TinyCC doesn't support __thread, fall back to global (not thread-safe) */
-static InterceptContext *current_context = NULL;
+/* TCC: use pthread TLS via macro - cast void* to InterceptContext** for lvalue access */
+#define current_context (*((InterceptContext **)__rt_current_context_ptr))
 #else
 static __thread InterceptContext *current_context = NULL;
 #endif
