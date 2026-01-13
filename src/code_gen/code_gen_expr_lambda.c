@@ -865,6 +865,19 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         for (int i = 0; i < cv.count; i++)
         {
+            /* Check if this is a recursive self-capture: the lambda is capturing
+             * the variable it's being assigned to. In this case, skip the capture
+             * during initialization (the variable isn't assigned yet) and the
+             * caller (code_gen_var_declaration) will fix it up afterwards. */
+            if (gen->current_decl_var_name != NULL &&
+                strcmp(cv.names[i], gen->current_decl_var_name) == 0)
+            {
+                /* Mark this as a recursive lambda - caller will add self-fix */
+                gen->recursive_lambda_id = lambda_id;
+                /* Skip initializing this capture - will be done after declaration */
+                continue;
+            }
+
             /* For types needing capture by ref (primitives and arrays): check if the
              * variable is already a pointer or a value.
              * The symbol table tells us: MEM_AS_REF means already a pointer.

@@ -284,6 +284,13 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
     char *init_str;
     if (stmt->initializer)
     {
+        /* For lambda initializers, track the variable name so we can detect recursive lambdas */
+        if (stmt->initializer->type == EXPR_LAMBDA)
+        {
+            gen->current_decl_var_name = var_name;
+            gen->recursive_lambda_id = -1;  /* Will be set by lambda codegen if recursive */
+        }
+
         init_str = code_gen_expression(gen, stmt->initializer);
         // Wrap string literals in rt_to_string_string to create heap-allocated copies
         // This is needed because string variables may be freed/reassigned later
@@ -513,6 +520,23 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
     {
         indented_fprintf(gen, indent, "%s %s = %s;\n", type_c, var_name, init_str);
     }
+
+    /* For recursive lambdas, we need to fix up the self-reference after declaration.
+     * The lambda's closure was created without the self-capture to avoid using
+     * an uninitialized variable. Now that the variable is initialized, we can
+     * set the self-reference in the closure. */
+    if (gen->recursive_lambda_id >= 0 && stmt->initializer != NULL &&
+        stmt->initializer->type == EXPR_LAMBDA)
+    {
+        int lambda_id = gen->recursive_lambda_id;
+        /* Generate: ((__closure_N__ *)var)->var = var; */
+        indented_fprintf(gen, indent, "((__closure_%d__ *)%s)->%s = %s;\n",
+                         lambda_id, var_name, var_name, var_name);
+        gen->recursive_lambda_id = -1;
+    }
+
+    /* Clear the current decl var name */
+    gen->current_decl_var_name = NULL;
 }
 
 void code_gen_free_locals(CodeGen *gen, Scope *scope, bool is_function, int indent)

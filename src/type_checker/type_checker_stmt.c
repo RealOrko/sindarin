@@ -91,6 +91,7 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
 
     Type *decl_type = stmt->as.var_decl.type;
     Type *init_type = NULL;
+    bool added_for_recursion = false;
     if (stmt->as.var_decl.initializer)
     {
         /* If initializer is a lambda with missing types, infer from declared type */
@@ -98,6 +99,17 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
             decl_type != NULL && decl_type->kind == TYPE_FUNCTION)
         {
             infer_lambda_types(stmt->as.var_decl.initializer, decl_type);
+
+            /* For recursive lambdas: Add the variable to scope BEFORE type-checking
+             * the lambda body, so the lambda can reference itself. Mark it as a
+             * function so it can be called recursively. */
+            symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
+            Symbol *sym = symbol_table_lookup_symbol_current(table, stmt->as.var_decl.name);
+            if (sym != NULL)
+            {
+                sym->is_function = true;  /* Allow calling it like a function */
+            }
+            added_for_recursion = true;
         }
 
         init_type = type_check_expr(stmt->as.var_decl.initializer, table);
@@ -253,7 +265,11 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
         }
     }
 
-    symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
+    /* Only add symbol if we didn't already add it for recursive lambda support */
+    if (!added_for_recursion)
+    {
+        symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
+    }
 
     /* Handle sync modifier - set on symbol and validate type */
     if (stmt->as.var_decl.sync_modifier == SYNC_ATOMIC)

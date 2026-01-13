@@ -95,6 +95,10 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     /* Initialize array compound literal context flag */
     gen->in_array_compound_literal = false;
 
+    /* Initialize recursive lambda support */
+    gen->current_decl_var_name = NULL;
+    gen->recursive_lambda_id = -1;
+
     if (gen->output == NULL)
     {
         exit(1);

@@ -103,6 +103,12 @@ typedef struct {
      * outer type cast since the array type already establishes element type.
      * This is needed for TCC compatibility which doesn't handle nested casts. */
     bool in_array_compound_literal;
+
+    /* Recursive lambda support - tracks the variable being declared when
+     * initializing with a lambda. This allows lambdas to skip capturing
+     * themselves during initialization, then we add a self-fix statement. */
+    char *current_decl_var_name;         /* Name of variable being declared */
+    int recursive_lambda_id;             /* Lambda ID if recursive, -1 otherwise */
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);
