@@ -72,13 +72,20 @@ fn benchmarkTestWork(name: str, iterations: int): void =>
 
 ## Boolean Equality Operator Missing Runtime Function
 
-**Status:** Open
+**Status:** RESOLVED
 **Severity:** Medium
 **Found in:** test_146_time_patterns.sn
+**Fixed in:** code_gen_util.c (gen_native_arithmetic)
 
 ### Description
 
 Using `==` operator with boolean values causes a linker error due to missing `rt_eq_bool` function.
+
+### Resolution
+
+The issue was fixed by adding special handling for boolean types in `gen_native_arithmetic()`.
+Boolean equality now uses native C operators (`==`, `!=`) instead of runtime functions,
+generating code like `((done) == (1L))` which is efficient and doesn't require `rt_eq_bool`.
 
 ### Reproduction
 
