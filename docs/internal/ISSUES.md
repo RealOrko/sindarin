@@ -2,13 +2,24 @@
 
 ## Function Pointer Calls Cause SEGV at Runtime
 
-**Status:** Open
+**Status:** RESOLVED
 **Severity:** High
 **Found in:** test_146_time_patterns.sn
+**Fixed in:** code_gen_expr_call.c
 
 ### Description
 
 Calling a function passed as a parameter causes a segmentation fault at runtime. The code compiles successfully but crashes when the function pointer is invoked.
+
+### Resolution
+
+The issue was that named functions were passed directly as closure pointers, but:
+1. Closures are called with the closure pointer as the first argument
+2. Named functions don't expect this extra argument
+
+The fix generates thin wrapper functions that adapt the closure calling convention
+to the named function's signature. The wrapper takes `(void*, params...)` and
+forwards to the actual function, ignoring the closure pointer.
 
 ### Reproduction
 

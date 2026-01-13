@@ -59,6 +59,9 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     /* Initialize thread wrapper support */
     gen->thread_wrapper_count = 0;
 
+    /* Initialize named function wrapper support */
+    gen->wrapper_count = 0;
+
     /* Initialize buffering fields */
     gen->function_definitions = arena_strdup(arena, "");
     gen->buffering_functions = false;

@@ -58,6 +58,9 @@ typedef struct {
     /* Thread wrapper support */
     int thread_wrapper_count;   // Counter for unique thread wrapper IDs
 
+    /* Named function to closure wrapper support */
+    int wrapper_count;          // Counter for unique wrapper function IDs
+
     /* Enclosing lambda tracking for nested lambda capture */
     LambdaExpr **enclosing_lambdas;
     int enclosing_lambda_count;

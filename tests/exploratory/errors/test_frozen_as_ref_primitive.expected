@@ -1,1 +1,1 @@
-Cannot modify frozen variable 'arr' (captured by pending thread)
+Cannot modify frozen variable 'count' (captured by pending thread)
