@@ -868,7 +868,10 @@ static void type_check_while(Stmt *stmt, SymbolTable *table, Type *return_type)
         symbol_table_enter_arena(table);
     }
 
+    // Track loop context for break/continue validation
+    symbol_table_enter_loop(table);
     type_check_stmt(stmt->as.while_stmt.body, table, return_type);
+    symbol_table_exit_loop(table);
 
     if (!is_shared)
     {
@@ -904,7 +907,10 @@ static void type_check_for(Stmt *stmt, SymbolTable *table, Type *return_type)
         symbol_table_enter_arena(table);
     }
 
+    // Track loop context for break/continue validation
+    symbol_table_enter_loop(table);
     type_check_stmt(stmt->as.for_stmt.body, table, return_type);
+    symbol_table_exit_loop(table);
 
     if (!is_shared)
     {
@@ -947,8 +953,11 @@ static void type_check_for_each(Stmt *stmt, SymbolTable *table, Type *return_typ
         symbol_table_enter_arena(table);
     }
 
+    // Track loop context for break/continue validation
+    symbol_table_enter_loop(table);
     // Type check the body
     type_check_stmt(stmt->as.for_each_stmt.body, table, return_type);
+    symbol_table_exit_loop(table);
 
     if (!is_shared)
     {
@@ -1325,11 +1334,17 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
         break;
     case STMT_BREAK:
         DEBUG_VERBOSE("Type checking break statement");
-        // TODO: Verify break is inside a loop
+        if (!symbol_table_in_loop(table))
+        {
+            type_error(stmt->token, "'break' statement must be inside a loop");
+        }
         break;
     case STMT_CONTINUE:
         DEBUG_VERBOSE("Type checking continue statement");
-        // TODO: Verify continue is inside a loop
+        if (!symbol_table_in_loop(table))
+        {
+            type_error(stmt->token, "'continue' statement must be inside a loop");
+        }
         break;
     case STMT_IMPORT:
         type_check_import_stmt(stmt, table);

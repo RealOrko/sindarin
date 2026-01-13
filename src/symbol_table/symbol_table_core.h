@@ -36,4 +36,9 @@ Symbol *symbol_table_lookup_symbol_current(SymbolTable *table, Token name);
 int symbol_table_get_symbol_offset(SymbolTable *table, Token name);
 bool symbol_table_remove_symbol_from_global(SymbolTable *table, Token name);
 
+/* Loop context tracking (for break/continue validation) */
+void symbol_table_enter_loop(SymbolTable *table);
+void symbol_table_exit_loop(SymbolTable *table);
+bool symbol_table_in_loop(SymbolTable *table);
+
 #endif

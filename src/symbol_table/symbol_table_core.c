@@ -289,6 +289,7 @@ void symbol_table_init(Arena *arena, SymbolTable *table)
     table->current = NULL;
     table->current_arena_depth = 0;
     table->scope_depth = 0;
+    table->loop_depth = 0;
 
     DEBUG_VERBOSE("Calling symbol_table_push_scope for initial scope");
     symbol_table_push_scope(table);
@@ -733,4 +734,29 @@ bool symbol_table_remove_symbol_from_global(SymbolTable *table, Token name)
 
     DEBUG_VERBOSE("Symbol '%s' not found in global scope", name_str);
     return false;
+}
+
+/* ============================================================================
+ * Loop Context Tracking (for break/continue validation)
+ * ============================================================================ */
+
+void symbol_table_enter_loop(SymbolTable *table)
+{
+    DEBUG_VERBOSE("Entering loop context, loop_depth: %d -> %d", table->loop_depth, table->loop_depth + 1);
+    table->loop_depth++;
+}
+
+void symbol_table_exit_loop(SymbolTable *table)
+{
+    DEBUG_VERBOSE("Exiting loop context, loop_depth: %d -> %d", table->loop_depth, table->loop_depth - 1);
+    if (table->loop_depth > 0)
+    {
+        table->loop_depth--;
+    }
+}
+
+bool symbol_table_in_loop(SymbolTable *table)
+{
+    DEBUG_VERBOSE("Checking if in loop, loop_depth: %d", table->loop_depth);
+    return table->loop_depth > 0;
 }

@@ -83,6 +83,7 @@ typedef struct {
     int scopes_capacity;
     int current_arena_depth;    /* Current arena nesting depth */
     int scope_depth;            /* Current scope nesting depth (blocks, functions) */
+    int loop_depth;             /* Current loop nesting depth (for break/continue validation) */
 } SymbolTable;
 
 /* Type declaration support (opaque types) - implemented in symbol_table.c */
