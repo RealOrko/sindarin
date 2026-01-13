@@ -268,8 +268,11 @@ fn test_lambdas(): void =>
     var get_base: fn(): char = fn(): char => base
     assert(get_base() == 'A', "lambda capture")
 
-    // SKIPPED: Higher-order lambda reveals codegen bug
-    // \1
+    // Higher-order lambda with char
+    var char_id: fn(char): char = fn(c: char): char => c
+    var apply: fn(fn(char): char, char): char = fn(f: fn(char): char, x: char): char => f(x)
+    assert(apply(char_id, 'Z') == 'Z', "higher-order lambda")
+
     print("   PASS\n")
 
 // --- 11. Functions ---

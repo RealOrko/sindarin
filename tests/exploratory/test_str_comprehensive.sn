@@ -311,7 +311,11 @@ fn test_lambdas(): void =>
     var prefix: str = "Mr. "
     var add_prefix: fn(str): str = fn(name: str): str => prefix + name
     assert(add_prefix("Smith") == "Mr. Smith", "lambda capture")
-    // SKIPPED: Higher-order lambda (compiler bug)
+
+    // Higher-order lambda with str
+    var to_upper: fn(str): str = fn(s: str): str => s.toUpper()
+    var apply: fn(fn(str): str, str): str = fn(f: fn(str): str, x: str): str => f(x)
+    assert(apply(to_upper, "hello") == "HELLO", "higher-order lambda")
 
     print("   PASS\n")
 

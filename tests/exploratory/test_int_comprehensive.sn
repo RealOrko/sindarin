@@ -338,8 +338,11 @@ fn test_lambdas(): void =>
     var add_base: fn(int): int = fn(x: int): int => x + base
     assert(add_base(5) == 15, "lambda capture")
 
-    // SKIPPED: Higher-order lambda reveals codegen bug
-    // \1
+    // Higher-order lambda with int
+    var int_double: fn(int): int = fn(n: int): int => n * 2
+    var apply: fn(fn(int): int, int): int = fn(f: fn(int): int, x: int): int => f(x)
+    assert(apply(int_double, 21) == 42, "higher-order lambda")
+
     print("   PASS\n")
 
 // --- 14. Functions ---
