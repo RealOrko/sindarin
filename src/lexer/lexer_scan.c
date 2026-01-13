@@ -116,7 +116,20 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
         }
         break;
     case 'l':
-        return lexer_check_keyword(lexer, 1, 3, "ong", TOKEN_LONG);
+        if (lexer->current - lexer->start > 1)
+        {
+            switch (lexer->start[1])
+            {
+            case 'o':
+                // Check for "long" (4 chars) vs "lock" (4 chars)
+                if (lexer->current - lexer->start == 4 && lexer->start[2] == 'c')
+                {
+                    return lexer_check_keyword(lexer, 2, 2, "ck", TOKEN_LOCK);
+                }
+                return lexer_check_keyword(lexer, 2, 2, "ng", TOKEN_LONG);
+            }
+        }
+        break;
     case 'n':
         if (lexer->current - lexer->start > 1)
         {
@@ -163,11 +176,6 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
             case 'i':
                 return lexer_check_keyword(lexer, 2, 4, "zeof", TOKEN_SIZEOF);
             case 'y':
-                // Check for "sync" (4 chars) vs "synchronized" (12 chars)
-                if (lexer->current - lexer->start == 12)
-                {
-                    return lexer_check_keyword(lexer, 2, 10, "nchronized", TOKEN_SYNCHRONIZED);
-                }
                 return lexer_check_keyword(lexer, 2, 2, "nc", TOKEN_SYNC);
             }
         }

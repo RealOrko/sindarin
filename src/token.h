@@ -92,7 +92,7 @@ typedef enum
     TOKEN_MODULO_EQUAL,
     // Synchronization keywords
     TOKEN_SYNC,
-    TOKEN_SYNCHRONIZED,
+    TOKEN_LOCK,
     TOKEN_LEFT_PAREN,
     TOKEN_RIGHT_PAREN,
     TOKEN_LEFT_BRACE,

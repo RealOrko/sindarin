@@ -203,8 +203,8 @@ const char *token_type_to_string(SnTokenType type)
         return "MODULO_EQUAL";
     case TOKEN_SYNC:
         return "SYNC";
-    case TOKEN_SYNCHRONIZED:
-        return "SYNCHRONIZED";
+    case TOKEN_LOCK:
+        return "LOCK";
     case TOKEN_LEFT_PAREN:
         return "LEFT_PAREN";
     case TOKEN_RIGHT_PAREN:

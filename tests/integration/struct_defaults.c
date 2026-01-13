@@ -373,313 +373,64 @@ extern char **rt_env_names(RtArena *);
 
 /* Struct type definitions */
 typedef struct {
-    long long value;
-    long long factor;
-} Inner;
+    long long timeout;
+    long long retries;
+    bool verbose;
+} Config;
 typedef struct {
-    Inner inner;
+    char * host;
+    long long port;
+    long long maxConn;
+} Connection;
+typedef struct {
+    double x;
+    double y;
+} Point;
+typedef struct {
     char * name;
-} Middle;
-typedef struct {
-    Middle middle;
-    long long id;
+    Config cfg;
 } Outer;
 typedef struct {
-    Outer outer;
-    char * label;
-} Deep;
+    long long required_field;
+    long long optional_field;
+    char * another_required;
+    bool another_optional;
+} Mixed;
 
 /* Forward declarations */
-void test_two_level_nested_escape(void);
-void test_three_level_nested_escape(void);
-void test_four_level_nested_escape(void);
-void test_nested_with_defaults(void);
-void test_multiple_nested_escapes(void);
-
-/* Interceptor thunk forward declarations */
-static RtAny __thunk_0(void);
-static RtAny __thunk_1(void);
-static RtAny __thunk_2(void);
-static RtAny __thunk_3(void);
-static RtAny __thunk_4(void);
-
-void test_two_level_nested_escape() {
-    RtArena *__arena_1__ = rt_arena_create(NULL);
-    Middle wrapper = (Middle){ .inner = (Inner){ .value = 0LL, .factor = 1LL }, .name = "middle" };
-    long long local_val = 123LL;
-    wrapper.inner.value = local_val;
-    if (rt_ne_long(wrapper.inner.value, 123LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, wrapper.inner.value);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: wrapper.inner.value = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 123\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_two_level_nested_escape_return;
-        }
-    }
-    rt_print_string("Two-level nested escape test: PASS\n");
-    goto test_two_level_nested_escape_return;
-test_two_level_nested_escape_return:
-    rt_arena_destroy(__arena_1__);
-    return;
-}
-
-void test_three_level_nested_escape() {
-    RtArena *__arena_1__ = rt_arena_create(NULL);
-    Outer root = (Outer){ .middle = (Middle){ .inner = (Inner){ .value = 0LL, .factor = 1LL }, .name = "middle" }, .id = 0LL };
-    long long data = 456LL;
-    root.middle.inner.value = data;
-    if (rt_ne_long(root.middle.inner.value, 456LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, root.middle.inner.value);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: root.middle.inner.value = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 456\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_three_level_nested_escape_return;
-        }
-    }
-    rt_print_string("Three-level nested escape test: PASS\n");
-    goto test_three_level_nested_escape_return;
-test_three_level_nested_escape_return:
-    rt_arena_destroy(__arena_1__);
-    return;
-}
-
-void test_four_level_nested_escape() {
-    RtArena *__arena_1__ = rt_arena_create(NULL);
-    Deep deep = (Deep){ .outer = (Outer){ .middle = (Middle){ .inner = (Inner){ .value = 0LL, .factor = 1LL }, .name = "middle" }, .id = 0LL }, .label = "deep" };
-    long long deep_val = 789LL;
-    deep.outer.middle.inner.value = deep_val;
-    if (rt_ne_long(deep.outer.middle.inner.value, 789LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, deep.outer.middle.inner.value);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: deep.outer.middle.inner.value = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 789\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_four_level_nested_escape_return;
-        }
-    }
-    rt_print_string("Four-level nested escape test: PASS\n");
-    goto test_four_level_nested_escape_return;
-test_four_level_nested_escape_return:
-    rt_arena_destroy(__arena_1__);
-    return;
-}
-
-void test_nested_with_defaults() {
-    RtArena *__arena_1__ = rt_arena_create(NULL);
-    Outer o = (Outer){ .middle = (Middle){ .inner = (Inner){ .value = 100LL, .factor = 1LL }, .name = "middle" }, .id = 0LL };
-    if (rt_ne_string(o.middle.name, "middle")) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_r = rt_str_concat(__arena_1__, "FAIL: o.middle.name = ", o.middle.name);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 'middle'\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_nested_with_defaults_return;
-        }
-    }
-    if (rt_ne_long(o.middle.inner.factor, 1LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, o.middle.inner.factor);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: o.middle.inner.factor = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 1\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_nested_with_defaults_return;
-        }
-    }
-    if (rt_ne_long(o.id, 0LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, o.id);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: o.id = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 0\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_nested_with_defaults_return;
-        }
-    }
-    long long new_factor = 10LL;
-    o.middle.inner.factor = new_factor;
-    if (rt_ne_long(o.middle.inner.factor, 10LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, o.middle.inner.factor);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: o.middle.inner.factor = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 10\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_nested_with_defaults_return;
-        }
-    }
-    rt_print_string("Nested with defaults test: PASS\n");
-    goto test_nested_with_defaults_return;
-test_nested_with_defaults_return:
-    rt_arena_destroy(__arena_1__);
-    return;
-}
-
-void test_multiple_nested_escapes() {
-    RtArena *__arena_1__ = rt_arena_create(NULL);
-    Outer root = (Outer){ .middle = (Middle){ .inner = (Inner){ .value = 0LL, .factor = 1LL }, .name = "middle" }, .id = 0LL };
-    long long v1 = 11LL;
-    long long v2 = 22LL;
-    root.middle.inner.value = v1;
-    root.id = v2;
-    if (rt_ne_long(root.middle.inner.value, 11LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, root.middle.inner.value);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: root.middle.inner.value = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 11\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_multiple_nested_escapes_return;
-        }
-    }
-    if (rt_ne_long(root.id, 22LL)) {
-        {
-            ({
-        char *_str_arg0 = ({
-        char *_p0 = rt_to_string_long(__arena_1__, root.id);
-        char *_r = rt_str_concat(__arena_1__, "FAIL: root.id = ", _p0);
-        _r = rt_str_concat(__arena_1__, _r, ", expected 22\n");
-        _r;
-    });
-        rt_print_string(_str_arg0);
-    });
-            goto test_multiple_nested_escapes_return;
-        }
-    }
-    rt_print_string("Multiple nested escapes test: PASS\n");
-    goto test_multiple_nested_escapes_return;
-test_multiple_nested_escapes_return:
-    rt_arena_destroy(__arena_1__);
-    return;
-}
-
 int main() {
     RtArena *__arena_1__ = rt_arena_create(NULL);
     int _return_value = 0;
-    rt_print_string("Testing nested field assignment escape detection:\n");
-    ({
-    if (__rt_interceptor_count > 0) {
-        RtAny __args[1];
-        __rt_thunk_args = __args;
-        __rt_thunk_arena = __arena_1__;
-        RtAny __intercepted = rt_call_intercepted("test_two_level_nested_escape", __args, 0, __thunk_0);
-    } else {
-        test_two_level_nested_escape();
-    }
-    (void)0;
-});
-    ({
-    if (__rt_interceptor_count > 0) {
-        RtAny __args[1];
-        __rt_thunk_args = __args;
-        __rt_thunk_arena = __arena_1__;
-        RtAny __intercepted = rt_call_intercepted("test_three_level_nested_escape", __args, 0, __thunk_1);
-    } else {
-        test_three_level_nested_escape();
-    }
-    (void)0;
-});
-    ({
-    if (__rt_interceptor_count > 0) {
-        RtAny __args[1];
-        __rt_thunk_args = __args;
-        __rt_thunk_arena = __arena_1__;
-        RtAny __intercepted = rt_call_intercepted("test_four_level_nested_escape", __args, 0, __thunk_2);
-    } else {
-        test_four_level_nested_escape();
-    }
-    (void)0;
-});
-    ({
-    if (__rt_interceptor_count > 0) {
-        RtAny __args[1];
-        __rt_thunk_args = __args;
-        __rt_thunk_arena = __arena_1__;
-        RtAny __intercepted = rt_call_intercepted("test_nested_with_defaults", __args, 0, __thunk_3);
-    } else {
-        test_nested_with_defaults();
-    }
-    (void)0;
-});
-    ({
-    if (__rt_interceptor_count > 0) {
-        RtAny __args[1];
-        __rt_thunk_args = __args;
-        __rt_thunk_arena = __arena_1__;
-        RtAny __intercepted = rt_call_intercepted("test_multiple_nested_escapes", __args, 0, __thunk_4);
-    } else {
-        test_multiple_nested_escapes();
-    }
-    (void)0;
-});
-    rt_print_string("All nested field escape tests passed!\n");
+    Config cfg1 = (Config){ .timeout = 30LL, .retries = 3LL, .verbose = 0L };
+    rt_print_string("Test 1 - Zero init passed\n");
+    Config cfg2 = (Config){ .timeout = 60LL, .retries = 3LL, .verbose = 0L };
+    rt_print_string("Test 2 - Partial init (timeout only) passed\n");
+    Config cfg3 = (Config){ .timeout = 30LL, .retries = 3LL, .verbose = 1L };
+    rt_print_string("Test 3 - Partial init (verbose only) passed\n");
+    Config cfg4 = (Config){ .timeout = 120LL, .retries = 5LL, .verbose = 1L };
+    rt_print_string("Test 4 - Full override passed\n");
+    Connection conn1 = (Connection){ .host = "localhost", .port = 8080LL, .maxConn = 100LL };
+    rt_print_string("Test 5 - Connection defaults passed\n");
+    Connection conn2 = (Connection){ .host = "localhost", .port = 443LL, .maxConn = 100LL };
+    rt_print_string("Test 6 - Connection partial passed\n");
+    Connection conn3 = (Connection){ .host = "example.com", .port = 9000LL, .maxConn = 500LL };
+    rt_print_string("Test 7 - Connection full override passed\n");
+    Point p1 = (Point){ .x = 10.5, .y = 20.5 };
+    rt_print_string("Test 8 - Point (all required) passed\n");
+    Mixed mix1 = (Mixed){ .required_field = 100LL, .optional_field = 42LL, .another_required = "hello", .another_optional = 1L };
+    rt_print_string("Test 9 - Mixed (required only) passed\n");
+    Mixed mix2 = (Mixed){ .required_field = 200LL, .optional_field = 99LL, .another_required = "world", .another_optional = 1L };
+    rt_print_string("Test 10 - Mixed (one override) passed\n");
+    Mixed mix3 = (Mixed){ .required_field = 300LL, .optional_field = 0LL, .another_required = "test", .another_optional = 0L };
+    rt_print_string("Test 11 - Mixed (all override) passed\n");
+    Outer outer1 = (Outer){ .name = "test", .cfg = (Config){ .timeout = 30LL, .retries = 3LL, .verbose = 0L } };
+    rt_print_string("Test 12 - Nested with inner defaults passed\n");
+    Outer outer2 = (Outer){ .name = "partial", .cfg = (Config){ .timeout = 90LL, .retries = 3LL, .verbose = 0L } };
+    rt_print_string("Test 13 - Nested partial passed\n");
+    rt_print_string("All struct default tests passed!\n");
     goto main_return;
 main_return:
     rt_arena_destroy(__arena_1__);
     return _return_value;
-}
-
-
-/* Interceptor thunk definitions */
-static RtAny __thunk_0(void) {
-    test_two_level_nested_escape();
-    return rt_box_nil();
-}
-
-static RtAny __thunk_1(void) {
-    test_three_level_nested_escape();
-    return rt_box_nil();
-}
-
-static RtAny __thunk_2(void) {
-    test_four_level_nested_escape();
-    return rt_box_nil();
-}
-
-static RtAny __thunk_3(void) {
-    test_nested_with_defaults();
-    return rt_box_nil();
-}
-
-static RtAny __thunk_4(void) {
-    test_multiple_nested_escapes();
-    return rt_box_nil();
 }
 

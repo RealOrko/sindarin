@@ -1420,6 +1420,14 @@ bool stmt_needs_arena(Stmt *stmt)
         /* For-each iterates over arrays/strings */
         return true;
 
+    case STMT_LOCK:
+        /* Check lock expression and body */
+        if (expr_needs_arena(stmt->as.lock_stmt.lock_expr))
+        {
+            return true;
+        }
+        return stmt_needs_arena(stmt->as.lock_stmt.body);
+
     case STMT_FUNCTION:
         /* Nested functions don't affect parent's arena needs */
         return false;
@@ -1697,6 +1705,9 @@ bool stmt_has_marked_tail_calls(Stmt *stmt)
 
     case STMT_FOR_EACH:
         return stmt_has_marked_tail_calls(stmt->as.for_each_stmt.body);
+
+    case STMT_LOCK:
+        return stmt_has_marked_tail_calls(stmt->as.lock_stmt.body);
 
     default:
         return false;

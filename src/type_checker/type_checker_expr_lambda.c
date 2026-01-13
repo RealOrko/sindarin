@@ -259,6 +259,9 @@ static bool check_native_lambda_captures_stmt(LambdaExpr *lambda, Stmt *stmt,
     case STMT_FOR_EACH:
         return check_native_lambda_captures_expr(lambda, stmt->as.for_each_stmt.iterable, table, first_capture) ||
                check_native_lambda_captures_stmt(lambda, stmt->as.for_each_stmt.body, table, first_capture);
+    case STMT_LOCK:
+        return check_native_lambda_captures_expr(lambda, stmt->as.lock_stmt.lock_expr, table, first_capture) ||
+               check_native_lambda_captures_stmt(lambda, stmt->as.lock_stmt.body, table, first_capture);
     case STMT_FUNCTION:
         /* Don't recurse into nested functions - they have their own scope */
         return false;

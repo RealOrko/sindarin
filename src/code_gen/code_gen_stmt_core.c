@@ -1080,5 +1080,31 @@ void code_gen_statement(CodeGen *gen, Stmt *stmt, int indent)
         /* Struct declarations are handled at the module level where typedef
          * declarations are emitted. No code generation is needed for the statement itself. */
         break;
+
+    case STMT_LOCK:
+    {
+        /* Lock block: lock(sync_var) => { ... }
+         * Generates:
+         *   rt_sync_lock(&sync_var);
+         *   { body }
+         *   rt_sync_unlock(&sync_var);
+         */
+        LockStmt *lock_stmt = &stmt->as.lock_stmt;
+
+        /* Generate the lock expression (should be a variable name) */
+        char *lock_var = code_gen_expression(gen, lock_stmt->lock_expr);
+
+        /* Generate lock acquisition */
+        indented_fprintf(gen, indent, "rt_sync_lock(&%s);\n", lock_var);
+
+        /* Generate lock body in a block */
+        indented_fprintf(gen, indent, "{\n");
+        code_gen_statement(gen, lock_stmt->body, indent + 1);
+        indented_fprintf(gen, indent, "}\n");
+
+        /* Generate lock release */
+        indented_fprintf(gen, indent, "rt_sync_unlock(&%s);\n", lock_var);
+        break;
+    }
     }
 }

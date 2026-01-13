@@ -358,6 +358,135 @@ For complex synchronization needs beyond atomic counters, consider:
 - Freezing shared data structures during thread execution
 - Using `as val` to give each thread its own copy
 - Designing algorithms to minimize shared mutable state
+- Using `lock` blocks for compound operations
+
+---
+
+## Lock Blocks
+
+The `lock` statement provides mutual exclusion for compound operations on `sync` variables. While single operations like `counter++` are atomic, multi-statement operations need explicit locking.
+
+### Syntax
+
+```sindarin
+lock(sync_variable) =>
+    // critical section
+    // only one thread executes this at a time
+```
+
+### Basic Example
+
+```sindarin
+var counter: sync int = 0
+
+fn increment_twice(): void =>
+    lock(counter) =>
+        counter = counter + 1
+        counter = counter + 1  // Both updates are atomic together
+```
+
+### When to Use Lock Blocks
+
+Use `lock` when you need to:
+- Perform multiple operations atomically together
+- Read-modify-write with complex logic
+- Use operations without atomic equivalents (`*=`, `/=`, `%=`)
+
+```sindarin
+var value: sync int = 100
+
+fn halve_if_even(): void =>
+    lock(value) =>
+        if value % 2 == 0 =>
+            value = value / 2  // Division requires lock
+```
+
+### Thread-Safe Counter with Lock
+
+Without `lock`, compound operations can interleave:
+
+```sindarin
+// UNSAFE: read-modify-write can interleave
+var counter: sync int = 0
+
+fn unsafe_increment(): void =>
+    var temp = counter      // Thread A reads 0
+    temp = temp + 1         // Thread B reads 0
+    counter = temp          // Thread A writes 1, Thread B writes 1
+                            // Result: 1 (lost update)
+```
+
+With `lock`, compound operations are atomic:
+
+```sindarin
+// SAFE: entire block is atomic
+var counter: sync int = 0
+
+fn safe_increment(): void =>
+    lock(counter) =>
+        var temp = counter
+        temp = temp + 1
+        counter = temp      // No interleaving possible
+```
+
+### Multi-Threaded Example
+
+```sindarin
+var counter: sync int = 0
+
+fn increment_100_times(): int =>
+    for i in 1..101 =>
+        lock(counter) =>
+            counter = counter + 1
+    return 1
+
+fn main(): void =>
+    var t1: int = &increment_100_times()
+    var t2: int = &increment_100_times()
+    var t3: int = &increment_100_times()
+    var t4: int = &increment_100_times()
+
+    var r1 = t1!
+    var r2 = t2!
+    var r3 = t3!
+    var r4 = t4!
+
+    print($"Final counter: {counter}\n")  // Always 400
+```
+
+### Nested Operations
+
+`lock` blocks can contain any statements:
+
+```sindarin
+var total: sync int = 0
+
+fn add_sum(values: int[]): void =>
+    lock(total) =>
+        for v in values =>
+            total += v
+```
+
+### Lock vs Atomic Operations
+
+| Operation | Use | Example |
+|-----------|-----|---------|
+| Single increment | Atomic | `counter++` |
+| Single add | Atomic | `counter += 5` |
+| Multiple operations | Lock | `lock(x) => x = x * 2; x += 1` |
+| Division/multiplication | Lock | `lock(x) => x = x / 2` |
+| Read-modify-write sequence | Lock | `lock(x) => if x > 0 => x--` |
+
+### Restrictions
+
+- Lock expression must be a `sync` variable
+- Non-sync variables cannot be locked
+
+```sindarin
+var normal: int = 0
+lock(normal) =>     // COMPILE ERROR: not a sync variable
+    normal++
+```
 
 ---
 
@@ -600,6 +729,7 @@ The following scenarios are not automatically prevented:
 | `var x: sync int = 0` | Atomic integer variable |
 | `x++`, `x--` | Atomic increment/decrement (on sync) |
 | `x += n`, `x -= n` | Atomic add/subtract (on sync) |
+| `lock(sync_var) => ...` | Mutual exclusion block for sync variable |
 
 ### Compiler Rules
 
@@ -611,6 +741,7 @@ The following scenarios are not automatically prevented:
 | Write to frozen `as ref` primitive | Compile error |
 | After `!` | Variable is normal, can access/reassign |
 | `sync` on non-integer type | Compile error |
+| `lock` on non-sync variable | Compile error |
 
 ---
 

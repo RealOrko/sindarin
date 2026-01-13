@@ -238,6 +238,26 @@ Stmt *parser_statement(Parser *parser)
         return block;
     }
 
+    // Parse lock(expr) => block
+    if (parser_match(parser, TOKEN_LOCK))
+    {
+        Token lock_token = parser->previous;
+
+        parser_consume(parser, TOKEN_LEFT_PAREN, "Expected '(' after 'lock'");
+        Expr *lock_expr = parser_expression(parser);
+        parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after lock expression");
+        parser_consume(parser, TOKEN_ARROW, "Expected '=>' after lock(...)");
+        skip_newlines(parser);
+
+        Stmt *body = parser_indented_block(parser);
+        if (body == NULL)
+        {
+            body = ast_create_block_stmt(parser->arena, NULL, 0, &lock_token);
+        }
+
+        return ast_create_lock_stmt(parser->arena, lock_expr, body, &lock_token);
+    }
+
     return parser_expression_statement(parser);
 }
 

@@ -47,14 +47,21 @@ CC := gcc
 # Common flags
 COMMON_CFLAGS := -Wall -Wextra -std=c99 -D_GNU_SOURCE -I. -Iruntime
 
+# Platform detection for Windows-specific libraries
+ifeq ($(OS),Windows_NT)
+    PLATFORM_LIBS := -lws2_32 -lbcrypt
+else
+    PLATFORM_LIBS :=
+endif
+
 # Release build (default): optimized with LTO
 ifndef DEBUG
     CFLAGS  := $(COMMON_CFLAGS) -O3 -flto -MMD -MP
-    LDFLAGS := -flto -O3 -lpthread
+    LDFLAGS := -flto -O3 -lpthread $(PLATFORM_LIBS)
 else
     # Debug build: use 'make DEBUG=1' for sanitizer and debug symbols
     CFLAGS  := $(COMMON_CFLAGS) -g -fsanitize=address -fno-omit-frame-pointer -MMD -MP
-    LDFLAGS := -fsanitize=address -lpthread -lm
+    LDFLAGS := -fsanitize=address -lpthread -lm $(PLATFORM_LIBS)
 endif
 
 # Runtime compilation flags (no LTO - must link in both release and debug modes)

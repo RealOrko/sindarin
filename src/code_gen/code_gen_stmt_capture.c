@@ -234,6 +234,10 @@ static void scan_stmt_for_captures(CodeGen *gen, Stmt *stmt, SymbolTable *table,
         scan_stmt_for_captures(gen, stmt->as.for_each_stmt.body, table, lambda_depth);
         symbol_table_pop_scope(table);
         break;
+    case STMT_LOCK:
+        scan_expr_for_captures(gen, stmt->as.lock_stmt.lock_expr, table, lambda_depth);
+        scan_stmt_for_captures(gen, stmt->as.lock_stmt.body, table, lambda_depth);
+        break;
     default:
         break;
     }

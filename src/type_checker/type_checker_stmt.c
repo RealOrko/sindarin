@@ -1360,5 +1360,34 @@ void type_check_stmt(Stmt *stmt, SymbolTable *table, Type *return_type)
     case STMT_STRUCT_DECL:
         type_check_struct_decl(stmt, table);
         break;
+
+    case STMT_LOCK:
+        DEBUG_VERBOSE("Type checking lock statement");
+        /* Type check the lock expression */
+        type_check_expr(stmt->as.lock_stmt.lock_expr, table);
+
+        /* Validate that the lock expression is a sync variable */
+        if (stmt->as.lock_stmt.lock_expr->type == EXPR_VARIABLE)
+        {
+            Symbol *lock_sym = symbol_table_lookup_symbol(table, stmt->as.lock_stmt.lock_expr->as.variable.name);
+            if (lock_sym == NULL)
+            {
+                type_error(stmt->as.lock_stmt.lock_expr->token, "Undefined variable in lock expression");
+            }
+            else if (lock_sym->sync_mod != SYNC_ATOMIC)
+            {
+                type_error(stmt->as.lock_stmt.lock_expr->token,
+                           "Lock expression must be a sync variable");
+            }
+        }
+        else
+        {
+            type_error(stmt->as.lock_stmt.lock_expr->token,
+                       "Lock expression must be a sync variable");
+        }
+
+        /* Type check the body */
+        type_check_stmt(stmt->as.lock_stmt.body, table, return_type);
+        break;
     }
 }

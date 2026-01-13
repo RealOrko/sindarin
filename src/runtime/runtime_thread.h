@@ -247,4 +247,27 @@ void rt_thread_pool_remove(RtThreadHandle *handle);
 /* Clean up all threads in the pool (called on process exit) */
 void rt_thread_pool_cleanup(void);
 
+/* ============================================================================
+ * Sync Variable Lock/Unlock for lock blocks
+ * ============================================================================
+ * These functions provide mutex-based synchronization for sync variables
+ * when using lock(var) => { ... } blocks.
+ * ============================================================================ */
+
+/* Acquire a mutex lock for a sync variable (by address)
+ * Creates mutex on first use. Thread-safe.
+ */
+void rt_sync_lock(void *addr);
+
+/* Release a mutex lock for a sync variable (by address)
+ * Must be called after rt_sync_lock with the same address.
+ */
+void rt_sync_unlock(void *addr);
+
+/* Initialize the sync lock table (called automatically if needed) */
+void rt_sync_lock_table_init(void);
+
+/* Clean up all sync locks (called on process exit) */
+void rt_sync_lock_table_cleanup(void);
+
 #endif /* RUNTIME_THREAD_H */

@@ -91,6 +91,9 @@ void collect_local_vars_from_stmt(Stmt *stmt, LocalVars *lv, Arena *arena)
         collect_local_vars_from_stmt(stmt->as.for_each_stmt.body, lv, arena);
         break;
     }
+    case STMT_LOCK:
+        collect_local_vars_from_stmt(stmt->as.lock_stmt.body, lv, arena);
+        break;
     default:
         break;
     }
@@ -231,6 +234,10 @@ void collect_captured_vars_from_stmt(Stmt *stmt, LambdaExpr *lambda, SymbolTable
     case STMT_FOR_EACH:
         collect_captured_vars_internal(stmt->as.for_each_stmt.iterable, lambda, table, cv, lv, enclosing, arena);
         collect_captured_vars_from_stmt(stmt->as.for_each_stmt.body, lambda, table, cv, lv, enclosing, arena);
+        break;
+    case STMT_LOCK:
+        collect_captured_vars_internal(stmt->as.lock_stmt.lock_expr, lambda, table, cv, lv, enclosing, arena);
+        collect_captured_vars_from_stmt(stmt->as.lock_stmt.body, lambda, table, cv, lv, enclosing, arena);
         break;
     case STMT_FUNCTION:
         /* Don't recurse into nested functions - they have their own scope */

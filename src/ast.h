@@ -453,7 +453,8 @@ typedef enum
     STMT_IMPORT,
     STMT_PRAGMA,
     STMT_TYPE_DECL,
-    STMT_STRUCT_DECL
+    STMT_STRUCT_DECL,
+    STMT_LOCK
 } StmtType;
 
 /* Pragma directive types */
@@ -580,6 +581,13 @@ typedef struct
     bool is_packed;            /* True if preceded by #pragma pack(1) */
 } StructDeclStmt;
 
+/* Lock statement for synchronized blocks: lock(expr) => body */
+typedef struct
+{
+    Expr *lock_expr;           /* The sync variable to lock on */
+    Stmt *body;                /* The lock block body */
+} LockStmt;
+
 struct Stmt
 {
     StmtType type;
@@ -600,6 +608,7 @@ struct Stmt
         PragmaStmt pragma;
         TypeDeclStmt type_decl;
         StructDeclStmt struct_decl;
+        LockStmt lock_stmt;
     } as;
 };
 
@@ -694,6 +703,7 @@ Stmt *ast_create_pragma_stmt(Arena *arena, PragmaType pragma_type, const char *v
 Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Token *loc_token);
 Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields, int field_count,
                                    bool is_native, bool is_packed, const Token *loc_token);
+Stmt *ast_create_lock_stmt(Arena *arena, Expr *lock_expr, Stmt *body, const Token *loc_token);
 
 void ast_init_module(Arena *arena, Module *module, const char *filename);
 void ast_module_add_statement(Arena *arena, Module *module, Stmt *stmt);

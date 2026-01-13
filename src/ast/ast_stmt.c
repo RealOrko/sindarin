@@ -420,3 +420,24 @@ Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields,
     stmt->token = ast_dup_token(arena, loc_token);
     return stmt;
 }
+
+
+Stmt *ast_create_lock_stmt(Arena *arena, Expr *lock_expr, Stmt *body, const Token *loc_token)
+{
+    if (lock_expr == NULL || body == NULL)
+    {
+        return NULL;
+    }
+    Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
+    if (stmt == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(stmt, 0, sizeof(Stmt));
+    stmt->type = STMT_LOCK;
+    stmt->as.lock_stmt.lock_expr = lock_expr;
+    stmt->as.lock_stmt.body = body;
+    stmt->token = ast_dup_token(arena, loc_token);
+    return stmt;
+}
