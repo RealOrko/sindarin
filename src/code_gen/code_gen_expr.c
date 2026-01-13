@@ -27,8 +27,15 @@ char *code_gen_increment_expression(CodeGen *gen, Expr *expr)
         exit(1);
     }
     char *var_name = get_var_name(gen->arena, expr->as.operand->as.variable.name);
-    // For 'as ref' variables, they're already pointers, so pass directly
     Symbol *symbol = symbol_table_lookup_symbol(gen->symbol_table, expr->as.operand->as.variable.name);
+
+    /* For sync variables, use atomic increment */
+    if (symbol && symbol->sync_mod == SYNC_ATOMIC)
+    {
+        return arena_sprintf(gen->arena, "__atomic_fetch_add(&%s, 1, __ATOMIC_SEQ_CST)", var_name);
+    }
+
+    // For 'as ref' variables, they're already pointers, so pass directly
     if (symbol && symbol->mem_qual == MEM_AS_REF)
     {
         return arena_sprintf(gen->arena, "rt_post_inc_long(%s)", var_name);
@@ -44,8 +51,15 @@ char *code_gen_decrement_expression(CodeGen *gen, Expr *expr)
         exit(1);
     }
     char *var_name = get_var_name(gen->arena, expr->as.operand->as.variable.name);
-    // For 'as ref' variables, they're already pointers, so pass directly
     Symbol *symbol = symbol_table_lookup_symbol(gen->symbol_table, expr->as.operand->as.variable.name);
+
+    /* For sync variables, use atomic decrement */
+    if (symbol && symbol->sync_mod == SYNC_ATOMIC)
+    {
+        return arena_sprintf(gen->arena, "__atomic_fetch_sub(&%s, 1, __ATOMIC_SEQ_CST)", var_name);
+    }
+
+    // For 'as ref' variables, they're already pointers, so pass directly
     if (symbol && symbol->mem_qual == MEM_AS_REF)
     {
         return arena_sprintf(gen->arena, "rt_post_dec_long(%s)", var_name);
@@ -674,6 +688,84 @@ static char *code_gen_member_access_expression(CodeGen *gen, Expr *expr)
 }
 
 /**
+ * Generate code for compound assignment expression.
+ * x += 5 -> x = x + 5
+ * arr[i] *= 2 -> arr.data[i] = arr.data[i] * 2
+ * point.x -= 1 -> point.x = point.x - 1
+ *
+ * For sync variables, uses atomic operations where available:
+ * sync_var += 5 -> __atomic_fetch_add(&sync_var, 5, __ATOMIC_SEQ_CST)
+ * sync_var -= 5 -> __atomic_fetch_sub(&sync_var, 5, __ATOMIC_SEQ_CST)
+ */
+static char *code_gen_compound_assign_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating compound assign expression");
+
+    CompoundAssignExpr *compound = &expr->as.compound_assign;
+    Expr *target = compound->target;
+    SnTokenType op = compound->operator;
+    Type *target_type = target->expr_type;
+
+    /* Check if target is a sync variable */
+    Symbol *symbol = NULL;
+    if (target->type == EXPR_VARIABLE)
+    {
+        symbol = symbol_table_lookup_symbol(gen->symbol_table, target->as.variable.name);
+    }
+
+    /* Generate code for the value */
+    char *value_code = code_gen_expression(gen, compound->value);
+
+    /* For sync variables, use atomic operations where available */
+    if (symbol != NULL && symbol->sync_mod == SYNC_ATOMIC)
+    {
+        char *var_name = get_var_name(gen->arena, target->as.variable.name);
+
+        switch (op)
+        {
+            case TOKEN_PLUS:
+                return arena_sprintf(gen->arena, "__atomic_fetch_add(&%s, %s, __ATOMIC_SEQ_CST)",
+                                     var_name, value_code);
+            case TOKEN_MINUS:
+                return arena_sprintf(gen->arena, "__atomic_fetch_sub(&%s, %s, __ATOMIC_SEQ_CST)",
+                                     var_name, value_code);
+            default:
+                /* For *, /, % - no atomic equivalent, fall through to non-atomic */
+                break;
+        }
+    }
+
+    /* Get the operator symbol */
+    const char *op_str;
+    switch (op)
+    {
+        case TOKEN_PLUS: op_str = "+"; break;
+        case TOKEN_MINUS: op_str = "-"; break;
+        case TOKEN_STAR: op_str = "*"; break;
+        case TOKEN_SLASH: op_str = "/"; break;
+        case TOKEN_MODULO: op_str = "%"; break;
+        default:
+            fprintf(stderr, "Error: Unknown compound assignment operator\n");
+            exit(1);
+    }
+
+    /* Generate code for the target */
+    char *target_code = code_gen_expression(gen, target);
+
+    /* For string concatenation (str += ...), use runtime function */
+    if (target_type != NULL && target_type->kind == TYPE_STRING && op == TOKEN_PLUS)
+    {
+        /* Generate: target = rt_str_concat(arena, target, value) */
+        return arena_sprintf(gen->arena, "%s = rt_str_concat(%s, %s, %s)",
+                             target_code, ARENA_VAR(gen), target_code, value_code);
+    }
+
+    /* For numeric types, generate: target = target op value */
+    return arena_sprintf(gen->arena, "%s = %s %s %s",
+                         target_code, target_code, op_str, value_code);
+}
+
+/**
  * Generate code for struct member assignment expression.
  * point.x = 5.0 -> point.x = 5.0
  * ptr_to_struct.x = 5.0 -> ptr_to_struct->x = 5.0 (auto-dereference)
@@ -770,6 +862,8 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         return code_gen_member_assign_expression(gen, expr);
     case EXPR_SIZEOF:
         return code_gen_sizeof_expression(gen, expr);
+    case EXPR_COMPOUND_ASSIGN:
+        return code_gen_compound_assign_expression(gen, expr);
     default:
         exit(1);
     }

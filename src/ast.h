@@ -65,6 +65,13 @@ typedef enum
     MEM_AS_REF      /* as ref - heap allocation for primitives */
 } MemoryQualifier;
 
+/* Sync modifier for thread-safe atomic variables */
+typedef enum
+{
+    SYNC_NONE,      /* No synchronization (default) */
+    SYNC_ATOMIC     /* sync keyword - uses atomic operations */
+} SyncModifier;
+
 /* Block modifier for memory management */
 typedef enum
 {
@@ -166,7 +173,8 @@ typedef enum
     EXPR_STRUCT_LITERAL,
     EXPR_MEMBER_ACCESS,
     EXPR_MEMBER_ASSIGN,
-    EXPR_SIZEOF
+    EXPR_SIZEOF,
+    EXPR_COMPOUND_ASSIGN
 } ExprType;
 
 typedef struct
@@ -214,6 +222,14 @@ typedef struct
     Token field_name;    /* Name of the field being assigned */
     Expr *value;         /* Value to assign */
 } MemberAssignExpr;
+
+/* Compound assignment expression: x += value, x -= value, etc. */
+typedef struct
+{
+    Expr *target;        /* The left-hand side (variable, array index, or member) */
+    SnTokenType operator; /* The operation: TOKEN_PLUS, TOKEN_MINUS, etc. */
+    Expr *value;         /* The right-hand side value */
+} CompoundAssignExpr;
 
 typedef struct
 {
@@ -414,6 +430,7 @@ struct Expr
         MemberAccessExpr member_access;
         MemberAssignExpr member_assign;
         SizeofExpr sizeof_expr;
+        CompoundAssignExpr compound_assign;
     } as;
 
     Type *expr_type;
@@ -458,6 +475,7 @@ typedef struct
     Type *type;
     Expr *initializer;
     MemoryQualifier mem_qualifier;  /* as val or as ref modifier */
+    SyncModifier sync_modifier;     /* sync for atomic operations */
 } VarDeclStmt;
 
 struct Parameter
@@ -465,6 +483,7 @@ struct Parameter
     Token name;
     Type *type;
     MemoryQualifier mem_qualifier;  /* as val modifier for copy semantics */
+    SyncModifier sync_modifier;     /* sync for atomic operations */
 };
 
 typedef struct

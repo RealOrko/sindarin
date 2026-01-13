@@ -884,3 +884,25 @@ bool ast_expr_needs_heap_allocation(Expr *expr)
     }
     return expr->escape_info.needs_heap_allocation;
 }
+
+Expr *ast_create_compound_assign_expr(Arena *arena, Expr *target, SnTokenType operator, Expr *value, const Token *loc_token)
+{
+    if (target == NULL || value == NULL)
+    {
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_COMPOUND_ASSIGN;
+    expr->as.compound_assign.target = target;
+    expr->as.compound_assign.operator = operator;
+    expr->as.compound_assign.value = value;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}

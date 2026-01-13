@@ -67,6 +67,37 @@ Expr *parser_assignment(Parser *parser)
         }
         parser_error(parser, "Invalid assignment target");
     }
+
+    /* Check for compound assignment: +=, -=, *=, /=, %= */
+    SnTokenType compound_op = TOKEN_EOF;
+    if (parser_match(parser, TOKEN_PLUS_EQUAL))
+    {
+        compound_op = TOKEN_PLUS;
+    }
+    else if (parser_match(parser, TOKEN_MINUS_EQUAL))
+    {
+        compound_op = TOKEN_MINUS;
+    }
+    else if (parser_match(parser, TOKEN_STAR_EQUAL))
+    {
+        compound_op = TOKEN_STAR;
+    }
+    else if (parser_match(parser, TOKEN_SLASH_EQUAL))
+    {
+        compound_op = TOKEN_SLASH;
+    }
+    else if (parser_match(parser, TOKEN_MODULO_EQUAL))
+    {
+        compound_op = TOKEN_MODULO;
+    }
+
+    if (compound_op != TOKEN_EOF)
+    {
+        Token op_token = parser->previous;
+        Expr *value = parser_assignment(parser);
+        return ast_create_compound_assign_expr(parser->arena, expr, compound_op, value, &op_token);
+    }
+
     return expr;
 }
 

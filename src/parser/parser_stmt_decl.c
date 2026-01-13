@@ -38,9 +38,16 @@ Stmt *parser_var_declaration(Parser *parser)
     // Type annotation is optional if there's an initializer (type inference)
     Type *type = NULL;
     MemoryQualifier mem_qualifier = MEM_DEFAULT;
+    SyncModifier sync_modifier = SYNC_NONE;
     Expr *sized_array_size_expr = NULL;
     if (parser_match(parser, TOKEN_COLON))
     {
+        // Check for sync modifier before type
+        if (parser_match(parser, TOKEN_SYNC))
+        {
+            sync_modifier = SYNC_ATOMIC;
+        }
+
         ParsedType parsed = parser_type_with_size(parser);
         type = parsed.type;
 
@@ -98,6 +105,7 @@ Stmt *parser_var_declaration(Parser *parser)
     if (stmt != NULL)
     {
         stmt->as.var_decl.mem_qualifier = mem_qualifier;
+        stmt->as.var_decl.sync_modifier = sync_modifier;
     }
     return stmt;
 }
@@ -169,6 +177,12 @@ Stmt *parser_function_declaration(Parser *parser)
                     }
                 }
                 parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
+                // Check for sync modifier before type
+                SyncModifier param_sync = SYNC_NONE;
+                if (parser_match(parser, TOKEN_SYNC))
+                {
+                    param_sync = SYNC_ATOMIC;
+                }
                 Type *param_type = parser_type(parser);
                 // Parse optional "as val" for parameter
                 MemoryQualifier param_qualifier = parser_memory_qualifier(parser);
@@ -190,6 +204,7 @@ Stmt *parser_function_declaration(Parser *parser)
                 params[param_count].name = param_name;
                 params[param_count].type = param_type;
                 params[param_count].mem_qualifier = param_qualifier;
+                params[param_count].sync_modifier = param_sync;
                 param_count++;
             } while (parser_match(parser, TOKEN_COMMA));
         }
@@ -315,6 +330,12 @@ Stmt *parser_native_function_declaration(Parser *parser)
                     }
                 }
                 parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
+                /* Check for sync modifier before type */
+                SyncModifier param_sync = SYNC_NONE;
+                if (parser_match(parser, TOKEN_SYNC))
+                {
+                    param_sync = SYNC_ATOMIC;
+                }
                 Type *param_type = parser_type(parser);
                 /* Parse optional "as val" for parameter */
                 MemoryQualifier param_qualifier = parser_memory_qualifier(parser);
@@ -336,6 +357,7 @@ Stmt *parser_native_function_declaration(Parser *parser)
                 params[param_count].name = param_name;
                 params[param_count].type = param_type;
                 params[param_count].mem_qualifier = param_qualifier;
+                params[param_count].sync_modifier = param_sync;
                 param_count++;
             } while (parser_match(parser, TOKEN_COMMA));
         }

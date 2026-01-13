@@ -187,12 +187,27 @@ skip_indent_processing:
         DEBUG_VERBOSE("Line %d: Emitting AMPERSAND", lexer->line);
         return lexer_make_token(lexer, TOKEN_AMPERSAND);
     case '%':
+        if (lexer_match(lexer, '='))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting MODULO_EQUAL", lexer->line);
+            return lexer_make_token(lexer, TOKEN_MODULO_EQUAL);
+        }
         DEBUG_VERBOSE("Line %d: Emitting MODULO", lexer->line);
         return lexer_make_token(lexer, TOKEN_MODULO);
     case '/':
+        if (lexer_match(lexer, '='))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting SLASH_EQUAL", lexer->line);
+            return lexer_make_token(lexer, TOKEN_SLASH_EQUAL);
+        }
         DEBUG_VERBOSE("Line %d: Emitting SLASH", lexer->line);
         return lexer_make_token(lexer, TOKEN_SLASH);
     case '*':
+        if (lexer_match(lexer, '='))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting STAR_EQUAL", lexer->line);
+            return lexer_make_token(lexer, TOKEN_STAR_EQUAL);
+        }
         DEBUG_VERBOSE("Line %d: Emitting STAR", lexer->line);
         return lexer_make_token(lexer, TOKEN_STAR);
     case '+':
@@ -200,6 +215,11 @@ skip_indent_processing:
         {
             DEBUG_VERBOSE("Line %d: Emitting PLUS_PLUS", lexer->line);
             return lexer_make_token(lexer, TOKEN_PLUS_PLUS);
+        }
+        else if (lexer_match(lexer, '='))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting PLUS_EQUAL", lexer->line);
+            return lexer_make_token(lexer, TOKEN_PLUS_EQUAL);
         }
         DEBUG_VERBOSE("Line %d: Emitting PLUS", lexer->line);
         return lexer_make_token(lexer, TOKEN_PLUS);
@@ -217,6 +237,11 @@ skip_indent_processing:
         {
             DEBUG_VERBOSE("Line %d: Emitting MINUS_MINUS", lexer->line);
             return lexer_make_token(lexer, TOKEN_MINUS_MINUS);
+        }
+        else if (lexer_match(lexer, '='))
+        {
+            DEBUG_VERBOSE("Line %d: Emitting MINUS_EQUAL", lexer->line);
+            return lexer_make_token(lexer, TOKEN_MINUS_EQUAL);
         }
         else if (lexer_match(lexer, '>'))
         {

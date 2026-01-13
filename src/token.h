@@ -84,6 +84,15 @@ typedef enum
     TOKEN_AMPERSAND,
     TOKEN_PLUS_PLUS,
     TOKEN_MINUS_MINUS,
+    // Compound assignment operators
+    TOKEN_PLUS_EQUAL,
+    TOKEN_MINUS_EQUAL,
+    TOKEN_STAR_EQUAL,
+    TOKEN_SLASH_EQUAL,
+    TOKEN_MODULO_EQUAL,
+    // Synchronization keywords
+    TOKEN_SYNC,
+    TOKEN_SYNCHRONIZED,
     TOKEN_LEFT_PAREN,
     TOKEN_RIGHT_PAREN,
     TOKEN_LEFT_BRACE,

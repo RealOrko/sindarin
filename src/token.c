@@ -191,6 +191,20 @@ const char *token_type_to_string(SnTokenType type)
         return "PLUS_PLUS";
     case TOKEN_MINUS_MINUS:
         return "MINUS_MINUS";
+    case TOKEN_PLUS_EQUAL:
+        return "PLUS_EQUAL";
+    case TOKEN_MINUS_EQUAL:
+        return "MINUS_EQUAL";
+    case TOKEN_STAR_EQUAL:
+        return "STAR_EQUAL";
+    case TOKEN_SLASH_EQUAL:
+        return "SLASH_EQUAL";
+    case TOKEN_MODULO_EQUAL:
+        return "MODULO_EQUAL";
+    case TOKEN_SYNC:
+        return "SYNC";
+    case TOKEN_SYNCHRONIZED:
+        return "SYNCHRONIZED";
     case TOKEN_LEFT_PAREN:
         return "LEFT_PAREN";
     case TOKEN_RIGHT_PAREN:

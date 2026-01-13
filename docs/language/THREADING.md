@@ -243,6 +243,124 @@ data[0] = 99                    // OK
 
 ---
 
+## Atomic Variables with `sync`
+
+The `sync` type modifier declares atomic variables that are thread-safe for concurrent access. Operations on `sync` variables use hardware atomic instructions, eliminating race conditions.
+
+### Declaration
+
+```sindarin
+var counter: sync int = 0
+var total: sync long = 0l
+```
+
+The `sync` modifier is allowed on integer types: `int`, `long`, `int32`, `uint`, `uint32`.
+
+### Atomic Operations
+
+The following operations on `sync` variables are atomic:
+
+| Operation | Example | Generated Code |
+|-----------|---------|----------------|
+| Increment | `counter++` | `__atomic_fetch_add(&counter, 1, __ATOMIC_SEQ_CST)` |
+| Decrement | `counter--` | `__atomic_fetch_sub(&counter, 1, __ATOMIC_SEQ_CST)` |
+| Add-assign | `counter += 5` | `__atomic_fetch_add(&counter, 5, __ATOMIC_SEQ_CST)` |
+| Sub-assign | `counter -= 3` | `__atomic_fetch_sub(&counter, 3, __ATOMIC_SEQ_CST)` |
+
+### Thread-Safe Counter Example
+
+Without `sync`, concurrent increments can lose updates:
+
+```sindarin
+// UNSAFE: Race condition
+var counter: int = 0
+
+fn increment(): void =>
+    counter++    // Not atomic - can lose updates
+
+var t1: void = &increment()
+var t2: void = &increment()
+[t1, t2]!
+
+print(counter)   // Could be 1 or 2 (race condition)
+```
+
+With `sync`, all updates are atomic:
+
+```sindarin
+// SAFE: Atomic operations
+var counter: sync int = 0
+
+fn increment(): void =>
+    counter++    // Atomic increment
+
+var t1: void = &increment()
+var t2: void = &increment()
+[t1, t2]!
+
+print(counter)   // Always 2
+```
+
+### Compound Assignment with `sync`
+
+Compound assignments `+=` and `-=` are atomic on `sync` variables:
+
+```sindarin
+var total: sync int = 0
+
+fn add_value(n: int): void =>
+    total += n   // Atomic add
+
+var t1: void = &add_value(10)
+var t2: void = &add_value(20)
+var t3: void = &add_value(30)
+[t1, t2, t3]!
+
+print(total)     // Always 60
+```
+
+Note: `*=`, `/=`, and `%=` do not have atomic equivalents and will use non-atomic operations even on `sync` variables. For these operations, use external synchronization.
+
+### Function Parameters with `sync`
+
+Functions can accept `sync` parameters:
+
+```sindarin
+fn safe_increment(counter: sync int as ref): void =>
+    counter++
+
+var count: sync int = 0
+var t1: void = &safe_increment(count)
+var t2: void = &safe_increment(count)
+[t1, t2]!
+
+print(count)     // Always 2
+```
+
+### When to Use `sync`
+
+| Use Case | Recommendation |
+|----------|----------------|
+| Shared counter across threads | Use `sync int` |
+| Accumulator for parallel results | Use `sync long` |
+| Flag or status variable | Use `sync int` |
+| Complex data structure | Use frozen references or external locks |
+| Read-only shared data | No `sync` needed (reads are safe) |
+
+### Limitations
+
+- `sync` only applies to integer types
+- No atomic support for `*=`, `/=`, `%=` operations
+- Complex multi-variable updates still require external synchronization
+- `sync` does not help with read-modify-write sequences spanning multiple statements
+
+For complex synchronization needs beyond atomic counters, consider:
+- Freezing shared data structures during thread execution
+- Using `as val` to give each thread its own copy
+- Designing algorithms to minimize shared mutable state
+
+---
+
 ## Thread Arenas
 
 Thread arena management follows the same `shared`, `private`, and default semantics as regular functions.
@@ -479,6 +597,9 @@ The following scenarios are not automatically prevented:
 | `var r: T = &fn()!` | Spawn and wait immediately |
 | `&fn()` | Fire and forget (void only) |
 | `&fn()!` | Spawn and wait (void) |
+| `var x: sync int = 0` | Atomic integer variable |
+| `x++`, `x--` | Atomic increment/decrement (on sync) |
+| `x += n`, `x -= n` | Atomic add/subtract (on sync) |
 
 ### Compiler Rules
 
@@ -489,6 +610,7 @@ The following scenarios are not automatically prevented:
 | Write to frozen array | Compile error |
 | Write to frozen `as ref` primitive | Compile error |
 | After `!` | Variable is normal, can access/reassign |
+| `sync` on non-integer type | Compile error |
 
 ---
 

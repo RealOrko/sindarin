@@ -1963,6 +1963,101 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
             }
         }
         break;
+    case EXPR_COMPOUND_ASSIGN:
+        /* Compound assignment: x += value, x -= value, x *= value, x /= value, x %= value */
+        {
+            Expr *target = expr->as.compound_assign.target;
+            Expr *value_expr = expr->as.compound_assign.value;
+            SnTokenType op = expr->as.compound_assign.operator;
+
+            /* Check if target is a frozen variable (captured by pending thread) */
+            if (target->type == EXPR_VARIABLE)
+            {
+                Symbol *sym = symbol_table_lookup_symbol(table, target->as.variable.name);
+                if (sym != NULL && symbol_table_is_frozen(sym))
+                {
+                    char msg[256];
+                    snprintf(msg, sizeof(msg), "Cannot modify frozen variable '%.*s' (captured by pending thread)",
+                             target->as.variable.name.length, target->as.variable.name.start);
+                    type_error(expr->token, msg);
+                    t = NULL;
+                    break;
+                }
+            }
+
+            /* Type check the target */
+            Type *target_type = type_check_expr(target, table);
+            if (target_type == NULL)
+            {
+                type_error(expr->token, "Invalid target in compound assignment");
+                t = NULL;
+                break;
+            }
+
+            /* Type check the value */
+            Type *value_type = type_check_expr(value_expr, table);
+            if (value_type == NULL)
+            {
+                type_error(expr->token, "Invalid value in compound assignment");
+                t = NULL;
+                break;
+            }
+
+            /* For compound assignment, the target must be a valid lvalue
+             * (variable, array index, or member access) */
+            if (target->type != EXPR_VARIABLE &&
+                target->type != EXPR_ARRAY_ACCESS &&
+                target->type != EXPR_MEMBER &&
+                target->type != EXPR_MEMBER_ACCESS)
+            {
+                type_error(expr->token, "Compound assignment target must be a variable, array element, or struct field");
+                t = NULL;
+                break;
+            }
+
+            /* For +=, -= on strings, only += is valid (string concatenation) */
+            if (target_type->kind == TYPE_STRING)
+            {
+                if (op == TOKEN_PLUS)
+                {
+                    /* String concatenation: str += value is valid if value is printable */
+                    if (!is_printable_type(value_type))
+                    {
+                        type_error(expr->token, "Cannot concatenate non-printable type to string");
+                        t = NULL;
+                        break;
+                    }
+                    t = target_type;
+                }
+                else
+                {
+                    type_error(expr->token, "Only += is valid for string compound assignment");
+                    t = NULL;
+                }
+                break;
+            }
+
+            /* For all other operators, target must be numeric */
+            if (!is_numeric_type(target_type))
+            {
+                type_error(expr->token, "Compound assignment requires numeric target type");
+                t = NULL;
+                break;
+            }
+
+            /* Value must also be numeric */
+            if (!is_numeric_type(value_type))
+            {
+                type_error(expr->token, "Compound assignment value must be numeric");
+                t = NULL;
+                break;
+            }
+
+            /* Result type is the target type */
+            t = target_type;
+            DEBUG_VERBOSE("Compound assignment type check passed: target type %d, op %d", target_type->kind, op);
+        }
+        break;
     }
     expr->expr_type = t;
     if (t != NULL)

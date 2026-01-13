@@ -50,6 +50,7 @@ typedef struct Symbol
     int arena_depth;            /* Which arena depth owns this symbol */
     int declaration_scope_depth; /* Scope depth at time of declaration */
     MemoryQualifier mem_qual;   /* as val, as ref, or default */
+    SyncModifier sync_mod;      /* sync for atomic operations */
     FunctionModifier func_mod;  /* For function symbols: effective modifier (shared for heap-returning) */
     FunctionModifier declared_func_mod;  /* For function symbols: original declared modifier */
     bool is_function;           /* True if this is a named function definition */

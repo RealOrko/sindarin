@@ -162,6 +162,13 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
                 return lexer_check_keyword(lexer, 2, 4, "ared", TOKEN_SHARED);
             case 'i':
                 return lexer_check_keyword(lexer, 2, 4, "zeof", TOKEN_SIZEOF);
+            case 'y':
+                // Check for "sync" (4 chars) vs "synchronized" (12 chars)
+                if (lexer->current - lexer->start == 12)
+                {
+                    return lexer_check_keyword(lexer, 2, 10, "nchronized", TOKEN_SYNCHRONIZED);
+                }
+                return lexer_check_keyword(lexer, 2, 2, "nc", TOKEN_SYNC);
             }
         }
         break;

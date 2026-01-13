@@ -255,6 +255,30 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
 
     symbol_table_add_symbol_with_kind(table, stmt->as.var_decl.name, decl_type, SYMBOL_LOCAL);
 
+    /* Handle sync modifier - set on symbol and validate type */
+    if (stmt->as.var_decl.sync_modifier == SYNC_ATOMIC)
+    {
+        /* Validate sync is only on atomic-compatible types */
+        if (decl_type->kind != TYPE_INT && decl_type->kind != TYPE_LONG &&
+            decl_type->kind != TYPE_INT32 && decl_type->kind != TYPE_UINT &&
+            decl_type->kind != TYPE_UINT32)
+        {
+            type_error(&stmt->as.var_decl.name,
+                       "sync modifier is only allowed on integer types (int, long, int32, uint, uint32)");
+        }
+        else
+        {
+            /* Set sync_mod on the symbol */
+            Symbol *symbol = symbol_table_lookup_symbol_current(table, stmt->as.var_decl.name);
+            if (symbol != NULL)
+            {
+                symbol->sync_mod = SYNC_ATOMIC;
+                DEBUG_VERBOSE("Set sync modifier on symbol: %.*s",
+                              stmt->as.var_decl.name.length, stmt->as.var_decl.name.start);
+            }
+        }
+    }
+
     // Check: nil can only be assigned to pointer types
     if (init_type && init_type->kind == TYPE_NIL && decl_type->kind != TYPE_POINTER)
     {
@@ -448,6 +472,16 @@ static void type_check_function_body_only(Stmt *stmt, SymbolTable *table)
             param.type = ast_create_primitive_type(arena, TYPE_NIL);
         }
         symbol_table_add_symbol_full(table, param.name, param.type, SYMBOL_PARAM, param.mem_qualifier);
+
+        /* Set sync modifier if present */
+        if (param.sync_modifier == SYNC_ATOMIC)
+        {
+            Symbol *sym = symbol_table_lookup_symbol_current(table, param.name);
+            if (sym != NULL)
+            {
+                sym->sync_mod = SYNC_ATOMIC;
+            }
+        }
     }
 
     table->current->next_local_offset = table->current->next_param_offset;
@@ -674,6 +708,16 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
 
         /* Add symbol with the memory qualifier so code gen can handle dereferencing */
         symbol_table_add_symbol_full(table, param.name, param.type, SYMBOL_PARAM, param.mem_qualifier);
+
+        /* Set sync modifier if present */
+        if (param.sync_modifier == SYNC_ATOMIC)
+        {
+            Symbol *sym = symbol_table_lookup_symbol_current(table, param.name);
+            if (sym != NULL)
+            {
+                sym->sync_mod = SYNC_ATOMIC;
+            }
+        }
     }
 
     table->current->next_local_offset = table->current->next_param_offset;
