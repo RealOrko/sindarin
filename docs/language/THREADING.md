@@ -343,13 +343,13 @@ print(count)     // Always 2
 |----------|----------------|
 | Shared counter across threads | Use `sync int` |
 | Accumulator for parallel results | Use `sync long` |
-| Flag or status variable | Use `sync int` |
+| Flag or status variable | Use `sync int` or `sync byte` |
 | Complex data structure | Use frozen references or external locks |
 | Read-only shared data | No `sync` needed (reads are safe) |
 
 ### Limitations
 
-- `sync` only applies to integer types
+- `sync` only applies to integer types (`int`, `long`, `int32`, `uint`, `uint32`, `byte`, `char`)
 - No atomic support for `*=`, `/=`, `%=` operations
 - Complex multi-variable updates still require external synchronization
 - `sync` does not help with read-modify-write sequences spanning multiple statements

@@ -258,13 +258,14 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
     /* Handle sync modifier - set on symbol and validate type */
     if (stmt->as.var_decl.sync_modifier == SYNC_ATOMIC)
     {
-        /* Validate sync is only on atomic-compatible types */
+        /* Validate sync is only on atomic-compatible types (integers including byte/char) */
         if (decl_type->kind != TYPE_INT && decl_type->kind != TYPE_LONG &&
             decl_type->kind != TYPE_INT32 && decl_type->kind != TYPE_UINT &&
-            decl_type->kind != TYPE_UINT32)
+            decl_type->kind != TYPE_UINT32 && decl_type->kind != TYPE_BYTE &&
+            decl_type->kind != TYPE_CHAR)
         {
             type_error(&stmt->as.var_decl.name,
-                       "sync modifier is only allowed on integer types (int, long, int32, uint, uint32)");
+                       "sync modifier is only allowed on integer types (int, long, int32, uint, uint32, byte, char)");
         }
         else
         {

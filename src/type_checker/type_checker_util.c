@@ -82,7 +82,8 @@ bool is_numeric_type(Type *type)
     bool result = type && (type->kind == TYPE_INT || type->kind == TYPE_INT32 ||
                            type->kind == TYPE_UINT || type->kind == TYPE_UINT32 ||
                            type->kind == TYPE_LONG || type->kind == TYPE_DOUBLE ||
-                           type->kind == TYPE_FLOAT);
+                           type->kind == TYPE_FLOAT || type->kind == TYPE_BYTE ||
+                           type->kind == TYPE_CHAR);
     DEBUG_VERBOSE("Checking if type is numeric: %s", result ? "true" : "false");
     return result;
 }
