@@ -13,6 +13,19 @@
 
 /* is_primitive_type is defined in type_checker_util.c */
 
+/* Check if a type needs to be captured by reference (pointer indirection).
+ * This includes:
+ * - Primitive types (int, long, etc.) - because they can be reassigned
+ * - Array types - because push/pop operations return new pointers
+ * This ensures modifications inside closures persist to the original variable. */
+static bool needs_capture_by_ref(Type *type)
+{
+    if (type == NULL) return false;
+    if (is_primitive_type(type)) return true;
+    if (type->kind == TYPE_ARRAY) return true;
+    return false;
+}
+
 /* Initialize LocalVars structure */
 void local_vars_init(LocalVars *lv)
 {
@@ -631,11 +644,12 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         for (int i = 0; i < cv.count; i++)
         {
             const char *c_type = get_c_type(gen->arena, cv.types[i]);
-            /* For primitives, store pointers to enable mutation persistence.
-             * When a lambda modifies a captured primitive, the change must
+            /* For types that need capture by reference (primitives and arrays),
+             * store pointers to enable mutation persistence.
+             * When a lambda modifies a captured variable, the change must
              * persist to the original variable and across multiple calls.
-             * Reference types (arrays, strings) are already pointers. */
-            if (is_primitive_type(cv.types[i]))
+             * Arrays need this because push/pop return new pointers. */
+            if (needs_capture_by_ref(cv.types[i]))
             {
                 struct_def = arena_sprintf(gen->arena, "%s    %s *%s;\n",
                                            struct_def, c_type, cv.names[i]);
@@ -654,28 +668,29 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
                                                   gen->lambda_forward_decls, struct_def);
 
         /* Generate local variable declarations for captured vars in lambda body.
-         * For primitives, we create a pointer alias that points to the closure's
-         * stored pointer. This way, reads/writes use the pointer and mutations
-         * persist both to the original variable and across lambda calls.
-         * For reference types, we just copy the pointer value. */
+         * For types needing capture by ref (primitives and arrays), we create a
+         * pointer alias that points to the closure's stored pointer. This way,
+         * reads/writes use the pointer and mutations persist both to the original
+         * variable and across lambda calls.
+         * For other types, we just copy the value. */
         char *capture_decls = arena_strdup(gen->arena, "");
         for (int i = 0; i < cv.count; i++)
         {
             const char *c_type = get_c_type(gen->arena, cv.types[i]);
-            if (is_primitive_type(cv.types[i]))
+            if (needs_capture_by_ref(cv.types[i]))
             {
-                /* For primitives, the closure stores a pointer (long*). We declare a local
-                 * pointer variable that references the closure's stored pointer, so access
-                 * like (*count) works naturally. We use a local variable instead of #define
-                 * to avoid macro replacement issues when this lambda creates nested closures
-                 * (where __cl__->name would have 'name' replaced by the macro). */
+                /* For types captured by ref, the closure stores a pointer. We declare
+                 * a local pointer variable that references the closure's stored pointer,
+                 * so access like (*count) or (*data) works naturally. We use a local
+                 * variable instead of #define to avoid macro replacement issues when
+                 * this lambda creates nested closures. */
                 capture_decls = arena_sprintf(gen->arena,
                     "%s    %s *%s = ((__closure_%d__ *)__closure__)->%s;\n",
                     capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
             }
             else
             {
-                /* Reference types: copy the pointer value */
+                /* Other types: copy the value */
                 capture_decls = arena_sprintf(gen->arena,
                     "%s    %s %s = ((__closure_%d__ *)__closure__)->%s;\n",
                     capture_decls, c_type, cv.names[i], lambda_id, cv.names[i]);
@@ -712,12 +727,13 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         char *lambda_func;
         char *lambda_func_name = arena_sprintf(gen->arena, "__lambda_%d__", lambda_id);
 
-        /* Add captured primitives to symbol table so they get dereferenced when accessed.
+        /* Add captured variables that need ref semantics to symbol table so they get
+         * dereferenced when accessed. This includes primitives and arrays.
          * Push a new scope, add the captured variables with MEM_AS_REF, generate body, pop scope. */
         symbol_table_push_scope(gen->symbol_table);
         for (int i = 0; i < cv.count; i++)
         {
-            if (is_primitive_type(cv.types[i]))
+            if (needs_capture_by_ref(cv.types[i]))
             {
                 /* Create a token from the string name */
                 Token name_token;
@@ -849,7 +865,8 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         for (int i = 0; i < cv.count; i++)
         {
-            /* For primitives: check if the variable is already a pointer or a value.
+            /* For types needing capture by ref (primitives and arrays): check if the
+             * variable is already a pointer or a value.
              * The symbol table tells us: MEM_AS_REF means already a pointer.
              * Variables that are NOT pointers (need heap allocation):
              * - Lambda parameters (values)
@@ -857,8 +874,8 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
              * Variables that ARE already pointers (just copy):
              * - Outer function scope with pre-pass pointer declaration
              * - Variables captured from outer lambda body
-             * For reference types (arrays, strings), just copy the pointer value. */
-            if (is_primitive_type(cv.types[i]))
+             * For other types, just copy the value. */
+            if (needs_capture_by_ref(cv.types[i]))
             {
                 /* Lookup the symbol to check if it's already a pointer (MEM_AS_REF) */
                 Token name_token;

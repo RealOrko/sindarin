@@ -837,13 +837,15 @@ void* thread_wrapper(void* arg) {
 
 ---
 
-## Known Limitations
+## Threading Notes
 
-The following features are not yet fully supported:
+The following features are fully supported:
 
-1. **Nested thread spawns** - Spawning threads from within spawned threads may cause issues with arena management
-2. **Function parameters in threads** - Passing function types as arguments to thread-spawned functions is not yet supported
-3. **Complex closures** - Lambda expressions capturing mutable state in threads have limited support
+1. **Nested thread spawns** - Spawning threads from within spawned threads works correctly
+2. **Function parameters in threads** - Passing function types (including lambdas with captured state) as arguments to thread-spawned functions is supported
+3. **Closures with mutable state** - Lambda expressions capturing and modifying mutable state (including arrays and primitives) work correctly across thread boundaries
+
+**Race conditions:** When multiple threads modify the same mutable state without synchronization, the results are non-deterministic. Use `sync` variables and `lock` blocks for thread-safe access to shared mutable state.
 
 ---
 

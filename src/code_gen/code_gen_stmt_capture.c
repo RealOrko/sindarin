@@ -2,8 +2,11 @@
 #include "symbol_table.h"
 #include <string.h>
 
-/* Helper to check if type is a primitive (for capture analysis) */
-static bool is_primitive_for_capture(Type *type)
+/* Helper to check if type needs capture by reference.
+ * This includes primitives (which can be reassigned) and arrays
+ * (because push/pop operations return new pointers that must be
+ * written back to persist across closure calls). */
+static bool needs_capture_by_ref(Type *type)
 {
     if (type == NULL) return false;
     switch (type->kind) {
@@ -13,6 +16,7 @@ static bool is_primitive_for_capture(Type *type)
         case TYPE_BOOL:
         case TYPE_BYTE:
         case TYPE_CHAR:
+        case TYPE_ARRAY:
             return true;
         default:
             return false;
@@ -102,7 +106,7 @@ static void scan_expr_for_captures(CodeGen *gen, Expr *expr, SymbolTable *table,
 
             Token tok = expr->as.variable.name;
             Symbol *sym = symbol_table_lookup_symbol(table, tok);
-            if (sym && sym->kind == SYMBOL_LOCAL && is_primitive_for_capture(sym->type))
+            if (sym && sym->kind == SYMBOL_LOCAL && needs_capture_by_ref(sym->type))
             {
                 /* This is a local primitive referenced from inside a lambda - it's captured */
                 add_captured_primitive(gen, name);
