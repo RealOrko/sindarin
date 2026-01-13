@@ -2349,7 +2349,56 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
                 type_error(&method_name, "Interceptor.register requires a function argument");
                 return NULL;
             }
-            /* TODO: Validate handler signature is fn(str, any[], fn(): any): any */
+            /* Validate handler signature is fn(str, any[], fn(): any): any */
+
+            /* Check parameter count */
+            if (handler_type->as.function.param_count != 3)
+            {
+                type_error(&method_name, "Interceptor handler must have 3 parameters: (name: str, args: any[], continue_fn: fn(): any)");
+                return NULL;
+            }
+
+            /* Check param 0 is str */
+            if (handler_type->as.function.param_types[0] == NULL ||
+                handler_type->as.function.param_types[0]->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Interceptor handler first parameter must be 'str' (function name)");
+                return NULL;
+            }
+
+            /* Check param 1 is any[] */
+            if (handler_type->as.function.param_types[1] == NULL ||
+                handler_type->as.function.param_types[1]->kind != TYPE_ARRAY ||
+                handler_type->as.function.param_types[1]->as.array.element_type == NULL ||
+                handler_type->as.function.param_types[1]->as.array.element_type->kind != TYPE_ANY)
+            {
+                type_error(&method_name, "Interceptor handler second parameter must be 'any[]' (arguments)");
+                return NULL;
+            }
+
+            /* Check param 2 is fn(): any */
+            Type *continue_param = handler_type->as.function.param_types[2];
+            if (continue_param == NULL || continue_param->kind != TYPE_FUNCTION)
+            {
+                type_error(&method_name, "Interceptor handler third parameter must be 'fn(): any' (continue function)");
+                return NULL;
+            }
+            if (continue_param->as.function.param_count != 0 ||
+                continue_param->as.function.return_type == NULL ||
+                continue_param->as.function.return_type->kind != TYPE_ANY)
+            {
+                type_error(&method_name, "Interceptor handler third parameter must be 'fn(): any' (continue function)");
+                return NULL;
+            }
+
+            /* Check return type is any */
+            if (handler_type->as.function.return_type == NULL ||
+                handler_type->as.function.return_type->kind != TYPE_ANY)
+            {
+                type_error(&method_name, "Interceptor handler must return 'any'");
+                return NULL;
+            }
+
             return ast_create_primitive_type(table->arena, TYPE_VOID);
         }
         else if (token_equals(method_name, "registerWhere"))
@@ -2372,6 +2421,57 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
                 type_error(&method_name, "Interceptor.registerWhere second argument must be a pattern string");
                 return NULL;
             }
+
+            /* Validate handler signature is fn(str, any[], fn(): any): any */
+
+            /* Check parameter count */
+            if (handler_type->as.function.param_count != 3)
+            {
+                type_error(&method_name, "Interceptor handler must have 3 parameters: (name: str, args: any[], continue_fn: fn(): any)");
+                return NULL;
+            }
+
+            /* Check param 0 is str */
+            if (handler_type->as.function.param_types[0] == NULL ||
+                handler_type->as.function.param_types[0]->kind != TYPE_STRING)
+            {
+                type_error(&method_name, "Interceptor handler first parameter must be 'str' (function name)");
+                return NULL;
+            }
+
+            /* Check param 1 is any[] */
+            if (handler_type->as.function.param_types[1] == NULL ||
+                handler_type->as.function.param_types[1]->kind != TYPE_ARRAY ||
+                handler_type->as.function.param_types[1]->as.array.element_type == NULL ||
+                handler_type->as.function.param_types[1]->as.array.element_type->kind != TYPE_ANY)
+            {
+                type_error(&method_name, "Interceptor handler second parameter must be 'any[]' (arguments)");
+                return NULL;
+            }
+
+            /* Check param 2 is fn(): any */
+            Type *continue_param = handler_type->as.function.param_types[2];
+            if (continue_param == NULL || continue_param->kind != TYPE_FUNCTION)
+            {
+                type_error(&method_name, "Interceptor handler third parameter must be 'fn(): any' (continue function)");
+                return NULL;
+            }
+            if (continue_param->as.function.param_count != 0 ||
+                continue_param->as.function.return_type == NULL ||
+                continue_param->as.function.return_type->kind != TYPE_ANY)
+            {
+                type_error(&method_name, "Interceptor handler third parameter must be 'fn(): any' (continue function)");
+                return NULL;
+            }
+
+            /* Check return type is any */
+            if (handler_type->as.function.return_type == NULL ||
+                handler_type->as.function.return_type->kind != TYPE_ANY)
+            {
+                type_error(&method_name, "Interceptor handler must return 'any'");
+                return NULL;
+            }
+
             return ast_create_primitive_type(table->arena, TYPE_VOID);
         }
         else if (token_equals(method_name, "clearAll"))
