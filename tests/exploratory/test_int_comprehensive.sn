@@ -311,8 +311,9 @@ fn test_type_checking(): void =>
     // Array type checking
     var arr: int[] = {1, 2, 3}
     var b: any = arr
-    // BUG: assert(b is int[], "is int[] true") - is operator broken for arrays
-    // BUG: is operator returns true for all array types
+    assert(b is int[], "is int[] true")
+    assert(!(b is char[]), "is char[] false")
+    assert(!(b is str[]), "is str[] false")
 
     print("   PASS\n")
 
