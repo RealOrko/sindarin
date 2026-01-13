@@ -21,21 +21,30 @@ typedef struct RtArena RtArena;
 typedef RtAny (*RtContinueFn)(void);
 
 /**
+ * Closure type for continue callback - matches __Closure__ in generated code.
+ * The fn pointer uses closure calling convention: fn(closure_ptr) -> RtAny
+ */
+typedef struct RtClosure {
+    void *fn;       // Function pointer using closure calling convention
+    RtArena *arena; // Arena for allocations (may be NULL for continue callbacks)
+} RtClosure;
+
+/**
  * Interceptor handler function type.
+ * Matches the Sindarin signature: fn(name: str, args: any[], continue_fn: fn(): any): any
+ * Note: arg_count is not passed separately since args is a Sindarin array with .length
  *
  * @param arena     Arena for memory allocations (from caller's context)
  * @param name      The name of the function being called
- * @param args      Array of boxed arguments (can be modified)
- * @param arg_count Number of arguments
- * @param continue_fn Callback to invoke the original function
+ * @param args      Array of boxed arguments (Sindarin array with length header)
+ * @param continue_fn Closure to invoke the original function (call via continue_fn->fn)
  * @return The result to return to the caller (can substitute the real result)
  */
 typedef RtAny (*RtInterceptHandler)(
     RtArena *arena,
     const char *name,
     RtAny *args,
-    int arg_count,
-    RtContinueFn continue_fn
+    RtClosure *continue_fn
 );
 
 /**

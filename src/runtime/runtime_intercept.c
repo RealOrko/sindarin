@@ -248,8 +248,20 @@ static InterceptContext *current_context = NULL;
 static __thread InterceptContext *current_context = NULL;
 #endif
 
-// Forward declaration
+// Forward declarations
 static RtAny call_next_interceptor(void);
+static RtAny call_next_interceptor_closure(void *closure);
+
+/**
+ * Closure-compatible wrapper for call_next_interceptor.
+ * This function uses the Sindarin closure calling convention where the first
+ * parameter is the closure pointer (which we ignore since we use thread-local context).
+ */
+static RtAny call_next_interceptor_closure(void *closure)
+{
+    (void)closure; // Unused - context is in thread-local storage
+    return call_next_interceptor();
+}
 
 static RtAny call_next_interceptor(void)
 {
@@ -272,9 +284,16 @@ static RtAny call_next_interceptor(void)
     // Wrap args into a proper Sindarin array so handlers can use args.length
     RtAny *wrapped_args = wrap_args_as_sindarin_array(ctx->args, ctx->arg_count);
 
-    // Call the interceptor with wrapped args
-    // Use __rt_thunk_arena which was set by the calling code before invoking rt_call_intercepted
-    RtAny result = entry->handler((RtArena *)__rt_thunk_arena, ctx->name, wrapped_args, ctx->arg_count, call_next_interceptor);
+    // Create a closure wrapper for the continue callback
+    // This matches the __Closure__ type expected by generated Sindarin code
+    RtClosure continue_closure = {
+        .fn = (void *)call_next_interceptor_closure,
+        .arena = (RtArena *)__rt_thunk_arena
+    };
+
+    // Call the interceptor with wrapped args and the closure-wrapped continue callback
+    // Note: arg_count is not passed - the wrapped_args array has length info in its header
+    RtAny result = entry->handler((RtArena *)__rt_thunk_arena, ctx->name, wrapped_args, &continue_closure);
 
     // Copy any modifications back to the original args array
     if (wrapped_args != ctx->args && ctx->arg_count > 0)

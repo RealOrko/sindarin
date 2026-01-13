@@ -10,7 +10,7 @@ fn myInterceptor(name: str, args: any[], continue_fn: fn(): any): any =>
     call_count = call_count + 1
     print($"Intercepting: {name}\n")
     // Return a modified result instead of calling continue_fn
-    // (continue_fn() requires additional runtime support)
+    // This tests the case where an interceptor overrides the result entirely
     var result: any = 42
     return result
 

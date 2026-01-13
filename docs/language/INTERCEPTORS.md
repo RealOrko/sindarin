@@ -45,7 +45,7 @@ An interceptor handler receives three arguments:
 fn handler(name: str, args: any[], continue_fn: fn(): any): any =>
     // name: The function being called (e.g., "add", "greet")
     // args: Array of boxed arguments
-    // continue_fn: Callback to invoke the original function (not yet fully supported)
+    // continue_fn: Callback to invoke the original function or next interceptor
     // returns: The value to return to the caller
 ```
 
@@ -60,8 +60,8 @@ fn loggingInterceptor(name: str, args: any[], continue_fn: fn(): any): any =>
     call_count = call_count + 1
     print($"[LOG] Function '{name}' called\n")
 
-    // Return a default value (interceptors don't call continue_fn yet)
-    var result: any = 0
+    // Call the original function and return its result
+    var result: any = continue_fn()
     return result
 
 fn add(a: int, b: int): int =>
@@ -327,13 +327,11 @@ fn printProfile =>
 
 ## Limitations
 
-1. **No continue_fn support yet**: The `continue_fn` parameter is passed but calling it is not yet fully supported. Interceptors must return their own values.
+1. **Pointer types excluded**: Functions with pointer parameters or return types cannot be intercepted due to boxing limitations.
 
-2. **Pointer types excluded**: Functions with pointer parameters or return types cannot be intercepted due to boxing limitations.
+2. **Native functions excluded**: Functions declared with `native fn` bypass interception.
 
-3. **Native functions excluded**: Functions declared with `native fn` bypass interception.
-
-4. **Single return value**: Interceptors can only return a single value, not multiple return values.
+3. **Single return value**: Interceptors can only return a single value, not multiple return values.
 
 ## Thread Safety
 
