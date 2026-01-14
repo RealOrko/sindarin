@@ -3,9 +3,49 @@
 #include "parser/parser_expr.h"
 #include "parser/parser_stmt.h"
 #include "ast/ast_expr.h"
+#include "ast/ast_stmt.h"
 #include "debug.h"
 #include <stdlib.h>
 #include <string.h>
+
+/* Helper function to check if a token type can start an expression */
+static int parser_can_start_expression(SnTokenType type)
+{
+    switch (type)
+    {
+        /* Literals */
+        case TOKEN_INT_LITERAL:
+        case TOKEN_LONG_LITERAL:
+        case TOKEN_BYTE_LITERAL:
+        case TOKEN_DOUBLE_LITERAL:
+        case TOKEN_FLOAT_LITERAL:
+        case TOKEN_UINT_LITERAL:
+        case TOKEN_UINT32_LITERAL:
+        case TOKEN_INT32_LITERAL:
+        case TOKEN_CHAR_LITERAL:
+        case TOKEN_STRING_LITERAL:
+        case TOKEN_INTERPOL_STRING:
+        case TOKEN_BOOL_LITERAL:
+        case TOKEN_NIL:
+        /* Identifiers and lambdas */
+        case TOKEN_IDENTIFIER:
+        case TOKEN_FN:
+        /* Grouping and array literals */
+        case TOKEN_LEFT_PAREN:
+        case TOKEN_LEFT_BRACE:
+        /* Unary operators */
+        case TOKEN_BANG:
+        case TOKEN_MINUS:
+        /* Type operators */
+        case TOKEN_TYPEOF:
+        case TOKEN_SIZEOF:
+        /* Function reference */
+        case TOKEN_AMPERSAND:
+            return 1;
+        default:
+            return 0;
+    }
+}
 
 Stmt *parser_var_declaration(Parser *parser)
 {
@@ -234,17 +274,45 @@ Stmt *parser_function_declaration(Parser *parser)
     symbol_table_add_symbol(parser->symbol_table, name, function_type);
 
     parser_consume(parser, TOKEN_ARROW, "Expected '=>' before function body");
-    skip_newlines(parser);
 
-    Stmt *body = parser_indented_block(parser);
-    if (body == NULL)
+    /* Check for expression-bodied function (expression on same line as arrow) */
+    Token arrow_token = parser->previous;
+    Stmt **stmts = NULL;
+    int stmt_count = 0;
+
+    if (parser->current.line == arrow_token.line &&
+        parser_can_start_expression(parser->current.type))
     {
-        body = ast_create_block_stmt(parser->arena, NULL, 0, NULL);
-    }
+        /* Expression-bodied function: fn foo(): int => 42 */
+        Expr *body_expr = parser_expression(parser);
 
-    Stmt **stmts = body->as.block.statements;
-    int stmt_count = body->as.block.count;
-    body->as.block.statements = NULL;
+        /* Create an implicit return statement wrapping the expression */
+        Stmt *return_stmt = ast_create_return_stmt(parser->arena, arrow_token, body_expr, &arrow_token);
+
+        stmts = arena_alloc(parser->arena, sizeof(Stmt *));
+        if (stmts == NULL)
+        {
+            parser_error(parser, "Out of memory");
+            return NULL;
+        }
+        stmts[0] = return_stmt;
+        stmt_count = 1;
+    }
+    else
+    {
+        /* Block-bodied function */
+        skip_newlines(parser);
+
+        Stmt *body = parser_indented_block(parser);
+        if (body == NULL)
+        {
+            body = ast_create_block_stmt(parser->arena, NULL, 0, NULL);
+        }
+
+        stmts = body->as.block.statements;
+        stmt_count = body->as.block.count;
+        body->as.block.statements = NULL;
+    }
 
     Stmt *func_stmt = ast_create_function_stmt(parser->arena, name, params, param_count, return_type, stmts, stmt_count, &fn_token);
     if (func_stmt != NULL)
@@ -394,28 +462,54 @@ Stmt *parser_native_function_declaration(Parser *parser)
     /* Native functions can have either:
      * 1. No body (just declaration) - ends with newline or semicolon
      * 2. A Sindarin body using '=>' (native fn with Sindarin implementation)
+     *    This can be expression-bodied (same line) or block-bodied (indented)
      */
     if (parser_match(parser, TOKEN_ARROW))
     {
-        /* Native function with Sindarin body */
-        skip_newlines(parser);
+        Token arrow_token = parser->previous;
 
         /* Set native context so lambdas parsed in body are marked as native */
         int saved_in_native = parser->in_native_function;
         parser->in_native_function = 1;
 
-        Stmt *body = parser_indented_block(parser);
-        if (body == NULL)
+        /* Check for expression-bodied native function (expression on same line as arrow) */
+        if (parser->current.line == arrow_token.line &&
+            parser_can_start_expression(parser->current.type))
         {
-            body = ast_create_block_stmt(parser->arena, NULL, 0, NULL);
+            /* Expression-bodied native function: native fn foo(): int => 42 */
+            Expr *body_expr = parser_expression(parser);
+
+            /* Create an implicit return statement wrapping the expression */
+            Stmt *return_stmt = ast_create_return_stmt(parser->arena, arrow_token, body_expr, &arrow_token);
+
+            stmts = arena_alloc(parser->arena, sizeof(Stmt *));
+            if (stmts == NULL)
+            {
+                parser_error(parser, "Out of memory");
+                parser->in_native_function = saved_in_native;
+                return NULL;
+            }
+            stmts[0] = return_stmt;
+            stmt_count = 1;
+        }
+        else
+        {
+            /* Block-bodied native function */
+            skip_newlines(parser);
+
+            Stmt *body = parser_indented_block(parser);
+            if (body == NULL)
+            {
+                body = ast_create_block_stmt(parser->arena, NULL, 0, NULL);
+            }
+
+            stmts = body->as.block.statements;
+            stmt_count = body->as.block.count;
+            body->as.block.statements = NULL;
         }
 
         /* Restore native context */
         parser->in_native_function = saved_in_native;
-
-        stmts = body->as.block.statements;
-        stmt_count = body->as.block.count;
-        body->as.block.statements = NULL;
     }
     else
     {

@@ -1373,7 +1373,8 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         }
         break;
     case EXPR_AS_TYPE:
-        /* 'as Type' operator: casts an any value to a concrete type */
+        /* 'as Type' operator: casts an any value to a concrete type,
+         * or performs numeric type conversions (int -> byte, double -> int, etc.) */
         /* Returns the target type */
         {
             Type *operand_type = type_check_expr(expr->as.as_type.operand, table);
@@ -1405,9 +1406,21 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
                     DEBUG_VERBOSE("'as' array type cast: returns target type %d", t->kind);
                 }
             }
+            else if (is_numeric_type(operand_type) && is_numeric_type(target_type))
+            {
+                /* Numeric type conversion: int -> byte, double -> int, etc. */
+                t = target_type;
+                DEBUG_VERBOSE("'as' numeric type cast: %d -> %d", operand_type->kind, target_type->kind);
+            }
+            else if (operand_type->kind == TYPE_BOOL && is_numeric_type(target_type))
+            {
+                /* Bool to numeric conversion: true -> 1, false -> 0 */
+                t = target_type;
+                DEBUG_VERBOSE("'as' bool to numeric cast: -> %d", target_type->kind);
+            }
             else
             {
-                type_error(expr->token, "'as <type>' cast requires an 'any' or 'any[]' type operand");
+                type_error(expr->token, "'as <type>' cast requires an 'any', 'any[]', or numeric type operand");
                 t = NULL;
             }
         }

@@ -629,6 +629,109 @@ fn process(path: str): void =>
     print(data)
 ```
 
+### Expression-bodied Native Functions
+
+For simple native functions, use the expression-bodied syntax where the expression follows `=>` on the same line:
+
+```sindarin
+// Simple arithmetic
+native fn double_it(x: int): int => x * 2
+native fn negate(x: double): double => -x
+
+// Pointer operations with expression body
+native fn is_null(ptr: *void): bool => ptr == nil
+
+// Wrapping a C function call
+native fn abs_val(x: int): int => (x < 0) ? -x : x
+```
+
+This is equivalent to:
+
+```sindarin
+native fn double_it(x: int): int =>
+    return x * 2
+```
+
+Expression-bodied syntax is particularly useful for thin wrappers around C library functions:
+
+```sindarin
+#pragma include "<math.h>"
+#pragma link "m"
+
+native fn sin(x: double): double     // External C function
+native fn cos(x: double): double     // External C function
+
+native fn degrees_to_radians(deg: double): double => deg * 3.14159 / 180.0
+native fn sin_deg(deg: double): double => sin(degrees_to_radians(deg))
+native fn cos_deg(deg: double): double => cos(degrees_to_radians(deg))
+```
+
+---
+
+## sizeof for C Interop
+
+The `sizeof` operator is essential for C interoperability. It delegates directly to C's `sizeof` and works on types, variables, and pointer types.
+
+### Basic Usage
+
+```sindarin
+native fn allocate_buffer(count: int): *byte =>
+    return malloc(count * sizeof(byte)) as *byte
+
+native fn allocate_ints(count: int): *int =>
+    return malloc(count * sizeof(int)) as *int
+```
+
+### With Structs
+
+```sindarin
+struct Point =>
+    x: double
+    y: double
+
+native fn allocate_points(n: int): *Point =>
+    return malloc(n * sizeof(Point)) as *Point
+
+native fn copy_point(dest: *Point, src: *Point): void =>
+    memcpy(dest as *void, src as *void, sizeof(Point))
+```
+
+### With qsort and Similar C Functions
+
+```sindarin
+native fn compare_ints(a: *void, b: *void): int32 =>
+    var ia: *int = a as *int
+    var ib: *int = b as *int
+    return (*ia - *ib) as int32
+
+native fn sort_integers(arr: int[]): void =>
+    qsort(arr as ref, arr.length, sizeof(int), compare_ints)
+```
+
+### Pointer Types
+
+In native functions, `sizeof` works on pointer types:
+
+```sindarin
+native fn example(): void =>
+    var ptr_size: int = sizeof(*int)     // 8
+    var void_ptr: int = sizeof(*void)    // 8
+    var struct_ptr: int = sizeof(*Point) // 8
+```
+
+### Arrays vs Element Size
+
+For arrays, use `sizeof` on the element type, not the array:
+
+```sindarin
+native fn process_array(arr: int[]): void =>
+    // sizeof(arr) returns 8 (pointer size)
+    // sizeof(int) returns 8 (element size)
+    var total_bytes: int = arr.length * sizeof(int)
+```
+
+See [TYPES.md](TYPES.md#sizeof-operator) for complete `sizeof` documentation.
+
 ---
 
 ## Complete Example: Using the Math Library

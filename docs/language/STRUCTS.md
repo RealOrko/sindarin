@@ -80,7 +80,21 @@ var p: Point = Point { x: 1.0, y: 2.0 }  // OK: all fields provided
 // var p: Point = Point {}              // ERROR: missing required fields
 ```
 
-**Note:** Struct literals must be on a single line. Multi-line struct literals are not supported.
+Struct literals can span multiple lines for better readability:
+
+```sindarin
+var config: Config = Config {
+    timeout: 60,
+    retries: 5,
+    verbose: true
+}
+
+var srv: ServerConfig = ServerConfig {
+    host: "api.example.com",
+    port: 443,
+    maxConnections: 1000
+}
+```
 
 ## Field Access
 
@@ -191,7 +205,7 @@ See [MEMORY.md](MEMORY.md) for more details on arena memory management.
 
 ### `sizeof`
 
-Get the size of a struct in bytes:
+Get the size of a struct in bytes (includes padding for alignment):
 
 ```sindarin
 struct Packet =>
@@ -202,6 +216,28 @@ struct Packet =>
 var size: int = sizeof(Packet)
 var size2: int = sizeof Packet  // Parentheses optional
 ```
+
+Works on both types and struct variables:
+
+```sindarin
+struct Point =>
+    x: double
+    y: double
+
+sizeof(Point)           // 16 (type)
+
+var p: Point = Point { x: 1.0, y: 2.0 }
+sizeof(p)               // 16 (variable)
+```
+
+Useful for C interop when allocating memory or working with binary data:
+
+```sindarin
+native fn allocate_points(count: int): *Point =>
+    return malloc(count * sizeof(Point)) as *Point
+```
+
+See [TYPES.md](TYPES.md#sizeof-operator) for complete `sizeof` documentation including primitive types and arrays.
 
 ### Equality (`==` and `!=`)
 
@@ -473,10 +509,9 @@ All struct fields are publicly accessible. There are no access modifiers.
 
 ## Limitations
 
-1. **Struct literals must be single-line** - Multi-line struct literals are not supported
-2. **No anonymous structs** - All structs must have named declarations
-3. **No struct methods** - Use standalone functions instead
-4. **Native structs require native context** - Can only be used in `native fn` functions
+1. **No anonymous structs** - All structs must have named declarations
+2. **No struct methods** - Use standalone functions instead
+3. **Native structs require native context** - Can only be used in `native fn` functions
 
 ## See Also
 

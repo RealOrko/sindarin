@@ -259,7 +259,7 @@ native fn sort_integers(arr: int[]): void =>
 
 ### Solution
 
-Add `sizeof()` builtin that works in both regular and native functions, with context-appropriate behavior for arrays.
+Add `sizeof()` builtin that delegates directly to C's `sizeof` operator.
 
 ### On Types
 
@@ -278,45 +278,27 @@ sizeof(MyStruct) // Size of struct including padding
 var x: int = 42
 sizeof(x)        // 8 (size of int)
 
-var p: *MyStruct = get_struct()
-sizeof(p)        // 8 (size of pointer)
-sizeof(p as val) // Size of MyStruct
+var p: Point = Point { x: 1.0, y: 2.0 }
+sizeof(p)        // 16 (size of Point struct)
 ```
 
 Note: Like C, `sizeof(expr)` determines the type at compile time - the expression is not evaluated.
 
-### On Arrays
-
-Arrays have context-dependent behavior:
-
-```sindarin
-var arr: int[] = {1, 2, 3, 4, 5}
-
-// In regular functions: returns element count (same as .length)
-fn example(): void =>
-    var count: int = sizeof(arr)  // 5
-
-// In native functions: returns byte size (like C)
-native fn example(): void =>
-    var bytes: int = sizeof(arr)  // 40 (5 * 8 bytes)
-```
-
-This allows `sizeof()` to be intuitive in regular code while matching C semantics in native interop:
+### Usage with C APIs
 
 ```sindarin
 native fn sort_integers(arr: int[]): void =>
-    qsort(arr as ref, sizeof(arr) / sizeof(int), sizeof(int), cmp)
-    // Or more simply:
     qsort(arr as ref, arr.length, sizeof(int), cmp)
 ```
 
+For arrays, use `.length` to get element count - `sizeof()` returns the size of the array pointer type.
+
 ### Implementation Notes
 
-- Parser recognizes `sizeof` as builtin
-- Type checker tracks whether we're in native context
-- For arrays in regular functions: emit `rt_array_length(arr)`
-- For arrays in native functions: emit `sizeof(arr)` (C semantics)
-- For types/non-array expressions: emit `sizeof(c_type_name)`
+- Parser recognizes `sizeof` as builtin (with or without parentheses)
+- Delegates directly to C's `sizeof` operator
+- Works on types: `sizeof(int)`, `sizeof(MyStruct)`
+- Works on expressions: `sizeof(x)`, `sizeof x`
 
 ---
 

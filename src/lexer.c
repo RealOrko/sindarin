@@ -329,6 +329,16 @@ skip_indent_processing:
             DEBUG_VERBOSE("Line %d: Emitting OR", lexer->line);
             return lexer_make_token(lexer, TOKEN_OR);
         }
+        /* Check for pipe block string: | followed by optional whitespace then newline */
+        {
+            const char *check = lexer->current;
+            while (*check == ' ' || *check == '\t') check++;
+            if (*check == '\n' || *check == '\r' || *check == '\0')
+            {
+                /* This is a pipe block string */
+                return lexer_scan_pipe_string(lexer, 0);
+            }
+        }
         DEBUG_VERBOSE("Line %d: Emitting OR (single)", lexer->line);
         return lexer_make_token(lexer, TOKEN_OR);
     case '!':
@@ -347,6 +357,20 @@ skip_indent_processing:
             token.type = TOKEN_INTERPOL_STRING;
             DEBUG_VERBOSE("Line %d: Emitting INTERPOL_STRING", lexer->line);
             return token;
+        }
+        /* Check for interpolated pipe block string: $| followed by optional whitespace then newline */
+        if (lexer_peek(lexer) == '|')
+        {
+            lexer_advance(lexer); /* consume '|' */
+            const char *check = lexer->current;
+            while (*check == ' ' || *check == '\t') check++;
+            if (*check == '\n' || *check == '\r' || *check == '\0')
+            {
+                /* This is an interpolated pipe block string */
+                return lexer_scan_pipe_string(lexer, 1);
+            }
+            /* Not a pipe block string, back up and treat '$' as error */
+            lexer->current--;
         }
         /* intentional fallthrough */
     case '#':

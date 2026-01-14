@@ -36,6 +36,7 @@ Token lexer_scan_identifier(Lexer *lexer);
 Token lexer_scan_number(Lexer *lexer);
 Token lexer_scan_string(Lexer *lexer);
 Token lexer_scan_char(Lexer *lexer);
+Token lexer_scan_pipe_string(Lexer *lexer, int is_interpolated);
 
 SnTokenType lexer_identifier_type(Lexer *lexer);
 SnTokenType lexer_check_keyword(Lexer *lexer, int start, int length, const char *rest, SnTokenType type);

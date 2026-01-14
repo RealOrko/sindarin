@@ -65,6 +65,14 @@ const char *token_type_to_string(SnTokenType type)
         return "BYTE_LITERAL";
     case TOKEN_DOUBLE_LITERAL:
         return "DOUBLE_LITERAL";
+    case TOKEN_FLOAT_LITERAL:
+        return "FLOAT_LITERAL";
+    case TOKEN_UINT_LITERAL:
+        return "UINT_LITERAL";
+    case TOKEN_UINT32_LITERAL:
+        return "UINT32_LITERAL";
+    case TOKEN_INT32_LITERAL:
+        return "INT32_LITERAL";
     case TOKEN_CHAR_LITERAL:
         return "CHAR_LITERAL";
     case TOKEN_STRING_LITERAL:
@@ -274,6 +282,18 @@ void token_print(Token *token)
         break;
     case TOKEN_DOUBLE_LITERAL:
         printf(", value: %fd", token->literal.double_value);
+        break;
+    case TOKEN_FLOAT_LITERAL:
+        printf(", value: %ff", token->literal.double_value);
+        break;
+    case TOKEN_UINT_LITERAL:
+        printf(", value: %" PRIu64 "u", (uint64_t)token->literal.int_value);
+        break;
+    case TOKEN_UINT32_LITERAL:
+        printf(", value: %" PRIu32 "u32", (uint32_t)token->literal.int_value);
+        break;
+    case TOKEN_INT32_LITERAL:
+        printf(", value: %" PRId32 "i32", (int32_t)token->literal.int_value);
         break;
     case TOKEN_CHAR_LITERAL:
         printf(", value: '%c'", token->literal.char_value);

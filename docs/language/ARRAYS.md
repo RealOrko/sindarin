@@ -18,6 +18,40 @@ var bools: bool[] = {true, false, true}
 var strings: str[] = {"hello", "world"}
 ```
 
+### Multi-line Array Literals
+
+Array literals can span multiple lines for better readability:
+
+```sindarin
+var numbers: int[] = {
+    1, 2, 3,
+    4, 5, 6,
+    7, 8, 9
+}
+
+var bytes: byte[] = {
+    72, 101, 108, 108, 111,   // "Hello"
+    44, 32,                    // ", "
+    87, 111, 114, 108, 100, 33 // "World!"
+}
+
+var names: str[] = {
+    "Alice",
+    "Bob",
+    "Charlie"
+}
+```
+
+Nested arrays also support multi-line formatting:
+
+```sindarin
+var matrix: int[][] = {
+    {1, 2, 3},
+    {4, 5, 6},
+    {7, 8, 9}
+}
+```
+
 ## Array Properties
 
 ### Length

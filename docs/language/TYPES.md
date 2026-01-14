@@ -81,11 +81,11 @@ Escape sequences work the same as in strings:
 Unsigned 8-bit integer (0-255). Used for binary data operations.
 
 ```sindarin
-var b: byte = 255
-var zero: byte = 0
+var b: byte = 255b
+var zero: byte = 0b
 ```
 
-**Note:** Hex literals (like `0xFF`) are not yet implemented. Use decimal values.
+**Note:** Hex literals (like `0xFF`) are not yet implemented. Use decimal values with the `b` or `B` suffix.
 
 Bytes implicitly convert to integers for arithmetic:
 
@@ -101,8 +101,8 @@ var product: int = b1 * b2  // 5000 (exceeds byte range, int handles it)
 32-bit signed integer. Used primarily for C interoperability.
 
 ```sindarin
-var small: int32 = 42
-var negative: int32 = -100
+var small: int32 = 42i32
+var negative: int32 = -100i32
 ```
 
 Range: -2,147,483,648 to 2,147,483,647
@@ -112,8 +112,8 @@ Range: -2,147,483,648 to 2,147,483,647
 64-bit unsigned integer. Used for sizes and C interoperability.
 
 ```sindarin
-var size: uint = 18446744073709551615  // Max uint64
-var count: uint = 0
+var size: uint = 18446744073709551615u  // Max uint64
+var count: uint = 0u
 ```
 
 Range: 0 to 18,446,744,073,709,551,615
@@ -123,8 +123,8 @@ Range: 0 to 18,446,744,073,709,551,615
 32-bit unsigned integer. Used primarily for C interoperability.
 
 ```sindarin
-var flags: uint32 = 255
-var mask: uint32 = 0
+var flags: uint32 = 255u32
+var mask: uint32 = 0u32
 ```
 
 Range: 0 to 4,294,967,295
@@ -134,8 +134,48 @@ Range: 0 to 4,294,967,295
 32-bit floating-point number (IEEE 754 single precision). Used for C interoperability when `double` precision is not needed.
 
 ```sindarin
-var precise: float = 3.14
-var small: float = 0.001
+var precise: float = 3.14f
+var small: float = 0.001f
+```
+
+## Numeric Literal Suffixes
+
+Sindarin supports type suffixes on numeric literals to explicitly specify the type:
+
+| Suffix | Type | Example |
+|--------|------|---------|
+| (none) | `int` | `42` |
+| `l` or `L` | `long` | `42l`, `42L` |
+| `b` or `B` | `byte` | `255b`, `255B` |
+| (none) or `d` or `D` | `double` | `3.14`, `3.14d`, `3.14D` |
+| `f` or `F` | `float` | `3.14f`, `3.14F` |
+| `u` or `U` | `uint` | `1000u`, `1000U` |
+| `u32` or `U32` | `uint32` | `42u32`, `42U32` |
+| `i32` or `I32` | `int32` | `42i32`, `42I32` |
+
+### Why Use Suffixes?
+
+Sindarin does not implicitly widen integer types. Without suffixes, you must match the declared type exactly:
+
+```sindarin
+var x: long = 100     // ERROR: int literal cannot assign to long
+var x: long = 100l    // OK: explicit long literal
+
+var y: float = 3.14   // ERROR: double literal cannot assign to float
+var y: float = 3.14f  // OK: explicit float literal
+
+var z: byte = 255     // ERROR: int literal cannot assign to byte
+var z: byte = 255b    // OK: explicit byte literal
+```
+
+### Suffixes in Expressions
+
+Literals with suffixes work naturally in expressions:
+
+```sindarin
+var sum: long = 10l + 20L           // long + long = long
+var product: uint = 100u * 2u       // uint * uint = uint
+var result: float = 1.5f + 2.5f     // float + float = float
 ```
 
 ### str
@@ -566,15 +606,15 @@ Methods:
 | Type | Description | Example Literals |
 |------|-------------|------------------|
 | `int` | 64-bit signed integer | `42`, `-7`, `0` |
-| `long` | 64-bit signed integer | `42L`, `1000L` |
-| `int32` | 32-bit signed integer | `42`, `-7` |
-| `uint` | 64-bit unsigned integer | `42`, `0` |
-| `uint32` | 32-bit unsigned integer | `42`, `255` |
-| `double` | 64-bit floating-point | `3.14`, `-2.5`, `1.5e10` |
-| `float` | 32-bit floating-point | `3.14`, `0.001` |
+| `long` | 64-bit signed integer | `42l`, `42L` |
+| `int32` | 32-bit signed integer | `42i32`, `42I32` |
+| `uint` | 64-bit unsigned integer | `42u`, `42U` |
+| `uint32` | 32-bit unsigned integer | `42u32`, `42U32` |
+| `double` | 64-bit floating-point | `3.14`, `3.14d`, `1.5e10` |
+| `float` | 32-bit floating-point | `3.14f`, `3.14F` |
 | `bool` | Boolean | `true`, `false` |
 | `char` | Single character | `'A'`, `'\n'`, `'\t'` |
-| `byte` | Unsigned 8-bit (0-255) | `255`, `0` |
+| `byte` | Unsigned 8-bit (0-255) | `255b`, `255B` |
 | `str` | String | `"hello"`, `$"Hi {name}"` |
 | `void` | No return value | (function returns only) |
 | `type[]` | Array of type | `{1, 2, 3}`, `{"a", "b"}` |
@@ -655,7 +695,90 @@ fn getNames(): str[] =>
 
 - `byte` to `int` (for arithmetic operations)
 
-### Explicit Conversions
+### Explicit Conversions with `as`
+
+Sindarin supports explicit type casting between numeric types using the `as` keyword:
+
+```sindarin
+var x: int = 42
+var b: byte = x as byte      // int to byte
+var d: double = x as double  // int to double
+var f: float = d as float    // double to float
+```
+
+#### Supported Numeric Conversions
+
+All numeric types can be cast to each other:
+
+| From | To |
+|------|-----|
+| `int` | `byte`, `uint`, `int32`, `uint32`, `long`, `double`, `float`, `char` |
+| `byte` | `int`, `uint`, `int32`, `uint32`, `long`, `double`, `float`, `char` |
+| `uint` | `int`, `byte`, `int32`, `uint32`, `long`, `double`, `float`, `char` |
+| `int32` | `int`, `byte`, `uint`, `uint32`, `long`, `double`, `float`, `char` |
+| `uint32` | `int`, `byte`, `uint`, `int32`, `long`, `double`, `float`, `char` |
+| `long` | `int`, `byte`, `uint`, `int32`, `uint32`, `double`, `float`, `char` |
+| `double` | `int`, `byte`, `uint`, `int32`, `uint32`, `long`, `float`, `char` |
+| `float` | `int`, `byte`, `uint`, `int32`, `uint32`, `long`, `double`, `char` |
+| `char` | `int`, `byte`, `uint`, `int32`, `uint32`, `long`, `double`, `float` |
+| `bool` | `int`, `byte`, `uint`, `int32`, `uint32`, `long`, `double`, `float` |
+
+#### Truncation and Precision
+
+When casting to a smaller type, values may be truncated:
+
+```sindarin
+var big: int = 1000
+var small: byte = big as byte  // Truncates to 232 (1000 mod 256)
+
+var pi: double = 3.7
+var truncated: int = pi as int // Truncates to 3 (no rounding)
+```
+
+#### Boolean to Numeric
+
+Boolean values convert to numeric types:
+
+```sindarin
+var t: bool = true
+var f: bool = false
+var t_int: int = t as int     // 1
+var f_int: int = f as int     // 0
+var t_double: double = t as double  // 1.0
+```
+
+#### Character Conversions
+
+Characters can be cast to/from numeric types using their character code:
+
+```sindarin
+var c: char = 'A'
+var code: int = c as int      // 65
+
+var num: int = 66
+var letter: char = num as char // 'B'
+```
+
+#### Chained Casts
+
+Casts can be chained:
+
+```sindarin
+var orig: double = 123.456
+var result: byte = (orig as int) as byte  // 123
+```
+
+#### Casts in Expressions
+
+Casts have high precedence and work in expressions:
+
+```sindarin
+var x: double = 10.5
+var y: double = 3.5
+var sum: int = (x as int) + (y as int)  // 13
+```
+
+### String and Byte Conversions
 
 String to bytes:
 ```sindarin
@@ -665,6 +788,94 @@ var bytes: byte[] = "Hello".toBytes()
 Bytes to string:
 ```sindarin
 var text: str = bytes.toString()
+```
+
+## sizeof Operator
+
+The `sizeof` operator returns the size in bytes of a type or expression. It delegates directly to C's `sizeof` operator.
+
+### Syntax
+
+Parentheses are optional:
+
+```sindarin
+sizeof(int)     // 8
+sizeof int      // 8
+sizeof(x)       // size of variable x
+sizeof x        // size of variable x
+```
+
+### On Primitive Types
+
+```sindarin
+sizeof(int)     // 8
+sizeof(long)    // 8
+sizeof(double)  // 8
+sizeof(float)   // 4
+sizeof(byte)    // 1
+sizeof(bool)    // 1
+sizeof(char)    // 1
+sizeof(int32)   // 4
+sizeof(uint)    // 8
+sizeof(uint32)  // 4
+```
+
+### On Variables
+
+`sizeof` returns the size of the variable's type:
+
+```sindarin
+var x: int = 42
+var d: double = 3.14
+var b: byte = 255b
+
+sizeof(x)       // 8
+sizeof(d)       // 8
+sizeof(b)       // 1
+```
+
+### On Structs
+
+Returns the struct size including padding:
+
+```sindarin
+struct Point =>
+    x: double
+    y: double
+
+sizeof(Point)   // 16 (2 * 8 bytes)
+
+var p: Point = Point { x: 1.0, y: 2.0 }
+sizeof(p)       // 16
+```
+
+### On Arrays
+
+For array variables, `sizeof` returns the pointer size (8 bytes), not the array contents size. Use `.length` to get the element count:
+
+```sindarin
+var arr: int[] = {1, 2, 3, 4, 5}
+sizeof(arr)     // 8 (pointer size)
+arr.length      // 5 (element count)
+```
+
+### In Expressions
+
+`sizeof` can be used in expressions:
+
+```sindarin
+var total: int = sizeof(int) + sizeof(double)  // 16
+var count: int = 1024 / sizeof(int)            // 128
+```
+
+### In Native Functions
+
+In native functions, `sizeof` also works on pointer types:
+
+```sindarin
+native fn example(): void =>
+    sizeof(*int)    // 8
+    sizeof(*void)   // 8
 ```
 
 ## See Also

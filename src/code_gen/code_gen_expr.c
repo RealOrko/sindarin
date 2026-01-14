@@ -550,9 +550,20 @@ static char *code_gen_is_expression(CodeGen *gen, Expr *expr)
     return arena_sprintf(gen->arena, "((%s).tag == %s)", operand_code, type_tag);
 }
 
+/* Helper to check if a type kind is numeric (for numeric type casts) */
+static bool is_numeric_kind(TypeKind kind)
+{
+    return kind == TYPE_INT || kind == TYPE_INT32 ||
+           kind == TYPE_UINT || kind == TYPE_UINT32 ||
+           kind == TYPE_LONG || kind == TYPE_DOUBLE ||
+           kind == TYPE_FLOAT || kind == TYPE_BYTE ||
+           kind == TYPE_CHAR;
+}
+
 /**
  * Generate code for 'as Type' cast expression.
- * expr as Type - casts any value to concrete type (panics on mismatch)
+ * expr as Type - casts any value to concrete type (panics on mismatch),
+ * or performs numeric type conversion (int -> byte, double -> int, etc.)
  */
 static char *code_gen_as_type_expression(CodeGen *gen, Expr *expr)
 {
@@ -613,6 +624,16 @@ static char *code_gen_as_type_expression(CodeGen *gen, Expr *expr)
         {
             return arena_sprintf(gen->arena, "%s(%s, %s)", conv_func, ARENA_VAR(gen), operand_code);
         }
+    }
+
+    /* Check if this is a numeric type cast */
+    if (operand_type != NULL && target_type != NULL &&
+        (is_numeric_kind(operand_type->kind) || operand_type->kind == TYPE_BOOL) &&
+        is_numeric_kind(target_type->kind))
+    {
+        /* Generate a C-style cast for numeric conversions */
+        const char *c_type = get_c_type(gen->arena, target_type);
+        return arena_sprintf(gen->arena, "((%s)(%s))", c_type, operand_code);
     }
 
     /* Use the unbox helper function for single any values */

@@ -11,6 +11,114 @@ var greeting: str = "Hello, World!"
 var empty: str = ""
 ```
 
+## Multi-line Strings (Pipe Block Syntax)
+
+For multi-line strings, use the pipe block syntax with `|`:
+
+```sindarin
+var sql: str = |
+    SELECT *
+    FROM users
+    WHERE active = true
+
+print(sql)
+```
+
+Output:
+```
+SELECT *
+FROM users
+WHERE active = true
+```
+
+### How It Works
+
+- The `|` character introduces a multi-line string block
+- Content starts on the line after `|`
+- Leading whitespace is automatically stripped based on the minimum indentation
+- The string ends when a line with less indentation than the starting `|` is encountered
+
+### Preserving Relative Indentation
+
+Inner indentation relative to the first line is preserved:
+
+```sindarin
+var code: str = |
+    fn main():
+        print("Hello")
+        if true:
+            print("World")
+
+print(code)
+```
+
+Output:
+```
+fn main():
+    print("Hello")
+    if true:
+        print("World")
+```
+
+### Interpolated Multi-line Strings
+
+Use `$|` for multi-line strings with interpolation:
+
+```sindarin
+var name: str = "Alice"
+var age: int = 30
+
+var greeting: str = $|
+    Hello {name}!
+    You are {age} years old.
+    Next year you'll be {age + 1}.
+
+print(greeting)
+```
+
+Output:
+```
+Hello Alice!
+You are 30 years old.
+Next year you'll be 31.
+```
+
+### Common Use Cases
+
+**SQL Queries:**
+```sindarin
+var table: str = "users"
+var query: str = $|
+    SELECT id, name, email
+    FROM {table}
+    WHERE created_at > '2024-01-01'
+    ORDER BY name ASC
+```
+
+**HTML Templates:**
+```sindarin
+var title: str = "Welcome"
+var html: str = $|
+    <!DOCTYPE html>
+    <html>
+    <head><title>{title}</title></head>
+    <body>
+        <h1>{title}</h1>
+    </body>
+    </html>
+```
+
+**JSON Data:**
+```sindarin
+var name: str = "test"
+var value: int = 42
+var json: str = $|
+    {
+        "name": "{name}",
+        "value": {value}
+    }
+```
+
 ## String Interpolation
 
 Use the `$` prefix to embed expressions in strings:

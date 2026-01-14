@@ -42,6 +42,23 @@ char *code_gen_literal_expression(CodeGen *gen, LiteralExpr *expr)
         return arena_sprintf(gen->arena, "%ldL", expr->value.bool_value ? 1L : 0L);
     case TYPE_BYTE:
         return arena_sprintf(gen->arena, "(uint8_t)%lldLL", (long long)expr->value.int_value);
+    case TYPE_FLOAT:
+    {
+        char *str = arena_sprintf(gen->arena, "%.9gf", expr->value.double_value);
+        if (strchr(str, '.') == NULL && strchr(str, 'e') == NULL && strchr(str, 'E') == NULL)
+        {
+            /* Remove the 'f' suffix and add ".0f" */
+            str[strlen(str) - 1] = '\0';
+            str = arena_sprintf(gen->arena, "%s.0f", str);
+        }
+        return str;
+    }
+    case TYPE_UINT:
+        return arena_sprintf(gen->arena, "%lluULL", (unsigned long long)expr->value.int_value);
+    case TYPE_UINT32:
+        return arena_sprintf(gen->arena, "%uU", (unsigned int)expr->value.int_value);
+    case TYPE_INT32:
+        return arena_sprintf(gen->arena, "%d", (int)expr->value.int_value);
     case TYPE_NIL:
         return arena_strdup(gen->arena, "NULL");
     default:

@@ -31,8 +31,8 @@ fn test_compress_levels(): void =>
     var data: byte[] = {65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65, 65}
 
     // Test different compression levels
-    var fast: byte[] = zlib.compress_data_level(data, zlib.Z_BEST_SPEED())
-    var best: byte[] = zlib.compress_data_level(data, zlib.Z_BEST_COMPRESSION())
+    var fast: byte[] = zlib.compress_data_level(data, zlib.ZLIB_BEST_SPEED())
+    var best: byte[] = zlib.compress_data_level(data, zlib.ZLIB_BEST_COMPRESSION())
     var default_level: byte[] = zlib.compress_data(data)
 
     assert(fast.length > 0, "Fast compression should work")
@@ -125,10 +125,10 @@ fn test_compression_ratio(): void =>
 fn test_error_messages(): void =>
     print("test_error_messages: ")
 
-    assert(zlib.error_message(zlib.Z_OK()) == "OK", "Z_OK message")
-    assert(zlib.error_message(zlib.Z_DATA_ERROR()) == "Data error (corrupted or incomplete)", "Z_DATA_ERROR message")
-    assert(zlib.error_message(zlib.Z_MEM_ERROR()) == "Memory error", "Z_MEM_ERROR message")
-    assert(zlib.error_message(zlib.Z_BUF_ERROR()) == "Buffer error (output too small)", "Z_BUF_ERROR message")
+    assert(zlib.error_message(zlib.ZLIB_OK()) == "OK", "ZLIB_OK message")
+    assert(zlib.error_message(zlib.ZLIB_DATA_ERROR()) == "Data error (corrupted or incomplete)", "ZLIB_DATA_ERROR message")
+    assert(zlib.error_message(zlib.ZLIB_MEM_ERROR()) == "Memory error", "ZLIB_MEM_ERROR message")
+    assert(zlib.error_message(zlib.ZLIB_BUF_ERROR()) == "Buffer error (output too small)", "ZLIB_BUF_ERROR message")
 
     print("PASS\n")
 

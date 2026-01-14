@@ -74,6 +74,30 @@ fn factorial(n: int): int =>
   return n * factorial(n - 1)
 ```
 
+#### Expression-bodied Functions
+
+For simple functions that return a single expression, use the expression-bodied syntax:
+
+```sindarin
+fn add(a: int, b: int): int => a + b
+fn square(x: int): int => x * x
+fn greet(name: str): str => $"Hello, {name}!"
+fn isEven(n: int): bool => n % 2 == 0
+```
+
+The expression after `=>` is implicitly returned. This is equivalent to:
+
+```sindarin
+fn add(a: int, b: int): int =>
+  return a + b
+```
+
+Expression-bodied syntax works with all function types including `native` functions:
+
+```sindarin
+native fn double_it(x: int): int => x * 2
+```
+
 ### String Interpolation
 
 Embed expressions in strings with `$"..."` syntax:

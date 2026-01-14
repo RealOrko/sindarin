@@ -482,6 +482,30 @@ Expr *parser_primary(Parser *parser)
         value.double_value = parser->previous.literal.double_value;
         return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_DOUBLE), false, &parser->previous);
     }
+    if (parser_match(parser, TOKEN_FLOAT_LITERAL))
+    {
+        LiteralValue value;
+        value.double_value = parser->previous.literal.double_value;
+        return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_FLOAT), false, &parser->previous);
+    }
+    if (parser_match(parser, TOKEN_UINT_LITERAL))
+    {
+        LiteralValue value;
+        value.int_value = parser->previous.literal.int_value;
+        return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_UINT), false, &parser->previous);
+    }
+    if (parser_match(parser, TOKEN_UINT32_LITERAL))
+    {
+        LiteralValue value;
+        value.int_value = parser->previous.literal.int_value;
+        return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_UINT32), false, &parser->previous);
+    }
+    if (parser_match(parser, TOKEN_INT32_LITERAL))
+    {
+        LiteralValue value;
+        value.int_value = parser->previous.literal.int_value;
+        return ast_create_literal_expr(parser->arena, value, ast_create_primitive_type(parser->arena, TYPE_INT32), false, &parser->previous);
+    }
     if (parser_match(parser, TOKEN_CHAR_LITERAL))
     {
         LiteralValue value;
@@ -639,10 +663,20 @@ Expr *parser_primary(Parser *parser)
                 int field_count = 0;
                 int field_capacity = 0;
 
+                /* Skip newlines/indent/dedent after opening brace for multi-line struct literals */
+                while (parser_match(parser, TOKEN_NEWLINE) ||
+                       parser_match(parser, TOKEN_INDENT) ||
+                       parser_match(parser, TOKEN_DEDENT)) {}
+
                 if (!parser_check(parser, TOKEN_RIGHT_BRACE))
                 {
                     do
                     {
+                        /* Skip newlines/indent/dedent after comma for multi-line struct literals */
+                        while (parser_match(parser, TOKEN_NEWLINE) ||
+                               parser_match(parser, TOKEN_INDENT) ||
+                               parser_match(parser, TOKEN_DEDENT)) {}
+
                         /* Parse field name */
                         if (!parser_check(parser, TOKEN_IDENTIFIER))
                         {
@@ -685,6 +719,11 @@ Expr *parser_primary(Parser *parser)
                         field_count++;
                     } while (parser_match(parser, TOKEN_COMMA));
                 }
+
+                /* Skip newlines/indent/dedent before closing brace for multi-line struct literals */
+                while (parser_match(parser, TOKEN_NEWLINE) ||
+                       parser_match(parser, TOKEN_INDENT) ||
+                       parser_match(parser, TOKEN_DEDENT)) {}
 
                 parser_consume(parser, TOKEN_RIGHT_BRACE, "Expected '}' after struct literal");
 
@@ -921,10 +960,20 @@ Expr *parser_primary(Parser *parser)
         int count = 0;
         int capacity = 0;
 
+        /* Skip newlines/indent/dedent after opening brace for multi-line array literals */
+        while (parser_match(parser, TOKEN_NEWLINE) ||
+               parser_match(parser, TOKEN_INDENT) ||
+               parser_match(parser, TOKEN_DEDENT)) {}
+
         if (!parser_check(parser, TOKEN_RIGHT_BRACE))
         {
             do
             {
+                /* Skip newlines/indent/dedent after comma for multi-line array literals */
+                while (parser_match(parser, TOKEN_NEWLINE) ||
+                       parser_match(parser, TOKEN_INDENT) ||
+                       parser_match(parser, TOKEN_DEDENT)) {}
+
                 Expr *elem;
                 // Check for spread operator: ...expr
                 if (parser_match(parser, TOKEN_SPREAD))
@@ -959,6 +1008,11 @@ Expr *parser_primary(Parser *parser)
                 }
             } while (parser_match(parser, TOKEN_COMMA));
         }
+
+        /* Skip newlines/indent/dedent before closing brace for multi-line array literals */
+        while (parser_match(parser, TOKEN_NEWLINE) ||
+               parser_match(parser, TOKEN_INDENT) ||
+               parser_match(parser, TOKEN_DEDENT)) {}
 
         parser_consume(parser, TOKEN_RIGHT_BRACE, "Expected '}' after array elements");
         return ast_create_array_expr(parser->arena, elements, count, &left_brace);
