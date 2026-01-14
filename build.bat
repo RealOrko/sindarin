@@ -210,6 +210,13 @@ if exist "bin\tests.exe" (
     set "BUILD_SUCCESS=0"
 )
 
+if exist "bin\lib\clang\arena.o" (
+    echo      bin\lib\clang\  - OK
+) else (
+    echo      bin\lib\clang\  - MISSING ^(runtime not built^)
+    set "BUILD_SUCCESS=0"
+)
+
 if "%BUILD_SUCCESS%"=="0" (
     echo.
     echo ERROR: Build completed but expected outputs are missing.

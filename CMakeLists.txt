@@ -217,12 +217,16 @@ file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 file(MAKE_DIRECTORY ${INCLUDE_DIR})
 file(MAKE_DIRECTORY ${RUNTIME_INCLUDE_DIR})
 
-# Copy config files to bin directory
-# Use file(INSTALL) which handles existing files gracefully and works cross-platform
+# Copy config files to bin directory (only if they don't exist)
+# This allows setup.bat to create custom configs that won't be overwritten
 file(GLOB CONFIG_FILES "${CMAKE_SOURCE_DIR}/etc/*.cfg")
-if(CONFIG_FILES)
-    file(INSTALL ${CONFIG_FILES} DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-endif()
+foreach(CONFIG_FILE ${CONFIG_FILES})
+    get_filename_component(CONFIG_NAME ${CONFIG_FILE} NAME)
+    set(DEST_CONFIG "${CMAKE_SOURCE_DIR}/bin/${CONFIG_NAME}")
+    if(NOT EXISTS ${DEST_CONFIG})
+        file(INSTALL ${CONFIG_FILE} DESTINATION "${CMAKE_SOURCE_DIR}/bin")
+    endif()
+endforeach()
 
 # Copy runtime headers
 if(EXISTS "${CMAKE_SOURCE_DIR}/src/runtime.h")
@@ -279,6 +283,7 @@ if(NOT MSVC)
         set(OUTPUT_FILE ${RUNTIME_LIB_DIR}/${OUTPUT_NAME}.o)
         add_custom_command(
             OUTPUT ${OUTPUT_FILE}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_LIB_DIR}
             COMMAND ${CMAKE_C_COMPILER} -c ${SOURCE_FILE} -o ${OUTPUT_FILE} ${RUNTIME_INCLUDES} -O2 -std=c99
             DEPENDS ${SOURCE_FILE}
             COMMENT "Compiling runtime: ${OUTPUT_NAME}.o"

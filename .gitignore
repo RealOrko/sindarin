@@ -14,6 +14,9 @@ build/
 build_cmake/
 build_msvc/
 
+# vcpkg (installed by setup.bat)
+vcpkg/
+
 # Claude Code session files
 .claude/
 

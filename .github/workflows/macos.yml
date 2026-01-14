@@ -24,7 +24,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install cmake ninja coreutils
+        brew install cmake ninja coreutils zlib
 
     - name: Verify tools
       run: |
@@ -104,6 +104,11 @@ jobs:
         SN_CC: clang
       run: |
         echo "Running SDK tests..."
+        # Homebrew zlib is keg-only, need explicit paths
+        export SN_CFLAGS="-I$(brew --prefix zlib)/include"
+        export SN_LDFLAGS="-L$(brew --prefix zlib)/lib"
+        echo "SN_CFLAGS=$SN_CFLAGS"
+        echo "SN_LDFLAGS=$SN_LDFLAGS"
         ./scripts/run_tests.sh sdk
         echo "All SDK tests passed!"
 
@@ -131,7 +136,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        brew install cmake ninja coreutils
+        brew install cmake ninja coreutils zlib
 
     - name: Configure CMake (Debug)
       run: |
