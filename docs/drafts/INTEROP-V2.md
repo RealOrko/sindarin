@@ -151,20 +151,6 @@ var i: int = 42
 var d: double = i as double  // 42.0
 ```
 
-### Alternative: Constructor Syntax
-
-Instead of extending `as`, use type-as-function syntax:
-
-```sindarin
-var i: int = int(destLen)
-var b: byte = byte(value)
-var d: double = double(count)
-```
-
-### Recommendation
-
-Extend `as` operator - it's more consistent with existing `as val` and `as ref` patterns.
-
 ### Overflow Behavior
 
 Numeric casts follow the same overflow semantics as arithmetic operations:
@@ -344,31 +330,19 @@ This works in `native fn` because type checking is relaxed, but not in regular f
 
 Use native function or pre-compute byte array literals.
 
-### Proposal
+### Solution
 
-Allow implicit narrowing conversion when assigning to byte array elements, with defined truncation semantics:
+Require explicit cast using `as byte`. This prevents implicit narrowing bugs and depends on numeric type casting (section 2):
 
 ```sindarin
 fn fill_pattern(size: int): byte[] =>
     var data: byte[size]
     var i: int = 0
     while i < size =>
-        data[i] = i % 256  // Implicitly truncates to byte
+        data[i] = (i % 256) as byte
         i = i + 1
     return data
 ```
-
-### Alternative
-
-Require explicit cast (ties into proposal #2):
-
-```sindarin
-data[i] = (i % 256) as byte
-```
-
-### Recommendation
-
-Require explicit cast - implicit narrowing can hide bugs. This makes proposal #2 (numeric casting) the prerequisite.
 
 ---
 
@@ -525,17 +499,6 @@ var one: str = |
 - Strip common indent from all lines
 - Join with newlines, add trailing newline
 - For `$|`, parse interpolation expressions within the block
-
-### Alternatives Considered
-
-| Syntax | Example | Why not chosen |
-|--------|---------|----------------|
-| Triple quotes | `"""..."""` | Requires closing delimiter, indentation rules less clear |
-| Backticks | `` `...` `` | Hard to type on some keyboards, may want for raw strings |
-| Here-doc | `<<END...END` | Verbose, feels outdated |
-| @ modifier | `@"..."` | `@` may be useful for other features |
-
-Pipe block was chosen because it fits Sindarin's indentation-based philosophy - no closing delimiter needed, block ends naturally at dedent.
 
 ---
 
