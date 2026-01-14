@@ -371,6 +371,47 @@ native fn fill_buffer(buf: byte[]): void
 native fn get_count(count: int as ref): void
 ```
 
+### Expression `as ref` for Pointers
+
+Inside native function bodies, `as ref` can be used as an expression operator (counterpart to `as val`) to get a pointer from a value or array:
+
+```sindarin
+native fn call_c_api(data: byte[]): void =>
+    // Get pointer from array - equivalent to C's array decay
+    var ptr: *byte = data as ref
+
+    // Get pointer from scalar value - equivalent to &value in C
+    var count: int = 42
+    var count_ptr: *int = count as ref
+
+    // Common usage: pass array as pointer to C functions
+    c_function(data as ref, data.length)
+```
+
+**Key differences from parameter `as ref`:**
+
+| Context | Syntax | Purpose |
+|---------|--------|---------|
+| Parameter declaration | `fn(x: int as ref)` | C writes back through pointer |
+| Expression in body | `arr as ref` | Get pointer from array/value |
+
+This is particularly useful for calling C APIs that expect raw pointers:
+
+```sindarin
+#pragma link "z"
+
+native fn compress(dest: *byte, destLen: uint as ref, source: *byte, sourceLen: uint): int
+
+native fn compress_data(source: byte[]): byte[] =>
+    var dest: byte[1024]
+    var destLen: uint = 1024
+
+    // Use 'as ref' to get pointers from arrays
+    compress(dest as ref, destLen, source as ref, source.length)
+
+    return dest[0..destLen] as val
+```
+
 ---
 
 ## Opaque Types
@@ -551,7 +592,7 @@ native fn sort_integers(arr: int[]): void =>
             return 1
         return 0
 
-    qsort(arr.ptr(), arr.length, 8, cmp)  // 8 = sizeof(int64_t)
+    qsort(arr as ref, arr.length, 8, cmp)  // 8 = sizeof(int64_t)
 
 fn main(): void =>
     var numbers: int[] = {5, 2, 8, 1, 9}

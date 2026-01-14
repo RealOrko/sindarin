@@ -625,9 +625,9 @@ native fn compress_stream(input: byte[], output: byte[]): int =>
     if deflateInit(strm, -1) != 0 =>  # Z_DEFAULT_COMPRESSION (compiler passes &strm)
         return -1
 
-    strm.next_in = input.ptr()
+    strm.next_in = input as ref
     strm.avail_in = input.length as uint
-    strm.next_out = output.ptr()
+    strm.next_out = output as ref
     strm.avail_out = output.length as uint
 
     var result: int = deflate(strm, 4)  # Z_FINISH
