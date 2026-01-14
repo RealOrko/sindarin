@@ -8,7 +8,8 @@ This document outlines proposed improvements to Sindarin's C interop system base
 |---------|----------|------------|--------|
 | Expression-bodied functions | High | Low | Cleaner constants, helpers |
 | Numeric type casting | High | Medium | Eliminates workarounds |
-| Multi-line array literals | Medium | Low | Better test data, readability |
+| Multi-line literals (arrays, structs) | Medium | Low | Better readability |
+| Multi-line strings | Medium | Medium | SQL, HTML, JSON embedding |
 | `sizeof()` builtin | Medium | Low | Essential for some C APIs |
 | Byte array assignment | Low | Medium | Dynamic byte buffer population |
 
@@ -190,11 +191,11 @@ Widening conversions (e.g., `byte` to `int`) never overflow and are always safe.
 
 ---
 
-## 3. Multi-line Array Literals
+## 3. Multi-line Array and Struct Literals
 
 ### Problem
 
-Array literals must be on a single line:
+Array and struct literals must be on a single line:
 
 ```sindarin
 // This fails to parse:
@@ -208,13 +209,14 @@ var data: byte[] = {
 var data: byte[] = {72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100, 33}
 ```
 
-This makes test data and large static arrays hard to read.
+This makes test data, large static arrays, and complex struct initialization hard to read.
 
 ### Proposal
 
-Allow array literals to span multiple lines when inside braces:
+Allow array and struct literals to span multiple lines when inside braces:
 
 ```sindarin
+// Arrays
 var data: byte[] = {
     72, 101, 108, 108, 111,   // "Hello"
     32, 87, 111, 114, 108,    // " Worl"
@@ -226,13 +228,35 @@ var matrix: int[][] = {
     {4, 5, 6},
     {7, 8, 9}
 }
+
+// Structs
+var config: Config = Config {
+    name: "myapp",
+    port: 8080,
+    debug: true
+}
+
+var point: Point = Point {
+    x: 10.5,
+    y: 20.3
+}
+
+// Nested structs
+var server: Server = Server {
+    config: Config {
+        name: "web",
+        port: 443
+    },
+    handlers: {handler1, handler2}
+}
 ```
 
 ### Implementation Notes
 
 - Lexer/parser change
-- When inside `{` for array literal, ignore newlines until matching `}`
+- When inside `{` for array/struct literal, ignore newlines until matching `}`
 - Similar to how many languages handle multi-line expressions in brackets
+- Comments inside multi-line literals should be allowed
 
 ---
 
@@ -404,10 +428,189 @@ fn compression_ratio(orig: int, comp: int): double => (comp * 100.0) / orig
 
 ## Open Questions
 
-1. **Should multi-line support extend to other constructs?**
-   - Function call arguments spanning lines?
-   - Struct literals?
-   - Would require broader parser changes
+1. **Multi-line string syntax** - See exploration below
+
+---
+
+## 6. Multi-line Strings (Exploration)
+
+Multi-line support will extend to arrays, structs, and strings. Arrays and structs are straightforward (ignore newlines inside `{}` and struct literals). Strings need syntax exploration.
+
+### Current String Syntax
+
+```sindarin
+var s: str = "hello world"
+var interp: str = $"value is {x}"
+```
+
+No way to write multi-line strings without manual `\n` escapes:
+
+```sindarin
+var sql: str = "SELECT * FROM users\nWHERE active = true\nORDER BY name"
+```
+
+### Option A: Triple Quotes (Python-style)
+
+```sindarin
+var sql: str = """
+    SELECT * FROM users
+    WHERE active = true
+    ORDER BY name
+    """
+
+var html: str = """
+    <html>
+        <body>Hello</body>
+    </html>
+    """
+
+// With interpolation
+var query: str = $"""
+    SELECT * FROM {table}
+    WHERE id = {id}
+    """
+```
+
+**Pros**: Familiar from Python, clear start/end delimiters
+**Cons**: Three quote characters, indentation handling questions
+
+### Option B: Backticks (JavaScript-style)
+
+```sindarin
+var sql: str = `
+    SELECT * FROM users
+    WHERE active = true
+    ORDER BY name
+    `
+
+var query: str = $`
+    SELECT * FROM {table}
+    WHERE id = {id}
+    `
+```
+
+**Pros**: Single character delimiter, familiar from JS template literals
+**Cons**: Backtick can be hard to type on some keyboards, conflicts if we want raw strings
+
+### Option C: Here-doc Style
+
+```sindarin
+var sql: str = <<END
+    SELECT * FROM users
+    WHERE active = true
+    ORDER BY name
+END
+
+var html: str = <<HTML
+    <html>
+        <body>Hello</body>
+    </html>
+HTML
+```
+
+**Pros**: Very clear boundaries, arbitrary delimiter
+**Cons**: Verbose, unusual in modern languages, harder to parse
+
+### Option D: Pipe/Block String
+
+```sindarin
+var sql: str = |
+    SELECT * FROM users
+    WHERE active = true
+    ORDER BY name
+
+var query: str = $|
+    SELECT * FROM {table}
+    WHERE id = {id}
+```
+
+**Pros**: Minimal syntax, uses indentation (consistent with Sindarin)
+**Cons**: New concept, end determined by dedent
+
+### Option E: Brackets with @
+
+```sindarin
+var sql: str = @"
+    SELECT * FROM users
+    WHERE active = true
+    ORDER BY name
+    "
+
+var query: str = @$"
+    SELECT * FROM {table}
+    WHERE id = {id}
+    "
+```
+
+**Pros**: Clear modifier, single delimiter
+**Cons**: `@` might be wanted for other features
+
+### Indentation Handling
+
+All options need to decide how to handle leading indentation:
+
+```sindarin
+fn get_sql(): str =>
+    var sql: str = """
+        SELECT *
+        FROM users
+        """
+    return sql
+```
+
+Should `sql` contain the leading spaces? Options:
+
+1. **Strip common indent** (like Python's `textwrap.dedent`)
+   - Result: `"SELECT *\nFROM users\n"`
+
+2. **Preserve all whitespace**
+   - Result: `"        SELECT *\n        FROM users\n        "`
+
+3. **Strip based on closing delimiter position**
+   - Closing `"""` indentation defines the margin
+
+### Newline Handling
+
+Should the opening/closing lines be included?
+
+```sindarin
+var s: str = """
+    hello
+    """
+```
+
+Options:
+- Include all: `"\n    hello\n    "`
+- Strip first/last newline: `"hello"`
+- Strip first newline only: `"hello\n    "`
+
+### Recommendation
+
+**Triple quotes with indent stripping** (Option A with smart indentation):
+
+```sindarin
+fn example(): void =>
+    var sql: str = """
+        SELECT * FROM users
+        WHERE active = true
+        """
+    // sql = "SELECT * FROM users\nWHERE active = true\n"
+
+    var json: str = $"""
+        {
+            "name": "{name}",
+            "value": {value}
+        }
+        """
+```
+
+Rules:
+1. First newline after `"""` is stripped
+2. Common leading whitespace (based on least-indented line) is stripped
+3. Trailing whitespace before closing `"""` is stripped
+4. Closing `"""` must be on its own line
+
+This matches Python 3.12+ behavior and is intuitive for most developers.
 
 ---
 
