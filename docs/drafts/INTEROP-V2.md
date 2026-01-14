@@ -430,14 +430,7 @@ fn compression_ratio(orig: int, comp: int): double => (comp * 100.0) / orig
 
 ## 6. Multi-line Strings
 
-Multi-line support will extend to arrays, structs, and strings. Arrays and structs are straightforward (ignore newlines inside `{}` and struct literals). Strings need syntax exploration.
-
-### Current String Syntax
-
-```sindarin
-var s: str = "hello world"
-var interp: str = $"value is {x}"
-```
+### Problem
 
 No way to write multi-line strings without manual `\n` escapes:
 
@@ -445,148 +438,11 @@ No way to write multi-line strings without manual `\n` escapes:
 var sql: str = "SELECT * FROM users\nWHERE active = true\nORDER BY name"
 ```
 
-### Option A: Triple Quotes (Python-style)
+### Solution: Pipe Block Strings
 
-```sindarin
-var sql: str = """
-    SELECT * FROM users
-    WHERE active = true
-    ORDER BY name
-    """
+Use `|` to start an indentation-based string block. This aligns with Sindarin's design philosophy - the string block is defined by indentation, just like code blocks.
 
-var html: str = """
-    <html>
-        <body>Hello</body>
-    </html>
-    """
-
-// With interpolation
-var query: str = $"""
-    SELECT * FROM {table}
-    WHERE id = {id}
-    """
-```
-
-**Pros**: Familiar from Python, clear start/end delimiters
-**Cons**: Three quote characters, indentation handling questions
-
-### Option B: Backticks (JavaScript-style)
-
-```sindarin
-var sql: str = `
-    SELECT * FROM users
-    WHERE active = true
-    ORDER BY name
-    `
-
-var query: str = $`
-    SELECT * FROM {table}
-    WHERE id = {id}
-    `
-```
-
-**Pros**: Single character delimiter, familiar from JS template literals
-**Cons**: Backtick can be hard to type on some keyboards, conflicts if we want raw strings
-
-### Option C: Here-doc Style
-
-```sindarin
-var sql: str = <<END
-    SELECT * FROM users
-    WHERE active = true
-    ORDER BY name
-END
-
-var html: str = <<HTML
-    <html>
-        <body>Hello</body>
-    </html>
-HTML
-```
-
-**Pros**: Very clear boundaries, arbitrary delimiter
-**Cons**: Verbose, unusual in modern languages, harder to parse
-
-### Option D: Pipe/Block String ✓ SELECTED
-
-```sindarin
-var sql: str = |
-    SELECT * FROM users
-    WHERE active = true
-    ORDER BY name
-
-var query: str = $|
-    SELECT * FROM {table}
-    WHERE id = {id}
-```
-
-**Pros**: Minimal syntax, uses indentation (consistent with Sindarin's design philosophy)
-**Cons**: New concept, end determined by dedent
-
-### Option E: Brackets with @
-
-```sindarin
-var sql: str = @"
-    SELECT * FROM users
-    WHERE active = true
-    ORDER BY name
-    "
-
-var query: str = @$"
-    SELECT * FROM {table}
-    WHERE id = {id}
-    "
-```
-
-**Pros**: Clear modifier, single delimiter
-**Cons**: `@` might be wanted for other features
-
-### Indentation Handling
-
-All options need to decide how to handle leading indentation:
-
-```sindarin
-fn get_sql(): str =>
-    var sql: str = """
-        SELECT *
-        FROM users
-        """
-    return sql
-```
-
-Should `sql` contain the leading spaces? Options:
-
-1. **Strip common indent** (like Python's `textwrap.dedent`)
-   - Result: `"SELECT *\nFROM users\n"`
-
-2. **Preserve all whitespace**
-   - Result: `"        SELECT *\n        FROM users\n        "`
-
-3. **Strip based on closing delimiter position**
-   - Closing `"""` indentation defines the margin
-
-### Newline Handling
-
-Should the opening/closing lines be included?
-
-```sindarin
-var s: str = """
-    hello
-    """
-```
-
-Options:
-- Include all: `"\n    hello\n    "`
-- Strip first/last newline: `"hello"`
-- Strip first newline only: `"hello\n    "`
-
-### Decision: Pipe Block Strings
-
-**Option D selected** - Pipe block strings with smart indentation stripping.
-
-This aligns with Sindarin's indentation-based design philosophy. The string block is defined by indentation, just like code blocks.
-
-#### Syntax
+### Syntax
 
 ```sindarin
 var sql: str = |
@@ -660,7 +516,7 @@ var one: str = |
 // one = "single line\n"
 ```
 
-#### Implementation Notes
+### Implementation Notes
 
 - Lexer recognizes `|` followed by newline as start of block string
 - Track indentation level of the `|` line
@@ -669,6 +525,17 @@ var one: str = |
 - Strip common indent from all lines
 - Join with newlines, add trailing newline
 - For `$|`, parse interpolation expressions within the block
+
+### Alternatives Considered
+
+| Syntax | Example | Why not chosen |
+|--------|---------|----------------|
+| Triple quotes | `"""..."""` | Requires closing delimiter, indentation rules less clear |
+| Backticks | `` `...` `` | Hard to type on some keyboards, may want for raw strings |
+| Here-doc | `<<END...END` | Verbose, feels outdated |
+| @ modifier | `@"..."` | `@` may be useful for other features |
+
+Pipe block was chosen because it fits Sindarin's indentation-based philosophy - no closing delimiter needed, block ends naturally at dedent.
 
 ---
 
