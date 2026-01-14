@@ -66,6 +66,22 @@ After `=>`, if the next token is on the same line and starts an expression, pars
 - If newline/indent follows, parse block as usual
 - Works for both `fn` and `native fn`
 
+### Native Function Examples
+
+Expression-bodied syntax works for native functions too:
+
+```sindarin
+// Native function declarations (no body) - unchanged
+native fn compress(dest: *byte, destLen: uint as ref, source: *byte, sourceLen: uint): int
+
+// Native functions with simple bodies
+native fn get_errno(): int => __errno_location() as val
+native fn null_byte(): *byte => nil
+
+// Useful for thin wrappers
+native fn compress_bound(len: int): int => compressBound(len as uint) as int
+```
+
 ### Precedent
 
 - Kotlin: `fun double(x: Int) = x * 2`
@@ -356,20 +372,16 @@ fn compression_ratio(orig: int, comp: int): double => (comp * 100.0) / orig
 
 ## Open Questions
 
-1. **Should expression-bodied functions be allowed for `native fn` with bodies?**
-   - Probably yes, for consistency
-   - Example: `native fn get_errno(): int => __errno`
-
-2. **Should `sizeof()` work on expressions or only types?**
+1. **Should `sizeof()` work on expressions or only types?**
    - Types only is simpler and matches C
    - Expressions would require evaluating the type at compile time
 
-3. **Should numeric casts be checked at runtime for overflow?**
+2. **Should numeric casts be checked at runtime for overflow?**
    - Unchecked (like C) is simpler and faster
    - Checked would be safer but adds overhead
    - Could tie into `--unchecked` flag
 
-4. **Should multi-line support extend to other constructs?**
+3. **Should multi-line support extend to other constructs?**
    - Function call arguments spanning lines?
    - Struct literals?
    - Would require broader parser changes
