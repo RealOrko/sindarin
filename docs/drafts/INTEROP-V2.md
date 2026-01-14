@@ -426,13 +426,9 @@ fn compression_ratio(orig: int, comp: int): double => (comp * 100.0) / orig
 
 ---
 
-## Open Questions
-
-1. **Multi-line string syntax** - See exploration below
-
 ---
 
-## 6. Multi-line Strings (Exploration)
+## 6. Multi-line Strings
 
 Multi-line support will extend to arrays, structs, and strings. Arrays and structs are straightforward (ignore newlines inside `{}` and struct literals). Strings need syntax exploration.
 
@@ -511,7 +507,7 @@ HTML
 **Pros**: Very clear boundaries, arbitrary delimiter
 **Cons**: Verbose, unusual in modern languages, harder to parse
 
-### Option D: Pipe/Block String
+### Option D: Pipe/Block String ✓ SELECTED
 
 ```sindarin
 var sql: str = |
@@ -524,7 +520,7 @@ var query: str = $|
     WHERE id = {id}
 ```
 
-**Pros**: Minimal syntax, uses indentation (consistent with Sindarin)
+**Pros**: Minimal syntax, uses indentation (consistent with Sindarin's design philosophy)
 **Cons**: New concept, end determined by dedent
 
 ### Option E: Brackets with @
@@ -584,33 +580,95 @@ Options:
 - Strip first/last newline: `"hello"`
 - Strip first newline only: `"hello\n    "`
 
-### Recommendation
+### Decision: Pipe Block Strings
 
-**Triple quotes with indent stripping** (Option A with smart indentation):
+**Option D selected** - Pipe block strings with smart indentation stripping.
+
+This aligns with Sindarin's indentation-based design philosophy. The string block is defined by indentation, just like code blocks.
+
+#### Syntax
 
 ```sindarin
-fn example(): void =>
-    var sql: str = """
-        SELECT * FROM users
-        WHERE active = true
-        """
-    // sql = "SELECT * FROM users\nWHERE active = true\n"
+var sql: str = |
+    SELECT * FROM users
+    WHERE active = true
+    ORDER BY name
 
-    var json: str = $"""
-        {
-            "name": "{name}",
-            "value": {value}
-        }
-        """
+// With interpolation
+var query: str = $|
+    SELECT * FROM {table}
+    WHERE id = {id}
 ```
 
-Rules:
-1. First newline after `"""` is stripped
-2. Common leading whitespace (based on least-indented line) is stripped
-3. Trailing whitespace before closing `"""` is stripped
-4. Closing `"""` must be on its own line
+#### Rules
 
-This matches Python 3.12+ behavior and is intuitive for most developers.
+1. `|` or `$|` followed by newline starts a block string
+2. All subsequent lines with greater indentation than the `|` line are included
+3. The block ends at the first line with equal or less indentation (dedent)
+4. Common leading whitespace is stripped (based on least-indented content line)
+5. Trailing newline is included (consistent with typical file content)
+
+#### Examples
+
+```sindarin
+fn get_query(): str =>
+    var sql: str = |
+        SELECT *
+        FROM users
+        WHERE active = true
+    return sql
+    // sql = "SELECT *\nFROM users\nWHERE active = true\n"
+
+fn get_html(title: str): str =>
+    return $|
+        <html>
+            <head><title>{title}</title></head>
+            <body>Hello</body>
+        </html>
+    // Returns "<html>\n    <head>..." with inner indent preserved
+
+fn config(): str =>
+    var json: str = |
+        {
+            "name": "app",
+            "version": 1
+        }
+    return json
+    // json = "{\n    \"name\": \"app\",\n    \"version\": 1\n}\n"
+```
+
+#### Edge Cases
+
+```sindarin
+// Empty lines preserve relative indentation
+var text: str = |
+    First paragraph.
+
+    Second paragraph.
+// text = "First paragraph.\n\nSecond paragraph.\n"
+
+// Deeper indentation preserved relative to base
+var code: str = |
+    fn example():
+        if true:
+            return 1
+// code = "fn example():\n    if true:\n        return 1\n"
+
+// Single line (least useful but valid)
+var one: str = |
+    single line
+// one = "single line\n"
+```
+
+#### Implementation Notes
+
+- Lexer recognizes `|` followed by newline as start of block string
+- Track indentation level of the `|` line
+- Collect lines until dedent
+- Calculate common indent from collected lines
+- Strip common indent from all lines
+- Join with newlines, add trailing newline
+- For `$|`, parse interpolation expressions within the block
 
 ---
 
