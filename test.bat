@@ -67,6 +67,9 @@ if not exist "%SN%" (
     exit /b 1
 )
 
+REM Add bin directory to PATH for DLL resolution (e.g., zlib1.dll)
+set "PATH=%~dp0bin;%PATH%"
+
 REM Track overall exit code
 set "EXIT_CODE=0"
 
