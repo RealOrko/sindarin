@@ -250,60 +250,73 @@ var server: Server = Server {
 
 ### Problem
 
-Some C APIs require knowing type sizes at runtime. Currently no way to get this:
+Some C APIs require knowing type sizes. Currently no way to get this:
 
 ```sindarin
-// qsort signature
-native fn qsort(base: *void, count: int, size: int, cmp: Comparator): void
-
 native fn sort_integers(arr: int[]): void =>
-    // PROBLEM: How to get sizeof(int)?
     qsort(arr as ref, arr.length, 8, cmp)  // Hardcoded 8 = sizeof(int64_t)
 ```
 
-### Proposal
+### Solution
 
-Add `sizeof()` builtin that returns size in bytes:
+Add `sizeof()` builtin that works in both regular and native functions, with context-appropriate behavior for arrays.
 
-```sindarin
-native fn sort_integers(arr: int[]): void =>
-    qsort(arr as ref, arr.length, sizeof(int), cmp)
-```
-
-### Supported Forms
+### On Types
 
 ```sindarin
-// On types
 sizeof(int)      // 8 (on 64-bit)
 sizeof(byte)     // 1
 sizeof(double)   // 8
 sizeof(bool)     // 1
 sizeof(*int)     // 8 (pointer size)
 sizeof(MyStruct) // Size of struct including padding
+```
 
-// On expressions (evaluates type at compile time, not the expression)
+### On Expressions
+
+```sindarin
 var x: int = 42
 sizeof(x)        // 8 (size of int)
-
-var arr: byte[] = {1, 2, 3}
-sizeof(arr[0])   // 1 (size of byte)
 
 var p: *MyStruct = get_struct()
 sizeof(p)        // 8 (size of pointer)
 sizeof(p as val) // Size of MyStruct
 ```
 
-Note: Like C, `sizeof(expr)` determines the type at compile time and returns its size - the expression itself is not evaluated at runtime.
+Note: Like C, `sizeof(expr)` determines the type at compile time - the expression is not evaluated.
 
-### Restriction
+### On Arrays
 
-Only allowed in `native fn` bodies where low-level size information is meaningful.
+Arrays have context-dependent behavior:
+
+```sindarin
+var arr: int[] = {1, 2, 3, 4, 5}
+
+// In regular functions: returns element count (same as .length)
+fn example(): void =>
+    var count: int = sizeof(arr)  // 5
+
+// In native functions: returns byte size (like C)
+native fn example(): void =>
+    var bytes: int = sizeof(arr)  // 40 (5 * 8 bytes)
+```
+
+This allows `sizeof()` to be intuitive in regular code while matching C semantics in native interop:
+
+```sindarin
+native fn sort_integers(arr: int[]): void =>
+    qsort(arr as ref, sizeof(arr) / sizeof(int), sizeof(int), cmp)
+    // Or more simply:
+    qsort(arr as ref, arr.length, sizeof(int), cmp)
+```
 
 ### Implementation Notes
 
 - Parser recognizes `sizeof` as builtin
-- Type checker validates type argument exists
-- Code gen emits `sizeof(c_type_name)`
+- Type checker tracks whether we're in native context
+- For arrays in regular functions: emit `rt_array_length(arr)`
+- For arrays in native functions: emit `sizeof(arr)` (C semantics)
+- For types/non-array expressions: emit `sizeof(c_type_name)`
 
 ---
 
