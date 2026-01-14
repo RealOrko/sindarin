@@ -245,13 +245,27 @@ native fn sort_integers(arr: int[]): void =>
 ### Supported Forms
 
 ```sindarin
+// On types
 sizeof(int)      // 8 (on 64-bit)
 sizeof(byte)     // 1
 sizeof(double)   // 8
 sizeof(bool)     // 1
 sizeof(*int)     // 8 (pointer size)
 sizeof(MyStruct) // Size of struct including padding
+
+// On expressions (evaluates type at compile time, not the expression)
+var x: int = 42
+sizeof(x)        // 8 (size of int)
+
+var arr: byte[] = {1, 2, 3}
+sizeof(arr[0])   // 1 (size of byte)
+
+var p: *MyStruct = get_struct()
+sizeof(p)        // 8 (size of pointer)
+sizeof(p as val) // Size of MyStruct
 ```
+
+Note: Like C, `sizeof(expr)` determines the type at compile time and returns its size - the expression itself is not evaluated at runtime.
 
 ### Restriction
 
@@ -372,16 +386,12 @@ fn compression_ratio(orig: int, comp: int): double => (comp * 100.0) / orig
 
 ## Open Questions
 
-1. **Should `sizeof()` work on expressions or only types?**
-   - Types only is simpler and matches C
-   - Expressions would require evaluating the type at compile time
-
-2. **Should numeric casts be checked at runtime for overflow?**
+1. **Should numeric casts be checked at runtime for overflow?**
    - Unchecked (like C) is simpler and faster
    - Checked would be safer but adds overhead
    - Could tie into `--unchecked` flag
 
-3. **Should multi-line support extend to other constructs?**
+2. **Should multi-line support extend to other constructs?**
    - Function call arguments spanning lines?
    - Struct literals?
    - Would require broader parser changes
