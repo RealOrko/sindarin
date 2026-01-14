@@ -164,11 +164,29 @@ var d: double = double(count)
 
 Extend `as` operator - it's more consistent with existing `as val` and `as ref` patterns.
 
+### Overflow Behavior
+
+Numeric casts follow the same overflow semantics as arithmetic operations:
+
+- **Default**: Checked - runtime error on overflow/truncation that loses data
+- **`--unchecked`**: No checking, C-style truncation (faster)
+- **`-O2`**: Implies unchecked arithmetic
+
+```sindarin
+var big: int = 1000
+var b: byte = big as byte  // Runtime error in checked mode (1000 > 255)
+                           // Silently truncates to 232 in unchecked mode
+```
+
+Widening conversions (e.g., `byte` to `int`) never overflow and are always safe.
+
 ### Implementation Notes
 
 - Type checker change in `type_checker_expr.c`
 - Check if operand is numeric type and target is numeric type
-- Code gen emits C cast: `(int64_t)(destLen)`
+- Code gen emits checked or unchecked cast based on compiler flags
+- Checked: `rt_checked_cast_to_byte(value)` (runtime validation)
+- Unchecked: `(uint8_t)(value)` (C-style truncation)
 
 ---
 
@@ -386,12 +404,7 @@ fn compression_ratio(orig: int, comp: int): double => (comp * 100.0) / orig
 
 ## Open Questions
 
-1. **Should numeric casts be checked at runtime for overflow?**
-   - Unchecked (like C) is simpler and faster
-   - Checked would be safer but adds overhead
-   - Could tie into `--unchecked` flag
-
-2. **Should multi-line support extend to other constructs?**
+1. **Should multi-line support extend to other constructs?**
    - Function call arguments spanning lines?
    - Struct literals?
    - Would require broader parser changes
