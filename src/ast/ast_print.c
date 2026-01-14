@@ -487,5 +487,10 @@ void ast_print_expr(Arena *arena, Expr *expr, int indent_level)
         DEBUG_VERBOSE_INDENT(indent_level, "AsVal:");
         ast_print_expr(arena, expr->as.as_val.operand, indent_level + 1);
         break;
+
+    case EXPR_AS_REF:
+        DEBUG_VERBOSE_INDENT(indent_level, "AsRef:");
+        ast_print_expr(arena, expr->as.as_ref.operand, indent_level + 1);
+        break;
     }
 }

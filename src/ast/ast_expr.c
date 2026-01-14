@@ -595,6 +595,27 @@ Expr *ast_create_as_val_expr(Arena *arena, Expr *operand, const Token *loc_token
     return expr;
 }
 
+Expr *ast_create_as_ref_expr(Arena *arena, Expr *operand, const Token *loc_token)
+{
+    if (operand == NULL)
+    {
+        DEBUG_ERROR("Cannot create as_ref expression with NULL operand");
+        return NULL;
+    }
+    Expr *expr = arena_alloc(arena, sizeof(Expr));
+    if (expr == NULL)
+    {
+        DEBUG_ERROR("Out of memory");
+        exit(1);
+    }
+    memset(expr, 0, sizeof(Expr));
+    expr->type = EXPR_AS_REF;
+    expr->as.as_ref.operand = operand;
+    expr->expr_type = NULL;
+    expr->token = ast_clone_token(arena, loc_token);
+    return expr;
+}
+
 Expr *ast_create_typeof_expr(Arena *arena, Expr *operand, Type *type_literal, const Token *loc_token)
 {
     /* Either operand or type_literal must be non-NULL, but not both */

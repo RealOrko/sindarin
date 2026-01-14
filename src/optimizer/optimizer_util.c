@@ -344,6 +344,11 @@ void collect_used_variables(Expr *expr, Token **used_vars, int *used_count,
         collect_used_variables(expr->as.as_val.operand, used_vars, used_count, used_capacity, arena);
         break;
 
+    case EXPR_AS_REF:
+        /* as ref uses its operand expression */
+        collect_used_variables(expr->as.as_ref.operand, used_vars, used_count, used_capacity, arena);
+        break;
+
     case EXPR_STRUCT_LITERAL:
         /* Struct literal field value expressions use variables */
         for (int i = 0; i < expr->as.struct_literal.field_count; i++)

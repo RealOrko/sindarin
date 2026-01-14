@@ -357,6 +357,33 @@ static char *code_gen_struct_deep_copy(CodeGen *gen, Type *struct_type, char *op
 }
 
 /**
+ * Generate code for 'as ref' expression - get pointer to value.
+ * Counterpart to 'as val':
+ * - For arrays: array variable is already a pointer in C, just return it
+ * - For other values: use address-of operator &
+ */
+static char *code_gen_as_ref_expression(CodeGen *gen, Expr *expr)
+{
+    DEBUG_VERBOSE("Generating as_ref expression");
+
+    AsRefExpr *as_ref = &expr->as.as_ref;
+    char *operand_code = code_gen_expression(gen, as_ref->operand);
+    Type *operand_type = as_ref->operand->expr_type;
+
+    if (operand_type != NULL && operand_type->kind == TYPE_ARRAY)
+    {
+        /* Arrays: the variable already holds a pointer to the array data.
+         * In C, Sindarin arrays are represented as T* pointing to data. */
+        return operand_code;
+    }
+    else
+    {
+        /* Other types: use address-of operator */
+        return arena_sprintf(gen->arena, "(&(%s))", operand_code);
+    }
+}
+
+/**
  * Generate code for 'as val' expression - pointer dereference/value extraction/struct deep copy.
  * For *int, *double, etc. - dereferences pointer to get value
  * For *char - converts null-terminated C string to Sn str
@@ -875,6 +902,8 @@ char *code_gen_expression(CodeGen *gen, Expr *expr)
         exit(1);
     case EXPR_AS_VAL:
         return code_gen_as_val_expression(gen, expr);
+    case EXPR_AS_REF:
+        return code_gen_as_ref_expression(gen, expr);
     case EXPR_TYPEOF:
         return code_gen_typeof_expression(gen, expr);
     case EXPR_IS:

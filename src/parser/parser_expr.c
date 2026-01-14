@@ -415,6 +415,11 @@ Expr *parser_postfix(Parser *parser)
             {
                 expr = ast_create_as_val_expr(parser->arena, expr, &as_token);
             }
+            else if (parser_match(parser, TOKEN_REF))
+            {
+                /* "as ref" postfix operator: expr as ref - gets pointer to value */
+                expr = ast_create_as_ref_expr(parser->arena, expr, &as_token);
+            }
             else
             {
                 /* Parse a type for type casting */

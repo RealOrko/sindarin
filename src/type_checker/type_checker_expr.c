@@ -1274,6 +1274,43 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
             }
         }
         break;
+    case EXPR_AS_REF:
+        /* 'as ref' gets a pointer to a value - counterpart to 'as val':
+         * int as ref -> *int
+         * byte[] as ref -> *byte (pointer to array data)
+         * Only allowed in native function context */
+        {
+            Type *operand_type = type_check_expr(expr->as.as_ref.operand, table);
+            if (operand_type == NULL)
+            {
+                type_error(expr->token, "Invalid operand in 'as ref' expression");
+                t = NULL;
+            }
+            else if (!native_context_is_active())
+            {
+                type_error(expr->token, "'as ref' is only allowed in native function bodies");
+                t = NULL;
+            }
+            else if (operand_type->kind == TYPE_ARRAY)
+            {
+                /* Array: return pointer to element type (e.g., byte[] -> *byte) */
+                Type *elem_type = operand_type->as.array.element_type;
+                t = ast_create_pointer_type(table->arena, elem_type);
+                DEBUG_VERBOSE("'as ref' on array: returns *element_type");
+            }
+            else if (operand_type->kind == TYPE_POINTER)
+            {
+                type_error(expr->token, "'as ref' cannot be applied to pointer type (already a pointer)");
+                t = NULL;
+            }
+            else
+            {
+                /* For primitives and other types: return pointer to that type */
+                t = ast_create_pointer_type(table->arena, operand_type);
+                DEBUG_VERBOSE("'as ref' on value: returns pointer type");
+            }
+        }
+        break;
     case EXPR_TYPEOF:
         /* typeof operator returns a type tag value for runtime comparison */
         /* typeof(value) - returns runtime type of any value */

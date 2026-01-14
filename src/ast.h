@@ -167,6 +167,7 @@ typedef enum
     EXPR_THREAD_SYNC,
     EXPR_SYNC_LIST,
     EXPR_AS_VAL,
+    EXPR_AS_REF,
     EXPR_TYPEOF,
     EXPR_IS,
     EXPR_AS_TYPE,
@@ -325,6 +326,12 @@ typedef struct
     bool is_struct_deep_copy; // True if this is struct deep copy (copies array fields independently)
 } AsValExpr;
 
+/* as ref - get pointer to value (counterpart to as val) */
+typedef struct
+{
+    Expr *operand;          // The expression to get a pointer to
+} AsRefExpr;
+
 /* typeof operator - returns the runtime type of an any value or a type literal */
 typedef struct
 {
@@ -423,6 +430,7 @@ struct Expr
         ThreadSyncExpr thread_sync;
         SyncListExpr sync_list;
         AsValExpr as_val;
+        AsRefExpr as_ref;
         TypeofExpr typeof_expr;
         IsExpr is_expr;
         AsTypeExpr as_type;
@@ -681,6 +689,7 @@ Expr *ast_create_thread_spawn_expr(Arena *arena, Expr *call, FunctionModifier mo
 Expr *ast_create_thread_sync_expr(Arena *arena, Expr *handle, bool is_array, const Token *loc_token);
 Expr *ast_create_sync_list_expr(Arena *arena, Expr **elements, int element_count, const Token *loc_token);
 Expr *ast_create_as_val_expr(Arena *arena, Expr *operand, const Token *loc_token);
+Expr *ast_create_as_ref_expr(Arena *arena, Expr *operand, const Token *loc_token);
 Expr *ast_create_struct_literal_expr(Arena *arena, Token struct_name, FieldInitializer *fields,
                                       int field_count, const Token *loc_token);
 Expr *ast_create_member_access_expr(Arena *arena, Expr *object, Token field_name, const Token *loc_token);
