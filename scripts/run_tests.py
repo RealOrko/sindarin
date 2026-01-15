@@ -309,8 +309,10 @@ class TestRunner:
             print(f"{Colors.YELLOW}SKIP{Colors.NC} (no .expected)")
             return 'skip'
 
-        # Compile
-        compile_cmd = [self.compiler, test_file, '-o', exe_file, '-l', '1', '-g', '-O0']
+        # Compile (skip -g on Windows as ASAN has compatibility issues with LLVM-MinGW)
+        compile_cmd = [self.compiler, test_file, '-o', exe_file, '-l', '1', '-O0']
+        if not is_windows():
+            compile_cmd.append('-g')
         exit_code, stdout, stderr = run_with_timeout(
             compile_cmd, self.compile_timeout, env=self.env
         )
