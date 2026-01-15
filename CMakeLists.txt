@@ -8,7 +8,13 @@
 # See CMakePresets.json for all available presets.
 
 cmake_minimum_required(VERSION 3.16)
-project(sn VERSION 1.0.0 LANGUAGES C)
+
+# Version can be overridden via -DSN_VERSION=x.y.z (used by CI for tag-based versioning)
+if(NOT DEFINED SN_VERSION)
+    set(SN_VERSION "1.0.0")
+endif()
+
+project(sn VERSION ${SN_VERSION} LANGUAGES C)
 
 # Add custom cmake modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
