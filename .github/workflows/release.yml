@@ -115,9 +115,10 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          # Strip 'v' prefix from version tag if present
+          # Extract numeric version (strip 'v' prefix and any suffix like -alpha)
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION#v}"
+          VERSION="${VERSION%%-*}"
           cmake -S . -B build -G Ninja \
             -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
             -DCMAKE_BUILD_TYPE=Release \
@@ -129,9 +130,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          # Strip 'v' prefix from version tag if present
+          # Extract numeric version (strip 'v' prefix and any suffix like -alpha)
           VERSION="${{ env.VERSION }}"
           VERSION="${VERSION#v}"
+          VERSION="${VERSION%%-*}"
           cmake -S . -B build -G Ninja \
             -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
             -DCMAKE_BUILD_TYPE=Release \
