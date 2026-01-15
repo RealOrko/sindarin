@@ -3,7 +3,7 @@
 **Sindarin** is a statically-typed procedural programming language that compiles to C. It features clean arrow-based syntax, powerful string interpolation, and built-in array operations.
 
 ```
-.sn source → Sn Compiler → C code → GCC → executable
+.sn source → Sn Compiler → C code → GCC/Clang → executable
 ```
 
 ## Features
@@ -19,30 +19,86 @@
 - **Module imports** for code organization
 - **Arena memory** with shared/private scopes and copy semantics
 - **C interoperability** with native functions, pointers, and callbacks
+- **SDK modules** for compression, math, and more
 
-## Quick Start
+## Installation
 
-### Build the Compiler
+### Linux (Debian/Ubuntu)
 
 ```bash
-# Configure and build with CMake
+# Download the .deb package from the latest release
+sudo dpkg -i sindarin_*.deb
+
+# Dependencies (gcc, zlib) are installed automatically
+sn --version
+```
+
+### Linux (Fedora/RHEL)
+
+```bash
+# Download the .rpm package from the latest release
+sudo rpm -i sindarin-*.rpm
+
+sn --version
+```
+
+### Linux/macOS (Tarball)
+
+```bash
+# Download and extract
+tar xzf sindarin-*-linux-x64.tar.gz   # or macos-x64
+cd sindarin-*/
+
+# Add to PATH or copy to /usr/local
+export PATH="$PWD/bin:$PATH"
+sn --version
+```
+
+### Windows
+
+**Option 1: Winget (local manifest)**
+
+```powershell
+# Download winget-manifests.zip from the release
+Expand-Archive winget-manifests.zip -DestinationPath winget-manifests
+winget install --manifest ./winget-manifests
+```
+
+**Option 2: Manual installation**
+
+```powershell
+# Download and extract the ZIP
+Expand-Archive sindarin-*-windows-x64.zip -DestinationPath C:\sindarin
+
+# Add to PATH
+$env:PATH += ";C:\sindarin\bin"
+sn --version
+```
+
+**Prerequisites for Windows:** [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw) and [Ninja](https://ninja-build.org/) are required.
+
+### Build from Source
+
+```bash
+# Prerequisites: CMake, Ninja, GCC or Clang, zlib
+
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 
-# Verify
 bin/sn --version
 ```
 
-See [docs/language/BUILDING.md](docs/language/BUILDING.md) for detailed instructions for Linux, macOS, and Windows.
+See [docs/language/BUILDING.md](docs/language/BUILDING.md) for detailed build instructions.
 
-### Compile a Program
+## Quick Start
 
 ```bash
-bin/sn samples/main.sn -o myprogram    # Compile to executable
-./myprogram                             # Run it
+# Compile a program
+sn samples/main.sn -o myprogram
+./myprogram
 
-# Or emit C code only:
-bin/sn samples/main.sn --emit-c -o output.c
+# Or emit C code only
+sn samples/main.sn --emit-c -o output.c
 ```
 
 ## Example
