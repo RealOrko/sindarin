@@ -537,15 +537,13 @@ else()
     # DEB settings
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Sindarin Maintainers")
     set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
-    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.17), gcc, libc6-dev")
-    set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "zlib1g-dev")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.17), gcc, libc6-dev, zlib1g-dev")
     set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 
     # RPM settings (only used if rpmbuild is available)
     set(CPACK_RPM_PACKAGE_LICENSE "MIT")
     set(CPACK_RPM_PACKAGE_GROUP "Development/Languages")
-    set(CPACK_RPM_PACKAGE_REQUIRES "gcc, glibc-devel")
-    set(CPACK_RPM_PACKAGE_SUGGESTS "zlib-devel")
+    set(CPACK_RPM_PACKAGE_REQUIRES "gcc, glibc-devel, zlib-devel")
     set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
 endif()
 
