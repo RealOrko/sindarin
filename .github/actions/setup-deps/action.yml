@@ -105,7 +105,7 @@ runs:
         }
 
         Write-Host "Installing zlib..."
-        & "$vcpkgRoot\vcpkg.exe" install zlib:x64-windows
+        & "$vcpkgRoot\vcpkg.exe" install zlib:x64-windows --classic
 
         # Create libz.a compatibility link
         $zlibLib = "$vcpkgRoot\installed\x64-windows\lib\zlib.lib"

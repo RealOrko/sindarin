@@ -101,7 +101,7 @@ jobs:
           if (-not (Test-Path "$vcpkgRoot\vcpkg.exe")) {
             & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
           }
-          & "$vcpkgRoot\vcpkg.exe" install zlib:x64-windows
+          & "$vcpkgRoot\vcpkg.exe" install zlib:x64-windows --classic
           $zlibLib = "$vcpkgRoot\installed\x64-windows\lib\zlib.lib"
           $libzA = "$vcpkgRoot\installed\x64-windows\lib\libz.a"
           if ((Test-Path $zlibLib) -and -not (Test-Path $libzA)) {
