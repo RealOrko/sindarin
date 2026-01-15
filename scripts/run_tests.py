@@ -84,18 +84,36 @@ def find_compiler(specified_path: Optional[str] = None) -> str:
 
 
 def run_with_timeout(cmd: List[str], timeout: int, cwd: Optional[str] = None,
-                     env: Optional[dict] = None) -> Tuple[int, str, str]:
-    """Run a command with timeout, returning (exit_code, stdout, stderr)."""
+                     env: Optional[dict] = None,
+                     merge_stderr: bool = False) -> Tuple[int, str, str]:
+    """Run a command with timeout, returning (exit_code, stdout, stderr).
+
+    If merge_stderr is True, stderr is redirected to stdout (like bash 2>&1),
+    and stderr in the return value will be empty.
+    """
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=cwd,
-            env=env
-        )
-        return result.returncode, result.stdout, result.stderr
+        if merge_stderr:
+            # Merge stderr into stdout (like bash's 2>&1)
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                timeout=timeout,
+                cwd=cwd,
+                env=env
+            )
+            return result.returncode, result.stdout, ''
+        else:
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout,
+                cwd=cwd,
+                env=env
+            )
+            return result.returncode, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
         return -1, '', 'TIMEOUT'
     except Exception as e:
@@ -304,10 +322,10 @@ class TestRunner:
                     print(f"    {line}")
             return 'fail'
 
-        # Run
+        # Run with merged stdout/stderr (like bash's 2>&1)
         run_timeout = 5 if test_type == 'integration' else self.run_timeout
-        exit_code, stdout, stderr = run_with_timeout(
-            [exe_file], run_timeout, env=self.env
+        exit_code, output, timeout_marker = run_with_timeout(
+            [exe_file], run_timeout, env=self.env, merge_stderr=True
         )
 
         # Check for expected panic
@@ -317,12 +335,12 @@ class TestRunner:
                 return 'fail'
         else:
             if exit_code != 0:
-                if stderr == 'TIMEOUT':
+                if timeout_marker == 'TIMEOUT':
                     print(f"{Colors.RED}FAIL{Colors.NC} (timeout)")
                 else:
                     print(f"{Colors.RED}FAIL{Colors.NC} (exit code: {exit_code})")
-                if self.verbose and stdout:
-                    for line in stdout.split('\n')[:3]:
+                if self.verbose and output:
+                    for line in output.split('\n')[:3]:
                         print(f"    {line}")
                 return 'fail'
 
@@ -331,13 +349,13 @@ class TestRunner:
             with open(expected_file, 'r') as f:
                 expected_output = f.read()
 
-            if stdout == expected_output:
+            if output == expected_output:
                 return 'pass'
             else:
                 print(f"{Colors.RED}FAIL{Colors.NC} (output mismatch)")
                 if self.verbose:
                     print(f"    Expected: {expected_output.split(chr(10))[0]}")
-                    print(f"    Got:      {stdout.split(chr(10))[0] if stdout else '(empty)'}")
+                    print(f"    Got:      {output.split(chr(10))[0] if output else '(empty)'}")
                 return 'fail'
 
         return 'pass'
