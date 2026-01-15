@@ -1,32 +1,52 @@
 # Sn Compiler - CMake Build System
-# Cross-platform build for Linux (GCC/Clang) and Windows (Clang/MinGW)
+# Cross-platform build for Linux, macOS, and Windows
+#
+# Quick Start:
+#   cmake --preset linux-gcc-release    # Configure for Linux with GCC
+#   cmake --build --preset linux-gcc-release  # Build
+#
+# See CMakePresets.json for all available presets.
 
 cmake_minimum_required(VERSION 3.16)
-project(sn C)
+project(sn VERSION 1.0.0 LANGUAGES C)
+
+# Add custom cmake modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 # Use C99 standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Output directories
+# Output directories - all artifacts go to bin/
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
-# Options
+#------------------------------------------------------------------------------
+# Build Options
+#------------------------------------------------------------------------------
 option(SN_DEBUG "Build with debug symbols and sanitizers" OFF)
 option(SN_ASAN "Enable AddressSanitizer (GCC/Clang only)" OFF)
+set(SN_BACKEND "" CACHE STRING "C compiler backend (gcc, clang, tcc)")
 
-# Compiler flags (GCC/Clang on all platforms)
+#------------------------------------------------------------------------------
+# Compiler Flags
+#------------------------------------------------------------------------------
+# Common warnings for all compilers
 add_compile_options(-Wall -Wextra)
-# Suppress unknown pragma warnings (Windows-specific pragmas)
+
+# Suppress warnings for platform-specific pragmas
 add_compile_options(-Wno-unknown-pragmas)
-# Suppress warnings for valid C99 patterns that trigger C11 warnings (Clang only)
+
+# Clang-specific: suppress typedef redefinition warnings (valid C99)
 if(CMAKE_C_COMPILER_ID MATCHES "Clang")
     add_compile_options(-Wno-typedef-redefinition)
 endif()
+
+# Define _GNU_SOURCE for Linux extensions
 add_compile_definitions(_GNU_SOURCE)
 
+# Debug vs Release configuration
 if(SN_DEBUG)
     add_compile_options(-g -O0)
     if(SN_ASAN)
@@ -38,7 +58,9 @@ else()
     add_link_options(-flto -O3)
 endif()
 
-# Collect source files
+#------------------------------------------------------------------------------
+# Source Files - Organized by Module
+#------------------------------------------------------------------------------
 set(SN_CORE_SOURCES
     src/arena.c
     src/file.c
@@ -157,7 +179,7 @@ set(SN_RUNTIME_SOURCES
     src/runtime/runtime_intercept.c
 )
 
-# All compiler sources (excluding main.c for library usage)
+# All compiler sources (excluding main.c)
 set(SN_COMPILER_SOURCES
     ${SN_CORE_SOURCES}
     ${SN_LEXER_SOURCES}
@@ -171,7 +193,9 @@ set(SN_COMPILER_SOURCES
     ${SN_RUNTIME_SOURCES}
 )
 
-# Main compiler executable
+#------------------------------------------------------------------------------
+# Main Compiler Executable
+#------------------------------------------------------------------------------
 add_executable(sn
     src/main.c
     ${SN_COMPILER_SOURCES}
@@ -190,7 +214,9 @@ else()
     target_link_libraries(sn PRIVATE pthread m)
 endif()
 
-# Unit test executable
+#------------------------------------------------------------------------------
+# Unit Test Executable
+#------------------------------------------------------------------------------
 add_executable(tests
     tests/unit/_all_.c
     ${SN_COMPILER_SOURCES}
@@ -208,82 +234,37 @@ else()
     target_link_libraries(tests PRIVATE pthread m)
 endif()
 
-# Create output directories
-set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/bin/include)
-set(RUNTIME_INCLUDE_DIR ${INCLUDE_DIR}/runtime)
-
-# Create include directory structure
-file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
-file(MAKE_DIRECTORY ${INCLUDE_DIR})
-file(MAKE_DIRECTORY ${RUNTIME_INCLUDE_DIR})
-
-# Copy config files to bin directory (only if they don't exist)
-# This allows setup.bat to create custom configs that won't be overwritten
-file(GLOB CONFIG_FILES "${CMAKE_SOURCE_DIR}/etc/*.cfg")
-foreach(CONFIG_FILE ${CONFIG_FILES})
-    get_filename_component(CONFIG_NAME ${CONFIG_FILE} NAME)
-    set(DEST_CONFIG "${CMAKE_SOURCE_DIR}/bin/${CONFIG_NAME}")
-    if(NOT EXISTS ${DEST_CONFIG})
-        file(INSTALL ${CONFIG_FILE} DESTINATION "${CMAKE_SOURCE_DIR}/bin")
-    endif()
-endforeach()
-
-# Copy runtime headers
-if(EXISTS "${CMAKE_SOURCE_DIR}/src/runtime.h")
-    file(INSTALL "${CMAKE_SOURCE_DIR}/src/runtime.h" DESTINATION "${INCLUDE_DIR}")
-endif()
-
-file(GLOB RUNTIME_HEADERS "${CMAKE_SOURCE_DIR}/src/runtime/*.h")
-if(RUNTIME_HEADERS)
-    file(INSTALL ${RUNTIME_HEADERS} DESTINATION "${RUNTIME_INCLUDE_DIR}")
-endif()
-
-# Copy platform compatibility headers (needed for generated code on Windows)
-# These go in bin/include/platform/ to match the source directory structure
-# (runtime headers reference ../platform/compat_pthread.h etc.)
-set(PLATFORM_INCLUDE_DIR ${INCLUDE_DIR}/platform)
-file(MAKE_DIRECTORY ${PLATFORM_INCLUDE_DIR})
-file(GLOB PLATFORM_HEADERS "${CMAKE_SOURCE_DIR}/src/platform/*.h")
-if(PLATFORM_HEADERS)
-    file(INSTALL ${PLATFORM_HEADERS} DESTINATION "${PLATFORM_INCLUDE_DIR}")
-endif()
-
-# Build runtime object files for linking with generated code
-# The gcc_backend expects individual .o files in bin/lib/<compiler>/
-# Determine runtime library directory based on platform and compiler
+#------------------------------------------------------------------------------
+# Runtime Object Files
+#------------------------------------------------------------------------------
+# Determine runtime library directory based on platform
 if(NOT MSVC)
     if(WIN32)
-        # Windows with Clang/MinGW -> bin/lib/clang/
-        set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
+        set(SN_RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
     else()
-        # Linux/Unix with GCC or Clang -> bin/lib/gcc/
-        set(RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/gcc)
+        set(SN_RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/gcc)
     endif()
 
-    file(MAKE_DIRECTORY ${RUNTIME_LIB_DIR})
+    file(MAKE_DIRECTORY ${SN_RUNTIME_LIB_DIR})
 
-    # Common include directories for runtime compilation
+    # Include directories for runtime compilation
     set(RUNTIME_INCLUDES
         -I${CMAKE_SOURCE_DIR}/src
         -I${CMAKE_SOURCE_DIR}/src/runtime
         -I${CMAKE_SOURCE_DIR}/src/platform
     )
 
-    # Add _GNU_SOURCE for Linux
     if(NOT WIN32)
         list(APPEND RUNTIME_INCLUDES -D_GNU_SOURCE)
     endif()
 
-    # Compile each runtime source file directly to the target location
-    # This avoids issues with different generators (Ninja vs Make) using different paths
+    # Macro to add runtime object compilation
     set(RUNTIME_OBJECTS)
-
-    # Helper macro to add a runtime object compilation
     macro(add_runtime_object SOURCE_FILE OUTPUT_NAME)
-        set(OUTPUT_FILE ${RUNTIME_LIB_DIR}/${OUTPUT_NAME}.o)
+        set(OUTPUT_FILE ${SN_RUNTIME_LIB_DIR}/${OUTPUT_NAME}.o)
         add_custom_command(
             OUTPUT ${OUTPUT_FILE}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${RUNTIME_LIB_DIR}
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${SN_RUNTIME_LIB_DIR}
             COMMAND ${CMAKE_C_COMPILER} -c ${SOURCE_FILE} -o ${OUTPUT_FILE} ${RUNTIME_INCLUDES} -O2 -std=c99
             DEPENDS ${SOURCE_FILE}
             COMMENT "Compiling runtime: ${OUTPUT_NAME}.o"
@@ -320,23 +301,188 @@ if(NOT MSVC)
     add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_any.c runtime_any)
     add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_intercept.c runtime_intercept)
 
-    # Custom target that depends on all runtime objects
+    # Target that builds all runtime objects
     add_custom_target(sn_runtime ALL DEPENDS ${RUNTIME_OBJECTS})
 endif()
 
-# Custom target to run tests
-add_custom_target(run-tests
+#------------------------------------------------------------------------------
+# Setup Include and Config Directories
+#------------------------------------------------------------------------------
+set(INCLUDE_DIR ${CMAKE_SOURCE_DIR}/bin/include)
+set(RUNTIME_INCLUDE_DIR ${INCLUDE_DIR}/runtime)
+set(PLATFORM_INCLUDE_DIR ${INCLUDE_DIR}/platform)
+
+file(MAKE_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
+file(MAKE_DIRECTORY ${INCLUDE_DIR})
+file(MAKE_DIRECTORY ${RUNTIME_INCLUDE_DIR})
+file(MAKE_DIRECTORY ${PLATFORM_INCLUDE_DIR})
+
+# Copy config files (preserve existing custom configs)
+file(GLOB CONFIG_FILES "${CMAKE_SOURCE_DIR}/etc/*.cfg")
+foreach(CONFIG_FILE ${CONFIG_FILES})
+    get_filename_component(CONFIG_NAME ${CONFIG_FILE} NAME)
+    set(DEST_CONFIG "${CMAKE_SOURCE_DIR}/bin/${CONFIG_NAME}")
+    if(NOT EXISTS ${DEST_CONFIG})
+        file(INSTALL ${CONFIG_FILE} DESTINATION "${CMAKE_SOURCE_DIR}/bin")
+    endif()
+endforeach()
+
+# Copy runtime headers
+if(EXISTS "${CMAKE_SOURCE_DIR}/src/runtime.h")
+    file(INSTALL "${CMAKE_SOURCE_DIR}/src/runtime.h" DESTINATION "${INCLUDE_DIR}")
+endif()
+
+file(GLOB RUNTIME_HEADERS "${CMAKE_SOURCE_DIR}/src/runtime/*.h")
+if(RUNTIME_HEADERS)
+    file(INSTALL ${RUNTIME_HEADERS} DESTINATION "${RUNTIME_INCLUDE_DIR}")
+endif()
+
+# Copy platform headers
+file(GLOB PLATFORM_HEADERS "${CMAKE_SOURCE_DIR}/src/platform/*.h")
+if(PLATFORM_HEADERS)
+    file(INSTALL ${PLATFORM_HEADERS} DESTINATION "${PLATFORM_INCLUDE_DIR}")
+endif()
+
+#------------------------------------------------------------------------------
+# Custom Targets
+#------------------------------------------------------------------------------
+# Run unit tests
+add_custom_target(run-unit-tests
     COMMAND $<TARGET_FILE:tests>
     DEPENDS tests
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     COMMENT "Running unit tests"
 )
 
-# Print configuration summary
+# Run all tests using Python test runner
+add_custom_target(run-tests
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONUNBUFFERED=1
+        python3 ${CMAKE_SOURCE_DIR}/scripts/run_tests.py all
+    DEPENDS sn tests sn_runtime
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running all tests"
+)
+
+# Run integration tests only
+add_custom_target(run-integration-tests
+    COMMAND ${CMAKE_COMMAND} -E env PYTHONUNBUFFERED=1
+        python3 ${CMAKE_SOURCE_DIR}/scripts/run_tests.py integration
+    DEPENDS sn sn_runtime
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running integration tests"
+)
+
+#------------------------------------------------------------------------------
+# Installation Rules
+#------------------------------------------------------------------------------
+include(GNUInstallDirs)
+
+# Install compiler
+install(TARGETS sn
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    COMPONENT compiler
+)
+
+# Install runtime objects
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/bin/lib/"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/sindarin
+    COMPONENT runtime
+    FILES_MATCHING PATTERN "*.o"
+)
+
+# Install headers
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/bin/include/"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/sindarin
+    COMPONENT headers
+)
+
+# Install config files
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/etc/"
+    DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/sindarin
+    COMPONENT configs
+    FILES_MATCHING PATTERN "*.cfg"
+)
+
+#------------------------------------------------------------------------------
+# CPack Configuration
+#------------------------------------------------------------------------------
+set(CPACK_PACKAGE_NAME "sindarin")
+set(CPACK_PACKAGE_VENDOR "Sindarin Project")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Sindarin - A statically-typed language that compiles to C")
+set(CPACK_PACKAGE_VERSION_MAJOR ${PROJECT_VERSION_MAJOR})
+set(CPACK_PACKAGE_VERSION_MINOR ${PROJECT_VERSION_MINOR})
+set(CPACK_PACKAGE_VERSION_PATCH ${PROJECT_VERSION_PATCH})
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+
+# Resource files
+if(EXISTS "${CMAKE_SOURCE_DIR}/LICENSE")
+    set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+endif()
+if(EXISTS "${CMAKE_SOURCE_DIR}/README.md")
+    set(CPACK_RESOURCE_FILE_README "${CMAKE_SOURCE_DIR}/README.md")
+endif()
+
+# Components
+set(CPACK_COMPONENTS_ALL compiler runtime headers configs)
+set(CPACK_COMPONENT_COMPILER_DISPLAY_NAME "Sindarin Compiler")
+set(CPACK_COMPONENT_COMPILER_REQUIRED ON)
+set(CPACK_COMPONENT_RUNTIME_DISPLAY_NAME "Runtime Libraries")
+set(CPACK_COMPONENT_RUNTIME_DEPENDS compiler)
+set(CPACK_COMPONENT_HEADERS_DISPLAY_NAME "Development Headers")
+set(CPACK_COMPONENT_HEADERS_DEPENDS runtime)
+set(CPACK_COMPONENT_CONFIGS_DISPLAY_NAME "Configuration Files")
+
+# Platform-specific generators
+if(WIN32)
+    set(CPACK_GENERATOR "ZIP")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-windows-x64")
+elseif(APPLE)
+    set(CPACK_GENERATOR "TGZ")
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-macos-x64")
+else()
+    # Check if rpmbuild is available for RPM generation
+    find_program(RPMBUILD_EXECUTABLE rpmbuild)
+    if(RPMBUILD_EXECUTABLE)
+        set(CPACK_GENERATOR "TGZ;DEB;RPM")
+    else()
+        set(CPACK_GENERATOR "TGZ;DEB")
+        message(STATUS "rpmbuild not found - RPM package generation disabled")
+    endif()
+    set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-linux-x64")
+
+    # DEB settings
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Sindarin Maintainers")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+    set(CPACK_DEBIAN_PACKAGE_DEPENDS "libc6 (>= 2.17)")
+    set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
+
+    # RPM settings (only used if rpmbuild is available)
+    set(CPACK_RPM_PACKAGE_LICENSE "MIT")
+    set(CPACK_RPM_PACKAGE_GROUP "Development/Languages")
+    set(CPACK_RPM_FILE_NAME RPM-DEFAULT)
+endif()
+
+# Source package
+set(CPACK_SOURCE_GENERATOR "TGZ")
+set(CPACK_SOURCE_IGNORE_FILES
+    "/[.]git/"
+    "/build/"
+    "/bin/"
+    "/log/"
+    "/vcpkg/"
+)
+
+include(CPack)
+
+#------------------------------------------------------------------------------
+# Configuration Summary
+#------------------------------------------------------------------------------
 message(STATUS "")
-message(STATUS "Sn Compiler Build Configuration:")
+message(STATUS "Sindarin Compiler Build Configuration:")
+message(STATUS "  Version:      ${PROJECT_VERSION}")
 message(STATUS "  Platform:     ${CMAKE_SYSTEM_NAME}")
 message(STATUS "  Compiler:     ${CMAKE_C_COMPILER_ID} ${CMAKE_C_COMPILER_VERSION}")
+message(STATUS "  Build Type:   ${CMAKE_BUILD_TYPE}")
 message(STATUS "  Debug:        ${SN_DEBUG}")
 message(STATUS "  ASAN:         ${SN_ASAN}")
 message(STATUS "  Output:       ${CMAKE_SOURCE_DIR}/bin")
