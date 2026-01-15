@@ -15,12 +15,6 @@ on:
       - 'docs/**'
       - '*.md'
   workflow_dispatch:
-    inputs:
-      debug_build:
-        description: 'Build with debug/ASAN enabled'
-        required: false
-        default: 'false'
-        type: boolean
 
 jobs:
   build:
@@ -165,17 +159,9 @@ jobs:
       - name: Configure CMake
         shell: bash
         run: |
-          if [ "${{ github.event.inputs.debug_build }}" == "true" ]; then
-            cmake -S . -B build -G Ninja \
-              -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-              -DCMAKE_BUILD_TYPE=Debug \
-              -DSN_DEBUG=ON \
-              -DSN_ASAN=ON
-          else
-            cmake -S . -B build -G Ninja \
-              -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-              -DCMAKE_BUILD_TYPE=Release
-          fi
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
         run: cmake --build build
@@ -301,72 +287,3 @@ jobs:
             bin/*.cfg
           retention-days: 7
 
-  #----------------------------------------------------------------------------
-  # Debug Build (Manual trigger only)
-  #----------------------------------------------------------------------------
-  build-debug:
-    name: Debug Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.debug_build == 'true'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            compiler: gcc
-          - os: windows-latest
-            compiler: clang
-          - os: macos-latest
-            compiler: clang
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build zlib1g-dev
-
-      - name: Setup Dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: brew install cmake ninja coreutils zlib
-
-      - name: Setup Dependencies (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          if (Test-Path "C:\Program Files\LLVM") {
-            Remove-Item -Path "C:\Program Files\LLVM" -Recurse -Force
-          }
-          $version = "20241217"
-          $url = "https://github.com/mstorsjo/llvm-mingw/releases/download/$version/llvm-mingw-$version-ucrt-x86_64.zip"
-          Invoke-WebRequest -Uri $url -OutFile "$env:TEMP\llvm-mingw.zip"
-          Expand-Archive -Path "$env:TEMP\llvm-mingw.zip" -DestinationPath "C:\llvm-mingw" -Force
-          $llvmDir = Get-ChildItem -Path "C:\llvm-mingw" -Directory | Select-Object -First 1
-          echo "$($llvmDir.FullName)\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          choco install ninja -y
-
-      - name: Configure CMake (Debug)
-        shell: bash
-        run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
-            -DCMAKE_BUILD_TYPE=Debug \
-            -DSN_DEBUG=ON \
-            -DSN_ASAN=ON
-
-      - name: Build (Debug)
-        run: cmake --build build
-
-      - name: Run unit tests (Debug)
-        shell: bash
-        env:
-          ASAN_OPTIONS: detect_leaks=0
-        run: |
-          if [ "$RUNNER_OS" == "Windows" ]; then
-            bin/tests.exe
-          else
-            bin/tests
-          fi
