@@ -283,9 +283,9 @@ static BackendType detect_backend_from_exe(void)
     if (!got_path)
     {
 #ifdef _WIN32
-        return BACKEND_MSVC; /* Default to MSVC on Windows */
+        return BACKEND_CLANG; /* Default to clang (LLVM-MinGW) on Windows */
 #else
-        return BACKEND_GCC;  /* Default to GCC on Unix */
+        return BACKEND_GCC;   /* Default to GCC on Unix */
 #endif
     }
 
@@ -307,9 +307,9 @@ static BackendType detect_backend_from_exe(void)
         return BACKEND_MSVC;
     }
 #ifdef _WIN32
-    return BACKEND_MSVC; /* Default to MSVC on Windows */
+    return BACKEND_CLANG; /* Default to clang (LLVM-MinGW) on Windows */
 #else
-    return BACKEND_GCC;  /* Default to GCC on Unix */
+    return BACKEND_GCC;   /* Default to GCC on Unix */
 #endif
 }
 
@@ -333,6 +333,13 @@ static const char *find_config_file(const char *compiler_dir)
 
     /* 2. Check next to executable (portable/dev mode) */
     snprintf(config_file_buf, sizeof(config_file_buf), "%s" SN_PATH_SEP_STR "sn.cfg", compiler_dir);
+    if (file_exists(config_file_buf))
+    {
+        return config_file_buf;
+    }
+
+    /* 2b. Check FHS-relative: <exe_dir>/../etc/sindarin/sn.cfg */
+    snprintf(config_file_buf, sizeof(config_file_buf), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "etc" SN_PATH_SEP_STR "sindarin" SN_PATH_SEP_STR "sn.cfg", compiler_dir);
     if (file_exists(config_file_buf))
     {
         return config_file_buf;
