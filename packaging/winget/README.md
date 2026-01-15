@@ -66,15 +66,13 @@ Commit, push, and create a pull request to microsoft/winget-pkgs.
 
 ## Dependencies
 
-The package declares these dependencies which winget will install automatically:
-- `MartinStorsjo.LLVM-MinGW.UCRT` - LLVM/Clang toolchain for Windows
-- `Ninja-build.Ninja` - Ninja build system
+The package declares this dependency which winget will install automatically:
+- `MartinStorsjo.LLVM-MinGW.UCRT` - LLVM/Clang toolchain (provides clang for compiling generated C code)
 
-If needed, you can install them manually:
+If needed, you can install it manually:
 
 ```powershell
 winget install MartinStorsjo.LLVM-MinGW.UCRT
-winget install Ninja-build.Ninja
 ```
 
 ## Using wingetcreate

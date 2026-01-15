@@ -75,7 +75,7 @@ $env:PATH += ";C:\sindarin\bin"
 sn --version
 ```
 
-**Prerequisites for Windows:** [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw) and [Ninja](https://ninja-build.org/) are required.
+**Prerequisite for Windows:** [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw) is required (provides clang).
 
 ### Build from Source
 
