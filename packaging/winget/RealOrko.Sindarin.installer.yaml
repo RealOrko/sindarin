@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: RealOrko.Sindarin
+PackageVersion: "${VERSION}"  # Replace with actual version (e.g., 0.0.9)
+Platform:
+  - Windows.Desktop
+MinimumOSVersion: 10.0.0.0
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: sindarin-${VERSION}-windows-x64\bin\sn.exe
+    PortableCommandAlias: sn
+Dependencies:
+  PackageDependencies:
+    - PackageIdentifier: mstorsjo.llvm-mingw
+      MinimumVersion: "20231128"
+    - PackageIdentifier: Ninja-build.Ninja
+      MinimumVersion: "1.11.0"
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/RealOrko/sindarin/releases/download/${VERSION}/sindarin-${VERSION}-windows-x64.zip
+    InstallerSha256: "${SHA256}"  # Replace with actual SHA256 hash
+ManifestType: installer
+ManifestVersion: 1.6.0
