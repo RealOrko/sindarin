@@ -181,7 +181,7 @@ jobs:
           path: |
             build/sindarin-*.tar.gz
             build/sindarin-*.zip
-            build/sindarin-*.deb
+            build/sindarin_*.deb
             build/sindarin-*.rpm
           retention-days: 30
 
