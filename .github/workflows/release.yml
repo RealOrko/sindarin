@@ -89,10 +89,24 @@ jobs:
           choco install ninja -y
 
           # Setup vcpkg
-          git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
-          & C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
-          & C:\vcpkg\vcpkg.exe install zlib:x64-windows
-          Copy-Item "C:\vcpkg\installed\x64-windows\lib\zlib.lib" "C:\vcpkg\installed\x64-windows\lib\libz.a"
+          $vcpkgRoot = "C:\vcpkg"
+          if (Test-Path $vcpkgRoot) {
+            Write-Host "vcpkg already exists, updating..."
+            Push-Location $vcpkgRoot
+            git pull --quiet 2>$null || Write-Host "Git pull skipped"
+            Pop-Location
+          } else {
+            git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
+          }
+          if (-not (Test-Path "$vcpkgRoot\vcpkg.exe")) {
+            & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
+          }
+          & "$vcpkgRoot\vcpkg.exe" install zlib:x64-windows
+          $zlibLib = "$vcpkgRoot\installed\x64-windows\lib\zlib.lib"
+          $libzA = "$vcpkgRoot\installed\x64-windows\lib\libz.a"
+          if ((Test-Path $zlibLib) -and -not (Test-Path $libzA)) {
+            Copy-Item $zlibLib $libzA
+          }
 
       #------------------------------------------------------------------------
       # Configure and Build

@@ -85,20 +85,37 @@ runs:
       id: vcpkg-setup
       shell: pwsh
       run: |
-        Write-Host "Cloning vcpkg..."
-        git clone https://github.com/microsoft/vcpkg.git C:\vcpkg
+        $vcpkgRoot = "C:\vcpkg"
 
-        Write-Host "Bootstrapping vcpkg..."
-        & C:\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+        # Clone or update vcpkg
+        if (Test-Path $vcpkgRoot) {
+          Write-Host "vcpkg already exists, updating..."
+          Push-Location $vcpkgRoot
+          git pull --quiet 2>$null || Write-Host "Git pull skipped"
+          Pop-Location
+        } else {
+          Write-Host "Cloning vcpkg..."
+          git clone https://github.com/microsoft/vcpkg.git $vcpkgRoot
+        }
+
+        # Bootstrap if needed
+        if (-not (Test-Path "$vcpkgRoot\vcpkg.exe")) {
+          Write-Host "Bootstrapping vcpkg..."
+          & "$vcpkgRoot\bootstrap-vcpkg.bat" -disableMetrics
+        }
 
         Write-Host "Installing zlib..."
-        & C:\vcpkg\vcpkg.exe install zlib:x64-windows
+        & "$vcpkgRoot\vcpkg.exe" install zlib:x64-windows
 
         # Create libz.a compatibility link
-        Copy-Item "C:\vcpkg\installed\x64-windows\lib\zlib.lib" "C:\vcpkg\installed\x64-windows\lib\libz.a"
+        $zlibLib = "$vcpkgRoot\installed\x64-windows\lib\zlib.lib"
+        $libzA = "$vcpkgRoot\installed\x64-windows\lib\libz.a"
+        if ((Test-Path $zlibLib) -and -not (Test-Path $libzA)) {
+          Copy-Item $zlibLib $libzA
+        }
 
         # Set output
-        echo "vcpkg_root=C:\vcpkg\installed\x64-windows" >> $env:GITHUB_OUTPUT
+        echo "vcpkg_root=$vcpkgRoot\installed\x64-windows" >> $env:GITHUB_OUTPUT
 
     #--------------------------------------------------------------------------
     # Verify Installation
