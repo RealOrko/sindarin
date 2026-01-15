@@ -55,6 +55,34 @@ static void normalize_path_separators(char *path)
 /* Static buffer for compiler directory path */
 static char compiler_dir_buf[PATH_MAX];
 
+/* Static buffer for resolved config file path */
+static char config_file_buf[PATH_MAX];
+
+/* Static buffer for resolved lib directory path */
+static char lib_dir_buf[PATH_MAX];
+
+/* Helper: check if file exists and is readable */
+static bool file_exists(const char *path)
+{
+    return access(path, R_OK) == 0;
+}
+
+/* Helper: check if directory exists */
+#ifndef _WIN32
+#include <sys/stat.h>
+#endif
+
+static bool dir_exists(const char *path)
+{
+#ifdef _WIN32
+    DWORD attrs = GetFileAttributesA(path);
+    return (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY));
+#else
+    struct stat st;
+    return (stat(path, &st) == 0 && S_ISDIR(st.st_mode));
+#endif
+}
+
 /* Backend type enumeration */
 typedef enum {
     BACKEND_GCC,
@@ -285,17 +313,192 @@ static BackendType detect_backend_from_exe(void)
 #endif
 }
 
-/* Get config filename for a backend (e.g., "sn.gcc.cfg") */
-static const char *get_config_filename(BackendType backend)
+/* Find config file by searching multiple locations.
+ * Search order:
+ *   1. $SINDARIN_CONFIG environment variable (if set)
+ *   2. <exe_dir>/sn.cfg (portable/development mode)
+ *   3. Platform-specific system paths
+ *   4. Compile-time default (if defined)
+ *
+ * Returns path to config file or NULL if not found.
+ */
+static const char *find_config_file(const char *compiler_dir)
 {
-    switch (backend)
+    /* 1. Check SINDARIN_CONFIG environment variable */
+    const char *env_config = getenv("SINDARIN_CONFIG");
+    if (env_config && env_config[0] && file_exists(env_config))
     {
-        case BACKEND_MSVC:   return "sn-msvc.cfg";
-        case BACKEND_CLANG:  return "sn-clang.cfg";
-        case BACKEND_TINYCC: return "sn-tcc.cfg";
-        case BACKEND_GCC:
-        default:             return "sn-gcc.cfg";
+        return env_config;
     }
+
+    /* 2. Check next to executable (portable/dev mode) */
+    snprintf(config_file_buf, sizeof(config_file_buf), "%s" SN_PATH_SEP_STR "sn.cfg", compiler_dir);
+    if (file_exists(config_file_buf))
+    {
+        return config_file_buf;
+    }
+
+#ifdef _WIN32
+    /* 3a. Windows: %LOCALAPPDATA%\Sindarin\sn.cfg */
+    const char *localappdata = getenv("LOCALAPPDATA");
+    if (localappdata && localappdata[0])
+    {
+        snprintf(config_file_buf, sizeof(config_file_buf), "%s\\Sindarin\\sn.cfg", localappdata);
+        if (file_exists(config_file_buf))
+        {
+            return config_file_buf;
+        }
+    }
+
+    /* 3b. Windows: %ProgramFiles%\Sindarin\sn.cfg */
+    const char *programfiles = getenv("ProgramFiles");
+    if (programfiles && programfiles[0])
+    {
+        snprintf(config_file_buf, sizeof(config_file_buf), "%s\\Sindarin\\sn.cfg", programfiles);
+        if (file_exists(config_file_buf))
+        {
+            return config_file_buf;
+        }
+    }
+#else
+    /* 3a. Unix: /etc/sindarin/sn.cfg */
+    if (file_exists("/etc/sindarin/sn.cfg"))
+    {
+        return "/etc/sindarin/sn.cfg";
+    }
+
+    /* 3b. Unix: /usr/local/etc/sindarin/sn.cfg */
+    if (file_exists("/usr/local/etc/sindarin/sn.cfg"))
+    {
+        return "/usr/local/etc/sindarin/sn.cfg";
+    }
+
+#ifdef __APPLE__
+    /* 3c. macOS: /opt/homebrew/etc/sindarin/sn.cfg (Apple Silicon Homebrew) */
+    if (file_exists("/opt/homebrew/etc/sindarin/sn.cfg"))
+    {
+        return "/opt/homebrew/etc/sindarin/sn.cfg";
+    }
+#endif
+#endif
+
+    /* 4. Compile-time default (if defined) */
+#ifdef SN_DEFAULT_CONFIG_FILE
+    if (file_exists(SN_DEFAULT_CONFIG_FILE))
+    {
+        return SN_DEFAULT_CONFIG_FILE;
+    }
+#endif
+
+    return NULL; /* No config file found, use defaults */
+}
+
+/* Find runtime library directory by searching multiple locations.
+ * Search order:
+ *   1. $SINDARIN_LIB environment variable (if set)
+ *   2. <exe_dir>/lib/<backend>/ (portable/development mode)
+ *   3. <exe_dir>/../lib/sindarin/<backend>/ (FHS-compliant relative)
+ *   4. Platform-specific system paths
+ *   5. Compile-time default (if defined)
+ *
+ * Returns path to lib directory or NULL if not found.
+ */
+static const char *find_lib_dir(const char *compiler_dir, BackendType backend)
+{
+    const char *backend_subdir = backend_lib_subdir(backend);
+    /* backend_lib_subdir returns "lib/gcc", "lib/clang", etc. - extract just the backend name */
+    const char *backend_suffix = strrchr(backend_subdir, '/');
+    if (backend_suffix) backend_suffix++; else backend_suffix = backend_subdir;
+
+    /* 1. Check SINDARIN_LIB environment variable */
+    const char *env_lib = getenv("SINDARIN_LIB");
+    if (env_lib && env_lib[0])
+    {
+        snprintf(lib_dir_buf, sizeof(lib_dir_buf), "%s" SN_PATH_SEP_STR "%s", env_lib, backend_suffix);
+        if (dir_exists(lib_dir_buf))
+        {
+            return lib_dir_buf;
+        }
+        /* Also try without backend suffix (user may have set full path) */
+        if (dir_exists(env_lib))
+        {
+            strncpy(lib_dir_buf, env_lib, sizeof(lib_dir_buf) - 1);
+            lib_dir_buf[sizeof(lib_dir_buf) - 1] = '\0';
+            return lib_dir_buf;
+        }
+    }
+
+    /* 2. Check next to executable (portable/dev mode): <exe_dir>/lib/<backend>/ */
+    snprintf(lib_dir_buf, sizeof(lib_dir_buf), "%s" SN_PATH_SEP_STR "%s", compiler_dir, backend_subdir);
+    if (dir_exists(lib_dir_buf))
+    {
+        return lib_dir_buf;
+    }
+
+    /* 3. Check FHS-relative: <exe_dir>/../lib/sindarin/<backend>/ */
+    snprintf(lib_dir_buf, sizeof(lib_dir_buf), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "lib" SN_PATH_SEP_STR "sindarin" SN_PATH_SEP_STR "%s", compiler_dir, backend_suffix);
+    if (dir_exists(lib_dir_buf))
+    {
+        return lib_dir_buf;
+    }
+
+#ifdef _WIN32
+    /* 4a. Windows: %LOCALAPPDATA%\Sindarin\lib\<backend> */
+    const char *localappdata = getenv("LOCALAPPDATA");
+    if (localappdata && localappdata[0])
+    {
+        snprintf(lib_dir_buf, sizeof(lib_dir_buf), "%s\\Sindarin\\lib\\%s", localappdata, backend_suffix);
+        if (dir_exists(lib_dir_buf))
+        {
+            return lib_dir_buf;
+        }
+    }
+
+    /* 4b. Windows: %ProgramFiles%\Sindarin\lib\<backend> */
+    const char *programfiles = getenv("ProgramFiles");
+    if (programfiles && programfiles[0])
+    {
+        snprintf(lib_dir_buf, sizeof(lib_dir_buf), "%s\\Sindarin\\lib\\%s", programfiles, backend_suffix);
+        if (dir_exists(lib_dir_buf))
+        {
+            return lib_dir_buf;
+        }
+    }
+#else
+    /* 4a. Unix: /usr/lib/sindarin/<backend> */
+    snprintf(lib_dir_buf, sizeof(lib_dir_buf), "/usr/lib/sindarin/%s", backend_suffix);
+    if (dir_exists(lib_dir_buf))
+    {
+        return lib_dir_buf;
+    }
+
+    /* 4b. Unix: /usr/local/lib/sindarin/<backend> */
+    snprintf(lib_dir_buf, sizeof(lib_dir_buf), "/usr/local/lib/sindarin/%s", backend_suffix);
+    if (dir_exists(lib_dir_buf))
+    {
+        return lib_dir_buf;
+    }
+
+#ifdef __APPLE__
+    /* 4c. macOS: /opt/homebrew/lib/sindarin/<backend> (Apple Silicon Homebrew) */
+    snprintf(lib_dir_buf, sizeof(lib_dir_buf), "/opt/homebrew/lib/sindarin/%s", backend_suffix);
+    if (dir_exists(lib_dir_buf))
+    {
+        return lib_dir_buf;
+    }
+#endif
+#endif
+
+    /* 5. Compile-time default (if defined) */
+#ifdef SN_DEFAULT_LIB_DIR
+    snprintf(lib_dir_buf, sizeof(lib_dir_buf), SN_DEFAULT_LIB_DIR "/%s", backend_suffix);
+    if (dir_exists(lib_dir_buf))
+    {
+        return lib_dir_buf;
+    }
+#endif
+
+    return NULL; /* No lib directory found */
 }
 
 /* Parse a single line from config file (KEY=VALUE format) */
@@ -389,22 +592,16 @@ void cc_backend_load_config(const char *compiler_dir)
     if (cfg_loaded) return;
     cfg_loaded = true;
 
-    /* Detect backend: first check SN_CC env, then fall back to exe name */
-    BackendType backend;
-    const char *sn_cc = getenv("SN_CC");
-    if (sn_cc && sn_cc[0])
-        backend = detect_backend(sn_cc);
-    else
-        backend = detect_backend_from_exe();
-    const char *config_name = get_config_filename(backend);
-
-    /* Build config file path */
-    char config_path[PATH_MAX];
-    snprintf(config_path, sizeof(config_path), "%s" SN_PATH_SEP_STR "%s", compiler_dir, config_name);
+    /* Find config file using multi-path search */
+    const char *config_path = find_config_file(compiler_dir);
+    if (!config_path)
+    {
+        return; /* No config file found, use defaults */
+    }
 
     /* Try to open config file */
     FILE *f = fopen(config_path, "r");
-    if (!f) return; /* No config file, use defaults */
+    if (!f) return; /* Can't open config file, use defaults */
 
     /* Parse each line */
     char line[2048];
@@ -710,9 +907,41 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     /* Detect backend type from compiler name */
     BackendType backend = detect_backend(config->cc);
 
-    /* Build paths to library and include directories */
-    snprintf(lib_dir, sizeof(lib_dir), "%s" SN_PATH_SEP_STR "%s", compiler_dir, backend_lib_subdir(backend));
+    /* Find runtime library directory using multi-path search */
+    const char *found_lib_dir = find_lib_dir(compiler_dir, backend);
+    if (found_lib_dir)
+    {
+        strncpy(lib_dir, found_lib_dir, sizeof(lib_dir) - 1);
+        lib_dir[sizeof(lib_dir) - 1] = '\0';
+    }
+    else
+    {
+        /* Fallback to original relative path (for error message) */
+        snprintf(lib_dir, sizeof(lib_dir), "%s" SN_PATH_SEP_STR "%s", compiler_dir, backend_lib_subdir(backend));
+    }
+
+    /* Build include directory path - also search multiple locations */
     snprintf(include_dir, sizeof(include_dir), "%s" SN_PATH_SEP_STR "include", compiler_dir);
+    if (!dir_exists(include_dir))
+    {
+        /* Try FHS-relative path */
+        snprintf(include_dir, sizeof(include_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "include" SN_PATH_SEP_STR "sindarin", compiler_dir);
+        if (!dir_exists(include_dir))
+        {
+#ifdef _WIN32
+            const char *pf = getenv("ProgramFiles");
+            if (pf) snprintf(include_dir, sizeof(include_dir), "%s\\Sindarin\\include", pf);
+#else
+            /* Try system paths */
+            if (dir_exists("/usr/include/sindarin"))
+                strcpy(include_dir, "/usr/include/sindarin");
+            else if (dir_exists("/usr/local/include/sindarin"))
+                strcpy(include_dir, "/usr/local/include/sindarin");
+            else
+                snprintf(include_dir, sizeof(include_dir), "%s" SN_PATH_SEP_STR "include", compiler_dir);
+#endif
+        }
+    }
 
     /* Normalize path separators for Windows cmd.exe compatibility */
     normalize_path_separators(lib_dir);

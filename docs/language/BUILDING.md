@@ -177,7 +177,7 @@ After a successful build:
 | `bin/lib/gcc/*.o` | Runtime objects (Linux/macOS) |
 | `bin/lib/clang/*.o` | Runtime objects (Windows) |
 | `bin/include/` | Runtime headers |
-| `bin/*.cfg` | Backend configuration files |
+| `bin/sn.cfg` | Compiler configuration file |
 
 ## CMake Options
 
@@ -187,6 +187,7 @@ After a successful build:
 | `CMAKE_C_COMPILER` | System default | C compiler: `gcc`, `clang`, etc. |
 | `SN_DEBUG` | `OFF` | Enable debug symbols and reduced optimization |
 | `SN_ASAN` | `OFF` | Enable AddressSanitizer (GCC/Clang only) |
+| `SN_BUNDLE_ZLIB` | `OFF` | Bundle zlib with packages for self-contained distribution |
 
 **Debug build with AddressSanitizer:**
 
@@ -277,7 +278,33 @@ bin/sn myprogram.sn -g -o myprogram
 
 ## C Compiler Configuration
 
-The Sindarin compiler uses a C backend. Configure it via environment variables:
+The Sindarin compiler uses a C backend. It reads configuration from `sn.cfg` and can be overridden via environment variables.
+
+### Configuration File Search Order
+
+The compiler searches for `sn.cfg` in these locations (first found wins):
+
+1. `$SINDARIN_CONFIG` environment variable (if set)
+2. Next to the compiler executable (portable/development mode)
+3. Platform-specific system paths:
+   - **Linux**: `/etc/sindarin/sn.cfg`, `/usr/local/etc/sindarin/sn.cfg`
+   - **macOS**: `/usr/local/etc/sindarin/sn.cfg`, `/opt/homebrew/etc/sindarin/sn.cfg`
+   - **Windows**: `%LOCALAPPDATA%\Sindarin\sn.cfg`, `%ProgramFiles%\Sindarin\sn.cfg`
+4. Built-in defaults
+
+### Runtime Library Search Order
+
+The compiler searches for runtime objects (`.o` files) in:
+
+1. `$SINDARIN_LIB` environment variable (if set)
+2. Next to the compiler executable: `<exe_dir>/lib/<backend>/`
+3. FHS-relative: `<exe_dir>/../lib/sindarin/<backend>/`
+4. Platform-specific system paths:
+   - **Linux**: `/usr/lib/sindarin/<backend>`, `/usr/local/lib/sindarin/<backend>`
+   - **macOS**: `/usr/local/lib/sindarin/<backend>`, `/opt/homebrew/lib/sindarin/<backend>`
+   - **Windows**: `%ProgramFiles%\Sindarin\lib\<backend>`
+
+### Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -288,6 +315,8 @@ The Sindarin compiler uses a C backend. Configure it via environment variables:
 | `SN_CFLAGS` | (empty) | Additional compiler flags |
 | `SN_LDFLAGS` | (empty) | Additional linker flags |
 | `SN_LDLIBS` | (empty) | Additional libraries |
+| `SINDARIN_CONFIG` | (none) | Override config file path |
+| `SINDARIN_LIB` | (none) | Override runtime library directory |
 
 **Example: Using Clang on Linux:**
 
@@ -301,11 +330,26 @@ SN_CC=clang bin/sn myprogram.sn -o myprogram
 SN_LDLIBS="-lssl -lcrypto" bin/sn myprogram.sn -o myprogram
 ```
 
+**Example: Custom runtime location:**
+
+```bash
+SINDARIN_LIB=/opt/sindarin/lib/gcc bin/sn myprogram.sn -o myprogram
+```
+
 ## Troubleshooting
 
 ### "Runtime object not found"
 
-The compiler can't find pre-built runtime objects. Ensure CMake completed successfully and check that `bin/lib/gcc/` (Linux/macOS) or `bin/lib/clang/` (Windows) contains `.o` files.
+The compiler can't find pre-built runtime objects. This can happen if:
+
+1. **Development mode**: Ensure CMake completed successfully and check that `bin/lib/gcc/` (Linux/macOS) or `bin/lib/clang/` (Windows) contains `.o` files.
+
+2. **Installed package**: The compiler searches system paths like `/usr/lib/sindarin/gcc/`. Ensure the package was installed correctly.
+
+3. **Custom location**: Set `SINDARIN_LIB` to your runtime directory:
+   ```bash
+   SINDARIN_LIB=/path/to/lib bin/sn myprogram.sn
+   ```
 
 ### "C compiler not found"
 

@@ -111,13 +111,26 @@ jobs:
       #------------------------------------------------------------------------
       # Configure and Build
       #------------------------------------------------------------------------
-      - name: Configure CMake
+      - name: Configure CMake (Linux/macOS)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           cmake -S . -B build -G Ninja \
             -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=install
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DSN_BUNDLE_ZLIB=ON
+
+      - name: Configure CMake (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_C_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=install \
+            -DSN_BUNDLE_ZLIB=ON \
+            -DCMAKE_PREFIX_PATH="C:/vcpkg/installed/x64-windows"
 
       - name: Build
         run: cmake --build build

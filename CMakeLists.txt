@@ -207,6 +207,16 @@ target_include_directories(sn PRIVATE
     ${CMAKE_SOURCE_DIR}/src/platform
 )
 
+# Add compile-time path defines for installed packages
+# These are used as fallback paths when the compiler can't find files relative to exe
+if(CMAKE_INSTALL_PREFIX)
+    target_compile_definitions(sn PRIVATE
+        SN_DEFAULT_CONFIG_FILE="${CMAKE_INSTALL_FULL_SYSCONFDIR}/sindarin/sn.cfg"
+        SN_DEFAULT_LIB_DIR="${CMAKE_INSTALL_FULL_LIBDIR}/sindarin"
+        SN_DEFAULT_INCLUDE_DIR="${CMAKE_INSTALL_FULL_INCLUDEDIR}/sindarin"
+    )
+endif()
+
 # Platform-specific libraries
 if(WIN32)
     target_link_libraries(sn PRIVATE ws2_32 bcrypt pthread)
@@ -317,15 +327,14 @@ file(MAKE_DIRECTORY ${INCLUDE_DIR})
 file(MAKE_DIRECTORY ${RUNTIME_INCLUDE_DIR})
 file(MAKE_DIRECTORY ${PLATFORM_INCLUDE_DIR})
 
-# Copy config files (preserve existing custom configs)
-file(GLOB CONFIG_FILES "${CMAKE_SOURCE_DIR}/etc/*.cfg")
-foreach(CONFIG_FILE ${CONFIG_FILES})
-    get_filename_component(CONFIG_NAME ${CONFIG_FILE} NAME)
-    set(DEST_CONFIG "${CMAKE_SOURCE_DIR}/bin/${CONFIG_NAME}")
+# Copy unified config file (sn.cfg)
+set(SN_CONFIG_FILE "${CMAKE_SOURCE_DIR}/etc/sn.cfg")
+set(DEST_CONFIG "${CMAKE_SOURCE_DIR}/bin/sn.cfg")
+if(EXISTS ${SN_CONFIG_FILE})
     if(NOT EXISTS ${DEST_CONFIG})
-        file(INSTALL ${CONFIG_FILE} DESTINATION "${CMAKE_SOURCE_DIR}/bin")
+        file(INSTALL ${SN_CONFIG_FILE} DESTINATION "${CMAKE_SOURCE_DIR}/bin")
     endif()
-endforeach()
+endif()
 
 # Copy runtime headers
 if(EXISTS "${CMAKE_SOURCE_DIR}/src/runtime.h")
@@ -396,12 +405,81 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/bin/include/"
     COMPONENT headers
 )
 
-# Install config files
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/etc/"
+# Install config file
+install(FILES "${CMAKE_SOURCE_DIR}/etc/sn.cfg"
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/sindarin
     COMPONENT configs
-    FILES_MATCHING PATTERN "*.cfg"
 )
+
+#------------------------------------------------------------------------------
+# Bundled Dependencies (zlib)
+#------------------------------------------------------------------------------
+# Option to bundle zlib with the package (for self-contained distribution)
+option(SN_BUNDLE_ZLIB "Bundle zlib with the package" OFF)
+
+if(SN_BUNDLE_ZLIB)
+    # Look for zlib in common locations
+    find_package(ZLIB QUIET)
+
+    # Create deps directory for bundled files
+    set(SN_DEPS_DIR ${CMAKE_SOURCE_DIR}/bin/deps)
+    file(MAKE_DIRECTORY ${SN_DEPS_DIR})
+    file(MAKE_DIRECTORY ${SN_DEPS_DIR}/include)
+    file(MAKE_DIRECTORY ${SN_DEPS_DIR}/lib)
+
+    if(ZLIB_FOUND)
+        message(STATUS "Found zlib: ${ZLIB_LIBRARIES}")
+
+        # Copy zlib headers
+        if(ZLIB_INCLUDE_DIRS)
+            file(GLOB ZLIB_HEADERS "${ZLIB_INCLUDE_DIRS}/zlib.h" "${ZLIB_INCLUDE_DIRS}/zconf.h")
+            foreach(HEADER ${ZLIB_HEADERS})
+                file(INSTALL ${HEADER} DESTINATION ${SN_DEPS_DIR}/include)
+            endforeach()
+        endif()
+
+        # Copy zlib library (platform-specific)
+        if(WIN32)
+            # Windows: look for zlib1.dll
+            get_filename_component(ZLIB_LIB_DIR ${ZLIB_LIBRARIES} DIRECTORY)
+            file(GLOB ZLIB_DLLS "${ZLIB_LIB_DIR}/../bin/zlib*.dll" "${ZLIB_LIB_DIR}/zlib*.dll")
+            foreach(DLL ${ZLIB_DLLS})
+                file(INSTALL ${DLL} DESTINATION ${SN_DEPS_DIR}/lib)
+            endforeach()
+            # Also copy import library
+            file(GLOB ZLIB_LIBS "${ZLIB_LIB_DIR}/zlib*.lib" "${ZLIB_LIB_DIR}/libz*.a")
+            foreach(LIB ${ZLIB_LIBS})
+                file(INSTALL ${LIB} DESTINATION ${SN_DEPS_DIR}/lib)
+            endforeach()
+        elseif(APPLE)
+            # macOS: zlib is pre-installed, just note the path
+            message(STATUS "macOS: Using system zlib (pre-installed)")
+        else()
+            # Linux: copy shared library
+            get_filename_component(ZLIB_LIB_NAME ${ZLIB_LIBRARIES} NAME)
+            file(INSTALL ${ZLIB_LIBRARIES} DESTINATION ${SN_DEPS_DIR}/lib)
+            # Copy symlinks too
+            get_filename_component(ZLIB_LIB_DIR ${ZLIB_LIBRARIES} DIRECTORY)
+            file(GLOB ZLIB_SYMLINKS "${ZLIB_LIB_DIR}/libz.so*")
+            foreach(LINK ${ZLIB_SYMLINKS})
+                file(INSTALL ${LINK} DESTINATION ${SN_DEPS_DIR}/lib)
+            endforeach()
+        endif()
+    else()
+        message(STATUS "zlib not found - skipping bundling (SDK compression features may require manual zlib installation)")
+    endif()
+
+    # Install bundled deps
+    if(EXISTS ${SN_DEPS_DIR})
+        install(DIRECTORY ${SN_DEPS_DIR}/
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/sindarin/deps
+            COMPONENT deps
+        )
+        set(CPACK_COMPONENTS_ALL compiler runtime headers configs deps)
+        set(CPACK_COMPONENT_DEPS_DISPLAY_NAME "Bundled Dependencies (zlib)")
+        set(CPACK_COMPONENT_DEPS_DEPENDS runtime)
+    endif()
+endif()
 
 #------------------------------------------------------------------------------
 # CPack Configuration
