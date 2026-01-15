@@ -287,15 +287,18 @@ jobs:
 
       - name: Generate manifests
         run: |
-          # Extract version (strip 'v' prefix and any suffix)
-          VERSION="${{ env.VERSION }}"
-          VERSION="${VERSION#v}"
-          VERSION="${VERSION%%-*}"
+          # TAG is the full release tag (e.g., 0.0.15-alpha) - used in URLs
+          TAG="${{ env.VERSION }}"
+          TAG="${TAG#v}"
+
+          # VERSION is numeric only (e.g., 0.0.15) - required by winget
+          VERSION="${TAG%%-*}"
 
           # Find the Windows ZIP and calculate SHA256
           ZIP_FILE=$(find artifacts -name "sindarin-*.zip" | head -1)
           SHA256=$(sha256sum "$ZIP_FILE" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')
 
+          echo "Tag: $TAG"
           echo "Version: $VERSION"
           echo "SHA256: $SHA256"
 
@@ -306,6 +309,7 @@ jobs:
           for template in packaging/winget/SindarinSDK.Sindarin*.yaml; do
             filename=$(basename "$template")
             sed -e "s/\${VERSION}/$VERSION/g" \
+                -e "s/\${TAG}/$TAG/g" \
                 -e "s/\${SHA256}/$SHA256/g" \
                 "$template" > "winget-output/$filename"
           done

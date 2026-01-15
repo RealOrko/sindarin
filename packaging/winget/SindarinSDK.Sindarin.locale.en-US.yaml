@@ -25,6 +25,6 @@ Tags:
   - compiler
   - c
   - developer-tools
-ReleaseNotesUrl: https://github.com/RealOrko/sindarin/releases/tag/${VERSION}
+ReleaseNotesUrl: https://github.com/RealOrko/sindarin/releases/tag/${TAG}
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
