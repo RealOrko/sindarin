@@ -9,12 +9,6 @@ NestedInstallerType: portable
 NestedInstallerFiles:
   - RelativeFilePath: bin\sn.exe
     PortableCommandAlias: sn
-Dependencies:
-  PackageDependencies:
-    - PackageIdentifier: mstorsjo.llvm-mingw
-      MinimumVersion: "20231128"
-    - PackageIdentifier: Ninja-build.Ninja
-      MinimumVersion: "1.11.0"
 Installers:
   - Architecture: x64
     InstallerUrl: https://github.com/RealOrko/sindarin/releases/download/${VERSION}/sindarin-${VERSION}-windows-x64.zip
