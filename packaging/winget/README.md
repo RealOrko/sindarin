@@ -64,21 +64,18 @@ winget install --manifest manifests/s/SindarinSDK/Sindarin/$VERSION
 
 Commit, push, and create a pull request to microsoft/winget-pkgs.
 
-## Prerequisites
+## Dependencies
 
-Before using Sindarin on Windows, install these dependencies manually:
+The package declares these dependencies which winget will install automatically:
+- `MartinStorsjo.LLVM-MinGW.UCRT` - LLVM/Clang toolchain for Windows
+- `Ninja-build.Ninja` - Ninja build system
+
+If needed, you can install them manually:
 
 ```powershell
-# Install LLVM-MinGW (provides clang compiler)
-winget install mstorsjo.llvm-mingw
-
-# Install Ninja build system
+winget install MartinStorsjo.LLVM-MinGW.UCRT
 winget install Ninja-build.Ninja
 ```
-
-Or download them directly:
-- [LLVM-MinGW](https://github.com/mstorsjo/llvm-mingw/releases) - LLVM/Clang toolchain for Windows
-- [Ninja](https://github.com/ninja-build/ninja/releases) - Build system
 
 ## Using wingetcreate
 
