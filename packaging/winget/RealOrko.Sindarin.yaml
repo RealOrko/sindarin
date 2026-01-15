@@ -1,9 +1,0 @@
-# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
-# Winget package manifest for Sindarin
-# Submit to: https://github.com/microsoft/winget-pkgs
-
-PackageIdentifier: RealOrko.Sindarin
-PackageVersion: "${VERSION}"  # Replace with actual version (e.g., 0.0.9)
-DefaultLocale: en-US
-ManifestType: version
-ManifestVersion: 1.6.0

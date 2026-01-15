@@ -264,3 +264,73 @@ jobs:
           files: build/sindarin-*-source.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  #----------------------------------------------------------------------------
+  # Generate Winget Manifests
+  #----------------------------------------------------------------------------
+  winget-manifests:
+    name: Generate Winget Manifests
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sindarin-windows-x64
+          path: artifacts
+
+      - name: Generate manifests
+        run: |
+          # Extract version (strip 'v' prefix and any suffix)
+          VERSION="${{ env.VERSION }}"
+          VERSION="${VERSION#v}"
+          VERSION="${VERSION%%-*}"
+
+          # Find the Windows ZIP and calculate SHA256
+          ZIP_FILE=$(find artifacts -name "sindarin-*.zip" | head -1)
+          SHA256=$(sha256sum "$ZIP_FILE" | cut -d' ' -f1 | tr '[:lower:]' '[:upper:]')
+
+          echo "Version: $VERSION"
+          echo "SHA256: $SHA256"
+
+          # Create output directory
+          mkdir -p winget-output
+
+          # Process each template
+          for template in packaging/winget/SindarinSDK.Sindarin*.yaml; do
+            filename=$(basename "$template")
+            sed -e "s/\${VERSION}/$VERSION/g" \
+                -e "s/\${SHA256}/$SHA256/g" \
+                "$template" > "winget-output/$filename"
+          done
+
+          # Show generated manifests
+          echo "Generated manifests:"
+          for f in winget-output/*.yaml; do
+            echo "=== $f ==="
+            cat "$f"
+          done
+
+      - name: Upload winget manifests artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: winget-manifests
+          path: winget-output/
+          retention-days: 90
+
+      - name: Create winget manifests ZIP
+        run: |
+          cd winget-output
+          zip -r ../winget-manifests.zip .
+
+      - name: Attach winget manifests to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.VERSION }}
+          files: winget-manifests.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

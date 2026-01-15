@@ -2,66 +2,65 @@
 
 This directory contains manifest templates for publishing Sindarin to the Windows Package Manager (winget).
 
-## Prerequisites
+## Package Identifier
 
-- A GitHub release with the Windows ZIP artifact
-- The SHA256 hash of the ZIP file
+The package identifier is `SindarinSDK.Sindarin` (Publisher.Package format is required by winget).
+Users install with: `winget install SindarinSDK.Sindarin`
 
-## Steps to Submit
+## Automated Release
 
-### 1. Calculate SHA256 hash
+The release workflow automatically generates ready-to-submit winget manifests with the correct version and SHA256 hash. These are uploaded as the `winget-manifests` artifact.
 
-After creating a release, calculate the hash:
+## Install from Local Manifest
+
+Users can download `winget-manifests.zip` from the GitHub release and install directly:
 
 ```powershell
-# Download the release
-$version = "0.0.9"  # Replace with actual version
-$url = "https://github.com/RealOrko/sindarin/releases/download/$version/sindarin-$version-windows-x64.zip"
-Invoke-WebRequest -Uri $url -OutFile "sindarin.zip"
-
-# Calculate SHA256
-(Get-FileHash -Algorithm SHA256 "sindarin.zip").Hash
+# Download winget-manifests.zip from the release page
+Invoke-WebRequest -Uri "https://github.com/RealOrko/sindarin/releases/download/0.0.9/winget-manifests.zip" -OutFile winget-manifests.zip
+Expand-Archive winget-manifests.zip -DestinationPath winget-manifests
+winget install --manifest ./winget-manifests
 ```
 
-### 2. Update manifest files
+This installs Sindarin without waiting for the package to be published to the winget repository.
 
-Replace placeholders in all three manifest files:
-- `${VERSION}` → actual version (e.g., `0.0.9`)
-- `${SHA256}` → SHA256 hash from step 1
+## Submitting to winget-pkgs
 
-### 3. Fork and clone winget-pkgs
+### 1. Download manifests
+
+Download the `winget-manifests` artifact from the GitHub release workflow.
+
+### 2. Fork and clone winget-pkgs
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/winget-pkgs.git
 cd winget-pkgs
 ```
 
-### 4. Create manifest directory
+### 3. Create manifest directory
 
 ```bash
-mkdir -p manifests/r/RealOrko/Sindarin/0.0.9
+VERSION="0.0.9"  # Replace with actual version
+mkdir -p manifests/s/SindarinSDK/Sindarin/$VERSION
 ```
 
-### 5. Copy manifests
+### 4. Copy manifests
 
-Copy the three YAML files to the new directory:
-- `RealOrko.Sindarin.yaml`
-- `RealOrko.Sindarin.installer.yaml`
-- `RealOrko.Sindarin.locale.en-US.yaml`
+Copy the three YAML files from the artifact to the new directory.
 
-### 6. Validate manifests
+### 5. Validate manifests
 
 ```powershell
-winget validate --manifest manifests/r/RealOrko/Sindarin/0.0.9
+winget validate --manifest manifests/s/SindarinSDK/Sindarin/$VERSION
 ```
 
-### 7. Test installation
+### 6. Test installation
 
 ```powershell
-winget install --manifest manifests/r/RealOrko/Sindarin/0.0.9
+winget install --manifest manifests/s/SindarinSDK/Sindarin/$VERSION
 ```
 
-### 8. Submit PR
+### 7. Submit PR
 
 Commit, push, and create a pull request to microsoft/winget-pkgs.
 
@@ -71,16 +70,11 @@ The package declares these dependencies which winget will install automatically:
 - `mstorsjo.llvm-mingw` - LLVM/Clang toolchain for Windows
 - `Ninja-build.Ninja` - Ninja build system
 
-## Automated Submission
+## Using wingetcreate
 
-Consider using [wingetcreate](https://github.com/microsoft/winget-create) to automate manifest creation:
-
-```powershell
-wingetcreate new https://github.com/RealOrko/sindarin/releases/download/0.0.9/sindarin-0.0.9-windows-x64.zip
-```
-
-Or update an existing package:
+You can also use [wingetcreate](https://github.com/microsoft/winget-create) to automate submission:
 
 ```powershell
-wingetcreate update RealOrko.Sindarin --version 0.0.10 --urls https://github.com/RealOrko/sindarin/releases/download/0.0.10/sindarin-0.0.10-windows-x64.zip
+# Update existing
+wingetcreate update SindarinSDK.Sindarin --version 0.0.10 --urls https://github.com/RealOrko/sindarin/releases/download/0.0.10/sindarin-0.0.10-windows-x64.zip
 ```

@@ -1,9 +1,9 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
-PackageIdentifier: RealOrko.Sindarin
-PackageVersion: "${VERSION}"  # Replace with actual version (e.g., 0.0.9)
+PackageIdentifier: SindarinSDK.Sindarin
+PackageVersion: "${VERSION}"
 PackageLocale: en-US
-Publisher: RealOrko
-PublisherUrl: https://github.com/RealOrko
+Publisher: Sindarin Project
+PublisherUrl: https://github.com/RealOrko/sindarin
 PublisherSupportUrl: https://github.com/RealOrko/sindarin/issues
 PackageName: Sindarin
 PackageUrl: https://github.com/RealOrko/sindarin
@@ -25,6 +25,6 @@ Tags:
   - compiler
   - c
   - developer-tools
-ReleaseNotesUrl: https://github.com/RealOrko/sindarin/releases
+ReleaseNotesUrl: https://github.com/RealOrko/sindarin/releases/tag/${VERSION}
 ManifestType: defaultLocale
 ManifestVersion: 1.6.0
