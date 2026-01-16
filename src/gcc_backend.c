@@ -812,6 +812,25 @@ const char *gcc_get_compiler_dir(const char *argv0)
     ssize_t len = sn_get_executable_path(compiler_dir_buf, sizeof(compiler_dir_buf));
     if (len != -1)
     {
+        /* Resolve symlinks (winget uses symlinks in WinGet\Links) */
+        HANDLE hFile = CreateFileA(compiler_dir_buf, GENERIC_READ, FILE_SHARE_READ,
+                                   NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (hFile != INVALID_HANDLE_VALUE)
+        {
+            char real_path[PATH_MAX];
+            DWORD result = GetFinalPathNameByHandleA(hFile, real_path, sizeof(real_path),
+                                                     FILE_NAME_NORMALIZED);
+            CloseHandle(hFile);
+            if (result > 0 && result < sizeof(real_path))
+            {
+                /* GetFinalPathNameByHandle returns \\?\C:\... prefix, skip it */
+                const char *path = real_path;
+                if (strncmp(path, "\\\\?\\", 4) == 0)
+                    path += 4;
+                strncpy(compiler_dir_buf, path, sizeof(compiler_dir_buf) - 1);
+                compiler_dir_buf[sizeof(compiler_dir_buf) - 1] = '\0';
+            }
+        }
         /* Get the directory part */
         char *dir = dirname(compiler_dir_buf);
         /* Copy back since dirname may modify in place */
