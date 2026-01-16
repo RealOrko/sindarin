@@ -894,6 +894,8 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     char exe_path[PATH_MAX];
     char lib_dir[PATH_MAX];
     char include_dir[PATH_MAX];
+    char deps_include_dir[PATH_MAX];
+    char deps_lib_dir[PATH_MAX];
     char arena_obj[PATH_MAX];
     char debug_obj[PATH_MAX];
     char runtime_obj[PATH_MAX];
@@ -970,9 +972,36 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         }
     }
 
+    /* Build deps include directory path (for zlib headers) */
+    /* Build deps include/lib directory paths (for zlib) */
+    /* Deps are at lib_dir/../deps/ (e.g., lib/sindarin/deps/) */
+    deps_include_dir[0] = '\0';
+    deps_lib_dir[0] = '\0';
+    snprintf(deps_include_dir, sizeof(deps_include_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "deps" SN_PATH_SEP_STR "include", lib_dir);
+    if (dir_exists(deps_include_dir))
+    {
+        /* Found packaged deps */
+        snprintf(deps_lib_dir, sizeof(deps_lib_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "deps" SN_PATH_SEP_STR "lib", lib_dir);
+    }
+    else
+    {
+        /* Try vcpkg path for local development (compiler_dir is bin/, vcpkg is at project root) */
+        snprintf(deps_include_dir, sizeof(deps_include_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "include", compiler_dir);
+        if (dir_exists(deps_include_dir))
+        {
+            snprintf(deps_lib_dir, sizeof(deps_lib_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "lib", compiler_dir);
+        }
+        else
+        {
+            deps_include_dir[0] = '\0';  /* Not found */
+        }
+    }
+
     /* Normalize path separators for Windows cmd.exe compatibility */
     normalize_path_separators(lib_dir);
     normalize_path_separators(include_dir);
+    if (deps_include_dir[0]) normalize_path_separators(deps_include_dir);
+    if (deps_lib_dir[0]) normalize_path_separators(deps_lib_dir);
 
     if (verbose)
     {
@@ -1231,6 +1260,18 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         mode_cflags = filter_tinycc_flags(mode_cflags, filtered_mode_cflags, sizeof(filtered_mode_cflags));
     }
 
+    /* Build deps include/lib options (empty if deps not found) */
+    char deps_include_opt[PATH_MAX + 8];
+    char deps_lib_opt[PATH_MAX + 8];
+    if (deps_include_dir[0])
+        snprintf(deps_include_opt, sizeof(deps_include_opt), "-I\"%s\"", deps_include_dir);
+    else
+        deps_include_opt[0] = '\0';
+    if (deps_lib_dir[0])
+        snprintf(deps_lib_opt, sizeof(deps_lib_opt), "-L\"%s\"", deps_lib_dir);
+    else
+        deps_lib_opt[0] = '\0';
+
     /* Build the command - note: config->cflags, config->ldlibs, config->ldflags
      * may be empty strings, which is fine.
      * Use include_dir for headers (-I) and lib_dir for runtime objects.
@@ -1257,9 +1298,15 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
 
         /* Only quote compiler path if it contains spaces */
         const char *cc_quote = (strchr(config->cc, ' ') != NULL) ? "\"" : "";
+        /* Build MSVC-style deps include option */
+        char msvc_deps_opt[PATH_MAX + 8];
+        if (deps_include_dir[0])
+            snprintf(msvc_deps_opt, sizeof(msvc_deps_opt), "/I\"%s\"", deps_include_dir);
+        else
+            msvc_deps_opt[0] = '\0';
         snprintf(command, sizeof(command),
-            "%s%s%s %s %s /I\"%s\" \"%s\" \"%s\" %s %s /Fe\"%s\" /link %s 2>\"%s\"",
-            cc_quote, config->cc, cc_quote, mode_cflags, config->cflags, include_dir,
+            "%s%s%s %s %s /I\"%s\" %s \"%s\" \"%s\" %s %s /Fe\"%s\" /link %s 2>\"%s\"",
+            cc_quote, config->cc, cc_quote, mode_cflags, config->cflags, include_dir, msvc_deps_opt,
             c_file_normalized, runtime_lib, config->ldlibs, config->ldflags, exe_path,
             config->ldlibs, error_file);
     }
@@ -1268,18 +1315,18 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         /* Only quote compiler path if it contains spaces */
         const char *cc_quote = (strchr(config->cc, ' ') != NULL) ? "\"" : "";
         snprintf(command, sizeof(command),
-            "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" "
+            "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" %s "
             "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
             "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
-            "-lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
-            cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir,
+            "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
+            cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,
             c_file_normalized, arena_obj, debug_obj, runtime_obj, runtime_arena_obj,
             runtime_string_obj, runtime_array_obj, runtime_text_file_obj,
             runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj,
             runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj,
             runtime_process_obj, runtime_net_obj, runtime_random_core_obj, runtime_random_basic_obj,
             runtime_random_static_obj, runtime_random_choice_obj, runtime_random_collection_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj, runtime_any_obj, runtime_intercept_obj,
-            extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
+            deps_lib_opt, extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
     }
 
     if (verbose)
