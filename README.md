@@ -42,6 +42,16 @@ sudo rpm -i sindarin-*.rpm
 sn --version
 ```
 
+### Linux (Arch)
+
+```bash
+# Download PKGBUILD from the release
+curl -LO https://github.com/RealOrko/sindarin/releases/latest/download/PKGBUILD
+
+# Build and install
+makepkg -si
+```
+
 ### macOS (Homebrew)
 
 ```bash

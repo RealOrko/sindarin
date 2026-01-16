@@ -394,3 +394,57 @@ jobs:
           files: sindarin.rb
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  #----------------------------------------------------------------------------
+  # Generate Arch Linux PKGBUILD
+  #----------------------------------------------------------------------------
+  archlinux-pkgbuild:
+    name: Generate Arch Linux PKGBUILD
+    runs-on: ubuntu-latest
+    needs: create-release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sindarin-linux-x64
+          path: artifacts
+
+      - name: Generate PKGBUILD
+        run: |
+          # TAG is the full release tag (e.g., 0.0.15-alpha) - used in URLs
+          TAG="${{ env.VERSION }}"
+          TAG="${TAG#v}"
+
+          # VERSION is numeric only (e.g., 0.0.15) - for package version
+          VERSION="${TAG%%-*}"
+
+          # Find the Linux tarball and calculate SHA256
+          TARBALL=$(find artifacts -name "sindarin-*.tar.gz" | head -1)
+          SHA256=$(sha256sum "$TARBALL" | cut -d' ' -f1)
+
+          echo "Tag: $TAG"
+          echo "Version: $VERSION"
+          echo "SHA256: $SHA256"
+
+          # Generate PKGBUILD from template
+          sed -e "s/\${VERSION}/$VERSION/g" \
+              -e "s/\${TAG}/$TAG/g" \
+              -e "s/\${SHA256}/$SHA256/g" \
+              packaging/archlinux/PKGBUILD > PKGBUILD
+
+          echo "Generated PKGBUILD:"
+          cat PKGBUILD
+
+      - name: Attach PKGBUILD to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.VERSION }}
+          files: PKGBUILD
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
