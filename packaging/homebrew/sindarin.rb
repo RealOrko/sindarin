@@ -13,9 +13,9 @@ class Sindarin < Formula
 
   def install
     bin.install "bin/sn"
-    (etc/"sindarin").install "etc/sn.cfg"
+    (etc/"sindarin").install "etc/sindarin/sn.cfg"
     (lib/"sindarin").install Dir["lib/sindarin/*"]
-    (include/"sindarin").install Dir["include/*"]
+    (include/"sindarin").install Dir["include/sindarin/*"]
   end
 
   def caveats
