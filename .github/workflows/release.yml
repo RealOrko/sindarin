@@ -340,3 +340,57 @@ jobs:
           files: winget-manifests.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  #----------------------------------------------------------------------------
+  # Generate Homebrew Formula
+  #----------------------------------------------------------------------------
+  homebrew-formula:
+    name: Generate Homebrew Formula
+    runs-on: ubuntu-latest
+    needs: create-release
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sindarin-macos-x64
+          path: artifacts
+
+      - name: Generate formula
+        run: |
+          # TAG is the full release tag (e.g., 0.0.15-alpha) - used in URLs
+          TAG="${{ env.VERSION }}"
+          TAG="${TAG#v}"
+
+          # VERSION is numeric only (e.g., 0.0.15) - for formula version
+          VERSION="${TAG%%-*}"
+
+          # Find the macOS tarball and calculate SHA256
+          TARBALL=$(find artifacts -name "sindarin-*.tar.gz" | head -1)
+          SHA256=$(sha256sum "$TARBALL" | cut -d' ' -f1)
+
+          echo "Tag: $TAG"
+          echo "Version: $VERSION"
+          echo "SHA256: $SHA256"
+
+          # Generate formula from template
+          sed -e "s/\${VERSION}/$VERSION/g" \
+              -e "s/\${TAG}/$TAG/g" \
+              -e "s/\${SHA256}/$SHA256/g" \
+              packaging/homebrew/sindarin.rb > sindarin.rb
+
+          echo "Generated formula:"
+          cat sindarin.rb
+
+      - name: Attach formula to release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.VERSION }}
+          files: sindarin.rb
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

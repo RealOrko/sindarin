@@ -42,6 +42,16 @@ sudo rpm -i sindarin-*.rpm
 sn --version
 ```
 
+### macOS (Homebrew)
+
+```bash
+# Download the formula from the release
+curl -LO https://github.com/RealOrko/sindarin/releases/latest/download/sindarin.rb
+
+# Install (will prompt for Xcode CLT if needed)
+brew install --formula ./sindarin.rb
+```
+
 ### Linux/macOS (Tarball)
 
 ```bash
