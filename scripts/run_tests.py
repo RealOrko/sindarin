@@ -68,7 +68,8 @@ def get_exe_extension() -> str:
 def find_compiler(specified_path: Optional[str] = None) -> str:
     """Find the compiler executable."""
     if specified_path:
-        return specified_path
+        # Always return absolute path for Windows subprocess compatibility
+        return os.path.abspath(specified_path)
 
     exe_ext = get_exe_extension()
     candidates = [
@@ -78,7 +79,8 @@ def find_compiler(specified_path: Optional[str] = None) -> str:
 
     for candidate in candidates:
         if os.path.isfile(candidate):
-            return candidate
+            # Always return absolute path for Windows subprocess compatibility
+            return os.path.abspath(candidate)
 
     raise FileNotFoundError("Could not find compiler. Specify with --compiler")
 
@@ -185,6 +187,9 @@ class TestRunner:
         if not os.path.isfile(test_binary):
             print(f"{Colors.RED}FAIL{Colors.NC}: Test binary not found: {test_binary}")
             return False
+
+        # Use absolute path for Windows subprocess compatibility
+        test_binary = os.path.abspath(test_binary)
 
         exit_code, stdout, stderr = run_with_timeout(
             [test_binary], self.run_timeout, env=self.env
@@ -351,7 +356,11 @@ class TestRunner:
             with open(expected_file, 'r') as f:
                 expected_output = f.read()
 
-            if output == expected_output:
+            # Normalize line endings for cross-platform comparison (CRLF -> LF)
+            normalized_output = output.replace('\r\n', '\n').replace('\r', '\n')
+            normalized_expected = expected_output.replace('\r\n', '\n').replace('\r', '\n')
+
+            if normalized_output == normalized_expected:
                 return 'pass'
             else:
                 print(f"{Colors.RED}FAIL{Colors.NC} (output mismatch)")

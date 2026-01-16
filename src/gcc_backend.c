@@ -1136,7 +1136,7 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
 #ifdef _WIN32
         /* Windows: Use -Wl,--whole-archive to force all symbols from archive */
         snprintf(command, sizeof(command),
-            "%s%s%s %s -w -std=%s %s -I\"%s\" %s "
+            "%s%s%s %s -w -std=%s -DSN_USE_WIN32_THREADS %s -I\"%s\" %s "
             "\"%s\" -Wl,--whole-archive \"%s\" -Wl,--no-whole-archive "
             "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
             cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,

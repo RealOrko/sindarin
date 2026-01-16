@@ -465,9 +465,12 @@ RtThreadHandle *rt_thread_spawn(RtArena *arena, void *(*wrapper)(void *),
         rt_arena_track_thread(args->caller_arena, handle);
     }
 
-    /* For shared mode, set frozen_owner to the spawned thread BEFORE freezing.
-     * This ensures the spawned thread can allocate even if it starts immediately.
-     * Order is critical: set owner first, then freeze. */
+    /* For shared mode, set frozen_owner to the spawned thread handle and freeze.
+     * The thread wrapper also sets frozen_owner = pthread_self() as its first
+     * action, but this may not happen before we freeze due to thread scheduling.
+     * Setting it here with the real handle ensures it's set before the freeze.
+     * On Windows, pthread_equal uses GetThreadId() which works for both real
+     * handles and pseudo-handles (GetCurrentThread()), returning the same ID. */
     if (args->is_shared && handle->frozen_arena != NULL) {
         handle->frozen_arena->frozen_owner = handle->thread;
         rt_arena_freeze(handle->frozen_arena);

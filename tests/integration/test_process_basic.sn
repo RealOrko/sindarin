@@ -25,7 +25,7 @@ fn main(): int =>
 
     // Test 5: Read stdout with help
     var p5: Process = Process.run(sn, {"--help"})
-    var helpLine: str = p5.stdout.split("\n")[0]
+    var helpLine: str = p5.stdout.split("\n")[0].trim()  // trim() for Windows CRLF
     print($"help first line: {helpLine}\n")
 
     return 0
