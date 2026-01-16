@@ -35,6 +35,18 @@ char *code_gen_increment_expression(CodeGen *gen, Expr *expr)
         return arena_sprintf(gen->arena, "__atomic_fetch_add(&%s, 1, __ATOMIC_SEQ_CST)", var_name);
     }
 
+    /* For char/byte types, use inline increment to avoid type mismatch
+     * (rt_post_inc_long reads 8 bytes, but char/byte are 1 byte) */
+    if (symbol && symbol->type &&
+        (symbol->type->kind == TYPE_CHAR || symbol->type->kind == TYPE_BYTE))
+    {
+        if (symbol->mem_qual == MEM_AS_REF)
+        {
+            return arena_sprintf(gen->arena, "(*%s)++", var_name);
+        }
+        return arena_sprintf(gen->arena, "%s++", var_name);
+    }
+
     // For 'as ref' variables, they're already pointers, so pass directly
     if (symbol && symbol->mem_qual == MEM_AS_REF)
     {
@@ -57,6 +69,18 @@ char *code_gen_decrement_expression(CodeGen *gen, Expr *expr)
     if (symbol && symbol->sync_mod == SYNC_ATOMIC)
     {
         return arena_sprintf(gen->arena, "__atomic_fetch_sub(&%s, 1, __ATOMIC_SEQ_CST)", var_name);
+    }
+
+    /* For char/byte types, use inline decrement to avoid type mismatch
+     * (rt_post_dec_long reads 8 bytes, but char/byte are 1 byte) */
+    if (symbol && symbol->type &&
+        (symbol->type->kind == TYPE_CHAR || symbol->type->kind == TYPE_BYTE))
+    {
+        if (symbol->mem_qual == MEM_AS_REF)
+        {
+            return arena_sprintf(gen->arena, "(*%s)--", var_name);
+        }
+        return arena_sprintf(gen->arena, "%s--", var_name);
     }
 
     // For 'as ref' variables, they're already pointers, so pass directly
