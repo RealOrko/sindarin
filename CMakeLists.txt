@@ -251,9 +251,10 @@ else()
 endif()
 
 #------------------------------------------------------------------------------
-# Runtime Object Files
+# Runtime Static Library
 #------------------------------------------------------------------------------
-# Determine runtime library directory based on platform
+# Build a single static library instead of individual .o files
+# This simplifies linking and avoids command-line length issues on Windows
 if(NOT MSVC)
     if(WIN32)
         set(SN_RUNTIME_LIB_DIR ${CMAKE_SOURCE_DIR}/bin/lib/clang)
@@ -263,66 +264,62 @@ if(NOT MSVC)
 
     file(MAKE_DIRECTORY ${SN_RUNTIME_LIB_DIR})
 
-    # Include directories for runtime compilation
-    set(RUNTIME_INCLUDES
-        -I${CMAKE_SOURCE_DIR}/src
-        -I${CMAKE_SOURCE_DIR}/src/runtime
-        -I${CMAKE_SOURCE_DIR}/src/platform
+    # Runtime source files
+    set(SN_RUNTIME_LIB_SOURCES
+        ${CMAKE_SOURCE_DIR}/src/arena.c
+        ${CMAKE_SOURCE_DIR}/src/debug.c
+        ${CMAKE_SOURCE_DIR}/src/runtime.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_arena.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_string.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_array.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_text_file.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_binary_file.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_io.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_byte.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_path.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_date.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_time.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_thread.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_process.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_net.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_core.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_basic.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_static.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_choice.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_collection.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_uuid.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_sha1.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_any.c
+        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_intercept.c
     )
 
+    # Create static library for runtime
+    add_library(sn_runtime STATIC ${SN_RUNTIME_LIB_SOURCES})
+
+    target_include_directories(sn_runtime PRIVATE
+        ${CMAKE_SOURCE_DIR}/src
+        ${CMAKE_SOURCE_DIR}/src/runtime
+        ${CMAKE_SOURCE_DIR}/src/platform
+    )
+
+    # Platform-specific compile definitions
     if(NOT WIN32)
-        list(APPEND RUNTIME_INCLUDES -D_GNU_SOURCE)
+        target_compile_definitions(sn_runtime PRIVATE _GNU_SOURCE)
     else()
         # Force Windows API threading instead of pthreads for packaged builds
-        # This ensures the runtime .o files don't reference external pthread symbols
-        list(APPEND RUNTIME_INCLUDES -DSN_USE_WIN32_THREADS)
+        target_compile_definitions(sn_runtime PRIVATE SN_USE_WIN32_THREADS)
     endif()
 
-    # Macro to add runtime object compilation
-    set(RUNTIME_OBJECTS)
-    macro(add_runtime_object SOURCE_FILE OUTPUT_NAME)
-        set(OUTPUT_FILE ${SN_RUNTIME_LIB_DIR}/${OUTPUT_NAME}.o)
-        add_custom_command(
-            OUTPUT ${OUTPUT_FILE}
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${SN_RUNTIME_LIB_DIR}
-            COMMAND ${CMAKE_C_COMPILER} -c ${SOURCE_FILE} -o ${OUTPUT_FILE} ${RUNTIME_INCLUDES} -O2 -std=c99
-            DEPENDS ${SOURCE_FILE}
-            COMMENT "Compiling runtime: ${OUTPUT_NAME}.o"
-        )
-        list(APPEND RUNTIME_OBJECTS ${OUTPUT_FILE})
-    endmacro()
+    # Optimization flags
+    target_compile_options(sn_runtime PRIVATE -O2)
 
-    # Add all runtime objects
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/arena.c arena)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/debug.c debug)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime.c runtime)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_arena.c runtime_arena)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_string.c runtime_string)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_array.c runtime_array)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_text_file.c runtime_text_file)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_binary_file.c runtime_binary_file)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_io.c runtime_io)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_byte.c runtime_byte)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_path.c runtime_path)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_date.c runtime_date)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_time.c runtime_time)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_thread.c runtime_thread)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_process.c runtime_process)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_net.c runtime_net)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_core.c runtime_random_core)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_basic.c runtime_random_basic)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_static.c runtime_random_static)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_choice.c runtime_random_choice)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_collection.c runtime_random_collection)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_random.c runtime_random)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_uuid.c runtime_uuid)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_sha1.c runtime_sha1)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c runtime_env)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_any.c runtime_any)
-    add_runtime_object(${CMAKE_SOURCE_DIR}/src/runtime/runtime_intercept.c runtime_intercept)
-
-    # Target that builds all runtime objects
-    add_custom_target(sn_runtime ALL DEPENDS ${RUNTIME_OBJECTS})
+    # Output to lib directory with correct name (libsn_runtime.a on Unix, sn_runtime.lib on Windows)
+    set_target_properties(sn_runtime PROPERTIES
+        ARCHIVE_OUTPUT_DIRECTORY ${SN_RUNTIME_LIB_DIR}
+        OUTPUT_NAME sn_runtime
+    )
 endif()
 
 #------------------------------------------------------------------------------

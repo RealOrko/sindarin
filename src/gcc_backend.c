@@ -896,34 +896,8 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     char include_dir[PATH_MAX];
     char deps_include_dir[PATH_MAX];
     char deps_lib_dir[PATH_MAX];
-    char arena_obj[PATH_MAX];
-    char debug_obj[PATH_MAX];
-    char runtime_obj[PATH_MAX];
-    char runtime_arena_obj[PATH_MAX];
-    char runtime_string_obj[PATH_MAX];
-    char runtime_array_obj[PATH_MAX];
-    char runtime_text_file_obj[PATH_MAX];
-    char runtime_binary_file_obj[PATH_MAX];
-    char runtime_io_obj[PATH_MAX];
-    char runtime_byte_obj[PATH_MAX];
-    char runtime_path_obj[PATH_MAX];
-    char runtime_date_obj[PATH_MAX];
-    char runtime_time_obj[PATH_MAX];
-    char runtime_thread_obj[PATH_MAX];
-    char runtime_process_obj[PATH_MAX];
-    char runtime_net_obj[PATH_MAX];
-    char runtime_random_core_obj[PATH_MAX];
-    char runtime_random_basic_obj[PATH_MAX];
-    char runtime_random_static_obj[PATH_MAX];
-    char runtime_random_choice_obj[PATH_MAX];
-    char runtime_random_collection_obj[PATH_MAX];
-    char runtime_random_obj[PATH_MAX];
-    char runtime_uuid_obj[PATH_MAX];
-    char runtime_sha1_obj[PATH_MAX];
-    char runtime_env_obj[PATH_MAX];
-    char runtime_any_obj[PATH_MAX];
-    char runtime_intercept_obj[PATH_MAX];
-    char command[32768];  /* 32KB - PATH_MAX*16 is only 4KB on Windows, not enough for long paths */
+    char runtime_lib[PATH_MAX];
+    char command[4096];
     char extra_libs[PATH_MAX];
     char filtered_mode_cflags[1024];
     char c_file_normalized[PATH_MAX];
@@ -1031,177 +1005,20 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     /* Normalize path separators for Windows cmd.exe compatibility */
     normalize_path_separators(exe_path);
 
-    /* Build paths to runtime object files (in backend-specific lib directory) */
-    snprintf(arena_obj, sizeof(arena_obj), "%s" SN_PATH_SEP_STR "arena.o", lib_dir);
-    snprintf(debug_obj, sizeof(debug_obj), "%s" SN_PATH_SEP_STR "debug.o", lib_dir);
-    snprintf(runtime_obj, sizeof(runtime_obj), "%s" SN_PATH_SEP_STR "runtime.o", lib_dir);
-    snprintf(runtime_arena_obj, sizeof(runtime_arena_obj), "%s" SN_PATH_SEP_STR "runtime_arena.o", lib_dir);
-    snprintf(runtime_string_obj, sizeof(runtime_string_obj), "%s" SN_PATH_SEP_STR "runtime_string.o", lib_dir);
-    snprintf(runtime_array_obj, sizeof(runtime_array_obj), "%s" SN_PATH_SEP_STR "runtime_array.o", lib_dir);
-    snprintf(runtime_text_file_obj, sizeof(runtime_text_file_obj), "%s" SN_PATH_SEP_STR "runtime_text_file.o", lib_dir);
-    snprintf(runtime_binary_file_obj, sizeof(runtime_binary_file_obj), "%s" SN_PATH_SEP_STR "runtime_binary_file.o", lib_dir);
-    snprintf(runtime_io_obj, sizeof(runtime_io_obj), "%s" SN_PATH_SEP_STR "runtime_io.o", lib_dir);
-    snprintf(runtime_byte_obj, sizeof(runtime_byte_obj), "%s" SN_PATH_SEP_STR "runtime_byte.o", lib_dir);
-    snprintf(runtime_path_obj, sizeof(runtime_path_obj), "%s" SN_PATH_SEP_STR "runtime_path.o", lib_dir);
-    snprintf(runtime_date_obj, sizeof(runtime_date_obj), "%s" SN_PATH_SEP_STR "runtime_date.o", lib_dir);
-    snprintf(runtime_time_obj, sizeof(runtime_time_obj), "%s" SN_PATH_SEP_STR "runtime_time.o", lib_dir);
-    snprintf(runtime_thread_obj, sizeof(runtime_thread_obj), "%s" SN_PATH_SEP_STR "runtime_thread.o", lib_dir);
-    snprintf(runtime_process_obj, sizeof(runtime_process_obj), "%s" SN_PATH_SEP_STR "runtime_process.o", lib_dir);
-    snprintf(runtime_net_obj, sizeof(runtime_net_obj), "%s" SN_PATH_SEP_STR "runtime_net.o", lib_dir);
-    snprintf(runtime_random_core_obj, sizeof(runtime_random_core_obj), "%s" SN_PATH_SEP_STR "runtime_random_core.o", lib_dir);
-    snprintf(runtime_random_basic_obj, sizeof(runtime_random_basic_obj), "%s" SN_PATH_SEP_STR "runtime_random_basic.o", lib_dir);
-    snprintf(runtime_random_static_obj, sizeof(runtime_random_static_obj), "%s" SN_PATH_SEP_STR "runtime_random_static.o", lib_dir);
-    snprintf(runtime_random_choice_obj, sizeof(runtime_random_choice_obj), "%s" SN_PATH_SEP_STR "runtime_random_choice.o", lib_dir);
-    snprintf(runtime_random_collection_obj, sizeof(runtime_random_collection_obj), "%s" SN_PATH_SEP_STR "runtime_random_collection.o", lib_dir);
-    snprintf(runtime_random_obj, sizeof(runtime_random_obj), "%s" SN_PATH_SEP_STR "runtime_random.o", lib_dir);
-    snprintf(runtime_uuid_obj, sizeof(runtime_uuid_obj), "%s" SN_PATH_SEP_STR "runtime_uuid.o", lib_dir);
-    snprintf(runtime_sha1_obj, sizeof(runtime_sha1_obj), "%s" SN_PATH_SEP_STR "runtime_sha1.o", lib_dir);
-    snprintf(runtime_env_obj, sizeof(runtime_env_obj), "%s" SN_PATH_SEP_STR "runtime_env.o", lib_dir);
-    snprintf(runtime_any_obj, sizeof(runtime_any_obj), "%s" SN_PATH_SEP_STR "runtime_any.o", lib_dir);
-    snprintf(runtime_intercept_obj, sizeof(runtime_intercept_obj), "%s" SN_PATH_SEP_STR "runtime_intercept.o", lib_dir);
+    /* Build path to runtime static library */
+#ifdef _WIN32
+    snprintf(runtime_lib, sizeof(runtime_lib), "%s" SN_PATH_SEP_STR "libsn_runtime.a", lib_dir);
+#else
+    snprintf(runtime_lib, sizeof(runtime_lib), "%s" SN_PATH_SEP_STR "libsn_runtime.a", lib_dir);
+#endif
 
-    /* Check that runtime objects exist (skip for MSVC which uses sn_runtime.lib) */
-    if (backend != BACKEND_MSVC)
+    /* Check that runtime library exists */
+    if (backend != BACKEND_MSVC && access(runtime_lib, R_OK) != 0)
     {
-        if (access(arena_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", arena_obj);
-            fprintf(stderr, "The '%s' backend runtime is not built.\n", backend_name(backend));
-            fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
-            return false;
-        }
-        if (access(debug_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", debug_obj);
-            fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
-            return false;
-        }
-        if (access(runtime_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_obj);
-            fprintf(stderr, "Run 'make build-%s' to build this backend.\n", backend_name(backend));
-            return false;
-        }
-        if (access(runtime_arena_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_arena_obj);
-            return false;
-        }
-        if (access(runtime_string_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_string_obj);
-            return false;
-        }
-        if (access(runtime_array_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_array_obj);
-            return false;
-        }
-        if (access(runtime_text_file_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_text_file_obj);
-            return false;
-        }
-        if (access(runtime_binary_file_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_binary_file_obj);
-            return false;
-        }
-        if (access(runtime_io_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_io_obj);
-            return false;
-        }
-        if (access(runtime_byte_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_byte_obj);
-            return false;
-        }
-        if (access(runtime_path_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_path_obj);
-            return false;
-        }
-        if (access(runtime_date_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_date_obj);
-            return false;
-        }
-        if (access(runtime_time_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_time_obj);
-            return false;
-        }
-        if (access(runtime_thread_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_thread_obj);
-            return false;
-        }
-        if (access(runtime_process_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_process_obj);
-            return false;
-        }
-        if (access(runtime_net_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_net_obj);
-            return false;
-        }
-        if (access(runtime_random_core_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_core_obj);
-            return false;
-        }
-        if (access(runtime_random_basic_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_basic_obj);
-            return false;
-        }
-        if (access(runtime_random_static_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_static_obj);
-            return false;
-        }
-        if (access(runtime_random_choice_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_choice_obj);
-            return false;
-        }
-        if (access(runtime_random_collection_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_collection_obj);
-            return false;
-        }
-        if (access(runtime_random_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_random_obj);
-            return false;
-        }
-        if (access(runtime_uuid_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_uuid_obj);
-            return false;
-        }
-        if (access(runtime_sha1_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_sha1_obj);
-            return false;
-        }
-        if (access(runtime_env_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_env_obj);
-            return false;
-        }
-        if (access(runtime_any_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_any_obj);
-            return false;
-        }
-        if (access(runtime_intercept_obj, R_OK) != 0)
-        {
-            fprintf(stderr, "Error: Runtime object not found: %s\n", runtime_intercept_obj);
-            return false;
-        }
+        fprintf(stderr, "Error: Runtime library not found: %s\n", runtime_lib);
+        fprintf(stderr, "The '%s' backend runtime is not built.\n", backend_name(backend));
+        fprintf(stderr, "Run 'make build' to build the runtime.\n");
+        return false;
     }
 
     /* Build C compiler command using configuration.
@@ -1312,21 +1129,39 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     }
     else
     {
-        /* Only quote compiler path if it contains spaces */
+        /* GCC/Clang: Link against static runtime library
+         * Using -Wl,--whole-archive ensures all symbols are included even if not
+         * directly referenced by the user's code (needed for runtime initialization) */
         const char *cc_quote = (strchr(config->cc, ' ') != NULL) ? "\"" : "";
+#ifdef _WIN32
+        /* Windows: Use -Wl,--whole-archive to force all symbols from archive */
         snprintf(command, sizeof(command),
-            "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" %s "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
-            "\"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" \"%s\" "
+            "%s%s%s %s -w -std=%s %s -I\"%s\" %s "
+            "\"%s\" -Wl,--whole-archive \"%s\" -Wl,--no-whole-archive "
             "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
             cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,
-            c_file_normalized, arena_obj, debug_obj, runtime_obj, runtime_arena_obj,
-            runtime_string_obj, runtime_array_obj, runtime_text_file_obj,
-            runtime_binary_file_obj, runtime_io_obj, runtime_byte_obj,
-            runtime_path_obj, runtime_date_obj, runtime_time_obj, runtime_thread_obj,
-            runtime_process_obj, runtime_net_obj, runtime_random_core_obj, runtime_random_basic_obj,
-            runtime_random_static_obj, runtime_random_choice_obj, runtime_random_collection_obj, runtime_random_obj, runtime_uuid_obj, runtime_sha1_obj, runtime_env_obj, runtime_any_obj, runtime_intercept_obj,
+            c_file_normalized, runtime_lib,
             deps_lib_opt, extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
+#else
+        /* Unix: Use -Wl,--whole-archive (Linux) or just link normally (macOS handles it) */
+#ifdef __APPLE__
+        snprintf(command, sizeof(command),
+            "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" %s "
+            "\"%s\" -Wl,-force_load,\"%s\" "
+            "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
+            cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,
+            c_file_normalized, runtime_lib,
+            deps_lib_opt, extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
+#else
+        snprintf(command, sizeof(command),
+            "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" %s "
+            "\"%s\" -Wl,--whole-archive \"%s\" -Wl,--no-whole-archive "
+            "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
+            cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,
+            c_file_normalized, runtime_lib,
+            deps_lib_opt, extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
+#endif
+#endif
     }
 
     if (verbose)
