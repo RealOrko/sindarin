@@ -923,7 +923,7 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     char runtime_env_obj[PATH_MAX];
     char runtime_any_obj[PATH_MAX];
     char runtime_intercept_obj[PATH_MAX];
-    char command[PATH_MAX * 16];
+    char command[32768];  /* 32KB - PATH_MAX*16 is only 4KB on Windows, not enough for long paths */
     char extra_libs[PATH_MAX];
     char filtered_mode_cflags[1024];
     char c_file_normalized[PATH_MAX];
