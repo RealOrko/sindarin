@@ -812,14 +812,15 @@ const char *gcc_get_compiler_dir(const char *argv0)
     ssize_t len = sn_get_executable_path(compiler_dir_buf, sizeof(compiler_dir_buf));
     if (len != -1)
     {
-        /* Resolve symlinks (winget uses symlinks in WinGet\Links) */
-        HANDLE hFile = CreateFileA(compiler_dir_buf, GENERIC_READ, FILE_SHARE_READ,
-                                   NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        /* Resolve symlinks/reparse points (winget uses App Execution Aliases) */
+        HANDLE hFile = CreateFileA(compiler_dir_buf, 0, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                                   NULL, OPEN_EXISTING,
+                                   FILE_FLAG_BACKUP_SEMANTICS, NULL);
         if (hFile != INVALID_HANDLE_VALUE)
         {
             char real_path[PATH_MAX];
             DWORD result = GetFinalPathNameByHandleA(hFile, real_path, sizeof(real_path),
-                                                     FILE_NAME_NORMALIZED);
+                                                     FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
             CloseHandle(hFile);
             if (result > 0 && result < sizeof(real_path))
             {
