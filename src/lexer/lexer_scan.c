@@ -167,10 +167,15 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
             switch (lexer->start[1])
             {
             case 't':
-                // Check for "str" (3 chars) vs "struct" (6 chars)
+                // Check for "str" (3 chars) vs "struct" (6 chars) vs "static" (6 chars)
                 if (lexer->current - lexer->start == 6)
                 {
-                    return lexer_check_keyword(lexer, 2, 4, "ruct", TOKEN_STRUCT);
+                    // Both "struct" and "static" are 6 chars, check 3rd char
+                    if (lexer->start[2] == 'r')
+                    {
+                        return lexer_check_keyword(lexer, 2, 4, "ruct", TOKEN_STRUCT);
+                    }
+                    return lexer_check_keyword(lexer, 2, 4, "atic", TOKEN_STATIC);
                 }
                 return lexer_check_keyword(lexer, 2, 1, "r", TOKEN_STR);
             case 'h':

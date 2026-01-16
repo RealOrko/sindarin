@@ -368,6 +368,7 @@ Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Toke
 }
 
 Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields, int field_count,
+                                   StructMethod *methods, int method_count,
                                    bool is_native, bool is_packed, const Token *loc_token)
 {
     Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
@@ -392,6 +393,7 @@ Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields,
     stmt->as.struct_decl.name.filename = name.filename;
 
     stmt->as.struct_decl.field_count = field_count;
+    stmt->as.struct_decl.method_count = method_count;
     stmt->as.struct_decl.is_native = is_native;
     stmt->as.struct_decl.is_packed = is_packed;
 
@@ -415,6 +417,35 @@ Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields,
     else
     {
         stmt->as.struct_decl.fields = NULL;
+    }
+
+    /* Copy methods if any */
+    if (method_count > 0 && methods != NULL)
+    {
+        stmt->as.struct_decl.methods = arena_alloc(arena, sizeof(StructMethod) * method_count);
+        if (stmt->as.struct_decl.methods == NULL)
+        {
+            DEBUG_ERROR("Out of memory");
+            exit(1);
+        }
+        for (int i = 0; i < method_count; i++)
+        {
+            stmt->as.struct_decl.methods[i].name = methods[i].name
+                ? arena_strdup(arena, methods[i].name) : NULL;
+            stmt->as.struct_decl.methods[i].params = methods[i].params;
+            stmt->as.struct_decl.methods[i].param_count = methods[i].param_count;
+            stmt->as.struct_decl.methods[i].return_type = methods[i].return_type;
+            stmt->as.struct_decl.methods[i].body = methods[i].body;
+            stmt->as.struct_decl.methods[i].body_count = methods[i].body_count;
+            stmt->as.struct_decl.methods[i].modifier = methods[i].modifier;
+            stmt->as.struct_decl.methods[i].is_static = methods[i].is_static;
+            stmt->as.struct_decl.methods[i].is_native = methods[i].is_native;
+            stmt->as.struct_decl.methods[i].name_token = methods[i].name_token;
+        }
+    }
+    else
+    {
+        stmt->as.struct_decl.methods = NULL;
     }
 
     stmt->token = ast_dup_token(arena, loc_token);

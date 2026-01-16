@@ -432,6 +432,37 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 if (result) return result;
                 break;
             }
+            case TYPE_STRUCT: {
+                /* Check if this is a user-defined struct method call */
+                if (member->resolved_method != NULL)
+                {
+                    StructMethod *method = member->resolved_method;
+                    Type *struct_type = member->resolved_struct_type;
+                    const char *struct_name = struct_type->as.struct_type.name;
+
+                    /* Build args list */
+                    char *args_list = arena_strdup(gen->arena, ARENA_VAR(gen));
+
+                    /* For instance methods, pass address of self as first arg */
+                    if (!method->is_static)
+                    {
+                        char *self_str = code_gen_expression(gen, member->object);
+                        args_list = arena_sprintf(gen->arena, "%s, &%s", args_list, self_str);
+                    }
+
+                    /* Generate other arguments */
+                    for (int i = 0; i < call->arg_count; i++)
+                    {
+                        char *arg_str = code_gen_expression(gen, call->arguments[i]);
+                        args_list = arena_sprintf(gen->arena, "%s, %s", args_list, arg_str);
+                    }
+
+                    /* Generate call: StructName_methodName(arena, self, args) */
+                    return arena_sprintf(gen->arena, "%s_%s(%s)",
+                                         struct_name, method->name, args_list);
+                }
+                break;
+            }
             default:
                 break;
         }

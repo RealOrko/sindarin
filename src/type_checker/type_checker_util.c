@@ -913,6 +913,32 @@ bool native_context_is_active(void)
 }
 
 /* ============================================================================
+ * Method Context Tracking (for struct methods with pointer 'self')
+ * ============================================================================ */
+
+static int method_context_depth = 0;
+
+void method_context_enter(void)
+{
+    method_context_depth++;
+    DEBUG_VERBOSE("Entering method context (depth: %d)", method_context_depth);
+}
+
+void method_context_exit(void)
+{
+    if (method_context_depth > 0)
+    {
+        method_context_depth--;
+        DEBUG_VERBOSE("Exiting method context (depth: %d)", method_context_depth);
+    }
+}
+
+bool method_context_is_active(void)
+{
+    return method_context_depth > 0;
+}
+
+/* ============================================================================
  * 'as val' Operand Context Tracking
  * ============================================================================ */
 

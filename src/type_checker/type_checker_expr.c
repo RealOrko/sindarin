@@ -770,20 +770,53 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         /* Fall through to error handling if not a valid UUID method */
     }
 
-    /* Handle struct field access via EXPR_MEMBER */
+    /* Handle struct field access and methods via EXPR_MEMBER */
     if (object_type->kind == TYPE_STRUCT)
     {
-        Token field_name = expr->as.member.member_name;
+        Token member_name = expr->as.member.member_name;
+
+        /* First check if it's an instance method (non-static methods) */
+        for (int i = 0; i < object_type->as.struct_type.method_count; i++)
+        {
+            StructMethod *method = &object_type->as.struct_type.methods[i];
+            if (!method->is_static &&
+                member_name.length == (int)strlen(method->name) &&
+                strncmp(member_name.start, method->name, member_name.length) == 0)
+            {
+                /* Found an instance method - create a function type for it */
+                /* Add 1 to param_count to account for implicit 'self' parameter */
+                int total_params = method->param_count;
+                Type **param_types = NULL;
+                if (total_params > 0)
+                {
+                    param_types = arena_alloc(table->arena, sizeof(Type *) * total_params);
+                    for (int j = 0; j < method->param_count; j++)
+                    {
+                        param_types[j] = method->params[j].type;
+                    }
+                }
+                Type *func_type = ast_create_function_type(table->arena, method->return_type, param_types, total_params);
+                func_type->as.function.is_native = method->is_native;
+
+                /* Store the method reference in the expression for code generation */
+                expr->as.member.resolved_method = method;
+                expr->as.member.resolved_struct_type = object_type;
+
+                return func_type;
+            }
+        }
+
+        /* Check if it's a field */
         for (int i = 0; i < object_type->as.struct_type.field_count; i++)
         {
             StructField *field = &object_type->as.struct_type.fields[i];
-            if (field_name.length == (int)strlen(field->name) &&
-                strncmp(field_name.start, field->name, field_name.length) == 0)
+            if (member_name.length == (int)strlen(field->name) &&
+                strncmp(member_name.start, field->name, member_name.length) == 0)
             {
                 return field->type;
             }
         }
-        /* Field not found - fall through to error handling */
+        /* Field/method not found - fall through to error handling */
     }
 
     /* Handle pointer-to-struct field access via EXPR_MEMBER */
@@ -791,8 +824,8 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         object_type->as.pointer.base_type != NULL &&
         object_type->as.pointer.base_type->kind == TYPE_STRUCT)
     {
-        /* Check native context requirement */
-        if (!native_context_is_active())
+        /* Check native or method context requirement */
+        if (!native_context_is_active() && !method_context_is_active())
         {
             Type *struct_type = object_type->as.pointer.base_type;
             char msg[512];
@@ -1184,6 +1217,12 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
         break;
     case EXPR_STATIC_CALL:
         t = type_check_static_method_call(expr, table);
+        break;
+    case EXPR_METHOD_CALL:
+        /* Method calls are handled via EXPR_MEMBER + EXPR_CALL pattern.
+         * If we reach here directly, it's a type error. */
+        type_error(expr->token, "Internal error: EXPR_METHOD_CALL reached directly");
+        t = NULL;
         break;
     case EXPR_SIZED_ARRAY_ALLOC:
         t = type_check_sized_array_alloc(expr, table);
@@ -1727,13 +1766,13 @@ Type *type_check_expr(Expr *expr, SymbolTable *table)
                      object_type->as.pointer.base_type != NULL &&
                      object_type->as.pointer.base_type->kind == TYPE_STRUCT)
             {
-                /* Pointer to struct access (auto-deref like C's ->) - only in native context */
-                if (!native_context_is_active())
+                /* Pointer to struct access (auto-deref like C's ->) - only in native or method context */
+                if (!native_context_is_active() && !method_context_is_active())
                 {
                     Type *struct_type = object_type->as.pointer.base_type;
                     char msg[512];
                     snprintf(msg, sizeof(msg),
-                             "Pointer to struct member access requires native function context. "
+                             "Pointer to struct member access requires native function or method context. "
                              "Declare the function with 'native fn' to access '*%s' fields",
                              struct_type->as.struct_type.name);
                     type_error(expr->token, msg);

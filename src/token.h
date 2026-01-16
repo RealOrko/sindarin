@@ -60,6 +60,8 @@ typedef enum
     TOKEN_OPAQUE,
     // Struct keyword
     TOKEN_STRUCT,
+    // Static keyword (for static methods)
+    TOKEN_STATIC,
     // UUID type keyword
     TOKEN_UUID,
     // Environment access keyword

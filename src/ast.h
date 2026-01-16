@@ -13,6 +13,7 @@ typedef struct Type Type;
 typedef struct Parameter Parameter;
 typedef struct StructField StructField;
 typedef struct FieldInitializer FieldInitializer;
+typedef struct StructMethod StructMethod;
 
 /* Struct field definition */
 struct StructField
@@ -88,6 +89,21 @@ typedef enum
     FUNC_PRIVATE    /* private function - isolated arena, only primitives return */
 } FunctionModifier;
 
+/* Struct method definition */
+struct StructMethod
+{
+    const char *name;           /* Method name */
+    Parameter *params;          /* Method parameters (does NOT include implicit 'self') */
+    int param_count;            /* Number of parameters */
+    Type *return_type;          /* Return type */
+    Stmt **body;                /* Method body statements (NULL for native declarations) */
+    int body_count;             /* Number of body statements */
+    FunctionModifier modifier;  /* shared or private modifier */
+    bool is_static;             /* True if declared with 'static' keyword */
+    bool is_native;             /* True if declared with 'native' keyword */
+    Token name_token;           /* Token for error reporting */
+};
+
 struct Type
 {
     TypeKind kind;
@@ -125,6 +141,8 @@ struct Type
             const char *name;       /* Struct name */
             StructField *fields;    /* Array of struct fields */
             int field_count;        /* Number of fields */
+            StructMethod *methods;  /* Array of struct methods */
+            int method_count;       /* Number of methods */
             size_t size;            /* Total size in bytes (computed during type checking) */
             size_t alignment;       /* Alignment requirement (computed during type checking) */
             bool is_native;         /* True if declared with 'native struct' (allows pointer fields) */
@@ -175,7 +193,8 @@ typedef enum
     EXPR_MEMBER_ACCESS,
     EXPR_MEMBER_ASSIGN,
     EXPR_SIZEOF,
-    EXPR_COMPOUND_ASSIGN
+    EXPR_COMPOUND_ASSIGN,
+    EXPR_METHOD_CALL
 } ExprType;
 
 typedef struct
@@ -283,6 +302,8 @@ typedef struct
 {
     Expr *object;
     Token member_name;
+    StructMethod *resolved_method;    /* Resolved method (set during type checking if this is a method call) */
+    Type *resolved_struct_type;       /* Struct type containing the method (set during type checking) */
 } MemberExpr;
 
 typedef struct
@@ -401,6 +422,19 @@ typedef struct
     int lambda_id;  /* Unique ID for code gen */
 } LambdaExpr;
 
+/* Method call expression: point.magnitude() or Point.create() */
+typedef struct
+{
+    Expr *object;              /* The struct instance (NULL for static calls) */
+    Token struct_name;         /* For static calls: the struct type name */
+    Token method_name;         /* Name of the method being called */
+    Expr **args;               /* Method arguments */
+    int arg_count;             /* Number of arguments */
+    StructMethod *method;      /* Resolved method (set during type checking) */
+    Type *struct_type;         /* Resolved struct type (set during type checking) */
+    bool is_static;            /* True if this is a static method call (Type.method()) */
+} MethodCallExpr;
+
 struct Expr
 {
     ExprType type;
@@ -439,6 +473,7 @@ struct Expr
         MemberAssignExpr member_assign;
         SizeofExpr sizeof_expr;
         CompoundAssignExpr compound_assign;
+        MethodCallExpr method_call;
     } as;
 
     Type *expr_type;
@@ -585,6 +620,8 @@ typedef struct
     Token name;                /* Struct name */
     StructField *fields;       /* Array of field definitions */
     int field_count;           /* Number of fields */
+    StructMethod *methods;     /* Array of method definitions */
+    int method_count;          /* Number of methods */
     bool is_native;            /* True if declared with 'native struct' (allows pointer fields) */
     bool is_packed;            /* True if preceded by #pragma pack(1) */
 } StructDeclStmt;
@@ -646,7 +683,9 @@ Type *ast_create_array_type(Arena *arena, Type *element_type);
 Type *ast_create_pointer_type(Arena *arena, Type *base_type);
 Type *ast_create_opaque_type(Arena *arena, const char *name);
 Type *ast_create_function_type(Arena *arena, Type *return_type, Type **param_types, int param_count);
-Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields, int field_count, bool is_native, bool is_packed);
+Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields, int field_count,
+                             StructMethod *methods, int method_count, bool is_native, bool is_packed);
+StructMethod *ast_struct_get_method(Type *struct_type, const char *method_name);
 int ast_type_equals(Type *a, Type *b);
 int ast_type_is_pointer(Type *type);
 int ast_type_is_opaque(Type *type);
@@ -711,6 +750,7 @@ Stmt *ast_create_import_stmt(Arena *arena, Token module_name, Token *namespace, 
 Stmt *ast_create_pragma_stmt(Arena *arena, PragmaType pragma_type, const char *value, const Token *loc_token);
 Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Token *loc_token);
 Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields, int field_count,
+                                   StructMethod *methods, int method_count,
                                    bool is_native, bool is_packed, const Token *loc_token);
 Stmt *ast_create_lock_stmt(Arena *arena, Expr *lock_expr, Stmt *body, const Token *loc_token);
 

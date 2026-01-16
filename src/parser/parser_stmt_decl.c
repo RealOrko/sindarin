@@ -628,6 +628,210 @@ Type *parser_native_function_type(Parser *parser)
     return func_type;
 }
 
+/* Helper function to parse a struct method declaration */
+static StructMethod *parser_struct_method(Parser *parser, bool is_static, bool is_native_method)
+{
+    Token fn_token = parser->previous;  /* Points to 'fn' */
+    Token method_name;
+
+    if (parser_check(parser, TOKEN_IDENTIFIER))
+    {
+        method_name = parser->current;
+        parser_advance(parser);
+        method_name.start = arena_strndup(parser->arena, method_name.start, method_name.length);
+        if (method_name.start == NULL)
+        {
+            parser_error_at_current(parser, "Out of memory");
+            return NULL;
+        }
+    }
+    else
+    {
+        parser_error_at_current(parser, "Expected method name");
+        return NULL;
+    }
+
+    /* Parse parameters */
+    Parameter *params = NULL;
+    int param_count = 0;
+    int param_capacity = 0;
+    bool is_variadic = false;
+
+    if (parser_match(parser, TOKEN_LEFT_PAREN))
+    {
+        if (!parser_check(parser, TOKEN_RIGHT_PAREN))
+        {
+            do
+            {
+                /* Check for variadic parameter */
+                if (parser_check(parser, TOKEN_SPREAD))
+                {
+                    parser_advance(parser);
+                    is_variadic = true;
+                    break;
+                }
+
+                if (param_count >= 255)
+                {
+                    parser_error_at_current(parser, "Cannot have more than 255 parameters");
+                }
+                Token param_name;
+                if (parser_check(parser, TOKEN_IDENTIFIER))
+                {
+                    param_name = parser->current;
+                    parser_advance(parser);
+                    param_name.start = arena_strndup(parser->arena, param_name.start, param_name.length);
+                    if (param_name.start == NULL)
+                    {
+                        parser_error_at_current(parser, "Out of memory");
+                        return NULL;
+                    }
+                }
+                else
+                {
+                    parser_error_at_current(parser, "Expected parameter name");
+                    return NULL;
+                }
+                parser_consume(parser, TOKEN_COLON, "Expected ':' after parameter name");
+                SyncModifier param_sync = SYNC_NONE;
+                if (parser_match(parser, TOKEN_SYNC))
+                {
+                    param_sync = SYNC_ATOMIC;
+                }
+                Type *param_type = parser_type(parser);
+                MemoryQualifier param_qualifier = parser_memory_qualifier(parser);
+
+                if (param_count >= param_capacity)
+                {
+                    param_capacity = param_capacity == 0 ? 8 : param_capacity * 2;
+                    Parameter *new_params = arena_alloc(parser->arena, sizeof(Parameter) * param_capacity);
+                    if (new_params == NULL)
+                    {
+                        parser_error_at_current(parser, "Out of memory");
+                        return NULL;
+                    }
+                    if (params != NULL && param_count > 0)
+                    {
+                        memcpy(new_params, params, sizeof(Parameter) * param_count);
+                    }
+                    params = new_params;
+                }
+                params[param_count].name = param_name;
+                params[param_count].type = param_type;
+                params[param_count].mem_qualifier = param_qualifier;
+                params[param_count].sync_modifier = param_sync;
+                param_count++;
+            } while (parser_match(parser, TOKEN_COMMA));
+        }
+        parser_consume(parser, TOKEN_RIGHT_PAREN, "Expected ')' after parameters");
+    }
+
+    /* Parse optional function modifier (shared/private) before return type */
+    FunctionModifier func_modifier = parser_function_modifier(parser);
+
+    /* Parse return type */
+    Type *return_type = ast_create_primitive_type(parser->arena, TYPE_VOID);
+    if (parser_match(parser, TOKEN_COLON))
+    {
+        return_type = parser_type(parser);
+    }
+
+    /* Parse method body if present */
+    Stmt **body_stmts = NULL;
+    int body_count = 0;
+
+    if (parser_match(parser, TOKEN_ARROW))
+    {
+        Token arrow_token = parser->previous;
+
+        /* Check for expression-bodied method (expression on same line as arrow) */
+        if (parser->current.line == arrow_token.line &&
+            parser_can_start_expression(parser->current.type))
+        {
+            /* Expression-bodied method: fn foo(): int => 42 */
+            Expr *body_expr = parser_expression(parser);
+
+            /* Create an implicit return statement wrapping the expression */
+            Stmt *return_stmt = ast_create_return_stmt(parser->arena, arrow_token, body_expr, &arrow_token);
+
+            body_stmts = arena_alloc(parser->arena, sizeof(Stmt *));
+            if (body_stmts == NULL)
+            {
+                parser_error(parser, "Out of memory");
+                return NULL;
+            }
+            body_stmts[0] = return_stmt;
+            body_count = 1;
+        }
+        else
+        {
+            /* Block-bodied method */
+            skip_newlines(parser);
+
+            Stmt *body = parser_indented_block(parser);
+            if (body != NULL)
+            {
+                body_stmts = body->as.block.statements;
+                body_count = body->as.block.count;
+                body->as.block.statements = NULL;
+            }
+        }
+    }
+    else if (!is_native_method)
+    {
+        /* Non-native methods require a body */
+        parser_error_at_current(parser, "Expected '=>' before method body");
+        return NULL;
+    }
+
+    /* Create the method structure */
+    StructMethod *method = arena_alloc(parser->arena, sizeof(StructMethod));
+    if (method == NULL)
+    {
+        parser_error_at_current(parser, "Out of memory");
+        return NULL;
+    }
+
+    method->name = method_name.start;
+    method->params = params;
+    method->param_count = param_count;
+    method->return_type = return_type;
+    method->body = body_stmts;
+    method->body_count = body_count;
+    method->modifier = func_modifier;
+    method->is_static = is_static;
+    method->is_native = is_native_method;
+    method->name_token = method_name;
+
+    return method;
+}
+
+/* Helper function to check if the current tokens indicate a method declaration */
+static bool parser_is_method_start(Parser *parser)
+{
+    /* Methods can start with: fn, static fn, native fn, static native fn */
+    if (parser_check(parser, TOKEN_FN))
+    {
+        return true;
+    }
+    if (parser_check(parser, TOKEN_STATIC))
+    {
+        return true;
+    }
+    if (parser_check(parser, TOKEN_NATIVE))
+    {
+        /* Check if followed by 'fn' (method) or 'struct' (shouldn't happen here) */
+        /* Save position and look ahead */
+        Token saved = parser->current;
+        parser_advance(parser);
+        bool is_method = parser_check(parser, TOKEN_FN);
+        /* Restore - this is a peek, not a consume */
+        parser->current = saved;
+        return is_method;
+    }
+    return false;
+}
+
 Stmt *parser_struct_declaration(Parser *parser, bool is_native)
 {
     Token struct_token = parser->previous;
@@ -655,17 +859,21 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
     parser_consume(parser, TOKEN_ARROW, "Expected '=>' after struct name");
     skip_newlines(parser);
 
-    /* Parse field declarations in indented block */
+    /* Parse field and method declarations in indented block */
     StructField *fields = NULL;
     int field_count = 0;
     int field_capacity = 0;
+
+    StructMethod *methods = NULL;
+    int method_count = 0;
+    int method_capacity = 0;
 
     /* Check for indented block */
     if (parser_check(parser, TOKEN_INDENT))
     {
         parser_advance(parser);
 
-        /* Parse field declarations until dedent */
+        /* Parse field and method declarations until dedent */
         while (!parser_is_at_end(parser) && !parser_check(parser, TOKEN_DEDENT))
         {
             /* Skip newlines */
@@ -678,90 +886,161 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
                 break;
             }
 
-            /* Parse field: name: type */
-            if (!parser_check(parser, TOKEN_IDENTIFIER))
+            /* Check if this is a method declaration */
+            if (parser_is_method_start(parser))
             {
-                parser_error_at_current(parser, "Expected field name");
-                break;
+                /* Parse method modifiers */
+                bool is_method_static = false;
+                bool is_method_native = false;
+
+                /* Check for 'static' modifier */
+                if (parser_match(parser, TOKEN_STATIC))
+                {
+                    is_method_static = true;
+                }
+
+                /* Check for 'native' modifier */
+                if (parser_match(parser, TOKEN_NATIVE))
+                {
+                    is_method_native = true;
+                }
+
+                /* Now we should be at 'fn' */
+                if (!parser_match(parser, TOKEN_FN))
+                {
+                    parser_error_at_current(parser, "Expected 'fn' keyword");
+                    continue;
+                }
+
+                /* Parse method */
+                StructMethod *method = parser_struct_method(parser, is_method_static, is_method_native);
+                if (method == NULL)
+                {
+                    /* Error already reported */
+                    continue;
+                }
+
+                /* Check for duplicate method names */
+                for (int i = 0; i < method_count; i++)
+                {
+                    if (strcmp(methods[i].name, method->name) == 0)
+                    {
+                        char msg[256];
+                        snprintf(msg, sizeof(msg), "Duplicate method name '%s' in struct '%.*s'",
+                                 method->name, name.length, name.start);
+                        parser_error_at(parser, &method->name_token, msg);
+                        break;
+                    }
+                }
+
+                /* Grow methods array if needed */
+                if (method_count >= method_capacity)
+                {
+                    method_capacity = method_capacity == 0 ? 4 : method_capacity * 2;
+                    StructMethod *new_methods = arena_alloc(parser->arena, sizeof(StructMethod) * method_capacity);
+                    if (new_methods == NULL)
+                    {
+                        parser_error_at_current(parser, "Out of memory");
+                        return NULL;
+                    }
+                    if (methods != NULL && method_count > 0)
+                    {
+                        memcpy(new_methods, methods, sizeof(StructMethod) * method_count);
+                    }
+                    methods = new_methods;
+                }
+
+                /* Store method */
+                methods[method_count] = *method;
+                method_count++;
             }
-
-            Token field_name = parser->current;
-            parser_advance(parser);
-
-            parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
-
-            Type *field_type = parser_type(parser);
-
-            /* Parse optional default value: = expr */
-            Expr *default_value = NULL;
-            if (parser_match(parser, TOKEN_EQUAL))
+            else
             {
-                default_value = parser_expression(parser);
-            }
+                /* Parse field: name: type */
+                if (!parser_check(parser, TOKEN_IDENTIFIER))
+                {
+                    parser_error_at_current(parser, "Expected field name or method declaration");
+                    break;
+                }
 
-            /* Grow fields array if needed */
-            if (field_count >= field_capacity)
-            {
-                field_capacity = field_capacity == 0 ? 8 : field_capacity * 2;
-                StructField *new_fields = arena_alloc(parser->arena, sizeof(StructField) * field_capacity);
-                if (new_fields == NULL)
+                Token field_name = parser->current;
+                parser_advance(parser);
+
+                parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
+
+                Type *field_type = parser_type(parser);
+
+                /* Parse optional default value: = expr */
+                Expr *default_value = NULL;
+                if (parser_match(parser, TOKEN_EQUAL))
+                {
+                    default_value = parser_expression(parser);
+                }
+
+                /* Grow fields array if needed */
+                if (field_count >= field_capacity)
+                {
+                    field_capacity = field_capacity == 0 ? 8 : field_capacity * 2;
+                    StructField *new_fields = arena_alloc(parser->arena, sizeof(StructField) * field_capacity);
+                    if (new_fields == NULL)
+                    {
+                        parser_error_at_current(parser, "Out of memory");
+                        return NULL;
+                    }
+                    if (fields != NULL && field_count > 0)
+                    {
+                        memcpy(new_fields, fields, sizeof(StructField) * field_count);
+                    }
+                    fields = new_fields;
+                }
+
+                /* Store field name */
+                char *stored_name = arena_strndup(parser->arena, field_name.start, field_name.length);
+                if (stored_name == NULL)
                 {
                     parser_error_at_current(parser, "Out of memory");
                     return NULL;
                 }
-                if (fields != NULL && field_count > 0)
+
+                /* Check for duplicate field names */
+                for (int i = 0; i < field_count; i++)
                 {
-                    memcpy(new_fields, fields, sizeof(StructField) * field_count);
+                    if (strcmp(fields[i].name, stored_name) == 0)
+                    {
+                        char msg[256];
+                        snprintf(msg, sizeof(msg), "Duplicate field name '%s' in struct '%.*s'",
+                                 stored_name, name.length, name.start);
+                        parser_error_at(parser, &field_name, msg);
+                        break;
+                    }
                 }
-                fields = new_fields;
-            }
 
-            /* Store field name */
-            char *stored_name = arena_strndup(parser->arena, field_name.start, field_name.length);
-            if (stored_name == NULL)
-            {
-                parser_error_at_current(parser, "Out of memory");
-                return NULL;
-            }
-
-            /* Check for duplicate field names */
-            for (int i = 0; i < field_count; i++)
-            {
-                if (strcmp(fields[i].name, stored_name) == 0)
+                /* Check for pointer fields in non-native structs */
+                if (!is_native && field_type != NULL && field_type->kind == TYPE_POINTER)
                 {
-                    char msg[256];
-                    snprintf(msg, sizeof(msg), "Duplicate field name '%s' in struct '%.*s'",
-                             stored_name, name.length, name.start);
+                    char msg[512];
+                    snprintf(msg, sizeof(msg),
+                             "Pointer field '%s' not allowed in struct '%.*s'. "
+                             "Use 'native struct' for structs with pointer fields:\n"
+                             "    native struct %.*s =>\n"
+                             "        %s: *...",
+                             stored_name, name.length, name.start,
+                             name.length, name.start, stored_name);
                     parser_error_at(parser, &field_name, msg);
-                    break;
                 }
-            }
 
-            /* Check for pointer fields in non-native structs */
-            if (!is_native && field_type != NULL && field_type->kind == TYPE_POINTER)
-            {
-                char msg[512];
-                snprintf(msg, sizeof(msg),
-                         "Pointer field '%s' not allowed in struct '%.*s'. "
-                         "Use 'native struct' for structs with pointer fields:\n"
-                         "    native struct %.*s =>\n"
-                         "        %s: *...",
-                         stored_name, name.length, name.start,
-                         name.length, name.start, stored_name);
-                parser_error_at(parser, &field_name, msg);
-            }
+                /* Store field */
+                fields[field_count].name = stored_name;
+                fields[field_count].type = field_type;
+                fields[field_count].offset = 0;  /* Computed during type checking */
+                fields[field_count].default_value = default_value;
+                field_count++;
 
-            /* Store field */
-            fields[field_count].name = stored_name;
-            fields[field_count].type = field_type;
-            fields[field_count].offset = 0;  /* Computed during type checking */
-            fields[field_count].default_value = default_value;
-            field_count++;
-
-            /* Consume newline after field definition */
-            if (!parser_match(parser, TOKEN_NEWLINE) && !parser_check(parser, TOKEN_DEDENT) && !parser_is_at_end(parser))
-            {
-                parser_consume(parser, TOKEN_NEWLINE, "Expected newline after field definition");
+                /* Consume newline after field definition */
+                if (!parser_match(parser, TOKEN_NEWLINE) && !parser_check(parser, TOKEN_DEDENT) && !parser_is_at_end(parser))
+                {
+                    parser_consume(parser, TOKEN_NEWLINE, "Expected newline after field definition");
+                }
             }
         }
 
@@ -776,13 +1055,15 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
     bool is_packed = (parser->pack_alignment == 1);
 
     /* Create the struct type for the symbol table */
-    Type *struct_type = ast_create_struct_type(parser->arena, name.start, fields, field_count, is_native, is_packed);
+    Type *struct_type = ast_create_struct_type(parser->arena, name.start, fields, field_count,
+                                                methods, method_count, is_native, is_packed);
 
     /* Register the struct type in the symbol table so it can be used by later declarations */
     symbol_table_add_type(parser->symbol_table, name, struct_type);
 
     /* Create struct declaration statement */
-    Stmt *stmt = ast_create_struct_decl_stmt(parser->arena, name, fields, field_count, is_native, is_packed, &struct_token);
+    Stmt *stmt = ast_create_struct_decl_stmt(parser->arena, name, fields, field_count,
+                                              methods, method_count, is_native, is_packed, &struct_token);
 
     return stmt;
 }

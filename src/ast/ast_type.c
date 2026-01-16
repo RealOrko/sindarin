@@ -69,9 +69,11 @@ Type *ast_clone_type(Arena *arena, Type *type)
             clone->as.struct_type.name = NULL;
         }
         clone->as.struct_type.field_count = type->as.struct_type.field_count;
+        clone->as.struct_type.method_count = type->as.struct_type.method_count;
         clone->as.struct_type.size = type->as.struct_type.size;
         clone->as.struct_type.alignment = type->as.struct_type.alignment;
         clone->as.struct_type.is_native = type->as.struct_type.is_native;
+        clone->as.struct_type.is_packed = type->as.struct_type.is_packed;
         if (type->as.struct_type.field_count > 0)
         {
             clone->as.struct_type.fields = arena_alloc(arena, sizeof(StructField) * type->as.struct_type.field_count);
@@ -92,6 +94,58 @@ Type *ast_clone_type(Arena *arena, Type *type)
         else
         {
             clone->as.struct_type.fields = NULL;
+        }
+        /* Clone methods if any */
+        if (type->as.struct_type.method_count > 0 && type->as.struct_type.methods != NULL)
+        {
+            clone->as.struct_type.methods = arena_alloc(arena, sizeof(StructMethod) * type->as.struct_type.method_count);
+            if (clone->as.struct_type.methods == NULL)
+            {
+                DEBUG_ERROR("Out of memory when cloning struct methods");
+                exit(1);
+            }
+            for (int i = 0; i < type->as.struct_type.method_count; i++)
+            {
+                StructMethod *src = &type->as.struct_type.methods[i];
+                StructMethod *dst = &clone->as.struct_type.methods[i];
+                dst->name = src->name ? arena_strdup(arena, src->name) : NULL;
+                dst->param_count = src->param_count;
+                dst->return_type = ast_clone_type(arena, src->return_type);
+                dst->body = src->body;  /* Shallow copy - statements already in arena */
+                dst->body_count = src->body_count;
+                dst->modifier = src->modifier;
+                dst->is_static = src->is_static;
+                dst->is_native = src->is_native;
+                dst->name_token = src->name_token;
+
+                /* Clone parameters */
+                if (src->param_count > 0 && src->params != NULL)
+                {
+                    dst->params = arena_alloc(arena, sizeof(Parameter) * src->param_count);
+                    if (dst->params == NULL)
+                    {
+                        DEBUG_ERROR("Out of memory when cloning method params");
+                        exit(1);
+                    }
+                    for (int j = 0; j < src->param_count; j++)
+                    {
+                        dst->params[j] = src->params[j];
+                        if (src->params[j].name.start != NULL)
+                        {
+                            dst->params[j].name.start = arena_strndup(arena, src->params[j].name.start, src->params[j].name.length);
+                        }
+                        dst->params[j].type = ast_clone_type(arena, src->params[j].type);
+                    }
+                }
+                else
+                {
+                    dst->params = NULL;
+                }
+            }
+        }
+        else
+        {
+            clone->as.struct_type.methods = NULL;
         }
         break;
 
@@ -512,7 +566,8 @@ int ast_type_is_struct(Type *type)
     return type != NULL && type->kind == TYPE_STRUCT;
 }
 
-Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields, int field_count, bool is_native, bool is_packed)
+Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields, int field_count,
+                             StructMethod *methods, int method_count, bool is_native, bool is_packed)
 {
     Type *type = arena_alloc(arena, sizeof(Type));
     if (type == NULL)
@@ -524,6 +579,7 @@ Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields
     type->kind = TYPE_STRUCT;
     type->as.struct_type.name = name ? arena_strdup(arena, name) : NULL;
     type->as.struct_type.field_count = field_count;
+    type->as.struct_type.method_count = method_count;
     type->as.struct_type.size = 0;       /* Computed during type checking */
     type->as.struct_type.alignment = 0;  /* Computed during type checking */
     type->as.struct_type.is_native = is_native;
@@ -549,6 +605,59 @@ Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields
     else
     {
         type->as.struct_type.fields = NULL;
+    }
+
+    /* Copy methods if provided */
+    if (method_count > 0 && methods != NULL)
+    {
+        type->as.struct_type.methods = arena_alloc(arena, sizeof(StructMethod) * method_count);
+        if (type->as.struct_type.methods == NULL)
+        {
+            DEBUG_ERROR("Out of memory");
+            exit(1);
+        }
+        for (int i = 0; i < method_count; i++)
+        {
+            type->as.struct_type.methods[i].name = methods[i].name
+                ? arena_strdup(arena, methods[i].name) : NULL;
+            type->as.struct_type.methods[i].param_count = methods[i].param_count;
+            type->as.struct_type.methods[i].return_type = ast_clone_type(arena, methods[i].return_type);
+            type->as.struct_type.methods[i].body = methods[i].body;  /* Shallow copy - statements already in arena */
+            type->as.struct_type.methods[i].body_count = methods[i].body_count;
+            type->as.struct_type.methods[i].modifier = methods[i].modifier;
+            type->as.struct_type.methods[i].is_static = methods[i].is_static;
+            type->as.struct_type.methods[i].is_native = methods[i].is_native;
+            type->as.struct_type.methods[i].name_token = methods[i].name_token;
+
+            /* Copy parameters if any */
+            if (methods[i].param_count > 0 && methods[i].params != NULL)
+            {
+                type->as.struct_type.methods[i].params = arena_alloc(arena, sizeof(Parameter) * methods[i].param_count);
+                if (type->as.struct_type.methods[i].params == NULL)
+                {
+                    DEBUG_ERROR("Out of memory");
+                    exit(1);
+                }
+                for (int j = 0; j < methods[i].param_count; j++)
+                {
+                    type->as.struct_type.methods[i].params[j] = methods[i].params[j];
+                    if (methods[i].params[j].name.start != NULL)
+                    {
+                        type->as.struct_type.methods[i].params[j].name.start =
+                            arena_strndup(arena, methods[i].params[j].name.start, methods[i].params[j].name.length);
+                    }
+                    type->as.struct_type.methods[i].params[j].type = ast_clone_type(arena, methods[i].params[j].type);
+                }
+            }
+            else
+            {
+                type->as.struct_type.methods[i].params = NULL;
+            }
+        }
+    }
+    else
+    {
+        type->as.struct_type.methods = NULL;
     }
 
     return type;
@@ -590,6 +699,25 @@ int ast_struct_get_field_index(Type *struct_type, const char *field_name)
     }
 
     return -1;
+}
+
+StructMethod *ast_struct_get_method(Type *struct_type, const char *method_name)
+{
+    if (struct_type == NULL || struct_type->kind != TYPE_STRUCT || method_name == NULL)
+    {
+        return NULL;
+    }
+
+    for (int i = 0; i < struct_type->as.struct_type.method_count; i++)
+    {
+        if (struct_type->as.struct_type.methods[i].name != NULL &&
+            strcmp(struct_type->as.struct_type.methods[i].name, method_name) == 0)
+        {
+            return &struct_type->as.struct_type.methods[i];
+        }
+    }
+
+    return NULL;
 }
 
 bool ast_struct_literal_field_initialized(Expr *struct_literal_expr, int field_index)

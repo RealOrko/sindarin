@@ -328,7 +328,7 @@ Type *parser_type(Parser *parser)
                  * The type checker will resolve this to the actual struct definition. */
                 char *type_name = arena_strndup(parser->arena, id.start, id.length);
                 parser_advance(parser);
-                type = ast_create_struct_type(parser->arena, type_name, NULL, 0, false, false);
+                type = ast_create_struct_type(parser->arena, type_name, NULL, 0, NULL, 0, false, false);
             }
         }
     }

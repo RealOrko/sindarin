@@ -1,6 +1,7 @@
 #include "type_checker/type_checker_stmt.h"
 #include "type_checker/type_checker_util.h"
 #include "type_checker/type_checker_expr.h"
+#include "symbol_table/symbol_table_core.h"
 #include "debug.h"
 #include <string.h>
 #include <stdio.h>
@@ -1072,6 +1073,72 @@ static void type_check_struct_decl(Stmt *stmt, SymbolTable *table)
         DEBUG_VERBOSE("  Field '%s' type validated", field->name);
     }
 
+    /* Type check each method */
+    for (int i = 0; i < struct_decl->method_count; i++)
+    {
+        StructMethod *method = &struct_decl->methods[i];
+
+        DEBUG_VERBOSE("  Type checking method '%s' (static=%d, native=%d)",
+                      method->name, method->is_static, method->is_native);
+
+        /* For non-native methods, type check the body */
+        if (!method->is_native && method->body != NULL)
+        {
+            /* Create a new scope for the method body */
+            symbol_table_push_scope(table);
+
+            /* For instance methods, add 'self' parameter to scope */
+            if (!method->is_static)
+            {
+                /* Look up the struct type */
+                Symbol *struct_sym = symbol_table_lookup_type(table, struct_decl->name);
+                if (struct_sym != NULL && struct_sym->type != NULL)
+                {
+                    /* Create a 'self' token */
+                    Token self_token;
+                    self_token.start = "self";
+                    self_token.length = 4;
+                    self_token.line = struct_decl->name.line;
+                    self_token.filename = struct_decl->name.filename;
+                    self_token.type = TOKEN_IDENTIFIER;
+
+                    /* Add 'self' as a pointer to the struct type (allows modifications) */
+                    Type *self_ptr_type = ast_create_pointer_type(table->arena, struct_sym->type);
+                    symbol_table_add_symbol(table, self_token, self_ptr_type);
+                }
+            }
+
+            /* Add method parameters to scope */
+            for (int j = 0; j < method->param_count; j++)
+            {
+                Parameter *param = &method->params[j];
+                if (param->type != NULL)
+                {
+                    symbol_table_add_symbol_full(table, param->name, param->type, SYMBOL_PARAM, param->mem_qualifier);
+                }
+            }
+
+            /* Enter method context to allow pointer-to-struct access for 'self' */
+            method_context_enter();
+
+            /* Type check the method body */
+            for (int j = 0; j < method->body_count; j++)
+            {
+                if (method->body[j] != NULL)
+                {
+                    type_check_stmt(method->body[j], table, method->return_type);
+                }
+            }
+
+            /* Exit method context */
+            method_context_exit();
+
+            /* TODO: Check return type matches declared return type */
+
+            symbol_table_pop_scope(table);
+        }
+    }
+
     /* Check for circular dependencies in struct types.
      * Build a temporary Type for the struct declaration to check. */
     Type temp_struct_type;
@@ -1087,6 +1154,8 @@ static void type_check_struct_decl(Stmt *stmt, SymbolTable *table)
 
     temp_struct_type.as.struct_type.fields = struct_decl->fields;
     temp_struct_type.as.struct_type.field_count = struct_decl->field_count;
+    temp_struct_type.as.struct_type.methods = struct_decl->methods;
+    temp_struct_type.as.struct_type.method_count = struct_decl->method_count;
     temp_struct_type.as.struct_type.is_native = struct_decl->is_native;
     temp_struct_type.as.struct_type.size = 0;
     temp_struct_type.as.struct_type.alignment = 0;

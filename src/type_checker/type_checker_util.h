@@ -95,6 +95,15 @@ void native_context_enter(void);
 void native_context_exit(void);
 bool native_context_is_active(void);
 
+/* Method context tracking.
+ * Used to allow pointer-to-struct access for 'self' in struct methods.
+ * Methods receive 'self' as a pointer to allow mutation, so we need to
+ * permit pointer field access inside method bodies.
+ */
+void method_context_enter(void);
+void method_context_exit(void);
+bool method_context_is_active(void);
+
 /* 'as val' operand context tracking.
  * Used to allow pointer slices inside 'as val' expressions in non-native functions.
  * ptr[0..len] as val is OK even in regular functions because as val wraps the slice.

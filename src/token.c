@@ -151,6 +151,8 @@ const char *token_type_to_string(SnTokenType type)
         return "OPAQUE";
     case TOKEN_STRUCT:
         return "STRUCT";
+    case TOKEN_STATIC:
+        return "STATIC";
     case TOKEN_UUID:
         return "UUID";
     case TOKEN_ENV:

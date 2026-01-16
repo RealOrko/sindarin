@@ -874,6 +874,80 @@ void code_gen_module(CodeGen *gen, Module *module)
         indented_fprintf(gen, 0, "\n");
     }
 
+    /* Emit struct method forward declarations */
+    int method_count = 0;
+    for (int i = 0; i < module->count; i++)
+    {
+        Stmt *stmt = module->statements[i];
+        if (stmt->type == STMT_STRUCT_DECL)
+        {
+            StructDeclStmt *struct_decl = &stmt->as.struct_decl;
+            char *struct_name = arena_strndup(gen->arena, struct_decl->name.start, struct_decl->name.length);
+
+            for (int j = 0; j < struct_decl->method_count; j++)
+            {
+                StructMethod *method = &struct_decl->methods[j];
+
+                /* Skip native methods with no body - they are extern declared elsewhere */
+                if (method->is_native && method->body == NULL)
+                {
+                    continue;
+                }
+
+                if (method_count == 0)
+                {
+                    indented_fprintf(gen, 0, "/* Struct method forward declarations */\n");
+                }
+
+                /* Generate: return_type StructName_methodName(params); */
+                const char *ret_type = get_c_type(gen->arena, method->return_type);
+
+                /* Build parameter list */
+                if (method->is_static)
+                {
+                    /* Static method: no self parameter */
+                    if (method->param_count == 0)
+                    {
+                        indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena);\n",
+                                         ret_type, struct_name, method->name);
+                    }
+                    else
+                    {
+                        indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena",
+                                         ret_type, struct_name, method->name);
+                        for (int k = 0; k < method->param_count; k++)
+                        {
+                            Parameter *param = &method->params[k];
+                            const char *param_type = get_c_type(gen->arena, param->type);
+                            char *param_name = arena_strndup(gen->arena, param->name.start, param->name.length);
+                            indented_fprintf(gen, 0, ", %s %s", param_type, param_name);
+                        }
+                        indented_fprintf(gen, 0, ");\n");
+                    }
+                }
+                else
+                {
+                    /* Instance method: first parameter is self (pointer to struct) */
+                    indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
+                                     ret_type, struct_name, method->name, struct_name);
+                    for (int k = 0; k < method->param_count; k++)
+                    {
+                        Parameter *param = &method->params[k];
+                        const char *param_type = get_c_type(gen->arena, param->type);
+                        char *param_name = arena_strndup(gen->arena, param->name.start, param->name.length);
+                        indented_fprintf(gen, 0, ", %s %s", param_type, param_name);
+                    }
+                    indented_fprintf(gen, 0, ");\n");
+                }
+                method_count++;
+            }
+        }
+    }
+    if (method_count > 0)
+    {
+        indented_fprintf(gen, 0, "\n");
+    }
+
     // Emit type declarations (native callback typedefs) before forward declarations
     int typedef_count = 0;
     for (int i = 0; i < module->count; i++)
@@ -965,6 +1039,115 @@ void code_gen_module(CodeGen *gen, Module *module)
             has_main = true;
         }
         code_gen_statement(gen, stmt, 0);
+    }
+
+    /* Emit struct method implementations */
+    for (int i = 0; i < module->count; i++)
+    {
+        Stmt *stmt = module->statements[i];
+        if (stmt->type == STMT_STRUCT_DECL)
+        {
+            StructDeclStmt *struct_decl = &stmt->as.struct_decl;
+            char *struct_name = arena_strndup(gen->arena, struct_decl->name.start, struct_decl->name.length);
+
+            for (int j = 0; j < struct_decl->method_count; j++)
+            {
+                StructMethod *method = &struct_decl->methods[j];
+
+                /* Skip native methods with no body - they are extern declared elsewhere */
+                if (method->is_native && method->body == NULL)
+                {
+                    continue;
+                }
+
+                const char *ret_type = get_c_type(gen->arena, method->return_type);
+
+                /* Generate function signature */
+                if (method->is_static)
+                {
+                    if (method->param_count == 0)
+                    {
+                        indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena) {\n",
+                                         ret_type, struct_name, method->name);
+                    }
+                    else
+                    {
+                        indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena",
+                                         ret_type, struct_name, method->name);
+                        for (int k = 0; k < method->param_count; k++)
+                        {
+                            Parameter *param = &method->params[k];
+                            const char *param_type = get_c_type(gen->arena, param->type);
+                            char *param_name = arena_strndup(gen->arena, param->name.start, param->name.length);
+                            indented_fprintf(gen, 0, ", %s %s", param_type, param_name);
+                        }
+                        indented_fprintf(gen, 0, ") {\n");
+                    }
+                }
+                else
+                {
+                    /* Instance method: first parameter is self (pointer to struct) */
+                    indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
+                                     ret_type, struct_name, method->name, struct_name);
+                    for (int k = 0; k < method->param_count; k++)
+                    {
+                        Parameter *param = &method->params[k];
+                        const char *param_type = get_c_type(gen->arena, param->type);
+                        char *param_name = arena_strndup(gen->arena, param->name.start, param->name.length);
+                        indented_fprintf(gen, 0, ", %s %s", param_type, param_name);
+                    }
+                    indented_fprintf(gen, 0, ") {\n");
+                }
+
+                /* Set up code generator state for method */
+                char *method_full_name = arena_sprintf(gen->arena, "%s_%s", struct_name, method->name);
+                const char *saved_function = gen->current_function;
+                Type *saved_return_type = gen->current_return_type;
+                const char *saved_arena_var = gen->current_arena_var;
+
+                gen->current_function = method_full_name;
+                gen->current_return_type = method->return_type;
+                gen->current_arena_var = "arena";  /* Methods receive arena as first parameter */
+
+                /* Determine if we need a _return_value variable */
+                bool has_return_value = (method->return_type && method->return_type->kind != TYPE_VOID);
+
+                /* Add _return_value if needed */
+                if (has_return_value)
+                {
+                    const char *default_val = get_default_value(method->return_type);
+                    indented_fprintf(gen, 1, "%s _return_value = %s;\n", ret_type, default_val);
+                }
+
+                /* Generate method body */
+                for (int k = 0; k < method->body_count; k++)
+                {
+                    if (method->body[k] != NULL)
+                    {
+                        code_gen_statement(gen, method->body[k], 1);
+                    }
+                }
+
+                /* Add return label and return statement */
+                indented_fprintf(gen, 0, "%s_return:\n", method_full_name);
+                if (has_return_value)
+                {
+                    indented_fprintf(gen, 1, "return _return_value;\n");
+                }
+                else
+                {
+                    indented_fprintf(gen, 1, "return;\n");
+                }
+
+                /* Restore code generator state */
+                gen->current_function = saved_function;
+                gen->current_return_type = saved_return_type;
+                gen->current_arena_var = saved_arena_var;
+
+                /* Close function */
+                indented_fprintf(gen, 0, "}\n\n");
+            }
+        }
     }
 
     if (!has_main)
