@@ -272,6 +272,10 @@ if(NOT MSVC)
 
     if(NOT WIN32)
         list(APPEND RUNTIME_INCLUDES -D_GNU_SOURCE)
+    else()
+        # Force Windows API threading instead of pthreads for packaged builds
+        # This ensures the runtime .o files don't reference external pthread symbols
+        list(APPEND RUNTIME_INCLUDES -DSN_USE_WIN32_THREADS)
     endif()
 
     # Macro to add runtime object compilation

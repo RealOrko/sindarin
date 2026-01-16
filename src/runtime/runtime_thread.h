@@ -2,10 +2,11 @@
 #define RUNTIME_THREAD_H
 
 #ifdef _WIN32
-    #if defined(__MINGW32__) || defined(__MINGW64__)
-    /* MinGW provides pthreads */
+    #if (defined(__MINGW32__) || defined(__MINGW64__)) && !defined(SN_USE_WIN32_THREADS)
+    /* MinGW provides pthreads - but SN_USE_WIN32_THREADS forces native Win32 API */
     #include <pthread.h>
     #else
+    /* Use Windows API compatibility layer for MSVC/clang-cl and packaged builds */
     #include "../platform/compat_pthread.h"
     #endif
 #else

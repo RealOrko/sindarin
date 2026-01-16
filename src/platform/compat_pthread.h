@@ -6,8 +6,10 @@
 #ifndef SN_COMPAT_PTHREAD_H
 #define SN_COMPAT_PTHREAD_H
 
-/* Only needed for MSVC/clang-cl on Windows, not MinGW (which provides pthreads) */
-#if defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
+/* Only needed for MSVC/clang-cl on Windows, not MinGW (which provides pthreads)
+ * However, SN_USE_WIN32_THREADS forces use of Windows API even with MinGW
+ * for creating standalone packages that don't require pthread DLLs */
+#if defined(_WIN32) && (!defined(__MINGW32__) && !defined(__MINGW64__) || defined(SN_USE_WIN32_THREADS))
 
 #ifndef WIN32_LEAN_AND_MEAN
     #define WIN32_LEAN_AND_MEAN
@@ -22,9 +24,9 @@
 /* ============================================================================
  * struct timespec compatibility
  * MSVC 2015+ (VS2015 = _MSC_VER 1900) defines struct timespec in <time.h>
- * Only define it for older MSVC versions
+ * MinGW also provides these, so skip when __MINGW32__/__MINGW64__ is defined
  * ============================================================================ */
-#if _MSC_VER < 1900
+#if defined(_MSC_VER) && _MSC_VER < 1900
 #ifndef _TIMESPEC_DEFINED
 #define _TIMESPEC_DEFINED
 struct timespec {
@@ -34,13 +36,14 @@ struct timespec {
 #endif
 #endif
 
-/* TIME_UTC for timespec_get - MSVC 2015+ defines this */
+/* TIME_UTC for timespec_get - MSVC 2015+ and MinGW define this */
 #ifndef TIME_UTC
 #define TIME_UTC 1
 #endif
 
-/* timespec_get implementation for older MSVC versions */
-#if _MSC_VER < 1900
+/* timespec_get implementation for older MSVC versions
+ * MinGW provides this in its libc, so skip when __MINGW32__/__MINGW64__ */
+#if defined(_MSC_VER) && _MSC_VER < 1900
 static inline int timespec_get(struct timespec *ts, int base) {
     if (base != TIME_UTC || ts == NULL) return 0;
     /* Get time as 100-nanosecond intervals since January 1, 1601 */
