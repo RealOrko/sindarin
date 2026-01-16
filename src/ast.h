@@ -312,6 +312,8 @@ typedef struct
     Token method_name;   // The method name (e.g., "open", "fromHex")
     Expr **arguments;    // Arguments to the method
     int arg_count;
+    StructMethod *resolved_method;    // Resolved method for user-defined struct static methods
+    Type *resolved_struct_type;       // Struct type containing the method
 } StaticCallExpr;
 
 typedef struct

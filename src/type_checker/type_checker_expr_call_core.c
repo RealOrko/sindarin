@@ -2514,6 +2514,98 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         }
     }
 
+    /* Check for user-defined struct static methods */
+    {
+        /* Create a token for looking up the struct type */
+        Token lookup_tok;
+        lookup_tok.start = type_name.start;
+        lookup_tok.length = type_name.length;
+        lookup_tok.line = type_name.line;
+        lookup_tok.filename = type_name.filename;
+        lookup_tok.type = TOKEN_IDENTIFIER;
+
+        Symbol *struct_sym = symbol_table_lookup_type(table, lookup_tok);
+        if (struct_sym != NULL && struct_sym->type != NULL &&
+            struct_sym->type->kind == TYPE_STRUCT)
+        {
+            Type *struct_type = struct_sym->type;
+
+            /* Look for a static method with matching name */
+            for (int i = 0; i < struct_type->as.struct_type.method_count; i++)
+            {
+                StructMethod *method = &struct_type->as.struct_type.methods[i];
+                if (method->is_static &&
+                    method_name.length == (int)strlen(method->name) &&
+                    strncmp(method_name.start, method->name, method_name.length) == 0)
+                {
+                    /* Found static method - validate argument count */
+                    if (call->arg_count != method->param_count)
+                    {
+                        char msg[256];
+                        snprintf(msg, sizeof(msg),
+                                 "%s.%s expects %d argument(s), got %d",
+                                 struct_type->as.struct_type.name,
+                                 method->name, method->param_count, call->arg_count);
+                        type_error(&method_name, msg);
+                        return NULL;
+                    }
+
+                    /* Validate argument types */
+                    for (int j = 0; j < call->arg_count; j++)
+                    {
+                        Type *arg_type = call->arguments[j]->expr_type;
+                        Type *param_type = method->params[j].type;
+                        if (!ast_type_equals(arg_type, param_type))
+                        {
+                            char msg[256];
+                            snprintf(msg, sizeof(msg),
+                                     "%s.%s argument %d: type mismatch",
+                                     struct_type->as.struct_type.name,
+                                     method->name, j + 1);
+                            type_error(&method_name, msg);
+                            return NULL;
+                        }
+                    }
+
+                    /* Store resolved method for code generation */
+                    call->resolved_method = method;
+                    call->resolved_struct_type = struct_type;
+
+                    expr->expr_type = method->return_type;
+                    return method->return_type;
+                }
+            }
+
+            /* Check if they tried to call an instance method statically */
+            for (int i = 0; i < struct_type->as.struct_type.method_count; i++)
+            {
+                StructMethod *method = &struct_type->as.struct_type.methods[i];
+                if (!method->is_static &&
+                    method_name.length == (int)strlen(method->name) &&
+                    strncmp(method_name.start, method->name, method_name.length) == 0)
+                {
+                    char msg[256];
+                    snprintf(msg, sizeof(msg),
+                             "Cannot call instance method '%s' on type '%s'. "
+                             "Use an instance: var obj: %s = ...; obj.%s(...)",
+                             method->name, struct_type->as.struct_type.name,
+                             struct_type->as.struct_type.name, method->name);
+                    type_error(&method_name, msg);
+                    return NULL;
+                }
+            }
+
+            /* No matching method found */
+            char msg[256];
+            snprintf(msg, sizeof(msg),
+                     "No static method '%.*s' found in struct '%s'",
+                     method_name.length, method_name.start,
+                     struct_type->as.struct_type.name);
+            type_error(&method_name, msg);
+            return NULL;
+        }
+    }
+
     type_error(&type_name, "Unknown static type");
     return NULL;
 }

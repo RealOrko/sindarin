@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <ctype.h>
 
 bool expression_produces_temp(Expr *expr)
 {
@@ -440,26 +441,65 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                     Type *struct_type = member->resolved_struct_type;
                     const char *struct_name = struct_type->as.struct_type.name;
 
-                    /* Build args list */
-                    char *args_list = arena_strdup(gen->arena, ARENA_VAR(gen));
-
-                    /* For instance methods, pass address of self as first arg */
-                    if (!method->is_static)
+                    if (method->is_native)
                     {
-                        char *self_str = code_gen_expression(gen, member->object);
-                        args_list = arena_sprintf(gen->arena, "%s, &%s", args_list, self_str);
-                    }
+                        /* Native method call: rt_{struct_lowercase}_{method_name}(self, args) */
+                        /* Create lowercase struct name for native method naming */
+                        char *struct_name_lower = arena_strdup(gen->arena, struct_name);
+                        for (char *p = struct_name_lower; *p; p++)
+                        {
+                            *p = (char)tolower((unsigned char)*p);
+                        }
 
-                    /* Generate other arguments */
-                    for (int i = 0; i < call->arg_count; i++)
+                        /* Build args list - NO arena for native methods */
+                        char *args_list = arena_strdup(gen->arena, "");
+
+                        /* For instance native methods, pass self (by value) as first arg */
+                        if (!method->is_static)
+                        {
+                            char *self_str = code_gen_expression(gen, member->object);
+                            args_list = arena_strdup(gen->arena, self_str);
+                        }
+
+                        /* Add remaining arguments */
+                        for (int i = 0; i < call->arg_count; i++)
+                        {
+                            char *arg_str = code_gen_expression(gen, call->arguments[i]);
+                            if (args_list[0] != '\0')
+                            {
+                                args_list = arena_sprintf(gen->arena, "%s, %s", args_list, arg_str);
+                            }
+                            else
+                            {
+                                args_list = arg_str;
+                            }
+                        }
+
+                        return arena_sprintf(gen->arena, "rt_%s_%s(%s)",
+                                             struct_name_lower, method->name, args_list);
+                    }
+                    else
                     {
-                        char *arg_str = code_gen_expression(gen, call->arguments[i]);
-                        args_list = arena_sprintf(gen->arena, "%s, %s", args_list, arg_str);
-                    }
+                        /* Non-native method call: StructName_methodName(arena, &self, args) */
+                        char *args_list = arena_strdup(gen->arena, ARENA_VAR(gen));
 
-                    /* Generate call: StructName_methodName(arena, self, args) */
-                    return arena_sprintf(gen->arena, "%s_%s(%s)",
-                                         struct_name, method->name, args_list);
+                        /* For instance methods, pass address of self */
+                        if (!method->is_static)
+                        {
+                            char *self_str = code_gen_expression(gen, member->object);
+                            args_list = arena_sprintf(gen->arena, "%s, &%s", args_list, self_str);
+                        }
+
+                        /* Generate other arguments */
+                        for (int i = 0; i < call->arg_count; i++)
+                        {
+                            char *arg_str = code_gen_expression(gen, call->arguments[i]);
+                            args_list = arena_sprintf(gen->arena, "%s, %s", args_list, arg_str);
+                        }
+
+                        return arena_sprintf(gen->arena, "%s_%s(%s)",
+                                             struct_name, method->name, args_list);
+                    }
                 }
                 break;
             }

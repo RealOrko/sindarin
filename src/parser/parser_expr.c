@@ -733,8 +733,19 @@ Expr *parser_primary(Parser *parser)
         }
 
         /* Check for static method call: TypeName.method() */
-        if (parser_check(parser, TOKEN_DOT) &&
-            parser_is_static_type_name(var_token.start, var_token.length))
+        /* Recognize both built-in types and user-defined struct types */
+        bool is_static_type = parser_is_static_type_name(var_token.start, var_token.length);
+        if (!is_static_type && parser_check(parser, TOKEN_DOT))
+        {
+            /* Check if it's a user-defined struct type */
+            Symbol *type_symbol = symbol_table_lookup_type(parser->symbol_table, var_token);
+            if (type_symbol != NULL && type_symbol->type != NULL &&
+                type_symbol->type->kind == TYPE_STRUCT)
+            {
+                is_static_type = true;
+            }
+        }
+        if (parser_check(parser, TOKEN_DOT) && is_static_type)
         {
             /* Save the type name token */
             Token type_name = var_token;

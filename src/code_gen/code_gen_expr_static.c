@@ -1,9 +1,11 @@
 #include "code_gen/code_gen_expr.h"
 #include "code_gen/code_gen_util.h"
 #include "debug.h"
+#include "symbol_table.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <ctype.h>
 
 /* Helper to compare Token with C string */
 static bool codegen_token_equals(Token tok, const char *str)
@@ -832,6 +834,57 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         else if (codegen_token_equals(method_name, "count"))
         {
             return arena_sprintf(gen->arena, "rt_interceptor_count()");
+        }
+    }
+
+    /* Check for user-defined struct static methods */
+    if (call->resolved_method != NULL && call->resolved_struct_type != NULL)
+    {
+        StructMethod *method = call->resolved_method;
+        Type *struct_type = call->resolved_struct_type;
+        const char *struct_name = struct_type->as.struct_type.name;
+
+        if (method->is_native)
+        {
+            /* Native static method: rt_{struct_lowercase}_{method_name}(args) */
+            /* Create lowercase struct name for native method naming */
+            char *struct_name_lower = arena_strdup(gen->arena, struct_name);
+            for (char *p = struct_name_lower; *p; p++)
+            {
+                *p = (char)tolower((unsigned char)*p);
+            }
+
+            /* Build args list - NO arena for native methods */
+            char *args_list = arena_strdup(gen->arena, "");
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                char *arg_str = code_gen_expression(gen, call->arguments[i]);
+                if (i > 0)
+                {
+                    args_list = arena_sprintf(gen->arena, "%s, %s", args_list, arg_str);
+                }
+                else
+                {
+                    args_list = arg_str;
+                }
+            }
+
+            return arena_sprintf(gen->arena, "rt_%s_%s(%s)",
+                                 struct_name_lower, method->name, args_list);
+        }
+        else
+        {
+            /* Non-native static method: StructName_methodName(arena, args) */
+            char *args_list = arena_strdup(gen->arena, ARENA_VAR(gen));
+
+            for (int i = 0; i < call->arg_count; i++)
+            {
+                char *arg_str = code_gen_expression(gen, call->arguments[i]);
+                args_list = arena_sprintf(gen->arena, "%s, %s", args_list, arg_str);
+            }
+
+            return arena_sprintf(gen->arena, "%s_%s(%s)",
+                                 struct_name, method->name, args_list);
         }
     }
 
