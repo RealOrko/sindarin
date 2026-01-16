@@ -399,11 +399,11 @@ install(TARGETS sn
     COMPONENT compiler
 )
 
-# Install runtime objects
+# Install runtime library
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/bin/lib/"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/sindarin
     COMPONENT runtime
-    FILES_MATCHING PATTERN "*.o"
+    FILES_MATCHING PATTERN "*.a"
 )
 
 # Install headers
