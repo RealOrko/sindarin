@@ -4,6 +4,7 @@
 #include "parser/parser_stmt.h"
 #include "debug.h"
 #include "file.h"
+#include "gcc_backend.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -214,6 +215,17 @@ static char *construct_import_path(Arena *arena, const char *current_file, const
     return import_path;
 }
 
+/* Helper: check if file exists */
+static bool import_file_exists(const char *path)
+{
+    FILE *f = fopen(path, "r");
+    if (f) {
+        fclose(f);
+        return true;
+    }
+    return false;
+}
+
 /* Process an import immediately during parsing - registers types and functions */
 Module *parser_process_import(Parser *parser, const char *module_name, bool is_namespaced)
 {
@@ -224,11 +236,24 @@ Module *parser_process_import(Parser *parser, const char *module_name, bool is_n
 
     ImportContext *ctx = parser->import_ctx;
 
-    /* Construct the full import path */
+    /* Construct the full import path (relative to current file) */
     char *import_path = construct_import_path(parser->arena, ctx->current_file, module_name);
     if (!import_path) {
         parser_error(parser, "Failed to allocate memory for import path");
         return NULL;
+    }
+
+    /* If relative path doesn't exist, try SDK path */
+    if (!import_file_exists(import_path) && ctx->compiler_dir) {
+        const char *sdk_path = gcc_resolve_sdk_import(ctx->compiler_dir, module_name);
+        if (sdk_path) {
+            /* Use SDK path instead - need to copy to arena since sdk_path is static */
+            import_path = arena_strdup(parser->arena, sdk_path);
+            if (!import_path) {
+                parser_error(parser, "Failed to allocate memory for SDK import path");
+                return NULL;
+            }
+        }
     }
 
     /* Check if already imported */
@@ -304,6 +329,7 @@ static Module *process_import_callback(Arena *arena, SymbolTable *symbol_table, 
     import_ctx.imported_modules = parent_ctx->imported_modules;
     import_ctx.imported_directly = parent_ctx->imported_directly;
     import_ctx.current_file = import_path;
+    import_ctx.compiler_dir = parent_ctx->compiler_dir;
     import_ctx.process_import = process_import_callback;
 
     parser.import_ctx = &import_ctx;
@@ -390,7 +416,8 @@ static Module *process_import_callback(Arena *arena, SymbolTable *symbol_table, 
 
 Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename,
                                   char ***imported, int *imported_count, int *imported_capacity,
-                                  Module ***imported_modules, bool **imported_directly)
+                                  Module ***imported_modules, bool **imported_directly,
+                                  const char *compiler_dir)
 {
     char *source = file_read(arena, filename);
     if (!source)
@@ -415,6 +442,7 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
     import_ctx.imported_modules = *imported_modules;
     import_ctx.imported_directly = *imported_directly;
     import_ctx.current_file = filename;
+    import_ctx.compiler_dir = compiler_dir;
     import_ctx.process_import = process_import_callback;
 
     parser.import_ctx = &import_ctx;
@@ -481,6 +509,21 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
             }
             strcat(import_path, mod_name.start);
             strcat(import_path, ".sn");
+
+            /* If relative path doesn't exist, try SDK path */
+            if (!import_file_exists(import_path) && compiler_dir) {
+                const char *sdk_path = gcc_resolve_sdk_import(compiler_dir, mod_name.start);
+                if (sdk_path) {
+                    /* Use SDK path instead */
+                    import_path = arena_strdup(arena, sdk_path);
+                    if (!import_path) {
+                        DEBUG_ERROR("Failed to allocate memory for SDK import path");
+                        parser_cleanup(&parser);
+                        lexer_cleanup(&lexer);
+                        return NULL;
+                    }
+                }
+            }
 
             int already_imported_idx = -1;
             for (int j = 0; j < *imported_count; j++)
@@ -666,7 +709,7 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
             }
             (*imported_count)++;
 
-            Module *imported_module = parse_module_with_imports(arena, symbol_table, import_path, imported, imported_count, imported_capacity, imported_modules, imported_directly);
+            Module *imported_module = parse_module_with_imports(arena, symbol_table, import_path, imported, imported_count, imported_capacity, imported_modules, imported_directly, compiler_dir);
             if (!imported_module)
             {
                 parser_cleanup(&parser);

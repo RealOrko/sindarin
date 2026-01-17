@@ -30,6 +30,10 @@ package() {
     install -dm755 "$pkgdir/usr/include/sindarin"
     cp -r include/sindarin/* "$pkgdir/usr/include/sindarin/"
 
+    # Install SDK standard library
+    install -dm755 "$pkgdir/usr/share/sindarin/sdk"
+    cp -r share/sindarin/sdk/* "$pkgdir/usr/share/sindarin/sdk/"
+
     # Install license
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE" 2>/dev/null || true
 }

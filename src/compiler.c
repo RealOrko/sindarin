@@ -338,7 +338,7 @@ Module* compiler_compile(CompilerOptions *options)
 
     /* Phase 1: Parsing */
     diagnostic_phase_start(PHASE_PARSING);
-    Module *module = parse_module_with_imports(&options->arena, &options->symbol_table, options->source_file, &imported, &imported_count, &imported_capacity, &imported_modules, &imported_directly);
+    Module *module = parse_module_with_imports(&options->arena, &options->symbol_table, options->source_file, &imported, &imported_count, &imported_capacity, &imported_modules, &imported_directly, options->compiler_dir);
     if (!module)
     {
         diagnostic_phase_failed(PHASE_PARSING);

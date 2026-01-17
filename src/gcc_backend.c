@@ -62,6 +62,12 @@ static char config_file_buf[PATH_MAX];
 /* Static buffer for resolved lib directory path */
 static char lib_dir_buf[PATH_MAX];
 
+/* Static buffer for resolved SDK directory path */
+static char sdk_dir_buf[PATH_MAX];
+
+/* Static buffer for resolved SDK file path */
+static char sdk_file_buf[PATH_MAX];
+
 /* Helper: check if file exists and is readable */
 static bool file_exists(const char *path)
 {
@@ -507,6 +513,144 @@ static const char *find_lib_dir(const char *compiler_dir, BackendType backend)
 #endif
 
     return NULL; /* No lib directory found */
+}
+
+/* Find SDK directory by searching multiple locations.
+ * Search order:
+ *   1. $SINDARIN_SDK environment variable (if set)
+ *   2. <exe_dir>/sdk/ (portable/development mode)
+ *   3. <exe_dir>/../share/sindarin/sdk/ (FHS-compliant relative)
+ *   4. Platform-specific system paths
+ *   5. Compile-time default (if defined)
+ *
+ * Returns path to SDK directory or NULL if not found.
+ */
+static const char *find_sdk_dir(const char *compiler_dir)
+{
+    /* 1. Check SINDARIN_SDK environment variable */
+    const char *env_sdk = getenv("SINDARIN_SDK");
+    if (env_sdk && env_sdk[0] && dir_exists(env_sdk))
+    {
+        strncpy(sdk_dir_buf, env_sdk, sizeof(sdk_dir_buf) - 1);
+        sdk_dir_buf[sizeof(sdk_dir_buf) - 1] = '\0';
+        return sdk_dir_buf;
+    }
+
+    /* 2. Check next to executable (portable/dev mode): <exe_dir>/sdk/ */
+    snprintf(sdk_dir_buf, sizeof(sdk_dir_buf), "%s" SN_PATH_SEP_STR "sdk", compiler_dir);
+    if (dir_exists(sdk_dir_buf))
+    {
+        return sdk_dir_buf;
+    }
+
+    /* 3. Check FHS-relative: <exe_dir>/../share/sindarin/sdk/ */
+    snprintf(sdk_dir_buf, sizeof(sdk_dir_buf), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "share" SN_PATH_SEP_STR "sindarin" SN_PATH_SEP_STR "sdk", compiler_dir);
+    if (dir_exists(sdk_dir_buf))
+    {
+        return sdk_dir_buf;
+    }
+
+#ifdef _WIN32
+    /* 4a. Windows: %LOCALAPPDATA%\Sindarin\sdk */
+    const char *localappdata = getenv("LOCALAPPDATA");
+    if (localappdata && localappdata[0])
+    {
+        snprintf(sdk_dir_buf, sizeof(sdk_dir_buf), "%s\\Sindarin\\sdk", localappdata);
+        if (dir_exists(sdk_dir_buf))
+        {
+            return sdk_dir_buf;
+        }
+    }
+
+    /* 4b. Windows: %ProgramFiles%\Sindarin\sdk */
+    const char *programfiles = getenv("ProgramFiles");
+    if (programfiles && programfiles[0])
+    {
+        snprintf(sdk_dir_buf, sizeof(sdk_dir_buf), "%s\\Sindarin\\sdk", programfiles);
+        if (dir_exists(sdk_dir_buf))
+        {
+            return sdk_dir_buf;
+        }
+    }
+#else
+    /* 4a. Unix: /usr/share/sindarin/sdk */
+    if (dir_exists("/usr/share/sindarin/sdk"))
+    {
+        return "/usr/share/sindarin/sdk";
+    }
+
+    /* 4b. Unix: /usr/local/share/sindarin/sdk */
+    if (dir_exists("/usr/local/share/sindarin/sdk"))
+    {
+        return "/usr/local/share/sindarin/sdk";
+    }
+
+#ifdef __APPLE__
+    /* 4c. macOS: /opt/homebrew/share/sindarin/sdk (Apple Silicon Homebrew) */
+    if (dir_exists("/opt/homebrew/share/sindarin/sdk"))
+    {
+        return "/opt/homebrew/share/sindarin/sdk";
+    }
+#endif
+#endif
+
+    /* 5. Compile-time default (if defined) */
+#ifdef SN_DEFAULT_SDK_DIR
+    if (dir_exists(SN_DEFAULT_SDK_DIR))
+    {
+        return SN_DEFAULT_SDK_DIR;
+    }
+#endif
+
+    return NULL; /* No SDK directory found */
+}
+
+/* Cached SDK directory path (computed once per session) */
+static const char *cached_sdk_dir = NULL;
+static bool sdk_dir_searched = false;
+
+/* Resolve an SDK import to its full file path.
+ * Given a module name (e.g., "math"), returns the full path to the SDK file
+ * (e.g., "/usr/share/sindarin/sdk/math.sn") if it exists.
+ *
+ * Parameters:
+ *   compiler_dir - Directory containing the compiler executable
+ *   module_name  - Name of the module to import (without .sn extension)
+ *
+ * Returns path to SDK file or NULL if not found.
+ * The returned path is statically allocated - do not free.
+ */
+const char *gcc_resolve_sdk_import(const char *compiler_dir, const char *module_name)
+{
+    /* Cache the SDK directory on first call */
+    if (!sdk_dir_searched)
+    {
+        cached_sdk_dir = find_sdk_dir(compiler_dir);
+        sdk_dir_searched = true;
+    }
+
+    if (!cached_sdk_dir)
+    {
+        return NULL; /* No SDK directory found */
+    }
+
+    /* Construct the full path to the SDK file */
+    snprintf(sdk_file_buf, sizeof(sdk_file_buf), "%s" SN_PATH_SEP_STR "%s.sn",
+             cached_sdk_dir, module_name);
+
+    if (file_exists(sdk_file_buf))
+    {
+        return sdk_file_buf;
+    }
+
+    return NULL; /* SDK module not found */
+}
+
+/* Reset the SDK directory cache (for testing purposes) */
+void gcc_reset_sdk_cache(void)
+{
+    cached_sdk_dir = NULL;
+    sdk_dir_searched = false;
 }
 
 /* Parse a single line from config file (KEY=VALUE format) */

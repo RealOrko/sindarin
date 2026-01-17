@@ -216,6 +216,7 @@ if(CMAKE_INSTALL_PREFIX)
         SN_DEFAULT_CONFIG_FILE="${CMAKE_INSTALL_FULL_SYSCONFDIR}/sindarin/sn.cfg"
         SN_DEFAULT_LIB_DIR="${CMAKE_INSTALL_FULL_LIBDIR}/sindarin"
         SN_DEFAULT_INCLUDE_DIR="${CMAKE_INSTALL_FULL_INCLUDEDIR}/sindarin"
+        SN_DEFAULT_SDK_DIR="${CMAKE_INSTALL_FULL_DATADIR}/sindarin/sdk"
     )
 endif()
 
@@ -354,6 +355,22 @@ if(PLATFORM_HEADERS)
 endif()
 
 #------------------------------------------------------------------------------
+# Setup SDK Directory
+#------------------------------------------------------------------------------
+set(SDK_DIR ${CMAKE_SOURCE_DIR}/bin/sdk)
+file(MAKE_DIRECTORY ${SDK_DIR})
+
+# Copy SDK files (.sn and .sn.c files)
+file(GLOB SDK_SN_FILES "${CMAKE_SOURCE_DIR}/sdk/*.sn")
+file(GLOB SDK_SN_C_FILES "${CMAKE_SOURCE_DIR}/sdk/*.sn.c")
+if(SDK_SN_FILES)
+    file(INSTALL ${SDK_SN_FILES} DESTINATION "${SDK_DIR}")
+endif()
+if(SDK_SN_C_FILES)
+    file(INSTALL ${SDK_SN_C_FILES} DESTINATION "${SDK_DIR}")
+endif()
+
+#------------------------------------------------------------------------------
 # Custom Targets
 #------------------------------------------------------------------------------
 # Run unit tests
@@ -410,6 +427,15 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/bin/include/"
 install(FILES "${CMAKE_SOURCE_DIR}/etc/sn.cfg"
     DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/sindarin
     COMPONENT configs
+)
+
+# Install SDK files
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/sdk/"
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/sindarin/sdk
+    COMPONENT sdk
+    FILES_MATCHING
+    PATTERN "*.sn"
+    PATTERN "*.sn.c"
 )
 
 #------------------------------------------------------------------------------
@@ -476,7 +502,7 @@ if(SN_BUNDLE_ZLIB)
             DESTINATION ${CMAKE_INSTALL_LIBDIR}/sindarin/deps
             COMPONENT deps
         )
-        set(CPACK_COMPONENTS_ALL compiler runtime headers configs deps)
+        set(CPACK_COMPONENTS_ALL compiler runtime headers configs sdk deps)
         set(CPACK_COMPONENT_DEPS_DISPLAY_NAME "Bundled Dependencies (zlib)")
         set(CPACK_COMPONENT_DEPS_DEPENDS runtime)
     endif()
@@ -502,7 +528,7 @@ if(EXISTS "${CMAKE_SOURCE_DIR}/README.md")
 endif()
 
 # Components
-set(CPACK_COMPONENTS_ALL compiler runtime headers configs)
+set(CPACK_COMPONENTS_ALL compiler runtime headers configs sdk)
 set(CPACK_COMPONENT_COMPILER_DISPLAY_NAME "Sindarin Compiler")
 set(CPACK_COMPONENT_COMPILER_REQUIRED ON)
 set(CPACK_COMPONENT_RUNTIME_DISPLAY_NAME "Runtime Libraries")
@@ -510,6 +536,8 @@ set(CPACK_COMPONENT_RUNTIME_DEPENDS compiler)
 set(CPACK_COMPONENT_HEADERS_DISPLAY_NAME "Development Headers")
 set(CPACK_COMPONENT_HEADERS_DEPENDS runtime)
 set(CPACK_COMPONENT_CONFIGS_DISPLAY_NAME "Configuration Files")
+set(CPACK_COMPONENT_SDK_DISPLAY_NAME "SDK Standard Library")
+set(CPACK_COMPONENT_SDK_DEPENDS compiler)
 
 # Platform-specific generators
 if(WIN32)

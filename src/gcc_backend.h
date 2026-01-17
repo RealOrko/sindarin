@@ -91,4 +91,27 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
  */
 const char *gcc_get_compiler_dir(const char *argv0);
 
+/* Resolve an SDK import to its full file path.
+ * Given a module name (e.g., "math"), returns the full path to the SDK file
+ * (e.g., "/usr/share/sindarin/sdk/math.sn") if it exists.
+ *
+ * Search order for SDK directory:
+ *   1. $SINDARIN_SDK environment variable (if set)
+ *   2. <exe_dir>/sdk/ (portable/development mode)
+ *   3. <exe_dir>/../share/sindarin/sdk/ (FHS-compliant relative)
+ *   4. Platform-specific system paths
+ *   5. Compile-time default (if defined)
+ *
+ * Parameters:
+ *   compiler_dir - Directory containing the compiler executable
+ *   module_name  - Name of the module to import (without .sn extension)
+ *
+ * Returns path to SDK file or NULL if not found.
+ * The returned path is statically allocated - do not free.
+ */
+const char *gcc_resolve_sdk_import(const char *compiler_dir, const char *module_name);
+
+/* Reset the SDK directory cache (for testing purposes) */
+void gcc_reset_sdk_cache(void);
+
 #endif

@@ -16,6 +16,7 @@ class Sindarin < Formula
     (etc/"sindarin").install "etc/sindarin/sn.cfg"
     (lib/"sindarin").install Dir["lib/sindarin/*"]
     (include/"sindarin").install Dir["include/sindarin/*"]
+    (share/"sindarin/sdk").install Dir["share/sindarin/sdk/*"]
   end
 
   def caveats

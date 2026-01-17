@@ -41,6 +41,7 @@ struct ImportContext
     Module **imported_modules;    /* Array of parsed imported modules */
     bool *imported_directly;      /* Array tracking if each import is direct (non-namespaced) */
     const char *current_file;     /* Path of the file currently being parsed */
+    const char *compiler_dir;     /* Directory containing compiler (for SDK resolution) */
     /* Function pointer for recursive import processing (to avoid circular dependency) */
     Module *(*process_import)(Arena *arena, SymbolTable *symbol_table, const char *import_path,
                               struct ImportContext *ctx);
@@ -100,7 +101,8 @@ Stmt *parser_import_statement(Parser *parser);
 Module *parser_execute(Parser *parser, const char *filename);
 Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename,
                                   char ***imported, int *imported_count, int *imported_capacity,
-                                  Module ***imported_modules, bool **imported_directly);
+                                  Module ***imported_modules, bool **imported_directly,
+                                  const char *compiler_dir);
 
 /* Process an import immediately during parsing - called by parser_import_statement.
  * Returns the parsed module, or NULL if import context is not available or on error.
