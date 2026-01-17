@@ -434,10 +434,10 @@ RtDate *sn_date_add_years(RtArena *arena, RtDate *date, long years)
     return sn_date_from_ymd(arena, new_year, month, day);
 }
 
-long sn_date_diff_days(RtDate *date, RtDate *other)
+long long sn_date_diff_days(RtDate *date, RtDate *other)
 {
     if (date == NULL || other == NULL) return 0;
-    return date->days - other->days;
+    return (long long)date->days - (long long)other->days;
 }
 
 RtDate *sn_date_start_of_month(RtArena *arena, RtDate *date)

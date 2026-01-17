@@ -9,6 +9,7 @@ static StructField create_test_field(Arena *arena, const char *name, Type *type,
     field.type = type;
     field.offset = 0;
     field.default_value = default_value;
+    field.c_alias = NULL;  /* Must initialize to avoid garbage pointer */
     return field;
 }
 
@@ -1049,10 +1050,12 @@ static void test_native_struct_in_native_fn_context()
     fields[0].type = ptr_byte;
     fields[0].offset = 0;
     fields[0].default_value = nil_expr;  /* has default */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "length");
     fields[1].type = int_type;
     fields[1].offset = 0;
     fields[1].default_value = len_default;  /* has default */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Buffer", 1, "test.sn", &arena);
@@ -1143,10 +1146,12 @@ static void test_native_struct_in_regular_fn_error()
     fields[0].type = ptr_byte;
     fields[0].offset = 0;
     fields[0].default_value = nil_expr;  /* has default */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "length");
     fields[1].type = int_type;
     fields[1].offset = 0;
     fields[1].default_value = len_default;  /* has default */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Buffer", 1, "test.sn", &arena);
@@ -1233,10 +1238,12 @@ static void test_regular_struct_in_regular_fn()
     fields[0].type = double_type;
     fields[0].offset = 0;
     fields[0].default_value = x_default;
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = double_type;
     fields[1].offset = 0;
     fields[1].default_value = y_default;
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
@@ -2388,10 +2395,12 @@ static void test_struct_literal_partial_initialization()
     fields[1].type = int_type;
     fields[1].offset = 0;
     fields[1].default_value = retries_default;  /* Optional - has default */
+    fields[1].c_alias = NULL;
     fields[2].name = arena_strdup(&arena, "verbose");
     fields[2].type = bool_type;
     fields[2].offset = 0;
     fields[2].default_value = verbose_default;  /* Optional - has default */
+    fields[2].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
@@ -2483,10 +2492,12 @@ static void test_struct_literal_empty_initialization()
     fields[0].type = double_type;
     fields[0].offset = 0;
     fields[0].default_value = x_default;  /* Has default */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = double_type;
     fields[1].offset = 0;
     fields[1].default_value = y_default;  /* Has default */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
@@ -2599,6 +2610,7 @@ static void test_struct_literal_field_init_invalid_index()
     fields[1].type = double_type;
     fields[1].offset = 0;
     fields[1].default_value = y_default;  /* y has a default */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
@@ -2693,6 +2705,7 @@ static void test_struct_default_value_applied()
     fields[0].type = int_type;
     fields[0].offset = 0;
     fields[0].default_value = default_expr;  /* Has default */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "retries");
     fields[1].type = int_type;
     fields[1].offset = 0;
@@ -2813,14 +2826,17 @@ static void test_struct_multiple_defaults_applied()
     fields[0].type = str_type;
     fields[0].offset = 0;
     fields[0].default_value = host_default;
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "port");
     fields[1].type = int_type;
     fields[1].offset = 0;
     fields[1].default_value = port_default;
+    fields[1].c_alias = NULL;
     fields[2].name = arena_strdup(&arena, "debug");
     fields[2].type = bool_type;
     fields[2].offset = 0;
     fields[2].default_value = debug_default;
+    fields[2].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "ServerConfig", 1, "test.sn", &arena);
@@ -2899,6 +2915,7 @@ static void test_struct_explicit_overrides_default()
     fields[0].type = int_type;
     fields[0].offset = 0;
     fields[0].default_value = default_expr;
+    fields[0].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
@@ -3216,6 +3233,7 @@ static void test_struct_optional_fields_not_required()
     fields[1].type = int_type;
     fields[1].offset = 0;
     fields[1].default_value = default_expr;  /* Has default - optional */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
@@ -3555,6 +3573,7 @@ static void test_nested_struct_inner_defaults_applied()
     point_fields[1].type = double_type;
     point_fields[1].offset = 8;
     point_fields[1].default_value = y_default;  /* y has default */
+    point_fields[1].c_alias = NULL;
 
     Token point_tok;
     setup_token(&point_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
@@ -3666,6 +3685,7 @@ static void test_nested_struct_three_levels()
     inner_fields[0].type = int_type;
     inner_fields[0].offset = 0;
     inner_fields[0].default_value = inner_default;
+    inner_fields[0].c_alias = NULL;
 
     Token inner_tok;
     setup_token(&inner_tok, TOKEN_IDENTIFIER, "Inner", 1, "test.sn", &arena);

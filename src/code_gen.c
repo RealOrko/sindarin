@@ -777,10 +777,9 @@ static void code_gen_collect_pragmas(CodeGen *gen, Stmt **statements, int count)
             }
         }
         else if (stmt->type == STMT_IMPORT &&
-                 stmt->as.import.namespace != NULL &&
                  stmt->as.import.imported_stmts != NULL)
         {
-            /* Recursively collect pragmas from imported namespaced modules */
+            /* Recursively collect pragmas from all imported modules */
             code_gen_collect_pragmas(gen, stmt->as.import.imported_stmts,
                                      stmt->as.import.imported_count);
         }
@@ -946,18 +945,18 @@ void code_gen_module(CodeGen *gen, Module *module)
 
                 if (method->is_native && method->body == NULL)
                 {
-                    /* Native method with c_alias: skip extern declaration.
-                     * The function is expected to be declared in an included header
-                     * via #pragma include. Generating an extern would cause conflicts. */
+                    /* Native method - generate extern declaration.
+                     * If c_alias is set, use that as the function name.
+                     * Otherwise, use the rt_{struct_lowercase}_{method_name} convention. */
+                    const char *func_name;
                     if (method->c_alias != NULL)
                     {
-                        method_count++;
-                        continue;
+                        func_name = method->c_alias;
                     }
-
-                    /* Native method without c_alias - generate extern declaration */
-                    /* Naming: rt_{struct_lowercase}_{method_name} */
-                    const char *func_name = arena_sprintf(gen->arena, "rt_%s_%s", struct_name_lower, method->name);
+                    else
+                    {
+                        func_name = arena_sprintf(gen->arena, "rt_%s_%s", struct_name_lower, method->name);
+                    }
 
                     /* For opaque handle types (native struct with c_alias), use the C type directly */
                     const char *self_c_type;

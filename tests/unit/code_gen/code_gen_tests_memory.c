@@ -54,23 +54,25 @@ static void test_code_gen_private_function(void)
     ast_module_add_statement(&arena, &module, func_decl);
     code_gen_module(&gen, &module);
 
-    // Expected: private function without heap allocations doesn't need arena
+    // Expected: private function receives arena and creates/destroys its own local arena
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
-                                        "long long compute(void);\n\n"
-                                        "long long compute() {\n"
+                                        "long long compute(RtArena *);\n\n"
+                                        "long long compute(RtArena *__caller_arena__) {\n"
+                                        "    RtArena *__local_arena__ = rt_arena_create(__caller_arena__);\n"
                                         "    long long _return_value = 0;\n"
                                         "    _return_value = 42LL;\n"
                                         "    goto compute_return;\n"
                                         "compute_return:\n"
+                                        "    rt_arena_destroy(__local_arena__);\n"
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"
-                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                        "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                         "    int _return_value = 0;\n"
                                         "    goto main_return;\n"
                                         "main_return:\n"
-                                        "    rt_arena_destroy(__arena_1__);\n"
+                                        "    rt_arena_destroy(__local_arena__);\n"
                                         "    return _return_value;\n"
                                         "}\n");
 
@@ -117,11 +119,12 @@ static void test_code_gen_shared_function(void)
     ast_module_add_statement(&arena, &module, func_decl);
     code_gen_module(&gen, &module);
 
-    // Expected: shared function receives caller's arena as hidden first parameter
+    // Expected: shared function aliases caller's arena (no new arena, no destroy)
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
                                         "long long helper(RtArena *);\n\n"
                                         "long long helper(RtArena *__caller_arena__) {\n"
+                                        "    RtArena *__local_arena__ = __caller_arena__;\n"
                                         "    long long _return_value = 0;\n"
                                         "    _return_value = 1LL;\n"
                                         "    goto helper_return;\n"
@@ -129,11 +132,11 @@ static void test_code_gen_shared_function(void)
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"
-                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                        "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                         "    int _return_value = 0;\n"
                                         "    goto main_return;\n"
                                         "main_return:\n"
-                                        "    rt_arena_destroy(__arena_1__);\n"
+                                        "    rt_arena_destroy(__local_arena__);\n"
                                         "    return _return_value;\n"
                                         "}\n");
 
@@ -180,23 +183,25 @@ static void test_code_gen_default_function(void)
     ast_module_add_statement(&arena, &module, func_decl);
     code_gen_module(&gen, &module);
 
-    // Expected: default function without heap allocations doesn't need arena
+    // Expected: default function receives arena and creates/destroys its own local arena
     // Note: forward declaration is emitted first
     const char *expected = get_expected(&arena,
-                                        "long long regular(void);\n\n"
-                                        "long long regular() {\n"
+                                        "long long regular(RtArena *);\n\n"
+                                        "long long regular(RtArena *__caller_arena__) {\n"
+                                        "    RtArena *__local_arena__ = rt_arena_create(__caller_arena__);\n"
                                         "    long long _return_value = 0;\n"
                                         "    _return_value = 5LL;\n"
                                         "    goto regular_return;\n"
                                         "regular_return:\n"
+                                        "    rt_arena_destroy(__local_arena__);\n"
                                         "    return _return_value;\n"
                                         "}\n\n"
                                         "int main() {\n"
-                                        "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                        "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                         "    int _return_value = 0;\n"
                                         "    goto main_return;\n"
                                         "main_return:\n"
-                                        "    rt_arena_destroy(__arena_1__);\n"
+                                        "    rt_arena_destroy(__local_arena__);\n"
                                         "    return _return_value;\n"
                                         "}\n");
 

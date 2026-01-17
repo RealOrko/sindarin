@@ -1116,7 +1116,7 @@ static void test_as_ref_param_call_with_vars(void)
 static void test_ptr_struct_member_rejected_in_regular_fn(void)
 {
     Arena arena;
-    arena_init(&arena, 8192);
+    arena_init(&arena, 16384);
 
     SymbolTable table;
     symbol_table_init(&arena, &table);
@@ -1133,10 +1133,12 @@ static void test_ptr_struct_member_rejected_in_regular_fn(void)
     fields[0].type = int_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = int_type;
     fields[1].offset = 4;
     fields[1].default_value = NULL;
+    fields[1].c_alias = NULL;
 
     Token struct_tok;
     setup_test_token(&struct_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
@@ -1157,37 +1159,42 @@ static void test_ptr_struct_member_rejected_in_regular_fn(void)
     native_decl->as.function.is_native = true;
     ast_module_add_statement(&arena, &module, native_decl);
 
-    /* In regular function: var p: *Point = get_point() ... p.x - should FAIL */
-    /* We'll create a member access expression on a pointer-to-struct */
+    /* In regular function: var p: *Point = nil ... p.x - should FAIL */
+    /* First create variable declaration for p */
     Token p_tok;
     setup_test_token(&p_tok, TOKEN_IDENTIFIER, "p", 3, "test.sn", &arena);
+    Type *nil_type = ast_create_primitive_type(&arena, TYPE_NIL);
+    Token nil_tok;
+    setup_test_token(&nil_tok, TOKEN_NIL, "nil", 3, "test.sn", &arena);
+    LiteralValue nil_val = {.int_value = 0};
+    Expr *nil_lit = ast_create_literal_expr(&arena, nil_val, nil_type, false, &nil_tok);
+    Stmt *p_decl = ast_create_var_decl_stmt(&arena, p_tok, ptr_point_type, nil_lit, &p_tok);
+
+    /* Create variable reference for p */
     Expr *p_ref = ast_create_variable_expr(&arena, p_tok, &p_tok);
-    p_ref->expr_type = ptr_point_type;  /* Pre-set type for the test */
 
     /* Create member access: p.x */
     Token x_field_tok;
     setup_test_token(&x_field_tok, TOKEN_IDENTIFIER, "x", 3, "test.sn", &arena);
-    Expr *member_access = arena_alloc(&arena, sizeof(Expr));
-    memset(member_access, 0, sizeof(Expr));
-    member_access->type = EXPR_MEMBER_ACCESS;
-    member_access->as.member_access.object = p_ref;
-    member_access->as.member_access.field_name = x_field_tok;
-    member_access->token = &x_field_tok;
+    Expr *member_access = ast_create_member_expr(&arena, p_ref, x_field_tok, &x_field_tok);
 
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, member_access, &x_field_tok);
 
-    /* Create a REGULAR function (not native) */
-    Stmt *body[1] = {expr_stmt};
+    /* Create a REGULAR function (not native) with var decl and member access */
+    Stmt **body = arena_alloc(&arena, sizeof(Stmt *) * 2);
+    body[0] = p_decl;
+    body[1] = expr_stmt;
     Token func_name_tok;
     setup_test_token(&func_name_tok, TOKEN_IDENTIFIER, "regular_func", 4, "test.sn", &arena);
-    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, void_type, body, 1, &func_name_tok);
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, void_type, body, 2, &func_name_tok);
     func_decl->as.function.is_native = false;  /* Regular function */
 
     ast_module_add_statement(&arena, &module, func_decl);
 
     type_checker_reset_error();
     int no_error = type_check_module(&module, &table);
-    assert(no_error == 0);  /* Should FAIL - *struct member access not allowed in regular fn */
+    /* Should FAIL - either due to pointer var in regular fn or pointer member access */
+    assert(no_error == 0);
 
     symbol_table_cleanup(&table);
     arena_free(&arena);
@@ -1197,7 +1204,7 @@ static void test_ptr_struct_member_rejected_in_regular_fn(void)
 static void test_ptr_struct_member_accepted_in_native_fn(void)
 {
     Arena arena;
-    arena_init(&arena, 8192);
+    arena_init(&arena, 16384);
 
     SymbolTable table;
     symbol_table_init(&arena, &table);
@@ -1214,10 +1221,12 @@ static void test_ptr_struct_member_accepted_in_native_fn(void)
     fields[0].type = int_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = int_type;
     fields[1].offset = 4;
     fields[1].default_value = NULL;
+    fields[1].c_alias = NULL;
 
     Token struct_tok;
     setup_test_token(&struct_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
@@ -1239,28 +1248,33 @@ static void test_ptr_struct_member_accepted_in_native_fn(void)
     ast_module_add_statement(&arena, &module, native_decl);
 
     /* In NATIVE function: var p: *Point = nil ... p.x - should PASS */
+    /* First create variable declaration for p */
     Token p_tok;
     setup_test_token(&p_tok, TOKEN_IDENTIFIER, "p", 3, "test.sn", &arena);
+    Type *nil_type = ast_create_primitive_type(&arena, TYPE_NIL);
+    Token nil_tok;
+    setup_test_token(&nil_tok, TOKEN_NIL, "nil", 3, "test.sn", &arena);
+    LiteralValue nil_val = {.int_value = 0};
+    Expr *nil_lit = ast_create_literal_expr(&arena, nil_val, nil_type, false, &nil_tok);
+    Stmt *p_decl = ast_create_var_decl_stmt(&arena, p_tok, ptr_point_type, nil_lit, &p_tok);
+
+    /* Create variable reference for p */
     Expr *p_ref = ast_create_variable_expr(&arena, p_tok, &p_tok);
-    p_ref->expr_type = ptr_point_type;
 
     /* Create member access: p.x */
     Token x_field_tok;
     setup_test_token(&x_field_tok, TOKEN_IDENTIFIER, "x", 3, "test.sn", &arena);
-    Expr *member_access = arena_alloc(&arena, sizeof(Expr));
-    memset(member_access, 0, sizeof(Expr));
-    member_access->type = EXPR_MEMBER_ACCESS;
-    member_access->as.member_access.object = p_ref;
-    member_access->as.member_access.field_name = x_field_tok;
-    member_access->token = &x_field_tok;
+    Expr *member_access = ast_create_member_expr(&arena, p_ref, x_field_tok, &x_field_tok);
 
     Stmt *expr_stmt = ast_create_expr_stmt(&arena, member_access, &x_field_tok);
 
-    /* Create a NATIVE function */
-    Stmt *body[1] = {expr_stmt};
+    /* Create a NATIVE function with var decl and member access */
+    Stmt **body = arena_alloc(&arena, sizeof(Stmt *) * 2);
+    body[0] = p_decl;
+    body[1] = expr_stmt;
     Token func_name_tok;
     setup_test_token(&func_name_tok, TOKEN_IDENTIFIER, "native_func", 4, "test.sn", &arena);
-    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, void_type, body, 1, &func_name_tok);
+    Stmt *func_decl = ast_create_function_stmt(&arena, func_name_tok, NULL, 0, void_type, body, 2, &func_name_tok);
     func_decl->as.function.is_native = true;  /* Native function */
 
     ast_module_add_statement(&arena, &module, func_decl);

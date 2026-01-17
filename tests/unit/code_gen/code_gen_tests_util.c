@@ -147,11 +147,11 @@ static void test_code_gen_headers_and_externs(void)
     // Expected with full headers and externs + dummy main with arena
     const char *expected = get_expected(&arena,
                                   "int main() {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
                                   "main_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    rt_arena_destroy(__local_arena__);\n"
                                   "    return _return_value;\n"
                                   "}\n");
 

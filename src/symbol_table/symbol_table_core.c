@@ -485,6 +485,7 @@ void symbol_table_add_symbol_with_kind(SymbolTable *table, Token name, Type *typ
     symbol->declared_func_mod = FUNC_DEFAULT;
     symbol->is_function = false;
     symbol->is_native = false;
+    symbol->c_alias = NULL;
     symbol->thread_state = THREAD_STATE_NORMAL;
     symbol->frozen_state.freeze_count = 0;
     symbol->frozen_state.frozen = false;

@@ -474,8 +474,11 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
         // e.g., long *x = (long *)rt_arena_alloc(__arena_1__, sizeof(long)); *x = 42L;
         // When the function returns a closure type, allocate in caller's arena so
         // the captured data survives the function's local arena destruction.
+        // Exception: main() has no caller, so always use local arena.
+        bool in_main = (gen->current_function != NULL && strcmp(gen->current_function, "main") == 0);
         const char *alloc_arena = (gen->allocate_closure_in_caller_arena &&
-                                   strcmp(gen->current_arena_var, "__local_arena__") == 0)
+                                   strcmp(gen->current_arena_var, "__local_arena__") == 0 &&
+                                   !in_main)
             ? "__caller_arena__"
             : ARENA_VAR(gen);
         indented_fprintf(gen, indent, "%s *%s = (%s *)rt_arena_alloc(%s, sizeof(%s));\n",

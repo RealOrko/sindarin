@@ -866,9 +866,11 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         const char *closure_arena;
         if (gen->allocate_closure_in_caller_arena)
         {
-            /* Check if we're in a lambda context (no __caller_arena__) */
+            /* Check if we're in a lambda context (no __caller_arena__) or main context
+             * (main() doesn't have a caller, so no __caller_arena__ exists) */
             bool in_lambda_context = (strcmp(gen->current_arena_var, "__lambda_arena__") == 0);
-            closure_arena = in_lambda_context ? ARENA_VAR(gen) : "__caller_arena__";
+            bool in_main_context = (gen->current_function != NULL && strcmp(gen->current_function, "main") == 0);
+            closure_arena = (in_lambda_context || in_main_context) ? ARENA_VAR(gen) : "__caller_arena__";
         }
         else
         {
@@ -1096,12 +1098,14 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
         /* Determine which arena to use for closure allocation.
          * If this closure is being returned from a function, allocate in the
-         * caller's arena. In a lambda context, use the lambda's arena. */
+         * caller's arena. In a lambda or main context, use the current arena
+         * since there's no __caller_arena__ available. */
         const char *closure_arena;
         if (gen->allocate_closure_in_caller_arena)
         {
             bool in_lambda_context = (strcmp(gen->current_arena_var, "__lambda_arena__") == 0);
-            closure_arena = in_lambda_context ? ARENA_VAR(gen) : "__caller_arena__";
+            bool in_main_context = (gen->current_function != NULL && strcmp(gen->current_function, "main") == 0);
+            closure_arena = (in_lambda_context || in_main_context) ? ARENA_VAR(gen) : "__caller_arena__";
         }
         else
         {

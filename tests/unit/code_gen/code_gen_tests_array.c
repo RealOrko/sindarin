@@ -55,11 +55,11 @@ static void test_code_gen_array_literal(void)
     const char *expected = get_expected(&arena,
                                   "rt_array_create_long(NULL, 2, (long long[]){1LL, 2LL});\n"
                                   "int main() {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
                                   "main_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    rt_arena_destroy(__local_arena__);\n"
                                   "    return _return_value;\n"
                                   "}\n");
 
@@ -138,11 +138,11 @@ static void test_code_gen_array_var_declaration_with_init(void)
                                   "long long * arr = rt_array_create_long(NULL, 2, (long long[]){3LL, 4LL});\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
                                   "main_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    rt_arena_destroy(__local_arena__);\n"
                                   "    return _return_value;\n"
                                   "}\n");
 
@@ -196,11 +196,11 @@ static void test_code_gen_array_var_declaration_without_init(void)
                                   "long long * empty_arr = NULL;\n"
                                   "empty_arr;\n"
                                   "int main() {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
                                   "main_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    rt_arena_destroy(__local_arena__);\n"
                                   "    return _return_value;\n"
                                   "}\n");
 
@@ -297,11 +297,11 @@ static void test_code_gen_array_access(void)
                                   "long long * arr = rt_array_create_long(NULL, 3, (long long[]){10LL, 20LL, 30LL});\n"
                                   "arr[1LL];\n"
                                   "int main() {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
                                   "main_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    rt_arena_destroy(__local_arena__);\n"
                                   "    return _return_value;\n"
                                   "}\n");
 
@@ -413,11 +413,11 @@ static void test_code_gen_array_pop(void)
                                   "result;\n"
                                   "arr;\n"
                                   "int main() {\n"
-                                  "    RtArena *__arena_1__ = rt_arena_create(NULL);\n"
+                                  "    RtArena *__local_arena__ = rt_arena_create(NULL);\n"
                                   "    int _return_value = 0;\n"
                                   "    goto main_return;\n"
                                   "main_return:\n"
-                                  "    rt_arena_destroy(__arena_1__);\n"
+                                  "    rt_arena_destroy(__local_arena__);\n"
                                   "    return _return_value;\n"
                                   "}\n");
 
