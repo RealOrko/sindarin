@@ -23,8 +23,6 @@ set(SN_RUNTIME_SOURCE_FILES
     runtime/runtime_io.c
     runtime/runtime_byte.c
     runtime/runtime_path.c
-    runtime/runtime_date.c
-    runtime/runtime_time.c
     runtime/runtime_thread.c
     runtime/runtime_process.c
     runtime/runtime_net.c

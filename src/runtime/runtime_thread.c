@@ -17,8 +17,6 @@
 #include "runtime_thread.h"
 #include "runtime_array.h"
 #include "runtime_file.h"
-#include "runtime_date.h"
-#include "runtime_time.h"
 #include "runtime_process.h"
 
 /* ============================================================================
@@ -819,18 +817,6 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
         case RT_TYPE_BINARY_FILE: {
             RtBinaryFile *file = *(RtBinaryFile **)value;
             return rt_binary_file_promote(dest, src_arena, file);
-        }
-
-        /* Date and Time types - simple struct copy
-         * Note: value is a pointer to the struct pointer. */
-        case RT_TYPE_DATE: {
-            RtDate *date = *(RtDate **)value;
-            return rt_arena_promote(dest, date, sizeof(RtDate));
-        }
-
-        case RT_TYPE_TIME: {
-            RtTime *time = *(RtTime **)value;
-            return rt_arena_promote(dest, time, sizeof(RtTime));
         }
 
         /* Process type - struct with strings that need promotion */

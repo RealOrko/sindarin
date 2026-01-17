@@ -72,10 +72,6 @@ const char *get_rt_result_type(Type *type)
             return "RT_TYPE_TEXT_FILE";
         case TYPE_BINARY_FILE:
             return "RT_TYPE_BINARY_FILE";
-        case TYPE_DATE:
-            return "RT_TYPE_DATE";
-        case TYPE_TIME:
-            return "RT_TYPE_TIME";
         case TYPE_PROCESS:
             return "RT_TYPE_PROCESS";
         default:

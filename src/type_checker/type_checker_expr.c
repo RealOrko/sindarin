@@ -3,7 +3,6 @@
 #include "type_checker/type_checker_expr_call_array.h"
 #include "type_checker/type_checker_expr_call_string.h"
 #include "type_checker/type_checker_expr_call_file.h"
-#include "type_checker/type_checker_expr_call_time.h"
 #include "type_checker/type_checker_expr_call_net.h"
 #include "type_checker/type_checker_expr_call_random.h"
 #include "type_checker/type_checker_expr_array.h"
@@ -685,28 +684,6 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
             return result;
         }
         /* Fall through to error handling if not a valid BinaryFile method */
-    }
-
-    /* Try Time method type checking */
-    if (object_type->kind == TYPE_TIME)
-    {
-        Type *result = type_check_time_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid Time method */
-    }
-
-    /* Try Date method type checking */
-    if (object_type->kind == TYPE_DATE)
-    {
-        Type *result = type_check_date_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid Date method */
     }
 
     /* Try Process property type checking */

@@ -1,6 +1,8 @@
 // Test: TCP line-based protocol (readLine, writeLine)
 // Uses pure Sindarin threading - no external dependencies
 
+import "../../sdk/time"
+
 fn serverTask(server: TcpListener): int =>
     var client: TcpStream = server.accept()
     // Send greeting
@@ -21,7 +23,7 @@ fn main(): void =>
     var serverThread: int = &serverTask(server)
 
     // Small delay to ensure server thread is ready
-    Time.sleep(100)
+    SnTime.sleep(100)
 
     // Connect to server
     var client: TcpStream = TcpStream.connect($"127.0.0.1:{port}")

@@ -20,7 +20,6 @@
 #include "runtime_uuid.h"
 #include "runtime_random.h"
 #include "runtime_arena.h"
-#include "runtime_time.h"
 #include "runtime_sha1.h"
 
 /* ============================================================================
@@ -985,25 +984,4 @@ long long rt_uuid_get_timestamp(RtUuid *uuid) {
 
     /* Extract the 48-bit timestamp from the high word (bits 63-16) */
     return (long long)(uuid->high >> 16);
-}
-
-/*
- * Get Time when UUID was created (v7 only).
- * This creates an RtTime from the embedded timestamp.
- */
-RtTime *rt_uuid_get_time(RtArena *arena, RtUuid *uuid) {
-    if (arena == NULL) {
-        fprintf(stderr, "rt_uuid_get_time: NULL arena\n");
-        return NULL;
-    }
-    if (uuid == NULL) {
-        fprintf(stderr, "rt_uuid_get_time: NULL UUID\n");
-        exit(1);
-    }
-
-    /* Get timestamp (this also validates version) */
-    long long timestamp_ms = rt_uuid_get_timestamp(uuid);
-
-    /* Create RtTime from milliseconds */
-    return rt_time_from_millis(arena, timestamp_ms);
 }

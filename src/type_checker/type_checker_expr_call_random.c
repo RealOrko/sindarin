@@ -293,15 +293,6 @@ Type *type_check_uuid_method(Expr *expr, Type *object_type, Token member_name, S
         return ast_create_function_type(table->arena, long_type, param_types, 0);
     }
 
-    /* uuid.time() -> Time (v7 only) */
-    if (token_equals(member_name, "time"))
-    {
-        Type *time_type = ast_create_primitive_type(table->arena, TYPE_TIME);
-        Type *param_types[] = {NULL};
-        DEBUG_VERBOSE("Returning function type for UUID time method");
-        return ast_create_function_type(table->arena, time_type, param_types, 0);
-    }
-
     /* uuid.equals(other: UUID) -> bool */
     if (token_equals(member_name, "equals"))
     {

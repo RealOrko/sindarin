@@ -124,12 +124,6 @@ int rt_uuid_is_nil(RtUuid *uuid);
 /* Get Unix timestamp in milliseconds (v7 only, throws on non-v7) */
 long long rt_uuid_get_timestamp(RtUuid *uuid);
 
-/* Forward declaration for RtTime */
-struct RtTime;
-
-/* Get Time when UUID was created (v7 only, throws on non-v7) */
-struct RtTime *rt_uuid_get_time(RtArena *arena, RtUuid *uuid);
-
 /* ============================================================================
  * Conversion Methods
  * ============================================================================ */

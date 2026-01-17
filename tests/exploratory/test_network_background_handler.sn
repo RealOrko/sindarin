@@ -3,6 +3,8 @@
 // Uses native Sindarin TcpListener instead of Python
 // Cross-platform: works on Windows, Linux, and macOS
 
+import "../../sdk/time"
+
 fn handleConnection(addr: str): void =>
     // Connect to server and handle the interaction
     var conn: TcpStream = TcpStream.connect(addr)
@@ -38,7 +40,7 @@ fn main(): void =>
     var serverThread: int = &runServer(listener)
 
     // Delay to ensure server is accepting (Windows needs more time)
-    Time.sleep(100)
+    SnTime.sleep(100)
 
     print("Server ready\n")
 

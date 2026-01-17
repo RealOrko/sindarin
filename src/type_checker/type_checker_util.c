@@ -45,8 +45,6 @@ const char *type_name(Type *type)
         case TYPE_FUNCTION:    return "function";
         case TYPE_TEXT_FILE:   return "TextFile";
         case TYPE_BINARY_FILE: return "BinaryFile";
-        case TYPE_DATE:         return "Date";
-        case TYPE_TIME:         return "Time";
         case TYPE_PROCESS:      return "Process";
         case TYPE_TCP_LISTENER: return "TcpListener";
         case TYPE_TCP_STREAM:   return "TcpStream";
@@ -164,7 +162,6 @@ bool is_reference_type(Type *type)
                   type->kind == TYPE_FUNCTION ||
                   type->kind == TYPE_TEXT_FILE ||
                   type->kind == TYPE_BINARY_FILE ||
-                  type->kind == TYPE_DATE ||
                   type->kind == TYPE_TCP_LISTENER ||
                   type->kind == TYPE_TCP_STREAM ||
                   type->kind == TYPE_UDP_SOCKET;
@@ -282,8 +279,6 @@ static bool struct_has_only_primitives(Type *struct_type)
         /* Built-in reference types - heap allocated */
         if (field_type->kind == TYPE_TEXT_FILE ||
             field_type->kind == TYPE_BINARY_FILE ||
-            field_type->kind == TYPE_DATE ||
-            field_type->kind == TYPE_TIME ||
             field_type->kind == TYPE_PROCESS ||
             field_type->kind == TYPE_TCP_LISTENER ||
             field_type->kind == TYPE_TCP_STREAM ||
@@ -394,10 +389,6 @@ static const char *find_blocking_struct_field(Type *struct_type)
             case TYPE_BINARY_FILE:
                 type_desc = "file handle";
                 break;
-            case TYPE_DATE:
-            case TYPE_TIME:
-                type_desc = "date/time";
-                break;
             case TYPE_PROCESS:
                 type_desc = "process handle";
                 break;
@@ -472,9 +463,6 @@ const char *get_private_escape_block_reason(Type *type)
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
             return "file handle is a heap resource";
-        case TYPE_DATE:
-        case TYPE_TIME:
-            return "date/time type is heap-allocated";
         case TYPE_PROCESS:
             return "process handle is a heap resource";
         case TYPE_TCP_LISTENER:
@@ -1008,8 +996,6 @@ bool is_c_compatible_type(Type *type)
         case TYPE_ANY:
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
-        case TYPE_DATE:
-        case TYPE_TIME:
         case TYPE_PROCESS:
         case TYPE_TCP_LISTENER:
         case TYPE_TCP_STREAM:
@@ -1050,8 +1036,6 @@ bool is_valid_field_type(Type *type, SymbolTable *table)
         /* Built-in reference types - always valid */
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
-        case TYPE_DATE:
-        case TYPE_TIME:
         case TYPE_PROCESS:
         case TYPE_TCP_LISTENER:
         case TYPE_TCP_STREAM:
@@ -1488,8 +1472,6 @@ size_t get_type_alignment(Type *type)
         case TYPE_OPAQUE:
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
-        case TYPE_DATE:
-        case TYPE_TIME:
         case TYPE_PROCESS:
         case TYPE_TCP_LISTENER:
         case TYPE_TCP_STREAM:

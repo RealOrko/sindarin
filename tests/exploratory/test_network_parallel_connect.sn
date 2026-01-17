@@ -1,6 +1,8 @@
 // Test: Parallel TCP connections using & operator
 // Demonstrates making concurrent requests and getting string results
 
+import "../../sdk/time"
+
 fn handleClient(client: TcpStream, message: str): void =>
     client.write(message.toBytes())
     client.close()
@@ -36,7 +38,7 @@ fn main(): void =>
     var serverThread: int = &runServer(listener)
 
     // Delay to ensure server is accepting
-    Time.sleep(100)
+    SnTime.sleep(100)
 
     print("Server ready\n")
 

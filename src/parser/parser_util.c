@@ -276,16 +276,6 @@ Type *parser_type(Parser *parser)
             parser_advance(parser);
             type = ast_create_primitive_type(parser->arena, TYPE_BINARY_FILE);
         }
-        else if (id.length == 4 && strncmp(id.start, "Date", 4) == 0)
-        {
-            parser_advance(parser);
-            type = ast_create_primitive_type(parser->arena, TYPE_DATE);
-        }
-        else if (id.length == 4 && strncmp(id.start, "Time", 4) == 0)
-        {
-            parser_advance(parser);
-            type = ast_create_primitive_type(parser->arena, TYPE_TIME);
-        }
         else if (id.length == 7 && strncmp(id.start, "Process", 7) == 0)
         {
             parser_advance(parser);
@@ -425,8 +415,6 @@ static const char *static_type_names[] = {
     "Stdin",
     "Stdout",
     "Stderr",
-    "Date",
-    "Time",
     "Process",
     "TcpListener",
     "TcpStream",

@@ -17,7 +17,6 @@
  * - type_checker_expr_call_array.c: Array method type checking
  * - type_checker_expr_call_string.c: String method type checking
  * - type_checker_expr_call_file.c: TextFile/BinaryFile method type checking
- * - type_checker_expr_call_time.c: Time/Date method type checking
  * - type_checker_expr_call_net.c: TcpListener/TcpStream/UdpSocket type checking
  * - type_checker_expr_call_random.c: Random/UUID/Process method type checking
  * ============================================================================ */
@@ -36,7 +35,7 @@
 Type *type_check_call_expression(Expr *expr, SymbolTable *table);
 
 /* Static method type checking for built-in types
- * Handles: TextFile, BinaryFile, Time, Date, Stdin, Stdout, Stderr, Bytes,
+ * Handles: TextFile, BinaryFile, Stdin, Stdout, Stderr, Bytes,
  *          Path, Directory, Process, TcpListener, TcpStream, UdpSocket,
  *          Random, UUID, Environment
  */
@@ -88,25 +87,6 @@ Type *type_check_text_file_method(Expr *expr, Type *object_type, Token member_na
 Type *type_check_binary_file_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 
 /* ============================================================================
- * Time/Date Methods (type_checker_expr_call_time.c)
- * ============================================================================ */
-
-/* Type check Time instance methods:
- * millis, seconds, year, month, day, hour, minute, second, weekday, format,
- * toIso, toDate, toTime, add, addSeconds, addMinutes, addHours, addDays,
- * diff, isBefore, isAfter, equals
- */
-Type *type_check_time_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
-
-/* Type check Date instance methods:
- * year, month, day, weekday, dayOfYear, epochDays, daysInMonth, isLeapYear,
- * isWeekend, isWeekday, format, toIso, toString, addDays, addWeeks, addMonths,
- * addYears, diffDays, startOfMonth, endOfMonth, startOfYear, endOfYear,
- * isBefore, isAfter, equals, toTime
- */
-Type *type_check_date_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
-
-/* ============================================================================
  * Network Methods (type_checker_expr_call_net.c)
  * ============================================================================ */
 
@@ -136,8 +116,7 @@ Type *type_check_udp_socket_method(Expr *expr, Type *object_type, Token member_n
 Type *type_check_random_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 
 /* Type check UUID instance methods:
- * toString, toHex, toBase64, toBytes, version, variant, isNil, timestamp,
- * time, equals
+ * toString, toHex, toBase64, toBytes, version, variant, isNil, timestamp, equals
  */
 Type *type_check_uuid_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 

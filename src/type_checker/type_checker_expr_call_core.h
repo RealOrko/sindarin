@@ -29,7 +29,7 @@ bool is_builtin_name(Expr *callee, const char *name);
 bool token_equals(Token tok, const char *str);
 
 /* Static method type checking for built-in types
- * Handles: TextFile, BinaryFile, Time, Date, Stdin, Stdout, Stderr, Bytes,
+ * Handles: TextFile, BinaryFile, Stdin, Stdout, Stderr, Bytes,
  *          Path, Directory, Process, TcpListener, TcpStream, UdpSocket,
  *          Random, UUID, Environment
  */

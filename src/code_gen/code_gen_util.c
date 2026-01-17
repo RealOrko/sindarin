@@ -150,10 +150,6 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtTextFile *");
     case TYPE_BINARY_FILE:
         return arena_strdup(arena, "RtBinaryFile *");
-    case TYPE_TIME:
-        return arena_strdup(arena, "RtTime *");
-    case TYPE_DATE:
-        return arena_strdup(arena, "RtDate *");
     case TYPE_PROCESS:
         return arena_strdup(arena, "RtProcess *");
     case TYPE_TCP_LISTENER:
@@ -219,7 +215,7 @@ const char *get_c_type(Arena *arena, Type *type)
         if (type->as.struct_type.c_alias != NULL)
         {
             /* Native structs with c_alias are treated as opaque handle types.
-             * Generate as pointer type (like built-in Date, TextFile, etc.) */
+             * Generate as pointer type (like built-in TextFile, etc.) */
             if (type->as.struct_type.is_native)
             {
                 return arena_sprintf(arena, "%s *", type->as.struct_type.c_alias);
@@ -432,10 +428,6 @@ const char *get_boxing_function(Type *type)
         return "rt_box_text_file";
     case TYPE_BINARY_FILE:
         return "rt_box_binary_file";
-    case TYPE_DATE:
-        return "rt_box_date";
-    case TYPE_TIME:
-        return "rt_box_time";
     case TYPE_PROCESS:
         return "rt_box_process";
     case TYPE_TCP_LISTENER:
@@ -495,10 +487,6 @@ const char *get_unboxing_function(Type *type)
         return "rt_unbox_text_file";
     case TYPE_BINARY_FILE:
         return "rt_unbox_binary_file";
-    case TYPE_DATE:
-        return "rt_unbox_date";
-    case TYPE_TIME:
-        return "rt_unbox_time";
     case TYPE_PROCESS:
         return "rt_unbox_process";
     case TYPE_TCP_LISTENER:

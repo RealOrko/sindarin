@@ -1,6 +1,8 @@
 // Test: UDP sendTo and receiveFrom operations
 // Uses pure Sindarin threading - no external dependencies
 
+import "../../sdk/time"
+
 fn serverTask(server: UdpSocket): str =>
     // Receive datagram and echo it back with prefix
     var data: byte[] = server.receiveFrom(1024)
@@ -19,7 +21,7 @@ fn main(): void =>
     var serverThread: str = &serverTask(server)
 
     // Small delay to ensure server thread is ready
-    Time.sleep(100)
+    SnTime.sleep(100)
 
     // Create client socket
     var client: UdpSocket = UdpSocket.bind("127.0.0.1:0")

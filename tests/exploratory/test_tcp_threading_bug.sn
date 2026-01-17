@@ -1,5 +1,7 @@
 // Test with 3 helper functions - triggers bug
 
+import "../../sdk/time"
+
 fn runServer(listener: TcpListener): int =>
     var c1: TcpStream = listener.accept()
     c1.write("DATA1".toBytes())
@@ -27,7 +29,7 @@ fn main(): void =>
     var serverThread: int = &runServer(listener)
     print("Step 5: Server spawned\n")
 
-    Time.sleep(100)
+    SnTime.sleep(100)
     print("Step 6: After sleep\n")
 
     var result: str = fetchData(addr)

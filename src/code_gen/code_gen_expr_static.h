@@ -12,7 +12,6 @@
  * - Bytes static methods (fromHex, fromBase64)
  * - Path static methods (directory, filename, extension, join, absolute, exists, isFile, isDirectory)
  * - Directory static methods (list, listRecursive, create, delete, deleteRecursive)
- * - Time static methods (now, utc, fromMillis, fromSeconds, sleep)
  */
 char *code_gen_static_call_expression(CodeGen *gen, Expr *expr);
 

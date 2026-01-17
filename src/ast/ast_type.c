@@ -37,8 +37,6 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_ANY:
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
-    case TYPE_DATE:
-    case TYPE_TIME:
     case TYPE_PROCESS:
     case TYPE_TCP_LISTENER:
     case TYPE_TCP_STREAM:
@@ -436,10 +434,6 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "TextFile");
     case TYPE_BINARY_FILE:
         return arena_strdup(arena, "BinaryFile");
-    case TYPE_DATE:
-        return arena_strdup(arena, "Date");
-    case TYPE_TIME:
-        return arena_strdup(arena, "Time");
     case TYPE_PROCESS:
         return arena_strdup(arena, "Process");
     case TYPE_TCP_LISTENER:

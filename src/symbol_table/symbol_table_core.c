@@ -77,8 +77,6 @@ int get_type_size(Type *type)
     /* Built-in object types are pointers */
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
-    case TYPE_DATE:
-    case TYPE_TIME:
     case TYPE_PROCESS:
     case TYPE_TCP_LISTENER:
     case TYPE_TCP_STREAM:

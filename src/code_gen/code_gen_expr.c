@@ -481,8 +481,6 @@ static const char *get_type_tag_constant(TypeKind kind)
         case TYPE_FUNCTION: return "RT_ANY_FUNCTION";
         case TYPE_TEXT_FILE: return "RT_ANY_TEXT_FILE";
         case TYPE_BINARY_FILE: return "RT_ANY_BINARY_FILE";
-        case TYPE_DATE: return "RT_ANY_DATE";
-        case TYPE_TIME: return "RT_ANY_TIME";
         case TYPE_PROCESS: return "RT_ANY_PROCESS";
         case TYPE_TCP_LISTENER: return "RT_ANY_TCP_LISTENER";
         case TYPE_TCP_STREAM: return "RT_ANY_TCP_STREAM";

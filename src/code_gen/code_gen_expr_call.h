@@ -124,20 +124,6 @@ char *code_gen_binary_file_static_call(CodeGen *gen, const char *method_name,
                                         int arg_count, Expr **arguments);
 
 /* ============================================================================
- * Time Method Code Generation (code_gen_expr_call_time.c)
- * ============================================================================ */
-
-/**
- * Generate code for Time instance method calls.
- * Handles: millis, seconds, year, month, day, hour, minute, second, weekday,
- *          format, toIso, toDate, toTime, add, addSeconds, addMinutes, addHours,
- *          addDays, diff, isBefore, isAfter, equals
- * Returns generated C code string, or NULL if not a Time method.
- */
-char *code_gen_time_method_call(CodeGen *gen, const char *method_name,
-                                 Expr *object, int arg_count, Expr **arguments);
-
-/* ============================================================================
  * Random Method Code Generation (code_gen_expr_call_random.c)
  * ============================================================================ */
 

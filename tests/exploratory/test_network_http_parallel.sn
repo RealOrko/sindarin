@@ -1,6 +1,8 @@
 // Test: Parallel HTTP-like requests
 // Demonstrates making multiple HTTP-style requests concurrently
 
+import "../../sdk/time"
+
 fn handleHttpRequest(client: TcpStream, responsePath: str): void =>
     // Read the request (we don't parse it, just consume it)
     client.read(1024)
@@ -42,7 +44,7 @@ fn main(): void =>
     var serverThread: int = &runServer(listener)
 
     // Delay to ensure server is accepting
-    Time.sleep(100)
+    SnTime.sleep(100)
 
     print("Server ready\n")
 
