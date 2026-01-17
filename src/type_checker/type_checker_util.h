@@ -136,6 +136,13 @@ bool is_valid_field_type(Type *type, SymbolTable *table);
  */
 bool detect_struct_circular_dependency(Type *struct_type, SymbolTable *table, char *chain_out, int chain_size);
 
+/* Resolve a forward-referenced struct type to its complete definition.
+ * A forward reference is a TYPE_STRUCT with field_count == 0 and fields == NULL.
+ * If the type is a forward reference, looks up the complete definition from the symbol table.
+ * Returns the resolved type, or the original type if not a forward reference.
+ */
+Type *resolve_struct_forward_reference(Type *type, SymbolTable *table);
+
 /* Get the alignment requirement in bytes for a type.
  * Returns the natural alignment for C-compatible layout.
  */

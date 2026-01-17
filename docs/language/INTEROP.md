@@ -7,8 +7,8 @@ Since Sindarin compiles to C, interoperability is natural but requires explicit 
 ## Overview
 
 ```sindarin
-#pragma include "<math.h>"
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
 
 native fn sin(x: double): double
 native fn cos(x: double): double
@@ -62,13 +62,13 @@ extern double sin(double x);
 
 ## Pragma Directives
 
-Pragma statements control compilation behavior for C interop.
+Pragma statements control compilation behavior for C interop. They use **WYSIWYG (What You See Is What You Get) syntax** — what you write is exactly what gets emitted.
 
 ### Header Inclusion
 
 ```sindarin
-#pragma include "<math.h>"
-#pragma include "<stdlib.h>"
+#pragma include <math.h>
+#pragma include <stdlib.h>
 #pragma include "mylib.h"
 ```
 
@@ -79,14 +79,65 @@ Pragma statements control compilation behavior for C interop.
 #include "mylib.h"
 ```
 
+System headers use angle brackets (`<header.h>`), local headers use quotes (`"header.h"`).
+
 ### Library Linking
 
 ```sindarin
-#pragma link "m"
-#pragma link "pthread"
+#pragma link m
+#pragma link pthread
+#pragma link z
 ```
 
-**Compiler behavior:** These directives instruct the compiler to pass `-lm`, `-lpthread` etc. to the C compiler/linker.
+**Compiler behavior:** These directives instruct the compiler to pass `-lm`, `-lpthread`, `-lz`, etc. to the C compiler/linker.
+
+### C Source File Compilation
+
+The `#pragma source` directive compiles and links additional C source files with your Sindarin code:
+
+```sindarin
+#pragma source "helper.c"
+#pragma source "wrapper.c"
+```
+
+**Use cases:**
+- Custom C wrapper functions for type compatibility
+- C helper code for variadic function wrappers
+- Integration with C libraries that require additional source files
+
+**Path resolution:** Paths are resolved relative to the Sindarin source file's directory.
+
+**Example — Variadic Printf Wrapper:**
+
+```sindarin
+# test_variadic.sn
+#pragma source "printf_helper.c"
+
+# Custom printf wrapper defined in the helper C file
+native fn test_printf(format: str, ...): int32
+
+fn main(): int =>
+    test_printf("Hello, %s! Value: %ld\n", "World", 42)
+    return 0
+```
+
+```c
+// printf_helper.c
+#include <stdio.h>
+#include <stdarg.h>
+#include <stdint.h>
+
+// Wrapper with explicit int32_t return to match Sindarin's int32
+int32_t test_printf(char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    int result = vprintf(format, args);
+    va_end(args);
+    return (int32_t)result;
+}
+```
+
+This is useful when C library function signatures don't match Sindarin's type system exactly (e.g., `printf` returns `int`, not `int32_t`).
 
 ---
 
@@ -94,29 +145,64 @@ Pragma statements control compilation behavior for C interop.
 
 Sindarin types naturally map to C types.
 
-### Core Type Mappings
+### Primitive Types
 
-| Sindarin | C | Notes |
-|----------|---|-------|
-| `int` | `int64_t` | 64-bit signed integer |
-| `double` | `double` | 64-bit floating point |
-| `bool` | `bool` | Via stdbool.h |
-| `byte` | `uint8_t` | Unsigned 8-bit |
-| `char` | `char` | Single character |
-| `str` | `char*` | Null-terminated string |
-| `T[]` | Arena array struct | Length + data pointer |
+| Sindarin Type | C Type | Size | Notes |
+|---------------|--------|------|-------|
+| `int` | `long long` | 64-bit | Signed integer |
+| `long` | `long long` | 64-bit | Same as `int` |
+| `int32` | `int32_t` | 32-bit | Explicit 32-bit signed |
+| `uint` | `uint64_t` | 64-bit | Unsigned integer |
+| `uint32` | `uint32_t` | 32-bit | Explicit 32-bit unsigned |
+| `double` | `double` | 64-bit | IEEE 754 double precision |
+| `float` | `float` | 32-bit | IEEE 754 single precision |
+| `char` | `char` | 8-bit | Single character |
+| `byte` | `unsigned char` | 8-bit | Unsigned byte |
+| `bool` | `bool` | 1-bit | C99 `_Bool` |
+| `void` | `void` | - | No value |
+| `nil` | `NULL` | pointer | Null pointer constant |
+| `str` | `char *` | pointer | Null-terminated UTF-8 string |
+| `any` | `RtAny` | 16 bytes | Tagged union for dynamic typing |
 
-### Extended Type Mappings
+### Built-in Object Types
 
-| C Type | Sindarin | Notes |
-|--------|----------|-------|
-| `size_t` | `uint` | 64-bit unsigned |
-| `int32_t` | `int32` | 32-bit signed |
-| `uint32_t` | `uint32` | 32-bit unsigned |
-| `uint64_t` | `uint` | 64-bit unsigned |
-| `float` | `float` | 32-bit floating point |
-| `void` | `void` | Already exists |
-| `void*` | `*void` | Pointer syntax |
+| Sindarin Type | C Type | Notes |
+|---------------|--------|-------|
+| `Date` | `RtDate *` | Pointer to runtime date struct |
+| `Time` | `RtTime *` | Pointer to runtime time struct |
+| `UUID` | `RtUuid *` | Pointer to runtime UUID struct |
+| `Random` | `RtRandom *` | Pointer to PRNG state |
+| `TextFile` | `RtTextFile *` | Pointer to text file handle |
+| `BinaryFile` | `RtBinaryFile *` | Pointer to binary file handle |
+| `Process` | `RtProcess *` | Pointer to subprocess handle |
+| `TcpListener` | `RtTcpListener *` | Pointer to TCP listener |
+| `TcpStream` | `RtTcpStream *` | Pointer to TCP connection |
+| `UdpSocket` | `RtUdpSocket *` | Pointer to UDP socket |
+
+### Composite Types
+
+| Sindarin Type | C Type | Notes |
+|---------------|--------|-------|
+| `T[]` | `RtArray_{T} *` | Pointer to typed array struct |
+| `*T` | `T *` | Pointer to T |
+| `fn(...): T` | `__Closure__ *` | Pointer to closure struct (non-native) |
+| `fn(...): T` (native) | Custom typedef | C function pointer |
+| `struct S` | `S` or `S *` | Value or pointer depending on context |
+| `native struct S` | `S` | Matches C struct layout exactly |
+| `opaque` | `void` or named | Opaque handle type |
+
+### Type Mismatch Considerations
+
+When declaring native functions, ensure Sindarin type mappings match the actual C function signatures. Common issues:
+
+| Sindarin Declaration | Generated C | Potential Issue |
+|---------------------|-------------|-----------------|
+| `native fn foo(x: int): int` | `extern long long foo(long long)` | C function may use `long` or `int` |
+| `native fn bar(): bool` | `extern bool bar()` | C function may return `int` (0/1) |
+
+**Solutions:**
+1. Use `#pragma source` to provide a C wrapper function with matching types
+2. Use explicit sized types (`int32`, `uint32`) when interfacing with C APIs that use fixed-width types
 
 ---
 
@@ -398,7 +484,7 @@ native fn call_c_api(data: byte[]): void =>
 This is particularly useful for calling C APIs that expect raw pointers:
 
 ```sindarin
-#pragma link "z"
+#pragma link z
 
 native fn compress(dest: *byte, destLen: uint as ref, source: *byte, sourceLen: uint): int
 
@@ -479,7 +565,7 @@ native fn fprintf(f: *FILE, format: str, ...): int
 ### Example
 
 ```sindarin
-#pragma include "<stdio.h>"
+#pragma include <stdio.h>
 
 native fn printf(format: str, ...): int
 
@@ -525,8 +611,8 @@ type SignalHandler = native fn(signal: int): void
 ### Declaring C Functions That Accept Callbacks
 
 ```sindarin
-#pragma include "<stdlib.h>"
-#pragma include "<signal.h>"
+#pragma include <stdlib.h>
+#pragma include <signal.h>
 
 type SignalHandler = native fn(sig: int): void
 type QsortComparator = native fn(a: *void, b: *void): int
@@ -576,7 +662,7 @@ Use the `void* userdata` pattern instead for state passing.
 ### Complete Example: qsort
 
 ```sindarin
-#pragma include "<stdlib.h>"
+#pragma include <stdlib.h>
 
 type Comparator = native fn(a: *void, b: *void): int
 
@@ -655,8 +741,8 @@ native fn double_it(x: int): int =>
 Expression-bodied syntax is particularly useful for thin wrappers around C library functions:
 
 ```sindarin
-#pragma include "<math.h>"
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
 
 native fn sin(x: double): double     // External C function
 native fn cos(x: double): double     // External C function
@@ -737,8 +823,8 @@ See [TYPES.md](TYPES.md#sizeof-operator) for complete `sizeof` documentation.
 ## Complete Example: Using the Math Library
 
 ```sindarin
-#pragma include "<math.h>"
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
 
 native fn sin(x: double): double
 native fn cos(x: double): double
@@ -775,6 +861,54 @@ int main() {
     return 0;
 }
 ```
+
+---
+
+## Native Struct Instantiation
+
+Native struct literals are **stack-allocated** (not arena-allocated) and generate C compound literals.
+
+### Memory Allocation
+
+```sindarin
+native struct Point =>
+    x: double
+    y: double
+
+native fn create_point(x: double, y: double): Point =>
+    return Point { x: x, y: y }
+```
+
+**Generated C:**
+```c
+Point create_point(double x, double y) {
+    return (Point){ .x = x, .y = y };  // Stack-allocated compound literal
+}
+```
+
+**Implications:**
+- Small structs are passed by value efficiently
+- No arena cleanup required — automatic storage duration
+- Returned values are copied to the caller's stack frame
+
+### Context Restriction
+
+Native struct literals can only be created inside native functions:
+
+```sindarin
+native struct SdkDate =>
+    _days: int
+
+# ERROR: Cannot create native struct in non-native function
+fn convert(days: int): SdkDate =>
+    return SdkDate { _days: days }
+
+# OK: Native function can create native struct
+native fn convert(days: int): SdkDate =>
+    return SdkDate { _days: days }
+```
+
+This restriction ensures native structs maintain C-compatible memory layout and are only manipulated in contexts where the code generator produces direct C struct operations.
 
 ---
 

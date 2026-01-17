@@ -61,9 +61,11 @@ int main(int argc, char **argv)
     gen.arithmetic_mode = options.arithmetic_mode;
     code_gen_module(&gen, module);
 
-    /* Copy link libraries from CodeGen to options for C backend */
+    /* Copy link libraries and source files from CodeGen to options for C backend */
     options.link_libs = gen.pragma_links;
     options.link_lib_count = gen.pragma_link_count;
+    options.source_files = gen.pragma_sources;
+    options.source_file_count = gen.pragma_source_count;
 
     code_gen_cleanup(&gen);
 
@@ -87,9 +89,20 @@ int main(int argc, char **argv)
     /* Phase 4: Linking (C compilation) */
     diagnostic_phase_start(PHASE_LINKING);
 
+    /* Validate pragma source files before passing to C compiler */
+    if (!gcc_validate_pragma_sources(options.source_files, options.source_file_count,
+                                      options.verbose))
+    {
+        diagnostic_phase_failed(PHASE_LINKING);
+        diagnostic_compile_failed();
+        compiler_cleanup(&options);
+        return 1;
+    }
+
     if (!gcc_compile(&cc_config, options.output_file, options.executable_file,
                      options.compiler_dir, options.verbose, options.debug_build,
-                     options.link_libs, options.link_lib_count))
+                     options.link_libs, options.link_lib_count,
+                     options.source_files, options.source_file_count))
     {
         diagnostic_phase_failed(PHASE_LINKING);
         diagnostic_compile_failed();

@@ -696,42 +696,22 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool main_has_args = is_main && stmt->param_count == 1;  // Type checker validated it's str[]
     bool is_private = stmt->modifier == FUNC_PRIVATE;
     bool is_shared = stmt->modifier == FUNC_SHARED;
-    // Functions returning heap-allocated types (closures, strings, arrays, any, structs) must be
-    // implicitly shared to avoid arena lifetime issues - the returned value must
-    // live in caller's arena, not the function's arena which is destroyed on return.
-    // 'any' is included because it may contain strings or arrays at runtime.
-    // 'struct' is included because struct fields may contain strings or other heap types,
-    // and the struct data itself may need to outlive the callee's arena.
-    bool returns_heap_type = stmt->return_type && (
-        stmt->return_type->kind == TYPE_FUNCTION ||
-        stmt->return_type->kind == TYPE_STRING ||
-        stmt->return_type->kind == TYPE_ARRAY ||
-        stmt->return_type->kind == TYPE_ANY ||
-        stmt->return_type->kind == TYPE_STRUCT);
-    if (returns_heap_type && !is_main) {
-        is_shared = true;
-    }
-    // Check if function actually uses heap-allocated types
-    bool uses_heap_types = function_needs_arena(stmt);
-    // Functions need arena only if: (1) not shared AND (2) actually use heap types
-    // Main always needs arena for safety, but regular functions can skip it
-    bool needs_arena = is_main || (!is_shared && uses_heap_types);
 
-    // Non-shared functions and main have their own arena context
-    if (needs_arena)
-    {
-        if (is_private) gen->in_private_context = true;
-        gen->in_shared_context = false;  // Reset shared context in non-shared functions
-        gen->arena_depth++;
-        gen->current_arena_var = arena_sprintf(gen->arena, "__arena_%d__", gen->arena_depth);
-    }
-    else if (is_shared)
-    {
-        // Shared functions use caller's arena passed as hidden parameter
-        // and propagate shared context to nested loops
-        gen->current_arena_var = "__caller_arena__";
-        gen->in_shared_context = true;
-    }
+    // New arena model: ALL non-main functions receive __caller_arena__ as first parameter.
+    // The modifier determines how the function uses it:
+    //   shared:  __local_arena__ = __caller_arena__ (alias, no new arena)
+    //   default: __local_arena__ = rt_arena_create(__caller_arena__) (new arena with parent)
+    //   private: __local_arena__ = rt_arena_create(__caller_arena__) (new arena, strict escape)
+    //
+    // main() is special - it creates the root arena with no caller.
+    //
+    // For default functions returning heap types, the return value is promoted to
+    // __caller_arena__ before __local_arena__ is destroyed.
+
+    // Set up arena context - all functions use __local_arena__
+    if (is_private) gen->in_private_context = true;
+    gen->in_shared_context = is_shared;
+    gen->current_arena_var = "__local_arena__";
 
     // Special case for main: always use "int" return type in C for standard entry point.
     const char *ret_c = is_main ? "int" : get_c_type(gen->arena, gen->current_return_type);
@@ -739,11 +719,8 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     bool has_return_value = (gen->current_return_type && gen->current_return_type->kind != TYPE_VOID) || is_main;
     symbol_table_push_scope(gen->symbol_table);
 
-    // For private functions and main, enter arena scope in symbol table
-    if (needs_arena)
-    {
-        symbol_table_enter_arena(gen->symbol_table);
-    }
+    // All functions have arena context
+    symbol_table_enter_arena(gen->symbol_table);
 
     for (int i = 0; i < stmt->param_count; i++)
     {
@@ -765,8 +742,8 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     }
     else
     {
-        // Shared functions receive caller's arena as first parameter
-        if (is_shared)
+        // All non-main functions receive caller's arena as first parameter
+        if (!is_main)
         {
             fprintf(gen->output, "RtArena *__caller_arena__");
             if (stmt->param_count > 0)
@@ -809,10 +786,23 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     }
     indented_fprintf(gen, 0, ") {\n");
 
-    // For private functions and main, create a local arena
-    if (needs_arena)
+    // Set up __local_arena__ based on modifier:
+    //   main:    create root arena (no parent)
+    //   shared:  alias to caller's arena
+    //   default: new arena with caller as parent
+    //   private: new arena with caller as parent (strict escape rules enforced at compile time)
+    if (is_main)
     {
-        indented_fprintf(gen, 1, "RtArena *%s = rt_arena_create(NULL);\n", gen->current_arena_var);
+        indented_fprintf(gen, 1, "RtArena *__local_arena__ = rt_arena_create(NULL);\n");
+    }
+    else if (is_shared)
+    {
+        indented_fprintf(gen, 1, "RtArena *__local_arena__ = __caller_arena__;\n");
+    }
+    else
+    {
+        // default or private - create new arena with caller as parent
+        indented_fprintf(gen, 1, "RtArena *__local_arena__ = rt_arena_create(__caller_arena__);\n");
     }
 
     // Add _return_value only if needed (non-void or main).
@@ -896,10 +886,44 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     indented_fprintf(gen, 0, "%s_return:\n", gen->current_function);
     code_gen_free_locals(gen, gen->symbol_table->current, true, 1);
 
-    // For private functions and main, destroy the arena before returning
-    if (needs_arena)
+    // For non-main, non-shared functions with heap return types, promote the return
+    // value to the caller's arena before destroying the local arena.
+    bool needs_promotion = !is_main && !is_shared && has_return_value && stmt->return_type;
+    if (needs_promotion)
     {
-        indented_fprintf(gen, 1, "rt_arena_destroy(%s);\n", gen->current_arena_var);
+        TypeKind kind = stmt->return_type->kind;
+        if (kind == TYPE_STRING)
+        {
+            indented_fprintf(gen, 1, "_return_value = rt_arena_promote_string(__caller_arena__, _return_value);\n");
+        }
+        else if (kind == TYPE_ARRAY)
+        {
+            // Clone array to caller's arena (effectively promotes it)
+            Type *elem_type = stmt->return_type->as.array.element_type;
+            const char *suffix = code_gen_type_suffix(elem_type);
+            indented_fprintf(gen, 1, "_return_value = rt_array_clone_%s(__caller_arena__, _return_value);\n", suffix);
+        }
+        else if (kind == TYPE_STRUCT)
+        {
+            // Promote struct to caller's arena - need size of the struct
+            // _return_value is a struct value (not pointer), so we take its address,
+            // promote to caller's arena, and dereference the result
+            const char *struct_name = stmt->return_type->as.struct_type.name;
+            indented_fprintf(gen, 1, "_return_value = *(%s *)rt_arena_promote(__caller_arena__, &_return_value, sizeof(%s));\n", struct_name, struct_name);
+        }
+        else if (kind == TYPE_FUNCTION)
+        {
+            // Closures - promote the closure struct
+            indented_fprintf(gen, 1, "_return_value = rt_arena_promote(__caller_arena__, _return_value, sizeof(__Closure__));\n");
+        }
+        // TYPE_ANY - complex, may need runtime type checking for promotion
+    }
+
+    // Destroy local arena for main and non-shared functions
+    // (shared functions just alias the caller's arena, so don't destroy)
+    if (is_main || !is_shared)
+    {
+        indented_fprintf(gen, 1, "rt_arena_destroy(__local_arena__);\n");
     }
 
     // Return _return_value only if needed; otherwise, plain return.
@@ -913,11 +937,8 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
     }
     indented_fprintf(gen, 0, "}\n\n");
 
-    // Exit arena scope in symbol table for private functions and main
-    if (needs_arena)
-    {
-        symbol_table_exit_arena(gen->symbol_table);
-    }
+    // Exit arena scope in symbol table (all functions have arena context now)
+    symbol_table_exit_arena(gen->symbol_table);
 
     symbol_table_pop_scope(gen->symbol_table);
 

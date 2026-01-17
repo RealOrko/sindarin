@@ -1,8 +1,8 @@
 # Integration test for C math library interop
 # Demonstrates native function declarations with #pragma include and #pragma link
 
-#pragma include "<math.h>"
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
 
 # Native function declarations for C math library functions
 native fn sin(x: double): double

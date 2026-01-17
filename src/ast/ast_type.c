@@ -74,6 +74,9 @@ Type *ast_clone_type(Arena *arena, Type *type)
         clone->as.struct_type.alignment = type->as.struct_type.alignment;
         clone->as.struct_type.is_native = type->as.struct_type.is_native;
         clone->as.struct_type.is_packed = type->as.struct_type.is_packed;
+        clone->as.struct_type.pass_self_by_ref = type->as.struct_type.pass_self_by_ref;
+        clone->as.struct_type.c_alias = type->as.struct_type.c_alias
+            ? arena_strdup(arena, type->as.struct_type.c_alias) : NULL;
         if (type->as.struct_type.field_count > 0)
         {
             clone->as.struct_type.fields = arena_alloc(arena, sizeof(StructField) * type->as.struct_type.field_count);
@@ -89,6 +92,8 @@ Type *ast_clone_type(Arena *arena, Type *type)
                 clone->as.struct_type.fields[i].type = ast_clone_type(arena, type->as.struct_type.fields[i].type);
                 clone->as.struct_type.fields[i].offset = type->as.struct_type.fields[i].offset;
                 clone->as.struct_type.fields[i].default_value = type->as.struct_type.fields[i].default_value;
+                clone->as.struct_type.fields[i].c_alias = type->as.struct_type.fields[i].c_alias
+                    ? arena_strdup(arena, type->as.struct_type.fields[i].c_alias) : NULL;
             }
         }
         else
@@ -117,6 +122,7 @@ Type *ast_clone_type(Arena *arena, Type *type)
                 dst->is_static = src->is_static;
                 dst->is_native = src->is_native;
                 dst->name_token = src->name_token;
+                dst->c_alias = src->c_alias ? arena_strdup(arena, src->c_alias) : NULL;
 
                 /* Clone parameters */
                 if (src->param_count > 0 && src->params != NULL)
@@ -162,6 +168,7 @@ Type *ast_clone_type(Arena *arena, Type *type)
         clone->as.function.param_count = type->as.function.param_count;
         clone->as.function.is_variadic = type->as.function.is_variadic;
         clone->as.function.is_native = type->as.function.is_native;
+        clone->as.function.has_body = type->as.function.has_body;
 
         if (type->as.function.param_count > 0)
         {
@@ -567,7 +574,8 @@ int ast_type_is_struct(Type *type)
 }
 
 Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields, int field_count,
-                             StructMethod *methods, int method_count, bool is_native, bool is_packed)
+                             StructMethod *methods, int method_count, bool is_native, bool is_packed,
+                             bool pass_self_by_ref, const char *c_alias)
 {
     Type *type = arena_alloc(arena, sizeof(Type));
     if (type == NULL)
@@ -584,6 +592,8 @@ Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields
     type->as.struct_type.alignment = 0;  /* Computed during type checking */
     type->as.struct_type.is_native = is_native;
     type->as.struct_type.is_packed = is_packed;
+    type->as.struct_type.pass_self_by_ref = pass_self_by_ref;
+    type->as.struct_type.c_alias = c_alias ? arena_strdup(arena, c_alias) : NULL;
 
     if (field_count > 0 && fields != NULL)
     {
@@ -600,6 +610,8 @@ Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields
             type->as.struct_type.fields[i].type = ast_clone_type(arena, fields[i].type);
             type->as.struct_type.fields[i].offset = fields[i].offset;
             type->as.struct_type.fields[i].default_value = fields[i].default_value;
+            type->as.struct_type.fields[i].c_alias = fields[i].c_alias
+                ? arena_strdup(arena, fields[i].c_alias) : NULL;
         }
     }
     else
@@ -628,6 +640,8 @@ Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields
             type->as.struct_type.methods[i].is_static = methods[i].is_static;
             type->as.struct_type.methods[i].is_native = methods[i].is_native;
             type->as.struct_type.methods[i].name_token = methods[i].name_token;
+            type->as.struct_type.methods[i].c_alias = methods[i].c_alias
+                ? arena_strdup(arena, methods[i].c_alias) : NULL;
 
             /* Copy parameters if any */
             if (methods[i].param_count > 0 && methods[i].params != NULL)

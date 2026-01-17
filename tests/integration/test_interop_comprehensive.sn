@@ -11,9 +11,9 @@
 # - Variadic functions (...)
 # - Native callbacks (native fn types)
 
-#pragma include "<math.h>"
-#pragma include "\"test_variadic_helper.c\""
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
+#pragma source "test_variadic_helper.c"
 
 # === Opaque Types ===
 type OpaqueHandle = opaque

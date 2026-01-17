@@ -1,4 +1,5 @@
 #include "gcc_backend.h"
+#include "code_gen.h"
 #include "debug.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -805,6 +806,66 @@ bool gcc_check_available(const CCBackendConfig *config, bool verbose)
     return false;
 }
 
+bool gcc_validate_pragma_sources(PragmaSourceInfo *source_files, int source_file_count,
+                                  bool verbose)
+{
+#ifdef _WIN32
+    (void)source_files;
+    (void)source_file_count;
+    (void)verbose;
+    /* Windows validation not implemented - rely on C compiler errors */
+    return true;
+#else
+    if (source_files == NULL || source_file_count == 0)
+        return true;
+
+    bool all_valid = true;
+
+    for (int i = 0; i < source_file_count; i++)
+    {
+        const char *src = source_files[i].value;
+        const char *source_dir = source_files[i].source_dir;
+
+        /* Strip surrounding quotes if present */
+        size_t len = strlen(src);
+        char unquoted[PATH_MAX];
+        if (len >= 2 && src[0] == '"' && src[len - 1] == '"')
+        {
+            strncpy(unquoted, src + 1, len - 2);
+            unquoted[len - 2] = '\0';
+            src = unquoted;
+        }
+
+        /* Build full path relative to source file directory */
+        char full_path[PATH_MAX];
+        if (src[0] == '/')
+        {
+            strncpy(full_path, src, sizeof(full_path) - 1);
+            full_path[sizeof(full_path) - 1] = '\0';
+        }
+        else
+        {
+            snprintf(full_path, sizeof(full_path), "%s/%s", source_dir, src);
+        }
+
+        if (verbose)
+        {
+            DEBUG_INFO("Checking pragma source: %s", full_path);
+        }
+
+        if (!file_exists(full_path))
+        {
+            fprintf(stderr, "error: pragma source file not found: %s\n", source_files[i].value);
+            fprintf(stderr, "  --> Resolved path: %s\n", full_path);
+            fprintf(stderr, "  --> Searched relative to: %s\n\n", source_dir);
+            all_valid = false;
+        }
+    }
+
+    return all_valid;
+#endif
+}
+
 const char *gcc_get_compiler_dir(const char *argv0)
 {
 #ifdef _WIN32
@@ -889,7 +950,8 @@ const char *gcc_get_compiler_dir(const char *argv0)
 bool gcc_compile(const CCBackendConfig *config, const char *c_file,
                  const char *output_exe, const char *compiler_dir,
                  bool verbose, bool debug_mode,
-                 char **link_libs, int link_lib_count)
+                 char **link_libs, int link_lib_count,
+                 PragmaSourceInfo *source_files, int source_file_count)
 {
     char exe_path[PATH_MAX];
     char lib_dir[PATH_MAX];
@@ -897,8 +959,9 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     char deps_include_dir[PATH_MAX];
     char deps_lib_dir[PATH_MAX];
     char runtime_lib[PATH_MAX];
-    char command[4096];
+    char command[8192];
     char extra_libs[PATH_MAX];
+    char extra_sources[2048];
     char filtered_mode_cflags[1024];
     char c_file_normalized[PATH_MAX];
 
@@ -1047,6 +1110,51 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         }
     }
 
+    /* Build extra source files from pragma source directives.
+     * Source files are specified as quoted strings like "helper.c".
+     * Paths are resolved relative to each pragma's defining module directory. */
+    extra_sources[0] = '\0';
+    if (source_files != NULL && source_file_count > 0)
+    {
+        int offset = 0;
+        for (int i = 0; i < source_file_count && offset < (int)sizeof(extra_sources) - 256; i++)
+        {
+            const char *src = source_files[i].value;
+            const char *source_dir = source_files[i].source_dir;
+
+            /* Strip surrounding quotes if present */
+            size_t len = strlen(src);
+            char unquoted[PATH_MAX];
+            if (len >= 2 && src[0] == '"' && src[len - 1] == '"')
+            {
+                strncpy(unquoted, src + 1, len - 2);
+                unquoted[len - 2] = '\0';
+                src = unquoted;
+            }
+
+            /* Build full path relative to pragma's defining module directory */
+            char full_path[PATH_MAX];
+            if (src[0] == '/' || (strlen(src) > 1 && src[1] == ':'))
+            {
+                /* Absolute path - use as is */
+                strncpy(full_path, src, sizeof(full_path) - 1);
+                full_path[sizeof(full_path) - 1] = '\0';
+            }
+            else
+            {
+                /* Relative path - resolve relative to pragma's source directory */
+                snprintf(full_path, sizeof(full_path), "%s" SN_PATH_SEP_STR "%s", source_dir, src);
+            }
+            normalize_path_separators(full_path);
+
+            int written = snprintf(extra_sources + offset, sizeof(extra_sources) - offset, " \"%s\"", full_path);
+            if (written > 0)
+            {
+                offset += written;
+            }
+        }
+    }
+
     /* Create temporary file for compiler errors */
     char error_file[PATH_MAX];
 #ifdef _WIN32
@@ -1122,9 +1230,9 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         else
             msvc_deps_opt[0] = '\0';
         snprintf(command, sizeof(command),
-            "%s%s%s %s %s /I\"%s\" %s \"%s\" \"%s\" %s %s /Fe\"%s\" /link %s 2>\"%s\"",
+            "%s%s%s %s %s /I\"%s\" %s \"%s\"%s \"%s\" %s %s /Fe\"%s\" /link %s 2>\"%s\"",
             cc_quote, config->cc, cc_quote, mode_cflags, config->cflags, include_dir, msvc_deps_opt,
-            c_file_normalized, runtime_lib, config->ldlibs, config->ldflags, exe_path,
+            c_file_normalized, extra_sources, runtime_lib, config->ldlibs, config->ldflags, exe_path,
             config->ldlibs, error_file);
     }
     else
@@ -1137,28 +1245,28 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
         /* Windows: Use -Wl,--whole-archive to force all symbols from archive */
         snprintf(command, sizeof(command),
             "%s%s%s %s -w -std=%s -DSN_USE_WIN32_THREADS %s -I\"%s\" %s "
-            "\"%s\" -Wl,--whole-archive \"%s\" -Wl,--no-whole-archive "
+            "\"%s\"%s -Wl,--whole-archive \"%s\" -Wl,--no-whole-archive "
             "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
             cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,
-            c_file_normalized, runtime_lib,
+            c_file_normalized, extra_sources, runtime_lib,
             deps_lib_opt, extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
 #else
         /* Unix: Use -Wl,--whole-archive (Linux) or just link normally (macOS handles it) */
 #ifdef __APPLE__
         snprintf(command, sizeof(command),
             "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" %s "
-            "\"%s\" -Wl,-force_load,\"%s\" "
+            "\"%s\"%s -Wl,-force_load,\"%s\" "
             "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
             cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,
-            c_file_normalized, runtime_lib,
+            c_file_normalized, extra_sources, runtime_lib,
             deps_lib_opt, extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
 #else
         snprintf(command, sizeof(command),
             "%s%s%s %s -w -std=%s -D_GNU_SOURCE %s -I\"%s\" %s "
-            "\"%s\" -Wl,--whole-archive \"%s\" -Wl,--no-whole-archive "
+            "\"%s\"%s -Wl,--whole-archive \"%s\" -Wl,--no-whole-archive "
             "%s -lpthread -lm%s %s %s -o \"%s\" 2>\"%s\"",
             cc_quote, config->cc, cc_quote, mode_cflags, config->std, config->cflags, include_dir, deps_include_opt,
-            c_file_normalized, runtime_lib,
+            c_file_normalized, extra_sources, runtime_lib,
             deps_lib_opt, extra_libs, config->ldlibs, config->ldflags, exe_path, error_file);
 #endif
 #endif

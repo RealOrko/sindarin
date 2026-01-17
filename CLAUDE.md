@@ -100,6 +100,15 @@ Built-in types: `TextFile`, `BinaryFile`, `Date`, `Time`, `Process`
 
  - Always debug with output written to the /tmp/ directory, this avoids accidentally comitting generated artifacts which do not form part of the solution. 
 
+ - When tests fail, ALWAYS FIX THEM. Do not label them as "pre-existing issue" and ignore.
+
+ - Timeouts for running tests using python3 scripts/run_tests.py are as follows: 
+   - timeout 60 python3 scripts/run_tests.py unit
+   - timeout 300 python3 scripts/run_tests.py integration
+   - timeout 900 python3 scripts/run_tests.py all
+
+ - Do not work arround issues, describe the issue and stop immediately and let's discuss a solution.
+
 ## 📖 Documentation
 
 Is available at 'docs/language/'

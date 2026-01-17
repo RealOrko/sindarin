@@ -1189,8 +1189,8 @@ static void test_pragma_include_parsing()
     Lexer lexer;
     Parser parser;
     SymbolTable symbol_table;
-    /* Note: pragma requires string literal, so we use "<stdio.h>" with quotes */
-    const char *source = "#pragma include \"<stdio.h>\"\nfn main(): void =>\n  return\n";
+    /* WYSIWYG pragma syntax - no quotes needed around the include path */
+    const char *source = "#pragma include <stdio.h>\nfn main(): void =>\n  return\n";
     setup_parser(&arena, &lexer, &parser, &symbol_table, source);
 
     Module *module = parser_execute(&parser, "test.sn");
@@ -1219,8 +1219,8 @@ static void test_pragma_link_parsing()
     Lexer lexer;
     Parser parser;
     SymbolTable symbol_table;
-    /* Note: pragma requires string literal, so we use "m" with quotes */
-    const char *source = "#pragma link \"m\"\nfn main(): void =>\n  return\n";
+    /* WYSIWYG pragma syntax - no quotes needed around the library name */
+    const char *source = "#pragma link m\nfn main(): void =>\n  return\n";
     setup_parser(&arena, &lexer, &parser, &symbol_table, source);
 
     Module *module = parser_execute(&parser, "test.sn");
@@ -1249,10 +1249,10 @@ static void test_multiple_pragmas_parsing()
     Lexer lexer;
     Parser parser;
     SymbolTable symbol_table;
-    /* Note: pragma requires string literals */
-    const char *source = "#pragma include \"<stdio.h>\"\n"
-                         "#pragma include \"<math.h>\"\n"
-                         "#pragma link \"m\"\n"
+    /* WYSIWYG pragma syntax */
+    const char *source = "#pragma include <stdio.h>\n"
+                         "#pragma include <math.h>\n"
+                         "#pragma link m\n"
                          "fn main(): void =>\n"
                          "  return\n";
     setup_parser(&arena, &lexer, &parser, &symbol_table, source);

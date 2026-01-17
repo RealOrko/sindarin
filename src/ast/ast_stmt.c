@@ -369,7 +369,8 @@ Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Toke
 
 Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields, int field_count,
                                    StructMethod *methods, int method_count,
-                                   bool is_native, bool is_packed, const Token *loc_token)
+                                   bool is_native, bool is_packed, bool pass_self_by_ref,
+                                   const char *c_alias, const Token *loc_token)
 {
     Stmt *stmt = arena_alloc(arena, sizeof(Stmt));
     if (stmt == NULL)
@@ -396,6 +397,8 @@ Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields,
     stmt->as.struct_decl.method_count = method_count;
     stmt->as.struct_decl.is_native = is_native;
     stmt->as.struct_decl.is_packed = is_packed;
+    stmt->as.struct_decl.pass_self_by_ref = pass_self_by_ref;
+    stmt->as.struct_decl.c_alias = c_alias ? arena_strdup(arena, c_alias) : NULL;
 
     if (field_count > 0 && fields != NULL)
     {
@@ -412,6 +415,8 @@ Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields,
             stmt->as.struct_decl.fields[i].type = fields[i].type;
             stmt->as.struct_decl.fields[i].offset = fields[i].offset;
             stmt->as.struct_decl.fields[i].default_value = fields[i].default_value;
+            stmt->as.struct_decl.fields[i].c_alias = fields[i].c_alias
+                ? arena_strdup(arena, fields[i].c_alias) : NULL;
         }
     }
     else
@@ -441,6 +446,8 @@ Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields,
             stmt->as.struct_decl.methods[i].is_static = methods[i].is_static;
             stmt->as.struct_decl.methods[i].is_native = methods[i].is_native;
             stmt->as.struct_decl.methods[i].name_token = methods[i].name_token;
+            stmt->as.struct_decl.methods[i].c_alias = methods[i].c_alias
+                ? arena_strdup(arena, methods[i].c_alias) : NULL;
         }
     }
     else

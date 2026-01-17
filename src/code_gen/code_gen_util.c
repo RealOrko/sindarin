@@ -215,7 +215,17 @@ const char *get_c_type(Arena *arena, Type *type)
     }
     case TYPE_STRUCT:
     {
-        /* Struct types use their name as the C type name */
+        /* Struct types use c_alias if available, otherwise their Sindarin name */
+        if (type->as.struct_type.c_alias != NULL)
+        {
+            /* Native structs with c_alias are treated as opaque handle types.
+             * Generate as pointer type (like built-in Date, TextFile, etc.) */
+            if (type->as.struct_type.is_native)
+            {
+                return arena_sprintf(arena, "%s *", type->as.struct_type.c_alias);
+            }
+            return arena_strdup(arena, type->as.struct_type.c_alias);
+        }
         if (type->as.struct_type.name != NULL)
         {
             return arena_strdup(arena, type->as.struct_type.name);
@@ -1237,7 +1247,14 @@ bool expr_needs_arena(Expr *expr)
         /* Variable references don't need arena, even function references.
            The function's closure was already allocated elsewhere.
            The type check is skipped here - a function reference doesn't
-           mean we're creating a closure. */
+           mean we're creating a closure.
+
+           Exception: the 'arena' built-in identifier requires arena context. */
+        if (expr->as.variable.name.length == 5 &&
+            strncmp(expr->as.variable.name.start, "arena", 5) == 0)
+        {
+            return true;
+        }
         return false;
 
     case EXPR_BINARY:

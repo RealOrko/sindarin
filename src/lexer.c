@@ -398,11 +398,23 @@ skip_indent_processing:
                 DEBUG_VERBOSE("Line %d: Emitting PRAGMA_LINK", lexer->line);
                 return lexer_make_token(lexer, TOKEN_PRAGMA_LINK);
             }
+            else if (strncmp(lexer->current, "source", 6) == 0)
+            {
+                lexer->current += 6;
+                DEBUG_VERBOSE("Line %d: Emitting PRAGMA_SOURCE", lexer->line);
+                return lexer_make_token(lexer, TOKEN_PRAGMA_SOURCE);
+            }
             else if (strncmp(lexer->current, "pack", 4) == 0)
             {
                 lexer->current += 4;
                 DEBUG_VERBOSE("Line %d: Emitting PRAGMA_PACK", lexer->line);
                 return lexer_make_token(lexer, TOKEN_PRAGMA_PACK);
+            }
+            else if (strncmp(lexer->current, "alias", 5) == 0)
+            {
+                lexer->current += 5;
+                DEBUG_VERBOSE("Line %d: Emitting PRAGMA_ALIAS", lexer->line);
+                return lexer_make_token(lexer, TOKEN_PRAGMA_ALIAS);
             }
             else
             {

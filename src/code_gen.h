@@ -13,6 +13,12 @@ typedef enum {
     ARITH_UNCHECKED    /* Use native C operators without overflow checking */
 } ArithmeticMode;
 
+/* Pragma source with location info for validation */
+typedef struct PragmaSourceInfo {
+    const char *value;      /* The pragma value (e.g., "helper.c") */
+    const char *source_dir; /* Directory of the .sn file where pragma is defined */
+} PragmaSourceInfo;
+
 typedef struct {
     Arena *arena;
     int label_count;
@@ -93,6 +99,9 @@ typedef struct {
     char **pragma_links;            // List of libraries to link (e.g., "m", "pthread")
     int pragma_link_count;
     int pragma_link_capacity;
+    struct PragmaSourceInfo *pragma_sources;  // List of C source files with location info
+    int pragma_source_count;
+    int pragma_source_capacity;
 
     /* Interceptor thunk support */
     int thunk_count;                // Counter for unique thunk IDs

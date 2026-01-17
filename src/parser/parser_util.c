@@ -317,9 +317,26 @@ Type *parser_type(Parser *parser)
             Symbol *type_symbol = symbol_table_lookup_type(parser->symbol_table, id);
             if (type_symbol != NULL && type_symbol->type != NULL)
             {
-                parser_advance(parser);
-                /* Return a clone of the type to avoid aliasing issues */
-                type = ast_clone_type(parser->arena, type_symbol->type);
+                Type *found_type = type_symbol->type;
+                /* Check if this is an incomplete struct type (registered early for self-reference).
+                 * An incomplete struct has kind TYPE_STRUCT but 0 fields.
+                 * We treat it as a forward reference so type checker resolves it properly. */
+                bool is_incomplete = (found_type->kind == TYPE_STRUCT &&
+                                      found_type->as.struct_type.field_count == 0 &&
+                                      found_type->as.struct_type.method_count == 0);
+                if (is_incomplete)
+                {
+                    /* Create a forward reference that type checker will resolve */
+                    char *type_name = arena_strndup(parser->arena, id.start, id.length);
+                    parser_advance(parser);
+                    type = ast_create_struct_type(parser->arena, type_name, NULL, 0, NULL, 0, false, false, false, NULL);
+                }
+                else
+                {
+                    parser_advance(parser);
+                    /* Return a clone of the type to avoid aliasing issues */
+                    type = ast_clone_type(parser->arena, found_type);
+                }
             }
             else
             {
@@ -328,7 +345,7 @@ Type *parser_type(Parser *parser)
                  * The type checker will resolve this to the actual struct definition. */
                 char *type_name = arena_strndup(parser->arena, id.start, id.length);
                 parser_advance(parser);
-                type = ast_create_struct_type(parser->arena, type_name, NULL, 0, NULL, 0, false, false);
+                type = ast_create_struct_type(parser->arena, type_name, NULL, 0, NULL, 0, false, false, false, NULL);
             }
         }
     }

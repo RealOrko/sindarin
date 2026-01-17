@@ -62,14 +62,14 @@ bool expression_produces_temp(Expr *expr)
  * @param param_types   Array of parameter types from function signature
  * @param param_count   Number of parameters
  * @param return_type   Return type of the function
- * @param callee_is_shared Whether the callee function is shared (needs arena arg)
+ * @param callee_has_body Whether the callee function has a body (Sindarin function, needs arena arg)
  * @return Generated C code for the intercepted call
  */
 static char *code_gen_intercepted_call(CodeGen *gen, const char *func_name,
                                        const char *callee_str, const char *args_list,
                                        CallExpr *call, char **arg_strs,
                                        Type **param_types, MemoryQualifier *param_quals,
-                                       int param_count, Type *return_type, bool callee_is_shared)
+                                       int param_count, Type *return_type, bool callee_has_body)
 {
     Arena *arena = gen->arena;
     bool returns_void = (return_type && return_type->kind == TYPE_VOID);
@@ -119,7 +119,7 @@ static char *code_gen_intercepted_call(CodeGen *gen, const char *func_name,
 
     /* Build unboxed argument list for the thunk body */
     char *unboxed_args;
-    if (callee_is_shared)
+    if (callee_has_body)
     {
         unboxed_args = arena_strdup(arena, "(RtArena *)__rt_thunk_arena");
     }
@@ -134,7 +134,7 @@ static char *code_gen_intercepted_call(CodeGen *gen, const char *func_name,
         const char *unbox_func = get_unboxing_function(arg_type);
         bool is_ref = (param_quals != NULL && i < param_count && param_quals[i] == MEM_AS_REF);
 
-        bool need_comma = (i > 0) || callee_is_shared;
+        bool need_comma = (i > 0) || callee_has_body;
         if (need_comma)
         {
             unboxed_args = arena_sprintf(arena, "%s, ", unboxed_args);
@@ -339,10 +339,13 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
          * member name as the function name. */
         if (object_type == NULL && member->object->type == EXPR_VARIABLE)
         {
-            /* Lookup the function in the namespace to check if it's shared */
+            /* Lookup the function in the namespace to check if it has a body */
             Token ns_name = member->object->as.variable.name;
             Symbol *func_sym = symbol_table_lookup_in_namespace(gen->symbol_table, ns_name, member->member_name);
-            bool callee_is_shared = (func_sym != NULL && func_sym->func_mod == FUNC_SHARED);
+            bool callee_has_body = (func_sym != NULL &&
+                                    func_sym->type != NULL &&
+                                    func_sym->type->kind == TYPE_FUNCTION &&
+                                    func_sym->type->as.function.has_body);
 
             /* Generate arguments */
             char **arg_strs = arena_alloc(gen->arena, call->arg_count * sizeof(char *));
@@ -351,13 +354,13 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 arg_strs[i] = code_gen_expression(gen, call->arguments[i]);
             }
 
-            /* Build args list - prepend arena if shared function */
+            /* Build args list - prepend arena if function has body (Sindarin function) */
             char *args_list;
-            if (callee_is_shared && gen->current_arena_var != NULL)
+            if (callee_has_body && gen->current_arena_var != NULL)
             {
                 args_list = arena_strdup(gen->arena, gen->current_arena_var);
             }
-            else if (callee_is_shared)
+            else if (callee_has_body)
             {
                 args_list = arena_strdup(gen->arena, "NULL");
             }
@@ -443,22 +446,48 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
 
                     if (method->is_native)
                     {
-                        /* Native method call: rt_{struct_lowercase}_{method_name}(self, args) */
-                        /* Create lowercase struct name for native method naming */
-                        char *struct_name_lower = arena_strdup(gen->arena, struct_name);
-                        for (char *p = struct_name_lower; *p; p++)
+                        /* Native method call - use c_alias if present, else use naming convention */
+                        const char *func_name;
+                        if (method->c_alias != NULL)
                         {
-                            *p = (char)tolower((unsigned char)*p);
+                            /* Use explicit c_alias from #pragma alias */
+                            func_name = method->c_alias;
+                        }
+                        else
+                        {
+                            /* Create lowercase struct name for native method naming */
+                            char *struct_name_lower = arena_strdup(gen->arena, struct_name);
+                            for (char *p = struct_name_lower; *p; p++)
+                            {
+                                *p = (char)tolower((unsigned char)*p);
+                            }
+                            func_name = arena_sprintf(gen->arena, "rt_%s_%s", struct_name_lower, method->name);
                         }
 
                         /* Build args list - NO arena for native methods */
                         char *args_list = arena_strdup(gen->arena, "");
 
-                        /* For instance native methods, pass self (by value) as first arg */
+                        /* For instance native methods, pass self as first arg */
+                        /* Check pass_self_by_ref to determine if we pass by pointer or by value */
                         if (!method->is_static)
                         {
                             char *self_str = code_gen_expression(gen, member->object);
-                            args_list = arena_strdup(gen->arena, self_str);
+                            /* For opaque handle types (native struct with c_alias), self is already a pointer */
+                            if (struct_type->as.struct_type.is_native && struct_type->as.struct_type.c_alias != NULL)
+                            {
+                                /* Opaque handle: self is already a pointer, pass directly */
+                                args_list = arena_strdup(gen->arena, self_str);
+                            }
+                            else if (struct_type->as.struct_type.pass_self_by_ref)
+                            {
+                                /* Pass by reference (pointer) */
+                                args_list = arena_sprintf(gen->arena, "&%s", self_str);
+                            }
+                            else
+                            {
+                                /* Pass by value */
+                                args_list = arena_strdup(gen->arena, self_str);
+                            }
                         }
 
                         /* Add remaining arguments */
@@ -475,19 +504,28 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                             }
                         }
 
-                        return arena_sprintf(gen->arena, "rt_%s_%s(%s)",
-                                             struct_name_lower, method->name, args_list);
+                        return arena_sprintf(gen->arena, "%s(%s)", func_name, args_list);
                     }
                     else
                     {
-                        /* Non-native method call: StructName_methodName(arena, &self, args) */
+                        /* Non-native method call: StructName_methodName(arena, self, args) */
                         char *args_list = arena_strdup(gen->arena, ARENA_VAR(gen));
 
-                        /* For instance methods, pass address of self */
+                        /* For instance methods, pass self */
                         if (!method->is_static)
                         {
                             char *self_str = code_gen_expression(gen, member->object);
-                            args_list = arena_sprintf(gen->arena, "%s, &%s", args_list, self_str);
+                            /* For opaque handle types, self is already a pointer */
+                            if (struct_type->as.struct_type.is_native && struct_type->as.struct_type.c_alias != NULL)
+                            {
+                                /* Opaque handle: self is already a pointer */
+                                args_list = arena_sprintf(gen->arena, "%s, %s", args_list, self_str);
+                            }
+                            else
+                            {
+                                /* Regular struct: take address of self */
+                                args_list = arena_sprintf(gen->arena, "%s, &%s", args_list, self_str);
+                            }
                         }
 
                         /* Generate other arguments */
@@ -1283,15 +1321,15 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 // First ensure the string is mutable, then append.
                 // rt_string_ensure_mutable_inline uses fast inlined check when already mutable.
                 // rt_string_append returns potentially new pointer, assign back if variable.
-                // IMPORTANT: Use the function's main arena (__arena_1__), not the loop arena,
+                // IMPORTANT: Use the function's main arena (__local_arena__), not the loop arena,
                 // because strings need to outlive the loop iteration.
                 if (member->object->type == EXPR_VARIABLE) {
                     return arena_sprintf(gen->arena,
-                        "(%s = rt_string_append(rt_string_ensure_mutable_inline(__arena_1__, %s), %s))",
+                        "(%s = rt_string_append(rt_string_ensure_mutable_inline(__local_arena__, %s), %s))",
                         object_str, object_str, arg_str);
                 }
                 return arena_sprintf(gen->arena,
-                    "rt_string_append(rt_string_ensure_mutable_inline(__arena_1__, %s), %s)",
+                    "rt_string_append(rt_string_ensure_mutable_inline(__local_arena__, %s), %s)",
                     object_str, arg_str);
             }
 
@@ -2049,27 +2087,23 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
         //   arr.push(elem), arr.pop(), arr.reverse(), arr.remove(idx), arr.insert(elem, idx)
     }
 
-    // Check if the callee is a shared function - if so, we need to pass the arena.
-    // Functions returning heap-allocated types (TYPE_STRING, TYPE_ARRAY, TYPE_FUNCTION)
-    // are implicitly shared (set in type_checker_stmt.c:163-170) to match the code
-    // generator's logic in code_gen_stmt.c:301-307.
-    bool callee_is_shared = false;
+    // New arena model: ALL Sindarin functions (with bodies) receive arena as first param.
+    // Native functions (no body) use their declared signature - if they need arena,
+    // it's explicitly in their parameter list.
+    //
+    // Check if callee has a body to determine if we should prepend arena.
+    bool callee_has_body = false;
+
     if (call->callee->type == EXPR_VARIABLE)
     {
         Symbol *callee_sym = symbol_table_lookup_symbol(gen->symbol_table, call->callee->as.variable.name);
-        if (callee_sym && callee_sym->func_mod == FUNC_SHARED)
+
+        // Check if function has a body via the symbol table's function type.
+        if (callee_sym != NULL &&
+            callee_sym->type != NULL &&
+            callee_sym->type->kind == TYPE_FUNCTION)
         {
-            callee_is_shared = true;
-        }
-        // Functions returning heap types are implicitly shared
-        else if (expr->expr_type != NULL && (
-            expr->expr_type->kind == TYPE_STRING ||
-            expr->expr_type->kind == TYPE_ARRAY ||
-            expr->expr_type->kind == TYPE_FUNCTION ||
-            expr->expr_type->kind == TYPE_ANY ||
-            expr->expr_type->kind == TYPE_STRUCT))
-        {
-            callee_is_shared = true;
+            callee_has_body = callee_sym->type->as.function.has_body;
         }
     }
 
@@ -2080,14 +2114,16 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
     char **arg_names = arena_alloc(gen->arena, sizeof(char *) * call->arg_count);
 
     // Build args list (comma-separated).
-    // If calling a shared function, prepend the current arena as first argument
+    // If calling a Sindarin function (has body), prepend the current arena as first argument.
+    // Native functions (no body) don't get arena prepended - if they need it, it's in their declaration.
     char *args_list;
-    if (callee_is_shared && gen->current_arena_var != NULL)
+    if (callee_has_body && gen->current_arena_var != NULL)
     {
         args_list = arena_strdup(gen->arena, gen->current_arena_var);
     }
-    else if (callee_is_shared)
+    else if (callee_has_body)
     {
+        // Function has body but no current arena (shouldn't happen in new model)
         args_list = arena_strdup(gen->arena, "NULL");
     }
     else
@@ -2183,11 +2219,21 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 /* Build parameter list: void* first, then actual params */
                 char *params_decl = arena_strdup(gen->arena, "void *__closure__");
                 char *args_forward = arena_strdup(gen->arena, "");
+
+                /* Check if wrapped function is a Sindarin function (has body) - if so, prepend arena */
+                bool wrapped_has_body = (arg_sym->type != NULL &&
+                                         arg_sym->type->kind == TYPE_FUNCTION &&
+                                         arg_sym->type->as.function.has_body);
+                if (wrapped_has_body)
+                {
+                    args_forward = arena_strdup(gen->arena, "((__Closure__ *)__closure__)->arena");
+                }
+
                 for (int p = 0; p < func_type->as.function.param_count; p++)
                 {
                     const char *param_c_type = get_c_type(gen->arena, func_type->as.function.param_types[p]);
                     params_decl = arena_sprintf(gen->arena, "%s, %s __p%d__", params_decl, param_c_type, p);
-                    if (p > 0)
+                    if (p > 0 || wrapped_has_body)
                         args_forward = arena_sprintf(gen->arena, "%s, ", args_forward);
                     args_forward = arena_sprintf(gen->arena, "%s__p%d__", args_forward, p);
                 }
@@ -2253,7 +2299,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
         }
 
-        bool need_comma = (i > 0) || callee_is_shared;
+        bool need_comma = (i > 0) || callee_has_body;
         char *new_args = arena_sprintf(gen->arena, "%s%s%s", args_list, need_comma ? ", " : "", arg_names[i]);
         args_list = new_args;
     }
@@ -2310,7 +2356,7 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             return code_gen_intercepted_call(gen, func_name_for_intercept,
                                              callee_str, args_list, call, arg_strs,
                                              param_types, param_quals, param_count,
-                                             expr->expr_type, callee_is_shared);
+                                             expr->expr_type, callee_has_body);
         }
         return arena_sprintf(gen->arena, "%s(%s)", callee_str, args_list);
     }

@@ -18,6 +18,7 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     parser->sized_array_size = NULL;
     parser->in_native_function = 0;
     parser->pack_alignment = 0;  /* 0 = default alignment, 1 = packed */
+    parser->pending_alias = NULL;  /* No pending alias initially */
 
     Token print_token;
     print_token.start = arena_strdup(arena, "print");
@@ -132,6 +133,7 @@ void parser_init(Arena *arena, Parser *parser, Lexer *lexer, SymbolTable *symbol
     parser->interp_sources = NULL;
     parser->interp_count = 0;
     parser->interp_capacity = 0;
+    parser->import_ctx = NULL;
 }
 
 void parser_cleanup(Parser *parser)
@@ -177,6 +179,215 @@ Module *parser_execute(Parser *parser, const char *filename)
     return module;
 }
 
+/* Forward declaration for recursive import processing */
+static Module *process_import_callback(Arena *arena, SymbolTable *symbol_table, const char *import_path,
+                                       ImportContext *ctx);
+
+/* Helper function to construct the import path from current file and module name */
+static char *construct_import_path(Arena *arena, const char *current_file, const char *module_name)
+{
+    /* Find the last path separator (handle both Unix '/' and Windows '\') */
+    const char *dir_end_fwd = strrchr(current_file, '/');
+    const char *dir_end_back = strrchr(current_file, '\\');
+    const char *dir_end = dir_end_fwd;
+    if (dir_end_back && (!dir_end || dir_end_back > dir_end)) {
+        dir_end = dir_end_back;
+    }
+    size_t dir_len = dir_end ? (size_t)(dir_end - current_file + 1) : 0;
+
+    size_t mod_name_len = strlen(module_name);
+    size_t path_len = dir_len + mod_name_len + 4; /* +4 for ".sn\0" */
+    char *import_path = arena_alloc(arena, path_len);
+    if (!import_path) {
+        return NULL;
+    }
+
+    if (dir_len > 0) {
+        strncpy(import_path, current_file, dir_len);
+        import_path[dir_len] = '\0';
+    } else {
+        import_path[0] = '\0';
+    }
+    strcat(import_path, module_name);
+    strcat(import_path, ".sn");
+
+    return import_path;
+}
+
+/* Process an import immediately during parsing - registers types and functions */
+Module *parser_process_import(Parser *parser, const char *module_name, bool is_namespaced)
+{
+    if (!parser->import_ctx) {
+        /* No import context - imports will be processed later by parse_module_with_imports */
+        return NULL;
+    }
+
+    ImportContext *ctx = parser->import_ctx;
+
+    /* Construct the full import path */
+    char *import_path = construct_import_path(parser->arena, ctx->current_file, module_name);
+    if (!import_path) {
+        parser_error(parser, "Failed to allocate memory for import path");
+        return NULL;
+    }
+
+    /* Check if already imported */
+    for (int j = 0; j < *ctx->imported_count; j++) {
+        if (strcmp(ctx->imported[j], import_path) == 0) {
+            /* Already imported - return the cached module */
+            return ctx->imported_modules[j];
+        }
+    }
+
+    /* Ensure capacity in imported arrays */
+    if (*ctx->imported_count >= *ctx->imported_capacity) {
+        int new_capacity = *ctx->imported_capacity == 0 ? 8 : *ctx->imported_capacity * 2;
+        char **new_imported = arena_alloc(parser->arena, sizeof(char *) * new_capacity);
+        Module **new_modules = arena_alloc(parser->arena, sizeof(Module *) * new_capacity);
+        bool *new_directly = arena_alloc(parser->arena, sizeof(bool) * new_capacity);
+        if (!new_imported || !new_modules || !new_directly) {
+            parser_error(parser, "Failed to allocate memory for imported list");
+            return NULL;
+        }
+        if (*ctx->imported_count > 0) {
+            memmove(new_imported, ctx->imported, sizeof(char *) * *ctx->imported_count);
+            memmove(new_modules, ctx->imported_modules, sizeof(Module *) * *ctx->imported_count);
+            memmove(new_directly, ctx->imported_directly, sizeof(bool) * *ctx->imported_count);
+        }
+        ctx->imported = new_imported;
+        ctx->imported_modules = new_modules;
+        ctx->imported_directly = new_directly;
+        *ctx->imported_capacity = new_capacity;
+    }
+
+    /* Reserve slot before recursive call to prevent infinite recursion on circular imports */
+    int module_idx = *ctx->imported_count;
+    ctx->imported[module_idx] = import_path;
+    ctx->imported_modules[module_idx] = NULL;
+    ctx->imported_directly[module_idx] = !is_namespaced;
+    (*ctx->imported_count)++;
+
+    /* Process the import via the callback */
+    Module *imported_module = ctx->process_import(parser->arena, parser->symbol_table, import_path, ctx);
+    if (!imported_module) {
+        /* Import failed - error already reported */
+        return NULL;
+    }
+
+    /* Store the parsed module in the cache */
+    ctx->imported_modules[module_idx] = imported_module;
+
+    return imported_module;
+}
+
+/* Callback function for recursive import processing */
+static Module *process_import_callback(Arena *arena, SymbolTable *symbol_table, const char *import_path,
+                                       ImportContext *parent_ctx)
+{
+    char *source = file_read(arena, import_path);
+    if (!source) {
+        DEBUG_ERROR("Failed to read file: %s", import_path);
+        return NULL;
+    }
+
+    Lexer lexer;
+    lexer_init(arena, &lexer, source, import_path);
+
+    Parser parser;
+    parser_init(arena, &parser, &lexer, symbol_table);
+
+    /* Set up import context for the imported module using parent's arrays */
+    ImportContext import_ctx;
+    import_ctx.imported = parent_ctx->imported;
+    import_ctx.imported_count = parent_ctx->imported_count;
+    import_ctx.imported_capacity = parent_ctx->imported_capacity;
+    import_ctx.imported_modules = parent_ctx->imported_modules;
+    import_ctx.imported_directly = parent_ctx->imported_directly;
+    import_ctx.current_file = import_path;
+    import_ctx.process_import = process_import_callback;
+
+    parser.import_ctx = &import_ctx;
+
+    Module *module = parser_execute(&parser, import_path);
+    if (!module || parser.had_error) {
+        parser_cleanup(&parser);
+        lexer_cleanup(&lexer);
+        return NULL;
+    }
+
+    parser_cleanup(&parser);
+    lexer_cleanup(&lexer);
+
+    /* Merge transitive imports into this module's statements.
+     * This is necessary so that when this module is imported by another file,
+     * all struct definitions (including those from transitive imports) are included.
+     * Without this, a chain like A -> B -> C would not include C's structs in A. */
+    Stmt **all_statements = NULL;
+    int all_count = 0;
+    int all_capacity = 0;
+
+    for (int i = 0; i < module->count; i++) {
+        Stmt *stmt = module->statements[i];
+        if (stmt != NULL && stmt->type == STMT_IMPORT &&
+            stmt->as.import.imported_stmts != NULL &&
+            stmt->as.import.namespace == NULL) {
+            /* This import was processed during parsing - merge its statements */
+            int import_count = stmt->as.import.imported_count;
+            int new_all_count = all_count + import_count;
+            int old_capacity = all_capacity;
+            while (new_all_count > all_capacity) {
+                all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+            }
+            if (all_capacity > old_capacity || all_statements == NULL) {
+                Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
+                if (!new_statements) {
+                    DEBUG_ERROR("Failed to allocate memory for statements");
+                    return NULL;
+                }
+                if (all_count > 0 && all_statements != NULL) {
+                    memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
+                }
+                all_statements = new_statements;
+            }
+            memmove(all_statements + all_count, stmt->as.import.imported_stmts, sizeof(Stmt *) * import_count);
+            all_count = new_all_count;
+
+            /* Remove the STMT_IMPORT since we merged its contents */
+            memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
+            module->count--;
+            i--; /* Re-check this index since we shifted statements */
+        }
+    }
+
+    /* If we merged any imports, combine with the module's own statements */
+    if (all_count > 0) {
+        int new_all_count = all_count + module->count;
+        int old_capacity = all_capacity;
+        while (new_all_count > all_capacity) {
+            all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+        }
+        if (all_capacity > old_capacity) {
+            Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
+            if (!new_statements) {
+                DEBUG_ERROR("Failed to allocate memory for statements");
+                return NULL;
+            }
+            if (all_count > 0 && all_statements != NULL) {
+                memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
+            }
+            all_statements = new_statements;
+        }
+        memmove(all_statements + all_count, module->statements, sizeof(Stmt *) * module->count);
+        all_count = new_all_count;
+
+        module->statements = all_statements;
+        module->count = all_count;
+        module->capacity = all_count;
+    }
+
+    return module;
+}
+
 Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename,
                                   char ***imported, int *imported_count, int *imported_capacity,
                                   Module ***imported_modules, bool **imported_directly)
@@ -194,7 +405,27 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
     Parser parser;
     parser_init(arena, &parser, &lexer, symbol_table);
 
+    /* Set up import context for import-first processing.
+     * This allows types from imported modules to be registered
+     * DURING parsing, before they are referenced. */
+    ImportContext import_ctx;
+    import_ctx.imported = *imported;
+    import_ctx.imported_count = imported_count;
+    import_ctx.imported_capacity = imported_capacity;
+    import_ctx.imported_modules = *imported_modules;
+    import_ctx.imported_directly = *imported_directly;
+    import_ctx.current_file = filename;
+    import_ctx.process_import = process_import_callback;
+
+    parser.import_ctx = &import_ctx;
+
     Module *module = parser_execute(&parser, filename);
+
+    /* Update the caller's pointers since arrays may have been reallocated */
+    *imported = import_ctx.imported;
+    *imported_modules = import_ctx.imported_modules;
+    *imported_directly = import_ctx.imported_directly;
+
     if (!module || parser.had_error)
     {
         parser_cleanup(&parser);
@@ -264,12 +495,50 @@ Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const
             if (already_imported_idx >= 0)
             {
                 /* Module already imported. Handle different cases:
-                 * 1. Namespaced import after any import: create namespace, mark if also direct
-                 * 2. Direct import after namespaced: merge functions into main module
-                 * 3. Direct import after direct: skip entirely (true duplicate) */
+                 * 1. Import-first processing: statements already in stmt->as.import.imported_stmts
+                 * 2. Namespaced import after any import: create namespace, mark if also direct
+                 * 3. Direct import after namespaced: merge functions into main module
+                 * 4. Direct import after direct: skip entirely (true duplicate) */
 
                 bool was_imported_directly = (*imported_directly != NULL) ?
                     (*imported_directly)[already_imported_idx] : false;
+
+                /* Check if this import was processed during parsing (import-first processing).
+                 * If so, imported_stmts will be populated and we need to merge them. */
+                if (stmt->as.import.imported_stmts != NULL && stmt->as.import.namespace == NULL)
+                {
+                    /* Import was processed during parsing - merge the statements */
+                    int import_count = stmt->as.import.imported_count;
+                    int new_all_count = all_count + import_count;
+                    int old_capacity = all_capacity;
+                    while (new_all_count > all_capacity)
+                    {
+                        all_capacity = all_capacity == 0 ? 8 : all_capacity * 2;
+                    }
+                    if (all_capacity > old_capacity || all_statements == NULL)
+                    {
+                        Stmt **new_statements = arena_alloc(arena, sizeof(Stmt *) * all_capacity);
+                        if (!new_statements)
+                        {
+                            DEBUG_ERROR("Failed to allocate memory for statements");
+                            parser_cleanup(&parser);
+                            lexer_cleanup(&lexer);
+                            return NULL;
+                        }
+                        if (all_count > 0 && all_statements != NULL)
+                        {
+                            memmove(new_statements, all_statements, sizeof(Stmt *) * all_count);
+                        }
+                        all_statements = new_statements;
+                    }
+                    memmove(all_statements + all_count, stmt->as.import.imported_stmts, sizeof(Stmt *) * import_count);
+                    all_count = new_all_count;
+
+                    /* Remove this import statement since we merged */
+                    memmove(&module->statements[i], &module->statements[i + 1], sizeof(Stmt *) * (module->count - i - 1));
+                    module->count--;
+                    continue;
+                }
 
                 if (stmt->as.import.namespace != NULL && *imported_modules != NULL)
                 {

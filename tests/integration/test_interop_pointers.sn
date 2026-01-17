@@ -1,8 +1,8 @@
 # Integration test for pointer operations in C interop
 # Demonstrates: *T types, nil, pointer comparison, as val unwrapping, as ref out-params
 
-#pragma include "<stdlib.h>"
-#pragma include "<string.h>"
+#pragma include <stdlib.h>
+#pragma include <string.h>
 
 # --- Section 1: Basic Pointer Types and nil ---
 

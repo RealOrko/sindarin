@@ -681,7 +681,10 @@ static char *code_gen_struct_literal_expression(CodeGen *gen, Expr *expr)
         exit(1);
     }
 
-    const char *struct_name = struct_type->as.struct_type.name;
+    /* Use c_alias for C type name if available, otherwise use Sindarin name */
+    const char *c_type_name = struct_type->as.struct_type.c_alias != NULL
+        ? struct_type->as.struct_type.c_alias
+        : struct_type->as.struct_type.name;
     int total_fields = struct_type->as.struct_type.field_count;
 
     /* Build the C compound literal: (StructName){ .field1 = val1, .field2 = val2, ... }
@@ -692,7 +695,7 @@ static char *code_gen_struct_literal_expression(CodeGen *gen, Expr *expr)
     if (gen->in_array_compound_literal) {
         result = arena_strdup(gen->arena, "{ ");
     } else {
-        result = arena_sprintf(gen->arena, "(%s){ ", struct_name);
+        result = arena_sprintf(gen->arena, "(%s){ ", c_type_name);
     }
 
     bool first = true;
@@ -728,7 +731,9 @@ static char *code_gen_struct_literal_expression(CodeGen *gen, Expr *expr)
             {
                 result = arena_sprintf(gen->arena, "%s, ", result);
             }
-            result = arena_sprintf(gen->arena, "%s.%s = %s", result, field->name, value_code);
+            /* Use c_alias for field name if available, otherwise use Sindarin name */
+            const char *c_field_name = field->c_alias != NULL ? field->c_alias : field->name;
+            result = arena_sprintf(gen->arena, "%s.%s = %s", result, c_field_name, value_code);
             first = false;
         }
         else
@@ -755,8 +760,23 @@ static char *code_gen_member_access_expression(CodeGen *gen, Expr *expr)
     char *object_code = code_gen_expression(gen, access->object);
     Type *object_type = access->object->expr_type;
 
-    /* Get field name */
+    /* Get field name - start with Sindarin name */
     char *field_name = arena_strndup(gen->arena, access->field_name.start, access->field_name.length);
+
+    /* Look up field in struct type to get c_alias if available */
+    Type *struct_type = object_type;
+    if (struct_type != NULL && struct_type->kind == TYPE_POINTER)
+    {
+        struct_type = struct_type->as.pointer.base_type;
+    }
+    if (struct_type != NULL && struct_type->kind == TYPE_STRUCT)
+    {
+        StructField *field = ast_struct_get_field(struct_type, field_name);
+        if (field != NULL && field->c_alias != NULL)
+        {
+            field_name = arena_strdup(gen->arena, field->c_alias);
+        }
+    }
 
     /* Check if this is pointer-to-struct (needs -> instead of .) */
     if (object_type != NULL && object_type->kind == TYPE_POINTER)
@@ -878,8 +898,23 @@ static char *code_gen_member_assign_expression(CodeGen *gen, Expr *expr)
     char *value_code = code_gen_expression(gen, assign->value);
     Type *object_type = assign->object->expr_type;
 
-    /* Get field name */
+    /* Get field name - start with Sindarin name */
     char *field_name = arena_strndup(gen->arena, assign->field_name.start, assign->field_name.length);
+
+    /* Look up field in struct type to get c_alias if available */
+    Type *struct_type = object_type;
+    if (struct_type != NULL && struct_type->kind == TYPE_POINTER)
+    {
+        struct_type = struct_type->as.pointer.base_type;
+    }
+    if (struct_type != NULL && struct_type->kind == TYPE_STRUCT)
+    {
+        StructField *field = ast_struct_get_field(struct_type, field_name);
+        if (field != NULL && field->c_alias != NULL)
+        {
+            field_name = arena_strdup(gen->arena, field->c_alias);
+        }
+    }
 
     /* Check if this is pointer-to-struct (needs -> instead of .) */
     if (object_type != NULL && object_type->kind == TYPE_POINTER)

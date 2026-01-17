@@ -1,8 +1,8 @@
 # Test native function declarations for C interop
 # This test declares native math functions and calls them via #pragma include
 
-#pragma include "<math.h>"
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
 
 # Native function declarations without body - external C functions
 native fn sin(x: double): double

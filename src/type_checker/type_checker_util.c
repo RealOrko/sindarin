@@ -1290,6 +1290,38 @@ bool detect_struct_circular_dependency(Type *struct_type, SymbolTable *table, ch
     return false;
 }
 
+Type *resolve_struct_forward_reference(Type *type, SymbolTable *table)
+{
+    if (type == NULL || type->kind != TYPE_STRUCT || table == NULL)
+    {
+        return type;
+    }
+
+    /* Check if this is a forward reference (0 fields and NULL fields pointer) */
+    if (type->as.struct_type.field_count == 0 && type->as.struct_type.fields == NULL)
+    {
+        const char *struct_name = type->as.struct_type.name;
+        if (struct_name == NULL)
+        {
+            return type;
+        }
+
+        /* Look up the complete struct definition */
+        Token lookup_tok;
+        lookup_tok.start = struct_name;
+        lookup_tok.length = strlen(struct_name);
+
+        Symbol *sym = symbol_table_lookup_type(table, lookup_tok);
+        if (sym != NULL && sym->type != NULL && sym->type->kind == TYPE_STRUCT)
+        {
+            /* Found the complete type - use it instead */
+            return sym->type;
+        }
+    }
+
+    return type;
+}
+
 void get_module_symbols(Module *imported_module, SymbolTable *table,
                         Token ***symbols_out, Type ***types_out, int *count_out)
 {
@@ -1379,9 +1411,10 @@ void get_module_symbols(Module *imported_module, SymbolTable *table,
             }
 
             Type *func_type = ast_create_function_type(arena, func->return_type, param_types, func->param_count);
-            /* Carry over variadic and native flags from function statement */
+            /* Carry over variadic, native, and has_body flags from function statement */
             func_type->as.function.is_variadic = func->is_variadic;
             func_type->as.function.is_native = func->is_native;
+            func_type->as.function.has_body = (func->body != NULL);
 
             /* Store parameter memory qualifiers if any non-default exist */
             if (func->param_count > 0)

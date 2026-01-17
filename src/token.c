@@ -247,6 +247,8 @@ const char *token_type_to_string(SnTokenType type)
         return "PRAGMA_INCLUDE";
     case TOKEN_PRAGMA_LINK:
         return "PRAGMA_LINK";
+    case TOKEN_PRAGMA_SOURCE:
+        return "PRAGMA_SOURCE";
     case TOKEN_PRAGMA_PACK:
         return "PRAGMA_PACK";
     case TOKEN_INDENT:

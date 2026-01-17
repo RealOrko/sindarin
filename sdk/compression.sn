@@ -21,8 +21,8 @@
 #   - Windows: Install zlib via vcpkg or download from zlib.net
 # ==============================================================================
 
-#pragma include "<zlib.h>"
-#pragma link "z"
+#pragma include <zlib.h>
+#pragma link z
 
 # ==============================================================================
 # Error Codes

@@ -1141,10 +1141,10 @@ static void test_ptr_struct_member_rejected_in_regular_fn(void)
     Token struct_tok;
     setup_test_token(&struct_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *point_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, true, false);
+    Type *point_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, true, false, false, NULL);
     symbol_table_add_type(&table, struct_tok, point_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_tok, fields, 2, NULL, 0, true, false, &struct_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_tok, fields, 2, NULL, 0, true, false, false, NULL, &struct_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create: *Point type */
@@ -1222,10 +1222,10 @@ static void test_ptr_struct_member_accepted_in_native_fn(void)
     Token struct_tok;
     setup_test_token(&struct_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *point_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, true, false);
+    Type *point_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, true, false, false, NULL);
     symbol_table_add_type(&table, struct_tok, point_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_tok, fields, 2, NULL, 0, true, false, &struct_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_tok, fields, 2, NULL, 0, true, false, false, NULL, &struct_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create: *Point type */

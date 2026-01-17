@@ -22,6 +22,7 @@ struct StructField
     Type *type;             /* Field type */
     size_t offset;          /* Byte offset within struct (computed during type checking) */
     Expr *default_value;    /* Optional default value (NULL if none) */
+    const char *c_alias;    /* C name alias (from #pragma alias), NULL if none */
 };
 
 typedef enum
@@ -102,6 +103,7 @@ struct StructMethod
     bool is_static;             /* True if declared with 'static' keyword */
     bool is_native;             /* True if declared with 'native' keyword */
     Token name_token;           /* Token for error reporting */
+    const char *c_alias;        /* C function name alias (from #pragma alias), NULL if none */
 };
 
 struct Type
@@ -123,6 +125,7 @@ struct Type
             int param_count;
             bool is_variadic;                 /* true if function accepts variadic arguments */
             bool is_native;                   /* true if this is a native callback type (C-compatible function pointer) */
+            bool has_body;                    /* true if function has a Sindarin body (vs true extern) */
             const char *typedef_name;         /* Name of the typedef for native callback types (NULL if anonymous) */
         } function;
 
@@ -147,6 +150,8 @@ struct Type
             size_t alignment;       /* Alignment requirement (computed during type checking) */
             bool is_native;         /* True if declared with 'native struct' (allows pointer fields) */
             bool is_packed;         /* True if preceded by #pragma pack(1) */
+            bool pass_self_by_ref;  /* True if 'as ref' - native methods receive self by pointer */
+            const char *c_alias;    /* C type name alias (from #pragma alias), NULL if none */
         } struct_type;
     } as;
 };
@@ -507,7 +512,9 @@ typedef enum
 {
     PRAGMA_INCLUDE,
     PRAGMA_LINK,
-    PRAGMA_PACK      /* #pragma pack(1) or #pragma pack() */
+    PRAGMA_SOURCE,   /* #pragma source "file.c" */
+    PRAGMA_PACK,     /* #pragma pack(1) or #pragma pack() */
+    PRAGMA_ALIAS     /* #pragma alias "c_name" - applies to next native struct/field/method */
 } PragmaType;
 
 typedef struct
@@ -626,6 +633,8 @@ typedef struct
     int method_count;          /* Number of methods */
     bool is_native;            /* True if declared with 'native struct' (allows pointer fields) */
     bool is_packed;            /* True if preceded by #pragma pack(1) */
+    bool pass_self_by_ref;     /* True if 'as ref' - native methods receive self by pointer */
+    const char *c_alias;       /* C type name alias (from #pragma alias), NULL if none */
 } StructDeclStmt;
 
 /* Lock statement for synchronized blocks: lock(expr) => body */
@@ -686,7 +695,8 @@ Type *ast_create_pointer_type(Arena *arena, Type *base_type);
 Type *ast_create_opaque_type(Arena *arena, const char *name);
 Type *ast_create_function_type(Arena *arena, Type *return_type, Type **param_types, int param_count);
 Type *ast_create_struct_type(Arena *arena, const char *name, StructField *fields, int field_count,
-                             StructMethod *methods, int method_count, bool is_native, bool is_packed);
+                             StructMethod *methods, int method_count, bool is_native, bool is_packed,
+                             bool pass_self_by_ref, const char *c_alias);
 StructMethod *ast_struct_get_method(Type *struct_type, const char *method_name);
 int ast_type_equals(Type *a, Type *b);
 int ast_type_is_pointer(Type *type);
@@ -753,7 +763,8 @@ Stmt *ast_create_pragma_stmt(Arena *arena, PragmaType pragma_type, const char *v
 Stmt *ast_create_type_decl_stmt(Arena *arena, Token name, Type *type, const Token *loc_token);
 Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields, int field_count,
                                    StructMethod *methods, int method_count,
-                                   bool is_native, bool is_packed, const Token *loc_token);
+                                   bool is_native, bool is_packed, bool pass_self_by_ref,
+                                   const char *c_alias, const Token *loc_token);
 Stmt *ast_create_lock_stmt(Arena *arena, Expr *lock_expr, Stmt *body, const Token *loc_token);
 
 void ast_init_module(Arena *arena, Module *module, const char *filename);

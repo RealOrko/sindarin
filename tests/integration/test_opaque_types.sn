@@ -1,7 +1,7 @@
 # Integration test for opaque types (type X = opaque)
 # Tests opaque type declaration and pointer usage with FILE
 
-#pragma include "<stdio.h>"
+#pragma include <stdio.h>
 
 # Declare FILE as an opaque type
 type FILE = opaque

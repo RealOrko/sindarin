@@ -3,8 +3,8 @@
 # This validates the C interop pattern from the spec:
 #   native fn gettimeofday(tv: TimeVal as ref, tz: *void): int
 
-#pragma include "<string.h>"
-#pragma include "<stdlib.h>"
+#pragma include <string.h>
+#pragma include <stdlib.h>
 
 # Native struct that will be passed to C functions
 native struct CBuffer =>

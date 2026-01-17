@@ -19,6 +19,7 @@ Stmt *ast_create_continue_stmt(Arena *arena, const Token *loc_token);
 Stmt *ast_create_import_stmt(Arena *arena, Token module_name, Token *namespace, const Token *loc_token);
 Stmt *ast_create_struct_decl_stmt(Arena *arena, Token name, StructField *fields, int field_count,
                                    StructMethod *methods, int method_count,
-                                   bool is_native, bool is_packed, const Token *loc_token);
+                                   bool is_native, bool is_packed, bool pass_self_by_ref,
+                                   const char *c_alias, const Token *loc_token);
 
 #endif /* AST_STMT_H */

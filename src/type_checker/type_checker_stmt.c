@@ -483,6 +483,24 @@ static void type_check_var_decl(Stmt *stmt, SymbolTable *table, Type *return_typ
     }
 }
 
+/* Add 'arena' built-in identifier to current scope.
+ * This makes 'arena' available in non-native functions and methods,
+ * allowing SDK code to pass the arena to native runtime functions. */
+static void add_arena_builtin(SymbolTable *table, Token *ref_token)
+{
+    Token arena_token;
+    arena_token.start = "arena";
+    arena_token.length = 5;
+    arena_token.line = ref_token->line;
+    arena_token.filename = ref_token->filename;
+    arena_token.type = TOKEN_IDENTIFIER;
+
+    /* Type is *void (pointer to void) */
+    Type *void_type = ast_create_primitive_type(table->arena, TYPE_VOID);
+    Type *arena_type = ast_create_pointer_type(table->arena, void_type);
+    symbol_table_add_symbol(table, arena_token, arena_type);
+}
+
 /* Type-check only the function body, without adding to global scope.
  * Used for namespaced imports where the function is registered under a namespace. */
 static void type_check_function_body_only(Stmt *stmt, SymbolTable *table)
@@ -491,6 +509,12 @@ static void type_check_function_body_only(Stmt *stmt, SymbolTable *table)
     Arena *arena = table->arena;
 
     symbol_table_push_scope(table);
+
+    /* For non-native functions, add 'arena' as a built-in identifier */
+    if (!stmt->as.function.is_native && stmt->as.function.body_count > 0)
+    {
+        add_arena_builtin(table, &stmt->as.function.name);
+    }
 
     for (int i = 0; i < stmt->as.function.param_count; i++)
     {
@@ -607,6 +631,8 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     func_type->as.function.is_variadic = stmt->as.function.is_variadic;
     /* Carry over native flag so code gen emits direct C calls, not closure calls */
     func_type->as.function.is_native = stmt->as.function.is_native;
+    /* Track whether function has a body (vs true extern declaration) */
+    func_type->as.function.has_body = (stmt->as.function.body_count > 0);
 
     /* Store parameter memory qualifiers in the function type for thread safety analysis.
      * This allows detecting 'as ref' primitives when checking thread spawn arguments. */
@@ -699,6 +725,12 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
     }
 
     symbol_table_push_scope(table);
+
+    /* For non-native functions, add 'arena' as a built-in identifier */
+    if (!stmt->as.function.is_native && stmt->as.function.body_count > 0)
+    {
+        add_arena_builtin(table, &stmt->as.function.name);
+    }
 
     for (int i = 0; i < stmt->as.function.param_count; i++)
     {
@@ -1081,11 +1113,27 @@ static void type_check_struct_decl(Stmt *stmt, SymbolTable *table)
         DEBUG_VERBOSE("  Type checking method '%s' (static=%d, native=%d)",
                       method->name, method->is_static, method->is_native);
 
+        /* Resolve forward references in method return type and parameter types */
+        if (method->return_type != NULL)
+        {
+            method->return_type = resolve_struct_forward_reference(method->return_type, table);
+        }
+        for (int j = 0; j < method->param_count; j++)
+        {
+            if (method->params[j].type != NULL)
+            {
+                method->params[j].type = resolve_struct_forward_reference(method->params[j].type, table);
+            }
+        }
+
         /* For non-native methods, type check the body */
         if (!method->is_native && method->body != NULL)
         {
             /* Create a new scope for the method body */
             symbol_table_push_scope(table);
+
+            /* Add 'arena' built-in identifier for non-native methods */
+            add_arena_builtin(table, &struct_decl->name);
 
             /* For instance methods, add 'self' parameter to scope */
             if (!method->is_static)
@@ -1102,9 +1150,22 @@ static void type_check_struct_decl(Stmt *stmt, SymbolTable *table)
                     self_token.filename = struct_decl->name.filename;
                     self_token.type = TOKEN_IDENTIFIER;
 
-                    /* Add 'self' as a pointer to the struct type (allows modifications) */
-                    Type *self_ptr_type = ast_create_pointer_type(table->arena, struct_sym->type);
-                    symbol_table_add_symbol(table, self_token, self_ptr_type);
+                    /* For opaque handle types (native structs with c_alias),
+                     * the struct type itself IS the pointer type, so 'self' should
+                     * be the struct type directly. Otherwise, 'self' is a pointer
+                     * to the struct type (allows modifications). */
+                    Type *self_type;
+                    if (struct_decl->is_native && struct_decl->c_alias != NULL)
+                    {
+                        /* Opaque handle type: self is the struct type itself */
+                        self_type = struct_sym->type;
+                    }
+                    else
+                    {
+                        /* Regular struct: self is a pointer to the struct type */
+                        self_type = ast_create_pointer_type(table->arena, struct_sym->type);
+                    }
+                    symbol_table_add_symbol(table, self_token, self_type);
                 }
             }
 
@@ -1310,12 +1371,31 @@ static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
                 symbol_table_add_function_to_namespace(table, ns_token, *func_name, func_type, effective_modifier, modifier);
 
                 /* Only add to global scope if not already there (e.g., from direct import).
-                 * Track whether we added it so we can remove it later. */
+                 * Track whether we added it so we can remove it later.
+                 * Use the appropriate function for native vs non-native functions. */
                 Symbol *existing = symbol_table_lookup_symbol(table, *func_name);
                 if (existing == NULL)
                 {
-                    symbol_table_add_function(table, *func_name, func_type, effective_modifier, modifier);
+                    if (func->is_native)
+                    {
+                        symbol_table_add_native_function(table, *func_name, func_type, effective_modifier, modifier);
+                    }
+                    else
+                    {
+                        symbol_table_add_function(table, *func_name, func_type, effective_modifier, modifier);
+                    }
                     added_to_global[added_idx] = true;
+                }
+                else
+                {
+                    /* Symbol already exists (added by parser). Update its function flags
+                     * so code gen knows it's a named function, not a closure.
+                     * Also update the type to ensure has_body is set correctly. */
+                    existing->type = ast_clone_type(table->arena, func_type);
+                    existing->is_function = true;
+                    existing->is_native = func->is_native;
+                    existing->func_mod = effective_modifier;
+                    existing->declared_func_mod = modifier;
                 }
                 added_idx++;
 

@@ -6,6 +6,9 @@
 #include "ast.h"
 #include "symbol_table.h"
 
+/* Forward declaration for import context */
+typedef struct ImportContext ImportContext;
+
 typedef struct
 {
     Lexer *lexer;
@@ -22,7 +25,26 @@ typedef struct
     Expr *sized_array_size;    /* Size expression parsed from TYPE[expr] syntax */
     int in_native_function;    /* True when parsing body of native function, for native lambdas */
     int pack_alignment;        /* Current pack alignment: 0 = default, 1 = packed */
+    ImportContext *import_ctx; /* Context for import-first processing (NULL if not tracking imports) */
+    const char *pending_alias; /* C alias from #pragma alias, applied to next declaration */
 } Parser;
+
+/* Forward declare Parser for function pointer type */
+struct Parser;
+
+/* Import context for tracking imported modules and enabling import-first processing */
+struct ImportContext
+{
+    char **imported;              /* Array of imported file paths */
+    int *imported_count;          /* Pointer to count (shared across recursive calls) */
+    int *imported_capacity;       /* Pointer to capacity (shared across recursive calls) */
+    Module **imported_modules;    /* Array of parsed imported modules */
+    bool *imported_directly;      /* Array tracking if each import is direct (non-namespaced) */
+    const char *current_file;     /* Path of the file currently being parsed */
+    /* Function pointer for recursive import processing (to avoid circular dependency) */
+    Module *(*process_import)(Arena *arena, SymbolTable *symbol_table, const char *import_path,
+                              struct ImportContext *ctx);
+};
 
 /* Result struct for parser_type_with_size() */
 typedef struct
@@ -79,5 +101,10 @@ Module *parser_execute(Parser *parser, const char *filename);
 Module *parse_module_with_imports(Arena *arena, SymbolTable *symbol_table, const char *filename,
                                   char ***imported, int *imported_count, int *imported_capacity,
                                   Module ***imported_modules, bool **imported_directly);
+
+/* Process an import immediately during parsing - called by parser_import_statement.
+ * Returns the parsed module, or NULL if import context is not available or on error.
+ * When successful, types from the imported module are registered in the symbol table. */
+Module *parser_process_import(Parser *parser, const char *module_name, bool is_namespaced);
 
 #endif

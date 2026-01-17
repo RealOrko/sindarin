@@ -314,7 +314,7 @@ class TestRunner:
             print(f"{Colors.YELLOW}SKIP{Colors.NC} (no .expected)")
             return 'skip'
 
-        # Compile (skip -g on Windows as ASAN has compatibility issues with LLVM-MinGW)
+        # Standard compilation (use #pragma source for C helper files)
         compile_cmd = [self.compiler, test_file, '-o', exe_file, '-l', '1', '-O0']
         if not is_windows():
             compile_cmd.append('-g')
@@ -323,11 +323,11 @@ class TestRunner:
         )
 
         if exit_code != 0:
-            print(f"{Colors.RED}FAIL{Colors.NC} (compile error)")
-            if self.verbose and stderr:
-                for line in stderr.split('\n')[:3]:
-                    print(f"    {line}")
-            return 'fail'
+                print(f"{Colors.RED}FAIL{Colors.NC} (compile error)")
+                if self.verbose and stderr:
+                    for line in stderr.split('\n')[:3]:
+                        print(f"    {line}")
+                return 'fail'
 
         # Run with merged stdout/stderr (like bash's 2>&1)
         run_timeout = 5 if test_type == 'integration' else self.run_timeout

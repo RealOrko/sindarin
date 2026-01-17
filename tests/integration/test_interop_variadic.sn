@@ -4,7 +4,7 @@
 # Note: This test uses a custom variadic wrapper to avoid conflicts with
 # C stdio.h declarations. See test_variadic_helper.c for the wrapper.
 
-#pragma include "\"test_variadic_helper.c\""
+#pragma source "test_variadic_helper.c"
 
 # Declare test_printf as a variadic native function
 # Note: Sindarin int is 64-bit, so use %ld format specifier

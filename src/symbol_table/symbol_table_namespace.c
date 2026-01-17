@@ -173,7 +173,7 @@ void symbol_table_add_symbol_to_namespace(SymbolTable *table, Token namespace_na
     symbol->func_mod = FUNC_DEFAULT;
     symbol->declared_func_mod = FUNC_DEFAULT;
     symbol->is_function = false;
-    symbol->is_native = false;
+    symbol->is_native = (type != NULL && type->kind == TYPE_FUNCTION && type->as.function.is_native);
     symbol->thread_state = THREAD_STATE_NORMAL;
     symbol->frozen_state.freeze_count = 0;
     symbol->frozen_state.frozen = false;
@@ -238,6 +238,7 @@ void symbol_table_add_function_to_namespace(SymbolTable *table, Token namespace_
             existing->func_mod = func_mod;
             existing->declared_func_mod = declared_func_mod;
             existing->is_function = true;
+            existing->is_native = (type != NULL && type->kind == TYPE_FUNCTION && type->as.function.is_native);
             return;
         }
         existing = existing->next;
@@ -272,7 +273,7 @@ void symbol_table_add_function_to_namespace(SymbolTable *table, Token namespace_
     symbol->func_mod = func_mod;
     symbol->declared_func_mod = declared_func_mod;
     symbol->is_function = true;
-    symbol->is_native = false;
+    symbol->is_native = (type != NULL && type->kind == TYPE_FUNCTION && type->as.function.is_native);
     symbol->thread_state = THREAD_STATE_NORMAL;
     symbol->frozen_state.freeze_count = 0;
     symbol->frozen_state.frozen = false;

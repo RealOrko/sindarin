@@ -5,7 +5,7 @@
 // - Passes native callback to native function
 // - Callback executes and returns correct value
 
-#pragma include "<stdlib.h>"
+#pragma include <stdlib.h>
 
 // Define the qsort comparator callback type (exact signature from libc)
 type Comparator = native fn(a: *void, b: *void): int

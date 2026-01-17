@@ -9,8 +9,8 @@
 #   print($"sin(45) = {math.sin(angle)}\n")
 # ==============================================================================
 
-#pragma include "<math.h>"
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
 
 # ==============================================================================
 # C Math Library Bindings (double precision)

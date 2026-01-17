@@ -10,6 +10,7 @@
 
 /* Forward declaration for pragma pack parsing */
 static Stmt *parser_pragma_pack_statement(Parser *parser);
+static Stmt *parser_pragma_alias_statement(Parser *parser);
 
 /* Parse optional "as val" or "as ref" memory qualifier */
 MemoryQualifier parser_memory_qualifier(Parser *parser)
@@ -314,9 +315,17 @@ Stmt *parser_declaration(Parser *parser)
     {
         return parser_pragma_statement(parser, PRAGMA_LINK);
     }
+    if (parser_match(parser, TOKEN_PRAGMA_SOURCE))
+    {
+        return parser_pragma_statement(parser, PRAGMA_SOURCE);
+    }
     if (parser_match(parser, TOKEN_PRAGMA_PACK))
     {
         return parser_pragma_pack_statement(parser);
+    }
+    if (parser_match(parser, TOKEN_PRAGMA_ALIAS))
+    {
+        return parser_pragma_alias_statement(parser);
     }
     if (parser_match(parser, TOKEN_KEYWORD_TYPE))
     {
@@ -439,23 +448,91 @@ Stmt *parser_pragma_statement(Parser *parser, PragmaType pragma_type)
 {
     Token pragma_token = parser->previous;
 
-    // Expect a string literal for the value (e.g., "<math.h>" or "m")
-    if (!parser_match(parser, TOKEN_STRING_LITERAL))
+    /* WYSIWYG pragma parsing: consume all tokens until newline/EOF
+     * and preserve the exact text as written.
+     *
+     * Examples:
+     *   #pragma include <math.h>        -> "<math.h>"
+     *   #pragma include "runtime.h"     -> "\"runtime.h\""
+     *   #pragma link pthread            -> "pthread"
+     *
+     * Note: Tokens are stored as duplicated strings in arena memory,
+     * so we must concatenate them manually.
+     */
+
+    /* Check for old quoted syntax and error */
+    if (parser_check(parser, TOKEN_STRING_LITERAL))
     {
-        parser_error_at_current(parser, "Expected string literal after pragma directive");
+        const char *str_val = parser->current.literal.string_value;
+        if (str_val && str_val[0] == '<')
+        {
+            parser_error_at_current(parser,
+                "Old pragma syntax detected. Use WYSIWYG syntax instead:\n"
+                "  #pragma include <math.h>     (not \"<math.h>\")\n"
+                "  #pragma include \"file.h\"   (not \"\\\"file.h\\\"\")");
+            return NULL;
+        }
+    }
+
+    /* Build pragma value by concatenating tokens */
+    size_t capacity = 256;
+    size_t len = 0;
+    char *value = arena_alloc(parser->arena, capacity);
+    value[0] = '\0';
+
+    while (!parser_check(parser, TOKEN_NEWLINE) &&
+           !parser_check(parser, TOKEN_SEMICOLON) &&
+           !parser_is_at_end(parser))
+    {
+        Token tok = parser->current;
+
+        /* For string literals, include the quotes */
+        if (tok.type == TOKEN_STRING_LITERAL)
+        {
+            /* Need to add quotes around the string value */
+            size_t str_len = strlen(tok.literal.string_value);
+            size_t needed = len + str_len + 3; /* "..." + null */
+            if (needed > capacity)
+            {
+                capacity = needed * 2;
+                char *new_value = arena_alloc(parser->arena, capacity);
+                memcpy(new_value, value, len);
+                value = new_value;
+            }
+            value[len++] = '"';
+            memcpy(value + len, tok.literal.string_value, str_len);
+            len += str_len;
+            value[len++] = '"';
+            value[len] = '\0';
+        }
+        else
+        {
+            /* Append token text directly */
+            size_t needed = len + tok.length + 1;
+            if (needed > capacity)
+            {
+                capacity = needed * 2;
+                char *new_value = arena_alloc(parser->arena, capacity);
+                memcpy(new_value, value, len);
+                value = new_value;
+            }
+            memcpy(value + len, tok.start, tok.length);
+            len += tok.length;
+            value[len] = '\0';
+        }
+
+        parser_advance(parser);
+    }
+
+    /* Handle case where no tokens were consumed */
+    if (len == 0)
+    {
+        parser_error(parser, "Expected content after pragma directive");
         return NULL;
     }
 
-    const char *value = parser->previous.literal.string_value;
-
-    // Consume optional newline/semicolon
-    if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_check(parser, TOKEN_NEWLINE) && !parser_is_at_end(parser))
-    {
-        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after pragma directive");
-    }
-    else if (parser_match(parser, TOKEN_SEMICOLON))
-    {
-    }
+    /* Consume optional semicolon */
+    parser_match(parser, TOKEN_SEMICOLON);
 
     return ast_create_pragma_stmt(parser->arena, pragma_type, value, &pragma_token);
 }
@@ -505,6 +582,42 @@ static Stmt *parser_pragma_pack_statement(Parser *parser)
     /* Create a pragma statement to preserve the directive in the AST */
     const char *value = parser->pack_alignment == 1 ? "1" : "";
     return ast_create_pragma_stmt(parser->arena, PRAGMA_PACK, value, &pragma_token);
+}
+
+/* Parser for #pragma alias "c_name"
+ * Sets pending_alias which will be applied to the next native struct, field, or method.
+ * Returns a pragma statement to preserve the directive in the AST. */
+static Stmt *parser_pragma_alias_statement(Parser *parser)
+{
+    Token pragma_token = parser->previous;
+
+    /* Expect a string literal for the C alias name */
+    if (!parser_match(parser, TOKEN_STRING_LITERAL))
+    {
+        parser_error_at_current(parser, "Expected string literal after #pragma alias");
+        return NULL;
+    }
+
+    /* Extract the string value (strip quotes) */
+    Token alias_token = parser->previous;
+    const char *alias_start = alias_token.start + 1;  /* Skip opening quote */
+    int alias_len = alias_token.length - 2;           /* Exclude both quotes */
+    char *alias_value = arena_strndup(parser->arena, alias_start, alias_len);
+
+    /* Store the pending alias */
+    parser->pending_alias = alias_value;
+
+    /* Consume optional newline/semicolon */
+    if (!parser_match(parser, TOKEN_SEMICOLON) && !parser_check(parser, TOKEN_NEWLINE) && !parser_is_at_end(parser))
+    {
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' or newline after pragma directive");
+    }
+    else if (parser_match(parser, TOKEN_SEMICOLON))
+    {
+    }
+
+    /* Create a pragma statement to preserve the directive in the AST */
+    return ast_create_pragma_stmt(parser->arena, PRAGMA_ALIAS, alias_value, &pragma_token);
 }
 
 Stmt *parser_import_statement(Parser *parser)
@@ -586,5 +699,21 @@ Stmt *parser_import_statement(Parser *parser)
     {
     }
 
-    return ast_create_import_stmt(parser->arena, module_name, namespace, &import_token);
+    /* Create the import statement */
+    Stmt *import_stmt = ast_create_import_stmt(parser->arena, module_name, namespace, &import_token);
+
+    /* Import-first processing: immediately process the import to register types.
+     * This allows struct types from the imported module to be used later in this file. */
+    if (parser->import_ctx != NULL)
+    {
+        Module *imported_module = parser_process_import(parser, module_name.start, namespace != NULL);
+        if (imported_module != NULL && import_stmt != NULL)
+        {
+            /* Store the imported statements for later processing (statement merging) */
+            import_stmt->as.import.imported_stmts = imported_module->statements;
+            import_stmt->as.import.imported_count = imported_module->count;
+        }
+    }
+
+    return import_stmt;
 }

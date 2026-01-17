@@ -37,10 +37,10 @@ static void test_struct_primitive_fields()
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
     /* Create struct type and register it in symbol table */
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -83,10 +83,10 @@ static void test_struct_all_primitive_types()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "AllTypes", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "AllTypes", fields, 9, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "AllTypes", fields, 9, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 9, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 9, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -123,10 +123,10 @@ static void test_struct_nested_struct_type()
     Token point_tok;
     setup_token(&point_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false);
+    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, point_tok, point_type);
 
-    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, &point_tok);
+    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, false, NULL, &point_tok);
     ast_module_add_statement(&arena, &module, point_decl);
 
     /* Now define Rectangle struct with origin: Point */
@@ -138,10 +138,10 @@ static void test_struct_nested_struct_type()
     Token rect_tok;
     setup_token(&rect_tok, TOKEN_IDENTIFIER, "Rectangle", 2, "test.sn", &arena);
 
-    Type *rect_type = ast_create_struct_type(&arena, "Rectangle", rect_fields, 3, NULL, 0, false, false);
+    Type *rect_type = ast_create_struct_type(&arena, "Rectangle", rect_fields, 3, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, rect_tok, rect_type);
 
-    Stmt *rect_decl = ast_create_struct_decl_stmt(&arena, rect_tok, rect_fields, 3, NULL, 0, false, false, &rect_tok);
+    Stmt *rect_decl = ast_create_struct_decl_stmt(&arena, rect_tok, rect_fields, 3, NULL, 0, false, false, false, NULL, &rect_tok);
     ast_module_add_statement(&arena, &module, rect_decl);
 
     type_checker_reset_error();
@@ -180,10 +180,10 @@ static void test_struct_array_field()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Container", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Container", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Container", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -225,10 +225,10 @@ static void test_struct_default_value_valid()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -271,10 +271,10 @@ static void test_struct_default_value_type_mismatch()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "BadConfig", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "BadConfig", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "BadConfig", fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -314,10 +314,10 @@ static void test_native_struct_pointer_field()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Buffer", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false);  /* native struct */
+    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false, false, NULL);  /* native struct */
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -357,10 +357,10 @@ static void test_non_native_struct_pointer_field_error()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "BadBuffer", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "BadBuffer", fields, 2, NULL, 0, false, false);  /* NOT native */
+    Type *struct_type = ast_create_struct_type(&arena, "BadBuffer", fields, 2, NULL, 0, false, false, false, NULL);  /* NOT native */
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -392,10 +392,10 @@ static void test_struct_empty()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Empty", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Empty", NULL, 0, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Empty", NULL, 0, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, NULL, 0, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, NULL, 0, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -439,10 +439,10 @@ static void test_struct_opaque_field()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "FileInfo", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "FileInfo", fields, 2, NULL, 0, true, false);
+    Type *struct_type = ast_create_struct_type(&arena, "FileInfo", fields, 2, NULL, 0, true, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -477,10 +477,10 @@ static void test_struct_null_field_type_error()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "BadStruct", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "BadStruct", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "BadStruct", fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -533,12 +533,14 @@ static void test_struct_direct_circular_dependency()
     node_type->as.struct_type.fields[0].type = int_type;
     node_type->as.struct_type.fields[0].offset = 0;
     node_type->as.struct_type.fields[0].default_value = NULL;
+    node_type->as.struct_type.fields[0].c_alias = NULL;
 
     /* Field 1: next: Node (self-reference) */
     node_type->as.struct_type.fields[1].name = arena_strdup(&arena, "next");
     node_type->as.struct_type.fields[1].type = node_type;  /* Direct self-reference! */
     node_type->as.struct_type.fields[1].offset = 0;
     node_type->as.struct_type.fields[1].default_value = NULL;
+    node_type->as.struct_type.fields[1].c_alias = NULL;
 
     /* NOTE: Do NOT use symbol_table_add_type here as it calls ast_clone_type
      * which will infinitely recurse on self-referential types.
@@ -601,6 +603,7 @@ static void test_struct_indirect_circular_dependency()
     struct_a->as.struct_type.fields[0].type = int_type;
     struct_a->as.struct_type.fields[0].offset = 0;
     struct_a->as.struct_type.fields[0].default_value = NULL;
+    struct_a->as.struct_type.fields[0].c_alias = NULL;
 
     /* Create struct B */
     Token b_tok;
@@ -617,16 +620,19 @@ static void test_struct_indirect_circular_dependency()
     struct_b->as.struct_type.fields[0].type = int_type;
     struct_b->as.struct_type.fields[0].offset = 0;
     struct_b->as.struct_type.fields[0].default_value = NULL;
+    struct_b->as.struct_type.fields[0].c_alias = NULL;
     struct_b->as.struct_type.fields[1].name = arena_strdup(&arena, "ref_a");
     struct_b->as.struct_type.fields[1].type = struct_a;  /* B -> A */
     struct_b->as.struct_type.fields[1].offset = 0;
     struct_b->as.struct_type.fields[1].default_value = NULL;
+    struct_b->as.struct_type.fields[1].c_alias = NULL;
 
     /* Complete the cycle: A -> B */
     struct_a->as.struct_type.fields[1].name = arena_strdup(&arena, "ref_b");
     struct_a->as.struct_type.fields[1].type = struct_b;  /* A -> B */
     struct_a->as.struct_type.fields[1].offset = 0;
     struct_a->as.struct_type.fields[1].default_value = NULL;
+    struct_a->as.struct_type.fields[1].c_alias = NULL;
 
     /* NOTE: Do NOT use symbol_table_add_type - it calls ast_clone_type
      * which infinitely recurses on circular references. */
@@ -695,6 +701,7 @@ static void test_struct_multi_level_circular_chain()
     struct_a->as.struct_type.fields[0].type = int_type;
     struct_a->as.struct_type.fields[0].offset = 0;
     struct_a->as.struct_type.fields[0].default_value = NULL;
+    struct_a->as.struct_type.fields[0].c_alias = NULL;
 
     /* Create struct B */
     Token b_tok;
@@ -710,6 +717,7 @@ static void test_struct_multi_level_circular_chain()
     struct_b->as.struct_type.fields[0].type = int_type;
     struct_b->as.struct_type.fields[0].offset = 0;
     struct_b->as.struct_type.fields[0].default_value = NULL;
+    struct_b->as.struct_type.fields[0].c_alias = NULL;
 
     /* Create struct C */
     Token c_tok;
@@ -725,22 +733,26 @@ static void test_struct_multi_level_circular_chain()
     struct_c->as.struct_type.fields[0].type = int_type;
     struct_c->as.struct_type.fields[0].offset = 0;
     struct_c->as.struct_type.fields[0].default_value = NULL;
+    struct_c->as.struct_type.fields[0].c_alias = NULL;
     struct_c->as.struct_type.fields[1].name = arena_strdup(&arena, "ref_a");
     struct_c->as.struct_type.fields[1].type = struct_a;  /* C -> A */
     struct_c->as.struct_type.fields[1].offset = 0;
     struct_c->as.struct_type.fields[1].default_value = NULL;
+    struct_c->as.struct_type.fields[1].c_alias = NULL;
 
     /* B references C: B -> C */
     struct_b->as.struct_type.fields[1].name = arena_strdup(&arena, "ref_c");
     struct_b->as.struct_type.fields[1].type = struct_c;
     struct_b->as.struct_type.fields[1].offset = 0;
     struct_b->as.struct_type.fields[1].default_value = NULL;
+    struct_b->as.struct_type.fields[1].c_alias = NULL;
 
     /* A references B: A -> B, completing the cycle A -> B -> C -> A */
     struct_a->as.struct_type.fields[1].name = arena_strdup(&arena, "ref_b");
     struct_a->as.struct_type.fields[1].type = struct_b;
     struct_a->as.struct_type.fields[1].offset = 0;
     struct_a->as.struct_type.fields[1].default_value = NULL;
+    struct_a->as.struct_type.fields[1].c_alias = NULL;
 
     /* NOTE: Do NOT use symbol_table_add_type - it calls ast_clone_type
      * which infinitely recurses on circular references. */
@@ -817,6 +829,7 @@ static void test_struct_pointer_breaks_cycle()
     node_type->as.struct_type.fields[0].type = int_type;
     node_type->as.struct_type.fields[0].offset = 0;
     node_type->as.struct_type.fields[0].default_value = NULL;
+    node_type->as.struct_type.fields[0].c_alias = NULL;
 
     /* Create pointer to the struct - pointer breaks the cycle */
     Type *ptr_node_type = ast_create_pointer_type(&arena, node_type);
@@ -824,6 +837,7 @@ static void test_struct_pointer_breaks_cycle()
     node_type->as.struct_type.fields[1].type = ptr_node_type;  /* *LinkedNode - pointer breaks cycle */
     node_type->as.struct_type.fields[1].offset = 0;
     node_type->as.struct_type.fields[1].default_value = NULL;
+    node_type->as.struct_type.fields[1].c_alias = NULL;
 
     /* NOTE: Do NOT use symbol_table_add_type - it calls ast_clone_type
      * which infinitely recurses even on pointer-based self-references. */
@@ -881,6 +895,7 @@ static void test_struct_array_of_self_circular()
     tree_type->as.struct_type.fields[0].type = int_type;
     tree_type->as.struct_type.fields[0].offset = 0;
     tree_type->as.struct_type.fields[0].default_value = NULL;
+    tree_type->as.struct_type.fields[0].c_alias = NULL;
 
     /* Create array of struct - this is still a circular dependency */
     Type *tree_array_type = ast_create_array_type(&arena, tree_type);
@@ -888,6 +903,7 @@ static void test_struct_array_of_self_circular()
     tree_type->as.struct_type.fields[1].type = tree_array_type;
     tree_type->as.struct_type.fields[1].offset = 0;
     tree_type->as.struct_type.fields[1].default_value = NULL;
+    tree_type->as.struct_type.fields[1].c_alias = NULL;
 
     /* NOTE: Do NOT use symbol_table_add_type - it calls ast_clone_type
      * which infinitely recurses on self-referencing structures (even through arrays). */
@@ -928,12 +944,14 @@ static void test_circular_dependency_detection_direct()
     simple_fields[0].type = int_type;
     simple_fields[0].offset = 0;
     simple_fields[0].default_value = NULL;
+    simple_fields[0].c_alias = NULL;
     simple_fields[1].name = "y";
     simple_fields[1].type = int_type;
     simple_fields[1].offset = 0;
     simple_fields[1].default_value = NULL;
+    simple_fields[1].c_alias = NULL;
 
-    Type *simple_type = ast_create_struct_type(&arena, "Simple", simple_fields, 2, NULL, 0, false, false);
+    Type *simple_type = ast_create_struct_type(&arena, "Simple", simple_fields, 2, NULL, 0, false, false, false, NULL);
 
     char chain[512];
     bool has_cycle = detect_struct_circular_dependency(simple_type, NULL, chain, sizeof(chain));
@@ -952,11 +970,13 @@ static void test_circular_dependency_detection_direct()
     self_ref_type->as.struct_type.fields[0].type = int_type;
     self_ref_type->as.struct_type.fields[0].offset = 0;
     self_ref_type->as.struct_type.fields[0].default_value = NULL;
+    self_ref_type->as.struct_type.fields[0].c_alias = NULL;
 
     self_ref_type->as.struct_type.fields[1].name = arena_strdup(&arena, "self");
     self_ref_type->as.struct_type.fields[1].type = self_ref_type;  /* Self-reference */
     self_ref_type->as.struct_type.fields[1].offset = 0;
     self_ref_type->as.struct_type.fields[1].default_value = NULL;
+    self_ref_type->as.struct_type.fields[1].c_alias = NULL;
 
     has_cycle = detect_struct_circular_dependency(self_ref_type, NULL, chain, sizeof(chain));
     assert(has_cycle);  /* Should detect direct cycle */
@@ -975,12 +995,14 @@ static void test_circular_dependency_detection_direct()
     ptr_struct_type->as.struct_type.fields[0].type = int_type;
     ptr_struct_type->as.struct_type.fields[0].offset = 0;
     ptr_struct_type->as.struct_type.fields[0].default_value = NULL;
+    ptr_struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     Type *ptr_to_self = ast_create_pointer_type(&arena, ptr_struct_type);
     ptr_struct_type->as.struct_type.fields[1].name = arena_strdup(&arena, "next");
     ptr_struct_type->as.struct_type.fields[1].type = ptr_to_self;  /* Pointer to self - NOT a cycle */
     ptr_struct_type->as.struct_type.fields[1].offset = 0;
     ptr_struct_type->as.struct_type.fields[1].default_value = NULL;
+    ptr_struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     has_cycle = detect_struct_circular_dependency(ptr_struct_type, NULL, chain, sizeof(chain));
     assert(!has_cycle);  /* Pointer breaks the cycle */
@@ -1035,11 +1057,11 @@ static void test_native_struct_in_native_fn_context()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Buffer", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false);  /* native struct */
+    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false, false, NULL);  /* native struct */
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
     /* Create struct declaration */
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create native function that uses the native struct */
@@ -1129,11 +1151,11 @@ static void test_native_struct_in_regular_fn_error()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Buffer", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false);  /* native struct */
+    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false, false, NULL);  /* native struct */
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
     /* Create struct declaration */
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, true, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create REGULAR function that tries to use the native struct */
@@ -1219,11 +1241,11 @@ static void test_regular_struct_in_regular_fn()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);  /* NOT native */
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);  /* NOT native */
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
     /* Create struct declaration */
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create regular function that uses the regular struct */
@@ -1302,16 +1324,19 @@ static void test_struct_layout_all_8byte_fields()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = int_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     struct_type->as.struct_type.fields[2].name = "c";
     struct_type->as.struct_type.fields[2].type = int_type;
     struct_type->as.struct_type.fields[2].offset = 0;
     struct_type->as.struct_type.fields[2].default_value = NULL;
+    struct_type->as.struct_type.fields[2].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1353,16 +1378,19 @@ static void test_struct_layout_byte_int_padding()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = byte_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     struct_type->as.struct_type.fields[2].name = "c";
     struct_type->as.struct_type.fields[2].type = int_type;
     struct_type->as.struct_type.fields[2].offset = 0;
     struct_type->as.struct_type.fields[2].default_value = NULL;
+    struct_type->as.struct_type.fields[2].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1404,11 +1432,13 @@ static void test_struct_layout_trailing_padding()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = byte_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1449,16 +1479,19 @@ static void test_struct_layout_4byte_fields()
     struct_type->as.struct_type.fields[0].type = int32_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = int32_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     struct_type->as.struct_type.fields[2].name = "c";
     struct_type->as.struct_type.fields[2].type = float_type;
     struct_type->as.struct_type.fields[2].offset = 0;
     struct_type->as.struct_type.fields[2].default_value = NULL;
+    struct_type->as.struct_type.fields[2].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1500,11 +1533,13 @@ static void test_struct_layout_mixed_alignment()
     struct_type->as.struct_type.fields[0].type = int32_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = int_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1546,21 +1581,25 @@ static void test_struct_layout_all_1byte_fields()
     struct_type->as.struct_type.fields[0].type = byte_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = char_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     struct_type->as.struct_type.fields[2].name = "c";
     struct_type->as.struct_type.fields[2].type = byte_type;
     struct_type->as.struct_type.fields[2].offset = 0;
     struct_type->as.struct_type.fields[2].default_value = NULL;
+    struct_type->as.struct_type.fields[2].c_alias = NULL;
 
     struct_type->as.struct_type.fields[3].name = "d";
     struct_type->as.struct_type.fields[3].type = bool_type;
     struct_type->as.struct_type.fields[3].offset = 0;
     struct_type->as.struct_type.fields[3].default_value = NULL;
+    struct_type->as.struct_type.fields[3].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1624,11 +1663,13 @@ static void test_struct_layout_nested()
     point_type->as.struct_type.fields[0].type = double_type;
     point_type->as.struct_type.fields[0].offset = 0;
     point_type->as.struct_type.fields[0].default_value = NULL;
+    point_type->as.struct_type.fields[0].c_alias = NULL;
 
     point_type->as.struct_type.fields[1].name = "y";
     point_type->as.struct_type.fields[1].type = double_type;
     point_type->as.struct_type.fields[1].offset = 0;
     point_type->as.struct_type.fields[1].default_value = NULL;
+    point_type->as.struct_type.fields[1].c_alias = NULL;
 
     /* Calculate Point layout: size=16, alignment=8 */
     calculate_struct_layout(point_type);
@@ -1651,16 +1692,19 @@ static void test_struct_layout_nested()
     rect_type->as.struct_type.fields[0].type = point_type;
     rect_type->as.struct_type.fields[0].offset = 0;
     rect_type->as.struct_type.fields[0].default_value = NULL;
+    rect_type->as.struct_type.fields[0].c_alias = NULL;
 
     rect_type->as.struct_type.fields[1].name = "width";
     rect_type->as.struct_type.fields[1].type = int32_type;
     rect_type->as.struct_type.fields[1].offset = 0;
     rect_type->as.struct_type.fields[1].default_value = NULL;
+    rect_type->as.struct_type.fields[1].c_alias = NULL;
 
     rect_type->as.struct_type.fields[2].name = "height";
     rect_type->as.struct_type.fields[2].type = int32_type;
     rect_type->as.struct_type.fields[2].offset = 0;
     rect_type->as.struct_type.fields[2].default_value = NULL;
+    rect_type->as.struct_type.fields[2].c_alias = NULL;
 
     /* Calculate Rect layout:
      * origin at 0 (size 16, alignment 8)
@@ -1716,16 +1760,19 @@ static void test_struct_layout_packed_mixed()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = byte_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     struct_type->as.struct_type.fields[2].name = "c";
     struct_type->as.struct_type.fields[2].type = int_type;
     struct_type->as.struct_type.fields[2].offset = 0;
     struct_type->as.struct_type.fields[2].default_value = NULL;
+    struct_type->as.struct_type.fields[2].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1769,21 +1816,25 @@ static void test_struct_layout_packed_binary_header()
     struct_type->as.struct_type.fields[0].type = int32_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "version";
     struct_type->as.struct_type.fields[1].type = byte_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     struct_type->as.struct_type.fields[2].name = "flags";
     struct_type->as.struct_type.fields[2].type = byte_type;
     struct_type->as.struct_type.fields[2].offset = 0;
     struct_type->as.struct_type.fields[2].default_value = NULL;
+    struct_type->as.struct_type.fields[2].c_alias = NULL;
 
     struct_type->as.struct_type.fields[3].name = "size";
     struct_type->as.struct_type.fields[3].type = int32_type;
     struct_type->as.struct_type.fields[3].offset = 0;
     struct_type->as.struct_type.fields[3].default_value = NULL;
+    struct_type->as.struct_type.fields[3].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -1829,11 +1880,13 @@ static void test_struct_layout_packed_vs_unpacked()
     unpacked_type->as.struct_type.fields[0].type = int32_type;
     unpacked_type->as.struct_type.fields[0].offset = 0;
     unpacked_type->as.struct_type.fields[0].default_value = NULL;
+    unpacked_type->as.struct_type.fields[0].c_alias = NULL;
 
     unpacked_type->as.struct_type.fields[1].name = "b";
     unpacked_type->as.struct_type.fields[1].type = int_type;
     unpacked_type->as.struct_type.fields[1].offset = 0;
     unpacked_type->as.struct_type.fields[1].default_value = NULL;
+    unpacked_type->as.struct_type.fields[1].c_alias = NULL;
 
     /* Create packed struct with same fields */
     Type *packed_type = arena_alloc(&arena, sizeof(Type));
@@ -1849,11 +1902,13 @@ static void test_struct_layout_packed_vs_unpacked()
     packed_type->as.struct_type.fields[0].type = int32_type;
     packed_type->as.struct_type.fields[0].offset = 0;
     packed_type->as.struct_type.fields[0].default_value = NULL;
+    packed_type->as.struct_type.fields[0].c_alias = NULL;
 
     packed_type->as.struct_type.fields[1].name = "b";
     packed_type->as.struct_type.fields[1].type = int_type;
     packed_type->as.struct_type.fields[1].offset = 0;
     packed_type->as.struct_type.fields[1].default_value = NULL;
+    packed_type->as.struct_type.fields[1].c_alias = NULL;
 
     /* Calculate layouts */
     calculate_struct_layout(unpacked_type);
@@ -1907,7 +1962,7 @@ static void test_struct_symbol_table_registration()
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
     /* Create struct type and register it in symbol table */
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
     /* Look up the struct type by name */
@@ -1958,7 +2013,7 @@ static void test_struct_symbol_table_metadata()
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
 
     /* Create struct type and register it */
-    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 3, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 3, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
     /* Look up and verify metadata */
@@ -2025,7 +2080,7 @@ static void test_struct_symbol_table_native_metadata()
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Buffer", 1, "test.sn", &arena);
 
     /* Create native struct type */
-    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Buffer", fields, 2, NULL, 0, true, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
     /* Look up and verify is_native flag */
@@ -2072,11 +2127,11 @@ static void test_struct_symbol_table_size_alignment()
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Padded", 1, "test.sn", &arena);
 
     /* Create struct type and register it */
-    Type *struct_type = ast_create_struct_type(&arena, "Padded", fields, 3, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Padded", fields, 3, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
     /* Create struct declaration and type check to calculate layout */
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 3, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 3, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     type_checker_reset_error();
@@ -2126,10 +2181,10 @@ static void test_struct_symbol_table_lookup_for_later_use()
     Token point_tok;
     setup_token(&point_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false);
+    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, point_tok, point_type);
 
-    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, &point_tok);
+    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, false, NULL, &point_tok);
     ast_module_add_statement(&arena, &module, point_decl);
 
     /* Create Rectangle struct that references Point */
@@ -2146,10 +2201,10 @@ static void test_struct_symbol_table_lookup_for_later_use()
     Token rect_tok;
     setup_token(&rect_tok, TOKEN_IDENTIFIER, "Rectangle", 2, "test.sn", &arena);
 
-    Type *rect_type = ast_create_struct_type(&arena, "Rectangle", rect_fields, 2, NULL, 0, false, false);
+    Type *rect_type = ast_create_struct_type(&arena, "Rectangle", rect_fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, rect_tok, rect_type);
 
-    Stmt *rect_decl = ast_create_struct_decl_stmt(&arena, rect_tok, rect_fields, 2, NULL, 0, false, false, &rect_tok);
+    Stmt *rect_decl = ast_create_struct_decl_stmt(&arena, rect_tok, rect_fields, 2, NULL, 0, false, false, false, NULL, &rect_tok);
     ast_module_add_statement(&arena, &module, rect_decl);
 
     /* Type check the module - should pass as Point is properly registered */
@@ -2225,18 +2280,20 @@ static void test_struct_literal_all_fields_initialized()
     fields[0].type = double_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = double_type;
     fields[1].offset = 0;
     fields[1].default_value = NULL;
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal with both fields: Point { x: 1.0, y: 2.0 } */
@@ -2326,6 +2383,7 @@ static void test_struct_literal_partial_initialization()
     fields[0].type = int_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;  /* Required field */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "retries");
     fields[1].type = int_type;
     fields[1].offset = 0;
@@ -2338,10 +2396,10 @@ static void test_struct_literal_partial_initialization()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 3, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 3, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 3, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 3, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal with only one required field: Config { timeout: 60 } */
@@ -2433,10 +2491,10 @@ static void test_struct_literal_empty_initialization()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal with no fields: Point {} - should pass since all have defaults */
@@ -2536,6 +2594,7 @@ static void test_struct_literal_field_init_invalid_index()
     fields[0].type = double_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;  /* x is required */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = double_type;
     fields[1].offset = 0;
@@ -2544,10 +2603,10 @@ static void test_struct_literal_field_init_invalid_index()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal: Point { x: 1.0 } - y gets default value */
@@ -2638,14 +2697,15 @@ static void test_struct_default_value_applied()
     fields[1].type = int_type;
     fields[1].offset = 0;
     fields[1].default_value = NULL;  /* No default */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal that only specifies retries: Config { retries: 3 } */
@@ -2765,10 +2825,10 @@ static void test_struct_multiple_defaults_applied()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "ServerConfig", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "ServerConfig", fields, 3, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "ServerConfig", fields, 3, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 3, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 3, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create empty struct literal: ServerConfig {} */
@@ -2843,10 +2903,10 @@ static void test_struct_explicit_overrides_default()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal that explicitly sets timeout: Config { timeout: 120 } */
@@ -2917,18 +2977,20 @@ static void test_struct_missing_required_fields_error()
     fields[0].type = double_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;  /* No default - required */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = double_type;
     fields[1].offset = 0;
     fields[1].default_value = NULL;  /* No default - required */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create empty struct literal: Point {} - should fail because x and y are required */
@@ -2982,18 +3044,20 @@ static void test_struct_missing_one_required_field_error()
     fields[0].type = double_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;  /* No default - required */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = double_type;
     fields[1].offset = 0;
     fields[1].default_value = NULL;  /* No default - required */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal with only x: Point { x: 1.0 } - missing y */
@@ -3056,18 +3120,20 @@ static void test_struct_all_required_fields_provided()
     fields[0].type = double_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;  /* No default - required */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "y");
     fields[1].type = double_type;
     fields[1].offset = 0;
     fields[1].default_value = NULL;  /* No default - required */
+    fields[1].c_alias = NULL;
 
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal with both fields: Point { x: 1.0, y: 2.0 } */
@@ -3145,6 +3211,7 @@ static void test_struct_optional_fields_not_required()
     fields[0].type = int_type;
     fields[0].offset = 0;
     fields[0].default_value = NULL;  /* No default - required */
+    fields[0].c_alias = NULL;
     fields[1].name = arena_strdup(&arena, "timeout");
     fields[1].type = int_type;
     fields[1].offset = 0;
@@ -3153,10 +3220,10 @@ static void test_struct_optional_fields_not_required()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Config", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Config", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create struct literal with only required field: Config { port: 8080 } */
@@ -3235,18 +3302,20 @@ static void test_nested_struct_all_fields_provided()
     point_fields[0].type = double_type;
     point_fields[0].offset = 0;
     point_fields[0].default_value = NULL;
+    point_fields[0].c_alias = NULL;
     point_fields[1].name = arena_strdup(&arena, "y");
     point_fields[1].type = double_type;
     point_fields[1].offset = 8;
     point_fields[1].default_value = NULL;
+    point_fields[1].c_alias = NULL;
 
     Token point_tok;
     setup_token(&point_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false);
+    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, point_tok, point_type);
 
-    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, &point_tok);
+    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, false, NULL, &point_tok);
     ast_module_add_statement(&arena, &module, point_decl);
 
     /* Create Rect struct: struct Rect => origin: Point, size: Point */
@@ -3255,18 +3324,20 @@ static void test_nested_struct_all_fields_provided()
     rect_fields[0].type = point_type;
     rect_fields[0].offset = 0;
     rect_fields[0].default_value = NULL;
+    rect_fields[0].c_alias = NULL;
     rect_fields[1].name = arena_strdup(&arena, "size");
     rect_fields[1].type = point_type;
     rect_fields[1].offset = 16;
     rect_fields[1].default_value = NULL;
+    rect_fields[1].c_alias = NULL;
 
     Token rect_tok;
     setup_token(&rect_tok, TOKEN_IDENTIFIER, "Rect", 2, "test.sn", &arena);
 
-    Type *rect_type = ast_create_struct_type(&arena, "Rect", rect_fields, 2, NULL, 0, false, false);
+    Type *rect_type = ast_create_struct_type(&arena, "Rect", rect_fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, rect_tok, rect_type);
 
-    Stmt *rect_decl = ast_create_struct_decl_stmt(&arena, rect_tok, rect_fields, 2, NULL, 0, false, false, &rect_tok);
+    Stmt *rect_decl = ast_create_struct_decl_stmt(&arena, rect_tok, rect_fields, 2, NULL, 0, false, false, false, NULL, &rect_tok);
     ast_module_add_statement(&arena, &module, rect_decl);
 
     /* Create nested struct literal: Rect { origin: Point { x: 0.0, y: 0.0 }, size: Point { x: 100.0, y: 50.0 } } */
@@ -3371,18 +3442,20 @@ static void test_nested_struct_inner_missing_required()
     point_fields[0].type = double_type;
     point_fields[0].offset = 0;
     point_fields[0].default_value = NULL;
+    point_fields[0].c_alias = NULL;
     point_fields[1].name = arena_strdup(&arena, "y");
     point_fields[1].type = double_type;
     point_fields[1].offset = 8;
     point_fields[1].default_value = NULL;
+    point_fields[1].c_alias = NULL;
 
     Token point_tok;
     setup_token(&point_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false);
+    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, point_tok, point_type);
 
-    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, &point_tok);
+    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, false, NULL, &point_tok);
     ast_module_add_statement(&arena, &module, point_decl);
 
     /* Create Wrapper struct: struct Wrapper => pt: Point */
@@ -3391,14 +3464,15 @@ static void test_nested_struct_inner_missing_required()
     wrapper_fields[0].type = point_type;
     wrapper_fields[0].offset = 0;
     wrapper_fields[0].default_value = NULL;
+    wrapper_fields[0].c_alias = NULL;
 
     Token wrapper_tok;
     setup_token(&wrapper_tok, TOKEN_IDENTIFIER, "Wrapper", 2, "test.sn", &arena);
 
-    Type *wrapper_type = ast_create_struct_type(&arena, "Wrapper", wrapper_fields, 1, NULL, 0, false, false);
+    Type *wrapper_type = ast_create_struct_type(&arena, "Wrapper", wrapper_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, wrapper_tok, wrapper_type);
 
-    Stmt *wrapper_decl = ast_create_struct_decl_stmt(&arena, wrapper_tok, wrapper_fields, 1, NULL, 0, false, false, &wrapper_tok);
+    Stmt *wrapper_decl = ast_create_struct_decl_stmt(&arena, wrapper_tok, wrapper_fields, 1, NULL, 0, false, false, false, NULL, &wrapper_tok);
     ast_module_add_statement(&arena, &module, wrapper_decl);
 
     /* Create nested literal: Wrapper { pt: Point { x: 1.0 } } - MISSING y! */
@@ -3476,6 +3550,7 @@ static void test_nested_struct_inner_defaults_applied()
     point_fields[0].type = double_type;
     point_fields[0].offset = 0;
     point_fields[0].default_value = NULL;  /* x is required */
+    point_fields[0].c_alias = NULL;
     point_fields[1].name = arena_strdup(&arena, "y");
     point_fields[1].type = double_type;
     point_fields[1].offset = 8;
@@ -3484,10 +3559,10 @@ static void test_nested_struct_inner_defaults_applied()
     Token point_tok;
     setup_token(&point_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false);
+    Type *point_type = ast_create_struct_type(&arena, "Point", point_fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, point_tok, point_type);
 
-    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, &point_tok);
+    Stmt *point_decl = ast_create_struct_decl_stmt(&arena, point_tok, point_fields, 2, NULL, 0, false, false, false, NULL, &point_tok);
     ast_module_add_statement(&arena, &module, point_decl);
 
     /* Create Wrapper struct: struct Wrapper => pt: Point */
@@ -3496,14 +3571,15 @@ static void test_nested_struct_inner_defaults_applied()
     wrapper_fields[0].type = point_type;
     wrapper_fields[0].offset = 0;
     wrapper_fields[0].default_value = NULL;
+    wrapper_fields[0].c_alias = NULL;
 
     Token wrapper_tok;
     setup_token(&wrapper_tok, TOKEN_IDENTIFIER, "Wrapper", 2, "test.sn", &arena);
 
-    Type *wrapper_type = ast_create_struct_type(&arena, "Wrapper", wrapper_fields, 1, NULL, 0, false, false);
+    Type *wrapper_type = ast_create_struct_type(&arena, "Wrapper", wrapper_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, wrapper_tok, wrapper_type);
 
-    Stmt *wrapper_decl = ast_create_struct_decl_stmt(&arena, wrapper_tok, wrapper_fields, 1, NULL, 0, false, false, &wrapper_tok);
+    Stmt *wrapper_decl = ast_create_struct_decl_stmt(&arena, wrapper_tok, wrapper_fields, 1, NULL, 0, false, false, false, NULL, &wrapper_tok);
     ast_module_add_statement(&arena, &module, wrapper_decl);
 
     /* Create nested literal: Wrapper { pt: Point { x: 5.0 } } - y gets default */
@@ -3594,10 +3670,10 @@ static void test_nested_struct_three_levels()
     Token inner_tok;
     setup_token(&inner_tok, TOKEN_IDENTIFIER, "Inner", 1, "test.sn", &arena);
 
-    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false);
+    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, inner_tok, inner_type);
 
-    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, &inner_tok);
+    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, false, NULL, &inner_tok);
     ast_module_add_statement(&arena, &module, inner_decl);
 
     /* Level 2: struct Middle => inner: Inner */
@@ -3606,14 +3682,15 @@ static void test_nested_struct_three_levels()
     middle_fields[0].type = inner_type;
     middle_fields[0].offset = 0;
     middle_fields[0].default_value = NULL;
+    middle_fields[0].c_alias = NULL;
 
     Token middle_tok;
     setup_token(&middle_tok, TOKEN_IDENTIFIER, "Middle", 2, "test.sn", &arena);
 
-    Type *middle_type = ast_create_struct_type(&arena, "Middle", middle_fields, 1, NULL, 0, false, false);
+    Type *middle_type = ast_create_struct_type(&arena, "Middle", middle_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, middle_tok, middle_type);
 
-    Stmt *middle_decl = ast_create_struct_decl_stmt(&arena, middle_tok, middle_fields, 1, NULL, 0, false, false, &middle_tok);
+    Stmt *middle_decl = ast_create_struct_decl_stmt(&arena, middle_tok, middle_fields, 1, NULL, 0, false, false, false, NULL, &middle_tok);
     ast_module_add_statement(&arena, &module, middle_decl);
 
     /* Level 3: struct Outer => mid: Middle */
@@ -3622,14 +3699,15 @@ static void test_nested_struct_three_levels()
     outer_fields[0].type = middle_type;
     outer_fields[0].offset = 0;
     outer_fields[0].default_value = NULL;
+    outer_fields[0].c_alias = NULL;
 
     Token outer_tok;
     setup_token(&outer_tok, TOKEN_IDENTIFIER, "Outer", 3, "test.sn", &arena);
 
-    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false);
+    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, outer_tok, outer_type);
 
-    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, &outer_tok);
+    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, false, NULL, &outer_tok);
     ast_module_add_statement(&arena, &module, outer_decl);
 
     /* Create 3-level nested literal: Outer { mid: Middle { inner: Inner {} } }
@@ -3714,14 +3792,15 @@ static void test_nested_struct_three_levels_missing_required()
     inner_fields[0].type = int_type;
     inner_fields[0].offset = 0;
     inner_fields[0].default_value = NULL;  /* Required! */
+    inner_fields[0].c_alias = NULL;
 
     Token inner_tok;
     setup_token(&inner_tok, TOKEN_IDENTIFIER, "Inner", 1, "test.sn", &arena);
 
-    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false);
+    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, inner_tok, inner_type);
 
-    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, &inner_tok);
+    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, false, NULL, &inner_tok);
     ast_module_add_statement(&arena, &module, inner_decl);
 
     /* Level 2: struct Middle => inner: Inner */
@@ -3730,14 +3809,15 @@ static void test_nested_struct_three_levels_missing_required()
     middle_fields[0].type = inner_type;
     middle_fields[0].offset = 0;
     middle_fields[0].default_value = NULL;
+    middle_fields[0].c_alias = NULL;
 
     Token middle_tok;
     setup_token(&middle_tok, TOKEN_IDENTIFIER, "Middle", 2, "test.sn", &arena);
 
-    Type *middle_type = ast_create_struct_type(&arena, "Middle", middle_fields, 1, NULL, 0, false, false);
+    Type *middle_type = ast_create_struct_type(&arena, "Middle", middle_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, middle_tok, middle_type);
 
-    Stmt *middle_decl = ast_create_struct_decl_stmt(&arena, middle_tok, middle_fields, 1, NULL, 0, false, false, &middle_tok);
+    Stmt *middle_decl = ast_create_struct_decl_stmt(&arena, middle_tok, middle_fields, 1, NULL, 0, false, false, false, NULL, &middle_tok);
     ast_module_add_statement(&arena, &module, middle_decl);
 
     /* Level 3: struct Outer => mid: Middle */
@@ -3746,14 +3826,15 @@ static void test_nested_struct_three_levels_missing_required()
     outer_fields[0].type = middle_type;
     outer_fields[0].offset = 0;
     outer_fields[0].default_value = NULL;
+    outer_fields[0].c_alias = NULL;
 
     Token outer_tok;
     setup_token(&outer_tok, TOKEN_IDENTIFIER, "Outer", 3, "test.sn", &arena);
 
-    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false);
+    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, outer_tok, outer_type);
 
-    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, &outer_tok);
+    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, false, NULL, &outer_tok);
     ast_module_add_statement(&arena, &module, outer_decl);
 
     /* Create 3-level nested literal: Outer { mid: Middle { inner: Inner {} } }
@@ -3832,10 +3913,10 @@ static void test_member_access_scope_depth_propagation()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 2, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create function containing: var p: Point = Point { x: 1.0, y: 2.0 }; var v: double = p.x */
@@ -3930,10 +4011,10 @@ static void test_member_access_nested_scope_depth()
     Token struct_name_tok;
     setup_token(&struct_name_tok, TOKEN_IDENTIFIER, "Point", 1, "test.sn", &arena);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, struct_name_tok, struct_type);
 
-    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, &struct_name_tok);
+    Stmt *struct_decl = ast_create_struct_decl_stmt(&arena, struct_name_tok, fields, 1, NULL, 0, false, false, false, NULL, &struct_name_tok);
     ast_module_add_statement(&arena, &module, struct_decl);
 
     /* Create function with nested block: fn test_fn() { { var p: Point = ...; var v = p.x } } */
@@ -4022,10 +4103,10 @@ static void test_member_access_chain_scope_depth()
     Token inner_struct_tok;
     setup_token(&inner_struct_tok, TOKEN_IDENTIFIER, "Inner", 1, "test.sn", &arena);
 
-    Type *inner_struct_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false);
+    Type *inner_struct_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, inner_struct_tok, inner_struct_type);
 
-    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_struct_tok, inner_fields, 1, NULL, 0, false, false, &inner_struct_tok);
+    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_struct_tok, inner_fields, 1, NULL, 0, false, false, false, NULL, &inner_struct_tok);
     ast_module_add_statement(&arena, &module, inner_decl);
 
     /* Create Outer struct with inner: Inner */
@@ -4035,10 +4116,10 @@ static void test_member_access_chain_scope_depth()
     Token outer_struct_tok;
     setup_token(&outer_struct_tok, TOKEN_IDENTIFIER, "Outer", 2, "test.sn", &arena);
 
-    Type *outer_struct_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false);
+    Type *outer_struct_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, outer_struct_tok, outer_struct_type);
 
-    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_struct_tok, outer_fields, 1, NULL, 0, false, false, &outer_struct_tok);
+    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_struct_tok, outer_fields, 1, NULL, 0, false, false, false, NULL, &outer_struct_tok);
     ast_module_add_statement(&arena, &module, outer_decl);
 
     /* Create function: fn test_fn() { var o: Outer = ...; var v = o.inner.x } */
@@ -4138,10 +4219,10 @@ static void test_member_access_chain_three_levels()
     Token level3_tok;
     setup_token(&level3_tok, TOKEN_IDENTIFIER, "Level3", 1, "test.sn", &arena);
 
-    Type *level3_type = ast_create_struct_type(&arena, "Level3", level3_fields, 1, NULL, 0, false, false);
+    Type *level3_type = ast_create_struct_type(&arena, "Level3", level3_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, level3_tok, level3_type);
 
-    Stmt *level3_decl = ast_create_struct_decl_stmt(&arena, level3_tok, level3_fields, 1, NULL, 0, false, false, &level3_tok);
+    Stmt *level3_decl = ast_create_struct_decl_stmt(&arena, level3_tok, level3_fields, 1, NULL, 0, false, false, false, NULL, &level3_tok);
     ast_module_add_statement(&arena, &module, level3_decl);
 
     /* Create Level2 struct with c: Level3 */
@@ -4151,10 +4232,10 @@ static void test_member_access_chain_three_levels()
     Token level2_tok;
     setup_token(&level2_tok, TOKEN_IDENTIFIER, "Level2", 2, "test.sn", &arena);
 
-    Type *level2_type = ast_create_struct_type(&arena, "Level2", level2_fields, 1, NULL, 0, false, false);
+    Type *level2_type = ast_create_struct_type(&arena, "Level2", level2_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, level2_tok, level2_type);
 
-    Stmt *level2_decl = ast_create_struct_decl_stmt(&arena, level2_tok, level2_fields, 1, NULL, 0, false, false, &level2_tok);
+    Stmt *level2_decl = ast_create_struct_decl_stmt(&arena, level2_tok, level2_fields, 1, NULL, 0, false, false, false, NULL, &level2_tok);
     ast_module_add_statement(&arena, &module, level2_decl);
 
     /* Create Level1 struct with b: Level2 */
@@ -4164,10 +4245,10 @@ static void test_member_access_chain_three_levels()
     Token level1_tok;
     setup_token(&level1_tok, TOKEN_IDENTIFIER, "Level1", 3, "test.sn", &arena);
 
-    Type *level1_type = ast_create_struct_type(&arena, "Level1", level1_fields, 1, NULL, 0, false, false);
+    Type *level1_type = ast_create_struct_type(&arena, "Level1", level1_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, level1_tok, level1_type);
 
-    Stmt *level1_decl = ast_create_struct_decl_stmt(&arena, level1_tok, level1_fields, 1, NULL, 0, false, false, &level1_tok);
+    Stmt *level1_decl = ast_create_struct_decl_stmt(&arena, level1_tok, level1_fields, 1, NULL, 0, false, false, false, NULL, &level1_tok);
     ast_module_add_statement(&arena, &module, level1_decl);
 
     /* Create function: fn test_fn() { var a: Level1 = ...; var v = a.b.c.val } */
@@ -4284,10 +4365,10 @@ static void test_field_assign_escape_detection()
     Token inner_tok;
     setup_token(&inner_tok, TOKEN_IDENTIFIER, "Inner", 1, "test.sn", &arena);
 
-    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false);
+    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, inner_tok, inner_type);
 
-    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, &inner_tok);
+    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, false, NULL, &inner_tok);
     ast_module_add_statement(&arena, &module, inner_decl);
 
     /* Create Outer struct with inner: Inner */
@@ -4297,10 +4378,10 @@ static void test_field_assign_escape_detection()
     Token outer_tok;
     setup_token(&outer_tok, TOKEN_IDENTIFIER, "Outer", 2, "test.sn", &arena);
 
-    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false);
+    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, outer_tok, outer_type);
 
-    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, &outer_tok);
+    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, false, NULL, &outer_tok);
     ast_module_add_statement(&arena, &module, outer_decl);
 
     /* Create function:
@@ -4425,10 +4506,10 @@ static void test_field_assign_same_scope_no_escape()
     Token inner_tok;
     setup_token(&inner_tok, TOKEN_IDENTIFIER, "Inner", 1, "test.sn", &arena);
 
-    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false);
+    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, inner_tok, inner_type);
 
-    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, &inner_tok);
+    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, false, NULL, &inner_tok);
     ast_module_add_statement(&arena, &module, inner_decl);
 
     /* Create Outer struct with inner: Inner */
@@ -4438,10 +4519,10 @@ static void test_field_assign_same_scope_no_escape()
     Token outer_tok;
     setup_token(&outer_tok, TOKEN_IDENTIFIER, "Outer", 2, "test.sn", &arena);
 
-    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false);
+    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, outer_tok, outer_type);
 
-    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, &outer_tok);
+    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, false, NULL, &outer_tok);
     ast_module_add_statement(&arena, &module, outer_decl);
 
     /* Create function:
@@ -4555,10 +4636,10 @@ static void test_field_assign_chain_escape_detection()
     Token level2_tok;
     setup_token(&level2_tok, TOKEN_IDENTIFIER, "Level2", 1, "test.sn", &arena);
 
-    Type *level2_type = ast_create_struct_type(&arena, "Level2", level2_fields, 1, NULL, 0, false, false);
+    Type *level2_type = ast_create_struct_type(&arena, "Level2", level2_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, level2_tok, level2_type);
 
-    Stmt *level2_decl = ast_create_struct_decl_stmt(&arena, level2_tok, level2_fields, 1, NULL, 0, false, false, &level2_tok);
+    Stmt *level2_decl = ast_create_struct_decl_stmt(&arena, level2_tok, level2_fields, 1, NULL, 0, false, false, false, NULL, &level2_tok);
     ast_module_add_statement(&arena, &module, level2_decl);
 
     /* Create Level1 struct with l2: Level2 */
@@ -4568,10 +4649,10 @@ static void test_field_assign_chain_escape_detection()
     Token level1_tok;
     setup_token(&level1_tok, TOKEN_IDENTIFIER, "Level1", 2, "test.sn", &arena);
 
-    Type *level1_type = ast_create_struct_type(&arena, "Level1", level1_fields, 1, NULL, 0, false, false);
+    Type *level1_type = ast_create_struct_type(&arena, "Level1", level1_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, level1_tok, level1_type);
 
-    Stmt *level1_decl = ast_create_struct_decl_stmt(&arena, level1_tok, level1_fields, 1, NULL, 0, false, false, &level1_tok);
+    Stmt *level1_decl = ast_create_struct_decl_stmt(&arena, level1_tok, level1_fields, 1, NULL, 0, false, false, false, NULL, &level1_tok);
     ast_module_add_statement(&arena, &module, level1_decl);
 
     /* Create Root struct with l1: Level1 */
@@ -4581,10 +4662,10 @@ static void test_field_assign_chain_escape_detection()
     Token root_tok;
     setup_token(&root_tok, TOKEN_IDENTIFIER, "Root", 3, "test.sn", &arena);
 
-    Type *root_type = ast_create_struct_type(&arena, "Root", root_fields, 1, NULL, 0, false, false);
+    Type *root_type = ast_create_struct_type(&arena, "Root", root_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, root_tok, root_type);
 
-    Stmt *root_decl = ast_create_struct_decl_stmt(&arena, root_tok, root_fields, 1, NULL, 0, false, false, &root_tok);
+    Stmt *root_decl = ast_create_struct_decl_stmt(&arena, root_tok, root_fields, 1, NULL, 0, false, false, false, NULL, &root_tok);
     ast_module_add_statement(&arena, &module, root_decl);
 
     /* Create function:
@@ -4725,10 +4806,10 @@ static void test_field_assign_deep_chain_all_nodes_escaped()
     Token c_tok;
     setup_token(&c_tok, TOKEN_IDENTIFIER, "C", 1, "test.sn", &arena);
 
-    Type *c_type = ast_create_struct_type(&arena, "C", c_fields, 1, NULL, 0, false, false);
+    Type *c_type = ast_create_struct_type(&arena, "C", c_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, c_tok, c_type);
 
-    Stmt *c_decl = ast_create_struct_decl_stmt(&arena, c_tok, c_fields, 1, NULL, 0, false, false, &c_tok);
+    Stmt *c_decl = ast_create_struct_decl_stmt(&arena, c_tok, c_fields, 1, NULL, 0, false, false, false, NULL, &c_tok);
     ast_module_add_statement(&arena, &module, c_decl);
 
     /* Level B: struct B { c: C } */
@@ -4738,10 +4819,10 @@ static void test_field_assign_deep_chain_all_nodes_escaped()
     Token b_tok;
     setup_token(&b_tok, TOKEN_IDENTIFIER, "B", 2, "test.sn", &arena);
 
-    Type *b_type = ast_create_struct_type(&arena, "B", b_fields, 1, NULL, 0, false, false);
+    Type *b_type = ast_create_struct_type(&arena, "B", b_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, b_tok, b_type);
 
-    Stmt *b_decl = ast_create_struct_decl_stmt(&arena, b_tok, b_fields, 1, NULL, 0, false, false, &b_tok);
+    Stmt *b_decl = ast_create_struct_decl_stmt(&arena, b_tok, b_fields, 1, NULL, 0, false, false, false, NULL, &b_tok);
     ast_module_add_statement(&arena, &module, b_decl);
 
     /* Level A: struct A { b: B } */
@@ -4751,10 +4832,10 @@ static void test_field_assign_deep_chain_all_nodes_escaped()
     Token a_tok;
     setup_token(&a_tok, TOKEN_IDENTIFIER, "A", 3, "test.sn", &arena);
 
-    Type *a_type = ast_create_struct_type(&arena, "A", a_fields, 1, NULL, 0, false, false);
+    Type *a_type = ast_create_struct_type(&arena, "A", a_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, a_tok, a_type);
 
-    Stmt *a_decl = ast_create_struct_decl_stmt(&arena, a_tok, a_fields, 1, NULL, 0, false, false, &a_tok);
+    Stmt *a_decl = ast_create_struct_decl_stmt(&arena, a_tok, a_fields, 1, NULL, 0, false, false, false, NULL, &a_tok);
     ast_module_add_statement(&arena, &module, a_decl);
 
     /* Root: struct Root { a: A } */
@@ -4764,10 +4845,10 @@ static void test_field_assign_deep_chain_all_nodes_escaped()
     Token root_tok;
     setup_token(&root_tok, TOKEN_IDENTIFIER, "Root", 4, "test.sn", &arena);
 
-    Type *root_type = ast_create_struct_type(&arena, "Root", root_fields, 1, NULL, 0, false, false);
+    Type *root_type = ast_create_struct_type(&arena, "Root", root_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, root_tok, root_type);
 
-    Stmt *root_decl = ast_create_struct_decl_stmt(&arena, root_tok, root_fields, 1, NULL, 0, false, false, &root_tok);
+    Stmt *root_decl = ast_create_struct_decl_stmt(&arena, root_tok, root_fields, 1, NULL, 0, false, false, false, NULL, &root_tok);
     ast_module_add_statement(&arena, &module, root_decl);
 
     /* Create function:
@@ -4906,10 +4987,10 @@ static void test_field_assign_uses_base_scope()
     Token inner_tok;
     setup_token(&inner_tok, TOKEN_IDENTIFIER, "Inner", 1, "test.sn", &arena);
 
-    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false);
+    Type *inner_type = ast_create_struct_type(&arena, "Inner", inner_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, inner_tok, inner_type);
 
-    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, &inner_tok);
+    Stmt *inner_decl = ast_create_struct_decl_stmt(&arena, inner_tok, inner_fields, 1, NULL, 0, false, false, false, NULL, &inner_tok);
     ast_module_add_statement(&arena, &module, inner_decl);
 
     /* Create Outer struct with inner: Inner */
@@ -4919,10 +5000,10 @@ static void test_field_assign_uses_base_scope()
     Token outer_tok;
     setup_token(&outer_tok, TOKEN_IDENTIFIER, "Outer", 2, "test.sn", &arena);
 
-    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false);
+    Type *outer_type = ast_create_struct_type(&arena, "Outer", outer_fields, 1, NULL, 0, false, false, false, NULL);
     symbol_table_add_type(&table, outer_tok, outer_type);
 
-    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, &outer_tok);
+    Stmt *outer_decl = ast_create_struct_decl_stmt(&arena, outer_tok, outer_fields, 1, NULL, 0, false, false, false, NULL, &outer_tok);
     ast_module_add_statement(&arena, &module, outer_decl);
 
     /* Create function:
@@ -5038,8 +5119,8 @@ static void test_struct_type_equals_matching_names()
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
 
-    Type *struct_a = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false);
-    Type *struct_b = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false);
+    Type *struct_a = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false, false, NULL);
+    Type *struct_b = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false, false, NULL);
 
     /* Should be equal - same name */
     assert(ast_type_equals(struct_a, struct_b) == 1);
@@ -5063,8 +5144,8 @@ static void test_struct_type_equals_different_names()
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
 
-    Type *struct_a = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false);
-    Type *struct_b = ast_create_struct_type(&arena, "Vector", fields, 1, NULL, 0, false, false);
+    Type *struct_a = ast_create_struct_type(&arena, "Point", fields, 1, NULL, 0, false, false, false, NULL);
+    Type *struct_b = ast_create_struct_type(&arena, "Vector", fields, 1, NULL, 0, false, false, false, NULL);
 
     /* Should NOT be equal - different names */
     assert(ast_type_equals(struct_a, struct_b) == 0);
@@ -5088,14 +5169,14 @@ static void test_struct_type_equals_null_names()
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
 
     /* Create two structs with NULL names */
-    Type *struct_a = ast_create_struct_type(&arena, NULL, fields, 1, NULL, 0, false, false);
-    Type *struct_b = ast_create_struct_type(&arena, NULL, fields, 1, NULL, 0, false, false);
+    Type *struct_a = ast_create_struct_type(&arena, NULL, fields, 1, NULL, 0, false, false, false, NULL);
+    Type *struct_b = ast_create_struct_type(&arena, NULL, fields, 1, NULL, 0, false, false, false, NULL);
 
     /* Both NULL names should be equal */
     assert(ast_type_equals(struct_a, struct_b) == 1);
 
     /* One NULL, one named should NOT be equal */
-    Type *struct_c = ast_create_struct_type(&arena, "Named", fields, 1, NULL, 0, false, false);
+    Type *struct_c = ast_create_struct_type(&arena, "Named", fields, 1, NULL, 0, false, false, false, NULL);
     assert(ast_type_equals(struct_a, struct_c) == 0);
     assert(ast_type_equals(struct_c, struct_a) == 0);
 
@@ -5114,7 +5195,7 @@ static void test_struct_type_equals_null_types()
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
-    Type *struct_a = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false);
+    Type *struct_a = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false, false, NULL);
 
     /* NULL vs non-NULL should return 0 */
     assert(ast_type_equals(NULL, struct_a) == 0);
@@ -5138,7 +5219,7 @@ static void test_struct_type_equals_self()
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
-    Type *struct_a = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false);
+    Type *struct_a = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false, false, NULL);
 
     /* Type should equal itself */
     assert(ast_type_equals(struct_a, struct_a) == 1);
@@ -5169,7 +5250,7 @@ static void test_struct_get_field_exists()
     fields[1] = create_test_field(&arena, "b", double_type, NULL);
     fields[2] = create_test_field(&arena, "c", int_type, NULL);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 3, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 3, NULL, 0, false, false, false, NULL);
 
     /* Find each field */
     StructField *field_a = ast_struct_get_field(struct_type, "a");
@@ -5202,7 +5283,7 @@ static void test_struct_get_field_not_found()
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
-    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false, false, NULL);
 
     /* Non-existent field should return NULL */
     StructField *field = ast_struct_get_field(struct_type, "nonexistent");
@@ -5227,7 +5308,7 @@ static void test_struct_get_field_null_inputs()
     Type *int_type = ast_create_primitive_type(&arena, TYPE_INT);
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
-    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false, false, NULL);
 
     /* NULL struct type */
     StructField *field = ast_struct_get_field(NULL, "val");
@@ -5262,7 +5343,7 @@ static void test_struct_get_field_index()
     fields[1] = create_test_field(&arena, "second", double_type, NULL);
     fields[2] = create_test_field(&arena, "third", bool_type, NULL);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 3, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 3, NULL, 0, false, false, false, NULL);
 
     /* Get indices for each field */
     assert(ast_struct_get_field_index(struct_type, "first") == 0);
@@ -5311,11 +5392,13 @@ static void test_struct_get_type_size()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = byte_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     /* Calculate layout first */
     calculate_struct_layout(struct_type);
@@ -5465,6 +5548,7 @@ static void test_get_type_alignment_struct()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -5485,11 +5569,13 @@ static void test_get_type_alignment_struct()
     byte_struct->as.struct_type.fields[0].type = byte_type;
     byte_struct->as.struct_type.fields[0].offset = 0;
     byte_struct->as.struct_type.fields[0].default_value = NULL;
+    byte_struct->as.struct_type.fields[0].c_alias = NULL;
 
     byte_struct->as.struct_type.fields[1].name = "b";
     byte_struct->as.struct_type.fields[1].type = byte_type;
     byte_struct->as.struct_type.fields[1].offset = 0;
     byte_struct->as.struct_type.fields[1].default_value = NULL;
+    byte_struct->as.struct_type.fields[1].c_alias = NULL;
 
     calculate_struct_layout(byte_struct);
 
@@ -5575,41 +5661,49 @@ static void test_struct_layout_large_mixed()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     struct_type->as.struct_type.fields[1].name = "b";
     struct_type->as.struct_type.fields[1].type = byte_type;
     struct_type->as.struct_type.fields[1].offset = 0;
     struct_type->as.struct_type.fields[1].default_value = NULL;
+    struct_type->as.struct_type.fields[1].c_alias = NULL;
 
     struct_type->as.struct_type.fields[2].name = "c";
     struct_type->as.struct_type.fields[2].type = int_type;
     struct_type->as.struct_type.fields[2].offset = 0;
     struct_type->as.struct_type.fields[2].default_value = NULL;
+    struct_type->as.struct_type.fields[2].c_alias = NULL;
 
     struct_type->as.struct_type.fields[3].name = "d";
     struct_type->as.struct_type.fields[3].type = byte_type;
     struct_type->as.struct_type.fields[3].offset = 0;
     struct_type->as.struct_type.fields[3].default_value = NULL;
+    struct_type->as.struct_type.fields[3].c_alias = NULL;
 
     struct_type->as.struct_type.fields[4].name = "e";
     struct_type->as.struct_type.fields[4].type = int32_type;
     struct_type->as.struct_type.fields[4].offset = 0;
     struct_type->as.struct_type.fields[4].default_value = NULL;
+    struct_type->as.struct_type.fields[4].c_alias = NULL;
 
     struct_type->as.struct_type.fields[5].name = "f";
     struct_type->as.struct_type.fields[5].type = byte_type;
     struct_type->as.struct_type.fields[5].offset = 0;
     struct_type->as.struct_type.fields[5].default_value = NULL;
+    struct_type->as.struct_type.fields[5].c_alias = NULL;
 
     struct_type->as.struct_type.fields[6].name = "g";
     struct_type->as.struct_type.fields[6].type = double_type;
     struct_type->as.struct_type.fields[6].offset = 0;
     struct_type->as.struct_type.fields[6].default_value = NULL;
+    struct_type->as.struct_type.fields[6].c_alias = NULL;
 
     struct_type->as.struct_type.fields[7].name = "h";
     struct_type->as.struct_type.fields[7].type = byte_type;
     struct_type->as.struct_type.fields[7].offset = 0;
     struct_type->as.struct_type.fields[7].default_value = NULL;
+    struct_type->as.struct_type.fields[7].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -5667,6 +5761,7 @@ static void test_struct_layout_single_int()
     struct_type->as.struct_type.fields[0].type = int_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -5700,6 +5795,7 @@ static void test_struct_layout_single_byte()
     struct_type->as.struct_type.fields[0].type = byte_type;
     struct_type->as.struct_type.fields[0].offset = 0;
     struct_type->as.struct_type.fields[0].default_value = NULL;
+    struct_type->as.struct_type.fields[0].c_alias = NULL;
 
     calculate_struct_layout(struct_type);
 
@@ -5734,11 +5830,13 @@ static void test_struct_layout_single_nested()
     inner_type->as.struct_type.fields[0].type = int_type;
     inner_type->as.struct_type.fields[0].offset = 0;
     inner_type->as.struct_type.fields[0].default_value = NULL;
+    inner_type->as.struct_type.fields[0].c_alias = NULL;
 
     inner_type->as.struct_type.fields[1].name = "y";
     inner_type->as.struct_type.fields[1].type = int_type;
     inner_type->as.struct_type.fields[1].offset = 0;
     inner_type->as.struct_type.fields[1].default_value = NULL;
+    inner_type->as.struct_type.fields[1].c_alias = NULL;
 
     calculate_struct_layout(inner_type);
     assert(inner_type->as.struct_type.size == 16);
@@ -5756,6 +5854,7 @@ static void test_struct_layout_single_nested()
     outer_type->as.struct_type.fields[0].type = inner_type;
     outer_type->as.struct_type.fields[0].offset = 0;
     outer_type->as.struct_type.fields[0].default_value = NULL;
+    outer_type->as.struct_type.fields[0].c_alias = NULL;
 
     calculate_struct_layout(outer_type);
 
@@ -5789,7 +5888,7 @@ static void test_struct_clone_type()
     fields[0] = create_test_field(&arena, "x", int_type, NULL);
     fields[1] = create_test_field(&arena, "y", double_type, NULL);
 
-    Type *original = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false);
+    Type *original = ast_create_struct_type(&arena, "Point", fields, 2, NULL, 0, false, false, false, NULL);
     calculate_struct_layout(original);
 
     /* Clone the type */
@@ -5838,7 +5937,7 @@ static void test_struct_clone_native()
     StructField fields[1];
     fields[0] = create_test_field(&arena, "data", ptr_byte, NULL);
 
-    Type *original = ast_create_struct_type(&arena, "Buffer", fields, 1, NULL, 0, true, false);
+    Type *original = ast_create_struct_type(&arena, "Buffer", fields, 1, NULL, 0, true, false, false, NULL);
     Type *cloned = ast_clone_type(&arena, original);
 
     assert(cloned->as.struct_type.is_native == true);
@@ -5880,7 +5979,7 @@ static void test_struct_type_to_string()
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
 
-    Type *struct_type = ast_create_struct_type(&arena, "MyStruct", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "MyStruct", fields, 1, NULL, 0, false, false, false, NULL);
 
     const char *str = ast_type_to_string(&arena, struct_type);
     assert(str != NULL);
@@ -5902,7 +6001,7 @@ static void test_struct_type_to_string_anonymous()
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
 
-    Type *struct_type = ast_create_struct_type(&arena, NULL, fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, NULL, fields, 1, NULL, 0, false, false, false, NULL);
 
     const char *str = ast_type_to_string(&arena, struct_type);
     assert(str != NULL);
@@ -5930,7 +6029,7 @@ static void test_ast_type_is_struct()
     StructField fields[1];
     fields[0] = create_test_field(&arena, "val", int_type, NULL);
 
-    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false);
+    Type *struct_type = ast_create_struct_type(&arena, "Test", fields, 1, NULL, 0, false, false, false, NULL);
 
     /* struct_type should return true */
     assert(ast_type_is_struct(struct_type) == 1);
@@ -5977,6 +6076,7 @@ static void test_struct_layout_deeply_nested()
     inner_type->as.struct_type.fields[0].type = int_type;
     inner_type->as.struct_type.fields[0].offset = 0;
     inner_type->as.struct_type.fields[0].default_value = NULL;
+    inner_type->as.struct_type.fields[0].c_alias = NULL;
     calculate_struct_layout(inner_type);
     assert(inner_type->as.struct_type.size == 8);
 
@@ -5992,10 +6092,12 @@ static void test_struct_layout_deeply_nested()
     middle_type->as.struct_type.fields[0].type = inner_type;
     middle_type->as.struct_type.fields[0].offset = 0;
     middle_type->as.struct_type.fields[0].default_value = NULL;
+    middle_type->as.struct_type.fields[0].c_alias = NULL;
     middle_type->as.struct_type.fields[1].name = "flag";
     middle_type->as.struct_type.fields[1].type = byte_type;
     middle_type->as.struct_type.fields[1].offset = 0;
     middle_type->as.struct_type.fields[1].default_value = NULL;
+    middle_type->as.struct_type.fields[1].c_alias = NULL;
     calculate_struct_layout(middle_type);
     assert(middle_type->as.struct_type.size == 16);
 
@@ -6011,10 +6113,12 @@ static void test_struct_layout_deeply_nested()
     outer_type->as.struct_type.fields[0].type = middle_type;
     outer_type->as.struct_type.fields[0].offset = 0;
     outer_type->as.struct_type.fields[0].default_value = NULL;
+    outer_type->as.struct_type.fields[0].c_alias = NULL;
     outer_type->as.struct_type.fields[1].name = "count";
     outer_type->as.struct_type.fields[1].type = int_type;
     outer_type->as.struct_type.fields[1].offset = 0;
     outer_type->as.struct_type.fields[1].default_value = NULL;
+    outer_type->as.struct_type.fields[1].c_alias = NULL;
     calculate_struct_layout(outer_type);
 
     assert(outer_type->as.struct_type.fields[0].offset == 0);

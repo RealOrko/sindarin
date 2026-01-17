@@ -1,8 +1,8 @@
 # Test pragma directives for C interop
 # This test uses math.h to verify pragma include/link work correctly
 
-#pragma include "<math.h>"
-#pragma link "m"
+#pragma include <math.h>
+#pragma link m
 
 fn main(): int =>
     # Test that the pragma directives are parsed correctly and compiled

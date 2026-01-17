@@ -87,6 +87,9 @@ void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const 
     gen->pragma_links = NULL;
     gen->pragma_link_count = 0;
     gen->pragma_link_capacity = 0;
+    gen->pragma_sources = NULL;
+    gen->pragma_source_count = 0;
+    gen->pragma_source_capacity = 0;
 
     /* Initialize interceptor thunk support */
     gen->thunk_count = 0;
@@ -574,36 +577,17 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         return;
     }
 
-    char *fn_name_str = fn_name;  // Already computed above
-    bool is_main = strcmp(fn_name_str, "main") == 0;
-    bool is_shared = fn->modifier == FUNC_SHARED;
-    /* Functions returning heap-allocated types (closures, strings, arrays, any, structs) must be
-     * implicitly shared to avoid arena lifetime issues - the returned value must
-     * live in caller's arena, not the function's arena which is destroyed on return.
-     * 'any' is included because it may contain strings or arrays at runtime.
-     * 'struct' is included because struct fields may contain strings or other heap types,
-     * and the struct data itself may need to outlive the callee's arena. */
-    bool returns_heap_type = fn->return_type && (
-        fn->return_type->kind == TYPE_FUNCTION ||
-        fn->return_type->kind == TYPE_STRING ||
-        fn->return_type->kind == TYPE_ARRAY ||
-        fn->return_type->kind == TYPE_ANY ||
-        fn->return_type->kind == TYPE_STRUCT);
-    if (returns_heap_type && !is_main)
-    {
-        is_shared = true;
-    }
+    /* New arena model: ALL non-main Sindarin functions receive __caller_arena__ as first param.
+     * This is true regardless of whether they are shared, default, or private.
+     * The modifier only affects how the local arena is set up inside the function. */
     const char *ret_c = get_c_type(gen->arena, fn->return_type);
     indented_fprintf(gen, 0, "%s %s(", ret_c, fn_name);
 
-    // Shared functions receive caller's arena as first parameter
-    if (is_shared)
+    /* All non-main functions receive caller's arena as first parameter */
+    fprintf(gen->output, "RtArena *");
+    if (fn->param_count > 0)
     {
-        fprintf(gen->output, "RtArena *");
-        if (fn->param_count > 0)
-        {
-            fprintf(gen->output, ", ");
-        }
+        fprintf(gen->output, ", ");
     }
 
     for (int i = 0; i < fn->param_count; i++)
@@ -635,10 +619,8 @@ static void code_gen_forward_declaration(CodeGen *gen, FunctionStmt *fn)
         }
     }
 
-    if (fn->param_count == 0 && !is_shared)
-    {
-        fprintf(gen->output, "void");
-    }
+    /* With new arena model, ALL non-main functions have at least the arena param,
+     * so we never need to output "void" for empty parameter list */
 
     fprintf(gen->output, ");\n");
 }
@@ -752,6 +734,55 @@ static void code_gen_add_pragma_link(CodeGen *gen, const char *link)
     gen->pragma_links[gen->pragma_link_count++] = arena_strdup(gen->arena, link);
 }
 
+/* Helper to extract directory from a file path */
+static const char *get_directory_from_path(Arena *arena, const char *filepath)
+{
+    if (filepath == NULL) return ".";
+
+    char *path_copy = arena_strdup(arena, filepath);
+    char *last_sep = strrchr(path_copy, '/');
+#ifdef _WIN32
+    char *last_win_sep = strrchr(path_copy, '\\');
+    if (last_win_sep > last_sep) last_sep = last_win_sep;
+#endif
+
+    if (last_sep != NULL)
+    {
+        *last_sep = '\0';
+        return path_copy;
+    }
+    return ".";
+}
+
+/* Helper to add a pragma source file with location info (with deduplication) */
+static void code_gen_add_pragma_source(CodeGen *gen, const char *source, const char *source_dir)
+{
+    /* Check for duplicates (same value and source_dir) */
+    for (int i = 0; i < gen->pragma_source_count; i++)
+    {
+        if (strcmp(gen->pragma_sources[i].value, source) == 0 &&
+            strcmp(gen->pragma_sources[i].source_dir, source_dir) == 0)
+        {
+            return; /* Already added */
+        }
+    }
+
+    if (gen->pragma_source_count >= gen->pragma_source_capacity)
+    {
+        int new_capacity = gen->pragma_source_capacity == 0 ? 8 : gen->pragma_source_capacity * 2;
+        PragmaSourceInfo *new_sources = arena_alloc(gen->arena, new_capacity * sizeof(PragmaSourceInfo));
+        for (int i = 0; i < gen->pragma_source_count; i++)
+        {
+            new_sources[i] = gen->pragma_sources[i];
+        }
+        gen->pragma_sources = new_sources;
+        gen->pragma_source_capacity = new_capacity;
+    }
+    gen->pragma_sources[gen->pragma_source_count].value = arena_strdup(gen->arena, source);
+    gen->pragma_sources[gen->pragma_source_count].source_dir = arena_strdup(gen->arena, source_dir);
+    gen->pragma_source_count++;
+}
+
 /* Collect pragma directives from a list of statements (recursively handles imports) */
 static void code_gen_collect_pragmas(CodeGen *gen, Stmt **statements, int count)
 {
@@ -767,6 +798,12 @@ static void code_gen_collect_pragmas(CodeGen *gen, Stmt **statements, int count)
             else if (stmt->as.pragma.pragma_type == PRAGMA_LINK)
             {
                 code_gen_add_pragma_link(gen, stmt->as.pragma.value);
+            }
+            else if (stmt->as.pragma.pragma_type == PRAGMA_SOURCE)
+            {
+                const char *source_dir = get_directory_from_path(gen->arena,
+                    stmt->token ? stmt->token->filename : NULL);
+                code_gen_add_pragma_source(gen, stmt->as.pragma.value, source_dir);
             }
         }
         else if (stmt->type == STMT_IMPORT &&
@@ -843,6 +880,14 @@ void code_gen_module(CodeGen *gen, Module *module)
         if (stmt->type == STMT_STRUCT_DECL)
         {
             StructDeclStmt *struct_decl = &stmt->as.struct_decl;
+
+            /* Skip native structs that have a c_alias - they are aliases to external types
+             * and should not generate a typedef. The c_alias will be used directly in code. */
+            if (struct_decl->is_native && struct_decl->c_alias != NULL)
+            {
+                continue;
+            }
+
             if (struct_count == 0)
             {
                 indented_fprintf(gen, 0, "/* Struct type definitions */\n");
@@ -905,13 +950,36 @@ void code_gen_module(CodeGen *gen, Module *module)
 
                 if (method->is_native && method->body == NULL)
                 {
-                    /* Native method - generate extern declaration with rt_ prefix */
+                    /* Native method with c_alias: skip extern declaration.
+                     * The function is expected to be declared in an included header
+                     * via #pragma include. Generating an extern would cause conflicts. */
+                    if (method->c_alias != NULL)
+                    {
+                        method_count++;
+                        continue;
+                    }
+
+                    /* Native method without c_alias - generate extern declaration */
                     /* Naming: rt_{struct_lowercase}_{method_name} */
+                    const char *func_name = arena_sprintf(gen->arena, "rt_%s_%s", struct_name_lower, method->name);
+
+                    /* For opaque handle types (native struct with c_alias), use the C type directly */
+                    const char *self_c_type;
+                    if (struct_decl->is_native && struct_decl->c_alias != NULL)
+                    {
+                        /* Opaque handle: self type is already a pointer (e.g., RtDate *) */
+                        self_c_type = arena_sprintf(gen->arena, "%s *", struct_decl->c_alias);
+                    }
+                    else
+                    {
+                        self_c_type = struct_name;
+                    }
+
                     if (method->is_static)
                     {
-                        /* Static native: extern RetType rt_structname_method(params); */
-                        indented_fprintf(gen, 0, "extern %s rt_%s_%s(",
-                                         ret_type, struct_name_lower, method->name);
+                        /* Static native: extern RetType func_name(params); */
+                        indented_fprintf(gen, 0, "extern %s %s(",
+                                         ret_type, func_name);
                         if (method->param_count == 0)
                         {
                             indented_fprintf(gen, 0, "void");
@@ -931,9 +999,9 @@ void code_gen_module(CodeGen *gen, Module *module)
                     }
                     else
                     {
-                        /* Instance native: extern RetType rt_structname_method(StructName self, params); */
-                        indented_fprintf(gen, 0, "extern %s rt_%s_%s(%s",
-                                         ret_type, struct_name_lower, method->name, struct_name);
+                        /* Instance native: extern RetType func_name(self_type self, params); */
+                        indented_fprintf(gen, 0, "extern %s %s(%s",
+                                         ret_type, func_name, self_c_type);
                         for (int k = 0; k < method->param_count; k++)
                         {
                             Parameter *param = &method->params[k];
@@ -971,8 +1039,19 @@ void code_gen_module(CodeGen *gen, Module *module)
                     else
                     {
                         /* Instance method: first parameter is self (pointer to struct) */
-                        indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
-                                         ret_type, struct_name, method->name, struct_name);
+                        /* For opaque handle types (native struct with c_alias), self is already a pointer */
+                        if (struct_decl->is_native && struct_decl->c_alias != NULL)
+                        {
+                            /* Opaque handle: self type is the C alias pointer */
+                            indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
+                                             ret_type, struct_name, method->name, struct_decl->c_alias);
+                        }
+                        else
+                        {
+                            /* Regular struct: self is pointer to struct */
+                            indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
+                                             ret_type, struct_name, method->name, struct_name);
+                        }
                         for (int k = 0; k < method->param_count; k++)
                         {
                             Parameter *param = &method->params[k];
@@ -1026,6 +1105,13 @@ void code_gen_module(CodeGen *gen, Module *module)
             FunctionStmt *fn = &stmt->as.function;
             if (fn->is_native && fn->body_count == 0)
             {
+                /* Skip extern declaration for runtime functions (starting with rt_)
+                 * since they are already declared in runtime headers. */
+                char *fn_name = arena_strndup(gen->arena, fn->name.start, fn->name.length);
+                if (strncmp(fn_name, "rt_", 3) == 0)
+                {
+                    continue;
+                }
                 if (native_extern_count == 0)
                 {
                     indented_fprintf(gen, 0, "/* Native function extern declarations */\n");
@@ -1131,8 +1217,19 @@ void code_gen_module(CodeGen *gen, Module *module)
                 else
                 {
                     /* Instance method: first parameter is self (pointer to struct) */
-                    indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
-                                     ret_type, struct_name, method->name, struct_name);
+                    /* For opaque handle types (native struct with c_alias), self is already a pointer */
+                    if (struct_decl->is_native && struct_decl->c_alias != NULL)
+                    {
+                        /* Opaque handle: self type is the C alias pointer */
+                        indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
+                                         ret_type, struct_name, method->name, struct_decl->c_alias);
+                    }
+                    else
+                    {
+                        /* Regular struct: self is pointer to struct */
+                        indented_fprintf(gen, 0, "%s %s_%s(RtArena *arena, %s *self",
+                                         ret_type, struct_name, method->name, struct_name);
+                    }
                     for (int k = 0; k < method->param_count; k++)
                     {
                         Parameter *param = &method->params[k];
@@ -1198,11 +1295,11 @@ void code_gen_module(CodeGen *gen, Module *module)
     {
         // Generate main with arena lifecycle
         indented_fprintf(gen, 0, "int main() {\n");
-        indented_fprintf(gen, 1, "RtArena *__arena_1__ = rt_arena_create(NULL);\n");
+        indented_fprintf(gen, 1, "RtArena *__local_arena__ = rt_arena_create(NULL);\n");
         indented_fprintf(gen, 1, "int _return_value = 0;\n");
         indented_fprintf(gen, 1, "goto main_return;\n");
         indented_fprintf(gen, 0, "main_return:\n");
-        indented_fprintf(gen, 1, "rt_arena_destroy(__arena_1__);\n");
+        indented_fprintf(gen, 1, "rt_arena_destroy(__local_arena__);\n");
         indented_fprintf(gen, 1, "return _return_value;\n");
         indented_fprintf(gen, 0, "}\n");
     }

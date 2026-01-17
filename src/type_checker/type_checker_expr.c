@@ -613,6 +613,11 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         return NULL;
     }
 
+    /* Resolve forward references for struct types.
+     * This handles cases where a struct method takes the same struct type as a parameter,
+     * and the type was registered early (incomplete) for struct literal support. */
+    object_type = resolve_struct_forward_reference(object_type, table);
+
     /* Array methods - DELEGATED to type_checker_expr_call.c */
     if (object_type->kind == TYPE_ARRAY)
     {

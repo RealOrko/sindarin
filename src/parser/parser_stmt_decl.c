@@ -451,8 +451,9 @@ Stmt *parser_native_function_declaration(Parser *parser)
         param_types[i] = params[i].type;
     }
     Type *function_type = ast_create_function_type(parser->arena, return_type, param_types, param_count);
-    /* Mark function type as variadic if '...' was parsed */
+    /* Mark function type as variadic and native */
     function_type->as.function.is_variadic = is_variadic;
+    function_type->as.function.is_native = true;  /* Native functions need is_native on the type too */
 
     symbol_table_add_symbol(parser->symbol_table, name, function_type);
 
@@ -802,6 +803,7 @@ static StructMethod *parser_struct_method(Parser *parser, bool is_static, bool i
     method->is_static = is_static;
     method->is_native = is_native_method;
     method->name_token = method_name;
+    method->c_alias = NULL;  /* Set via #pragma alias if needed */
 
     return method;
 }
@@ -820,14 +822,11 @@ static bool parser_is_method_start(Parser *parser)
     }
     if (parser_check(parser, TOKEN_NATIVE))
     {
-        /* Check if followed by 'fn' (method) or 'struct' (shouldn't happen here) */
-        /* Save position and look ahead */
-        Token saved = parser->current;
-        parser_advance(parser);
-        bool is_method = parser_check(parser, TOKEN_FN);
-        /* Restore - this is a peek, not a consume */
-        parser->current = saved;
-        return is_method;
+        /* In a struct body context, 'native' can only start a method (native fn).
+         * We don't peek ahead because parser_advance() modifies lexer state
+         * that cannot be easily restored. The actual 'fn' requirement is
+         * validated when we try to match TOKEN_FN after consuming 'native'. */
+        return true;
     }
     return false;
 }
@@ -855,9 +854,40 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
         return NULL;
     }
 
+    /* Parse optional 'as ref' or 'as val' for native structs */
+    bool pass_self_by_ref = false;
+    if (parser_match(parser, TOKEN_AS))
+    {
+        if (!is_native)
+        {
+            parser_error_at_current(parser, "'as ref'/'as val' is only allowed on native structs");
+            return NULL;
+        }
+        if (parser_match(parser, TOKEN_REF))
+        {
+            pass_self_by_ref = true;
+        }
+        else if (parser_match(parser, TOKEN_VAL))
+        {
+            pass_self_by_ref = false;
+        }
+        else
+        {
+            parser_error_at_current(parser, "Expected 'ref' or 'val' after 'as'");
+            return NULL;
+        }
+    }
+
     /* Parse '=>' */
-    parser_consume(parser, TOKEN_ARROW, "Expected '=>' after struct name");
+    parser_consume(parser, TOKEN_ARROW, "Expected '=>' after struct name or 'as ref'/'as val'");
     skip_newlines(parser);
+
+    /* Register an incomplete struct type early so method bodies can reference it.
+     * This allows static methods to return struct literals like: return Point { x: 0, y: 0 }
+     * The type will be updated with complete fields/methods after parsing finishes. */
+    Type *early_struct_type = ast_create_struct_type(parser->arena, name.start, NULL, 0,
+                                                      NULL, 0, is_native, false, pass_self_by_ref, NULL);
+    symbol_table_add_type(parser->symbol_table, name, early_struct_type);
 
     /* Parse field and method declarations in indented block */
     StructField *fields = NULL;
@@ -867,6 +897,9 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
     StructMethod *methods = NULL;
     int method_count = 0;
     int method_capacity = 0;
+
+    /* Local pending alias for fields/methods inside struct body */
+    const char *member_alias = NULL;
 
     /* Check for indented block */
     if (parser_check(parser, TOKEN_INDENT))
@@ -884,6 +917,24 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
             if (parser_check(parser, TOKEN_DEDENT) || parser_is_at_end(parser))
             {
                 break;
+            }
+
+            /* Check for #pragma alias inside struct body */
+            if (parser_match(parser, TOKEN_PRAGMA_ALIAS))
+            {
+                if (!parser_match(parser, TOKEN_STRING_LITERAL))
+                {
+                    parser_error_at_current(parser, "Expected string literal after #pragma alias");
+                    continue;
+                }
+                Token alias_token = parser->previous;
+                /* Extract alias string (remove quotes) */
+                const char *alias_start = alias_token.start + 1;
+                int alias_len = alias_token.length - 2;
+                member_alias = arena_strndup(parser->arena, alias_start, alias_len);
+                /* Consume newline after pragma */
+                parser_match(parser, TOKEN_NEWLINE);
+                continue;
             }
 
             /* Check if this is a method declaration */
@@ -920,13 +971,16 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
                     continue;
                 }
 
-                /* Check for duplicate method names */
+                /* Check for duplicate method names.
+                 * Allow same name if one is static and one is instance method. */
                 for (int i = 0; i < method_count; i++)
                 {
-                    if (strcmp(methods[i].name, method->name) == 0)
+                    if (strcmp(methods[i].name, method->name) == 0 &&
+                        methods[i].is_static == method->is_static)
                     {
                         char msg[256];
-                        snprintf(msg, sizeof(msg), "Duplicate method name '%s' in struct '%.*s'",
+                        snprintf(msg, sizeof(msg), "Duplicate %s method name '%s' in struct '%.*s'",
+                                 method->is_static ? "static" : "instance",
                                  method->name, name.length, name.start);
                         parser_error_at(parser, &method->name_token, msg);
                         break;
@@ -952,6 +1006,12 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
 
                 /* Store method */
                 methods[method_count] = *method;
+                /* Apply pending alias if present */
+                if (member_alias != NULL)
+                {
+                    methods[method_count].c_alias = member_alias;
+                    member_alias = NULL;  /* Reset for next member */
+                }
                 method_count++;
             }
             else
@@ -1034,6 +1094,16 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
                 fields[field_count].type = field_type;
                 fields[field_count].offset = 0;  /* Computed during type checking */
                 fields[field_count].default_value = default_value;
+                /* Apply pending alias if present */
+                if (member_alias != NULL)
+                {
+                    fields[field_count].c_alias = member_alias;
+                    member_alias = NULL;  /* Reset for next member */
+                }
+                else
+                {
+                    fields[field_count].c_alias = NULL;
+                }
                 field_count++;
 
                 /* Consume newline after field definition */
@@ -1054,16 +1124,29 @@ Stmt *parser_struct_declaration(Parser *parser, bool is_native)
     /* Check if this struct should be packed (from #pragma pack(1)) */
     bool is_packed = (parser->pack_alignment == 1);
 
+    /* Consume any pending alias from #pragma alias */
+    const char *c_alias = parser->pending_alias;
+    parser->pending_alias = NULL;
+
+    /* Validate: c_alias is only allowed on native structs */
+    if (c_alias != NULL && !is_native)
+    {
+        parser_error_at(parser, &struct_token, "#pragma alias is only allowed on native structs");
+        return NULL;
+    }
+
     /* Create the struct type for the symbol table */
     Type *struct_type = ast_create_struct_type(parser->arena, name.start, fields, field_count,
-                                                methods, method_count, is_native, is_packed);
+                                                methods, method_count, is_native, is_packed,
+                                                pass_self_by_ref, c_alias);
 
     /* Register the struct type in the symbol table so it can be used by later declarations */
     symbol_table_add_type(parser->symbol_table, name, struct_type);
 
     /* Create struct declaration statement */
     Stmt *stmt = ast_create_struct_decl_stmt(parser->arena, name, fields, field_count,
-                                              methods, method_count, is_native, is_packed, &struct_token);
+                                              methods, method_count, is_native, is_packed,
+                                              pass_self_by_ref, c_alias, &struct_token);
 
     return stmt;
 }

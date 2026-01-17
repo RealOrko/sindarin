@@ -72,6 +72,17 @@ char *code_gen_variable_expression(CodeGen *gen, VariableExpr *expr)
     DEBUG_VERBOSE("Entering code_gen_variable_expression");
     char *var_name = get_var_name(gen->arena, expr->name);
 
+    /* Handle 'arena' built-in identifier - resolve to current arena variable */
+    if (expr->name.length == 5 && strncmp(expr->name.start, "arena", 5) == 0)
+    {
+        if (gen->current_arena_var != NULL)
+        {
+            return arena_strdup(gen->arena, gen->current_arena_var);
+        }
+        /* Fallback to rt_current_arena() if no arena variable is available */
+        return arena_strdup(gen->arena, "rt_current_arena()");
+    }
+
     // Check if we're inside a lambda and this is a lambda parameter.
     // Lambda parameters shadow outer variables, so don't look up in symbol table.
     if (gen->enclosing_lambda_count > 0)

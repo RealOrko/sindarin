@@ -1,8 +1,8 @@
 // Test variadic native function support
 // This test uses custom variadic functions to avoid conflicts with stdio.h declarations
-// The variadic functions are defined in test_variadic_native.c (helper file)
+// The variadic functions are defined in test_variadic_helper.c
 
-#pragma include "\"test_variadic_helper.c\""
+#pragma source "test_variadic_helper.c"
 
 // Custom variadic function that prints formatted output
 // Defined in the helper C file with the correct signature

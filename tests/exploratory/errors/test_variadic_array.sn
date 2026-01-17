@@ -1,7 +1,7 @@
 # Exploratory test: Variadic function rejects array arguments
 # This should fail to compile because arrays cannot be passed as variadic arguments.
 
-#pragma include "<stdio.h>"
+#pragma include <stdio.h>
 
 native fn printf(format: str, ...): int
 

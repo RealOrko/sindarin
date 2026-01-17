@@ -392,13 +392,11 @@ char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
     /* Generate the function call with arguments extracted from struct */
     char *callee_str = code_gen_expression(gen, call->callee);
 
-    /* Check if target function needs arena as first arg.
-     * This includes explicitly shared functions AND implicitly shared functions
-     * (those that return heap types like strings/arrays). */
-    bool target_needs_arena_arg = (modifier == FUNC_SHARED) || is_implicitly_shared;
-
-    /* Check if this is a user-defined function that should be intercepted */
+    /* Check if this is a user-defined function (has body) that should receive arena.
+     * With the new arena model, ALL Sindarin functions (with bodies) receive the
+     * arena as first parameter, regardless of their modifier. */
     bool is_user_function = false;
+    bool target_needs_arena_arg = false;
     const char *func_name_for_intercept = NULL;
     if (call->callee->type == EXPR_VARIABLE)
     {
@@ -406,7 +404,14 @@ char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
         if (sym != NULL && sym->is_function && !sym->is_native)
         {
             is_user_function = true;
+            target_needs_arena_arg = true;  /* All Sindarin functions get arena */
             func_name_for_intercept = get_var_name(gen->arena, call->callee->as.variable.name);
+        }
+        /* Also check has_body flag on function type */
+        if (sym != NULL && sym->type != NULL && sym->type->kind == TYPE_FUNCTION &&
+            sym->type->as.function.has_body)
+        {
+            target_needs_arena_arg = true;
         }
     }
 

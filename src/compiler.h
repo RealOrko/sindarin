@@ -36,6 +36,8 @@ typedef struct
     int debug_build;                 /* -g: Include debug symbols and sanitizers in GCC output */
     char **link_libs;                /* Libraries to link from #pragma link directives */
     int link_lib_count;              /* Number of link libraries */
+    PragmaSourceInfo *source_files;  /* C source files with location info from #pragma source */
+    int source_file_count;           /* Number of source files */
 } CompilerOptions;
 
 void compiler_init(CompilerOptions *options, int argc, char **argv);

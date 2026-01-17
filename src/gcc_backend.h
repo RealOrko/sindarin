@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 
+/* Forward declare for pragma source validation */
+typedef struct PragmaSourceInfo PragmaSourceInfo;
+
 /* Configuration for the C compiler backend.
  * All fields are initialized from environment variables with sensible defaults.
  */
@@ -46,6 +49,20 @@ void cc_backend_init_config(CCBackendConfig *config);
  */
 bool gcc_check_available(const CCBackendConfig *config, bool verbose);
 
+/* Validate pragma source files before passing to C compiler.
+ * Checks that all source files exist and are readable.
+ * Paths are resolved relative to each pragma's defining module directory.
+ *
+ * Parameters:
+ *   source_files      - Array of PragmaSourceInfo with file paths and source directories
+ *   source_file_count - Number of source files
+ *   verbose           - If true, print diagnostic information
+ *
+ * Returns true if all files exist, false if any are missing.
+ */
+bool gcc_validate_pragma_sources(PragmaSourceInfo *source_files, int source_file_count,
+                                  bool verbose);
+
 /* Compile a C source file to an executable using the configured C compiler.
  *
  * Parameters:
@@ -57,13 +74,16 @@ bool gcc_check_available(const CCBackendConfig *config, bool verbose);
  *   debug_mode    - If true, use debug flags; otherwise use release flags
  *   link_libs     - Array of library names to link (e.g., "m", "pthread") or NULL
  *   link_lib_count - Number of libraries in link_libs
+ *   source_files  - Array of PragmaSourceInfo with file paths and source directories
+ *   source_file_count - Number of source files
  *
  * Returns true on success, false on failure.
  */
 bool gcc_compile(const CCBackendConfig *config, const char *c_file,
                  const char *output_exe, const char *compiler_dir,
                  bool verbose, bool debug_mode,
-                 char **link_libs, int link_lib_count);
+                 char **link_libs, int link_lib_count,
+                 PragmaSourceInfo *source_files, int source_file_count);
 
 /* Get the directory containing the compiler executable.
  * This is used to locate the runtime object files.

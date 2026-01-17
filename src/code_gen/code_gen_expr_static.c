@@ -846,12 +846,22 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
 
         if (method->is_native)
         {
-            /* Native static method: rt_{struct_lowercase}_{method_name}(args) */
-            /* Create lowercase struct name for native method naming */
-            char *struct_name_lower = arena_strdup(gen->arena, struct_name);
-            for (char *p = struct_name_lower; *p; p++)
+            /* Native static method - use c_alias if present, else use naming convention */
+            const char *func_name;
+            if (method->c_alias != NULL)
             {
-                *p = (char)tolower((unsigned char)*p);
+                /* Use explicit c_alias from #pragma alias */
+                func_name = method->c_alias;
+            }
+            else
+            {
+                /* Create lowercase struct name for native method naming */
+                char *struct_name_lower = arena_strdup(gen->arena, struct_name);
+                for (char *p = struct_name_lower; *p; p++)
+                {
+                    *p = (char)tolower((unsigned char)*p);
+                }
+                func_name = arena_sprintf(gen->arena, "rt_%s_%s", struct_name_lower, method->name);
             }
 
             /* Build args list - NO arena for native methods */
@@ -869,8 +879,7 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
                 }
             }
 
-            return arena_sprintf(gen->arena, "rt_%s_%s(%s)",
-                                 struct_name_lower, method->name, args_list);
+            return arena_sprintf(gen->arena, "%s(%s)", func_name, args_list);
         }
         else
         {
