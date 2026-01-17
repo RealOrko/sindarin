@@ -118,6 +118,11 @@ typedef struct {
      * themselves during initialization, then we add a self-fix statement. */
     char *current_decl_var_name;         /* Name of variable being declared */
     int recursive_lambda_id;             /* Lambda ID if recursive, -1 otherwise */
+
+    /* Return closure allocation - when true, closures should be allocated
+     * in __caller_arena__ instead of __local_arena__. This is set when
+     * generating lambda expressions that are directly returned from functions. */
+    bool allocate_closure_in_caller_arena;
 } CodeGen;
 
 void code_gen_init(Arena *arena, CodeGen *gen, SymbolTable *symbol_table, const char *output_file);

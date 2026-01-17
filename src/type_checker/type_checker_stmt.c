@@ -724,6 +724,16 @@ static void type_check_function(Stmt *stmt, SymbolTable *table)
         symbol_table_add_function(table, stmt->as.function.name, func_type, effective_modifier, modifier);
     }
 
+    /* Set c_alias on the symbol if the function has one (from #pragma alias) */
+    if (stmt->as.function.c_alias != NULL)
+    {
+        Symbol *func_sym = symbol_table_lookup_symbol_current(table, stmt->as.function.name);
+        if (func_sym != NULL)
+        {
+            func_sym->c_alias = stmt->as.function.c_alias;
+        }
+    }
+
     symbol_table_push_scope(table);
 
     /* For non-native functions, add 'arena' as a built-in identifier */
@@ -1370,6 +1380,16 @@ static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
                 /* Add function symbol to namespace with proper function modifier */
                 symbol_table_add_function_to_namespace(table, ns_token, *func_name, func_type, effective_modifier, modifier);
 
+                /* Set c_alias on the namespace symbol if the function has one */
+                if (func->c_alias != NULL)
+                {
+                    Symbol *ns_func_sym = symbol_table_lookup_in_namespace(table, ns_token, *func_name);
+                    if (ns_func_sym != NULL)
+                    {
+                        ns_func_sym->c_alias = func->c_alias;
+                    }
+                }
+
                 /* Only add to global scope if not already there (e.g., from direct import).
                  * Track whether we added it so we can remove it later.
                  * Use the appropriate function for native vs non-native functions. */
@@ -1384,6 +1404,15 @@ static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
                     {
                         symbol_table_add_function(table, *func_name, func_type, effective_modifier, modifier);
                     }
+                    /* Set c_alias on the global symbol if the function has one */
+                    if (func->c_alias != NULL)
+                    {
+                        Symbol *global_func_sym = symbol_table_lookup_symbol_current(table, *func_name);
+                        if (global_func_sym != NULL)
+                        {
+                            global_func_sym->c_alias = func->c_alias;
+                        }
+                    }
                     added_to_global[added_idx] = true;
                 }
                 else
@@ -1396,6 +1425,7 @@ static void type_check_import_stmt(Stmt *stmt, SymbolTable *table)
                     existing->is_native = func->is_native;
                     existing->func_mod = effective_modifier;
                     existing->declared_func_mod = modifier;
+                    existing->c_alias = func->c_alias;
                 }
                 added_idx++;
 

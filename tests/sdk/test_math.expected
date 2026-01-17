@@ -31,26 +31,26 @@ round(2.5) = 3.00000
 trunc(-2.7) = -2.00000
 
 --- Integer Helpers ---
-abs_i(-42) = 42
-min_i(10, 20) = 10
-max_i(10, 20) = 20
-clamp_i(15, 0, 10) = 10
-sign_i(-5) = -1
+absInt(-42) = 42
+minInt(10, 20) = 10
+maxInt(10, 20) = 20
+clampInt(15, 0, 10) = 10
+signInt(-5) = -1
 
 --- Double Helpers ---
-abs_d(-3.14) = 3.14000
-min_d(1.5, 2.5) = 1.50000
-max_d(1.5, 2.5) = 2.50000
-clamp_d(1.5, 0.0, 1.0) = 1.00000
+absDouble(-3.14) = 3.14000
+minDouble(1.5, 2.5) = 1.50000
+maxDouble(1.5, 2.5) = 2.50000
+clampDouble(1.5, 0.0, 1.0) = 1.00000
 
 --- Safe Wrappers ---
-safe_sqrt(-1) = 0.00000
-safe_sqrt(4) = 2.00000
-safe_asin(2.0) = 1.57080
+safeSqrt(-1) = 0.00000
+safeSqrt(4) = 2.00000
+safeAsin(2.0) = 1.57080
 
 --- Utilities ---
 lerp(0, 100, 0.5) = 50.00000
-distance_2d(0,0,3,4) = 5.00000
+distance2D(0,0,3,4) = 5.00000
 smoothstep(0, 1, 0.5) = 0.50000
 
 --- Hyperbolic ---
@@ -60,57 +60,57 @@ tanh(1) = 0.76159
 === SDK Math Float Test ===
 
 --- Float Constants ---
-pi_f = 3.14159
-e_f = 2.71828
-tau_f = 6.28319
-phi_f = 1.61803
-sqrt2_f = 1.41421
+piF = 3.14159
+eF = 2.71828
+tauF = 6.28319
+phiF = 1.61803
+sqrt2F = 1.41421
 
 --- Trigonometry (float) ---
-sinf(45deg) = 0.70711
-cosf(45deg) = 0.70711
-tanf(45deg) = 1.00000
+sinF(45deg) = 0.70711
+cosF(45deg) = 0.70711
+tanF(45deg) = 1.00000
 
 --- Power Functions (float) ---
-sqrtf(2) = 1.41421
-cbrtf(8) = 2.00000
-powf(2, 10) = 1024.00000
-hypotf(3, 4) = 5.00000
+sqrtF(2) = 1.41421
+cbrtF(8) = 2.00000
+powF(2, 10) = 1024.00000
+hypotF(3, 4) = 5.00000
 
 --- Exponential/Logarithmic (float) ---
-expf(1) = 2.71828
-logf(e_f) = 1.00000
-log10f(100) = 2.00000
-log2f(8) = 3.00000
+expF(1) = 2.71828
+logF(eF) = 1.00000
+log10F(100) = 2.00000
+log2F(8) = 3.00000
 
 --- Rounding (float) ---
-floorf(2.7) = 2.00000
-ceilf(2.3) = 3.00000
-roundf(2.5) = 3.00000
-truncf(-2.7) = -2.00000
+floorF(2.7) = 2.00000
+ceilF(2.3) = 3.00000
+roundF(2.5) = 3.00000
+truncF(-2.7) = -2.00000
 
 --- Float Helpers ---
-abs_f(-3.14) = 3.14000
-min_f(1.5, 2.5) = 1.50000
-max_f(1.5, 2.5) = 2.50000
-clamp_f(1.5, 0.0, 1.0) = 1.00000
-sign_f(-5.0) = -1.00000
+absF(-3.14) = 3.14000
+minF(1.5, 2.5) = 1.50000
+maxF(1.5, 2.5) = 2.50000
+clampF(1.5, 0.0, 1.0) = 1.00000
+signF(-5.0) = -1.00000
 
 --- Safe Wrappers (float) ---
-safe_sqrt_f(-1) = 0.00000
-safe_sqrt_f(4) = 2.00000
-safe_asin_f(2.0) = 1.57080
-safe_log_f(-1) = 0.00000
+safeSqrtF(-1) = 0.00000
+safeSqrtF(4) = 2.00000
+safeAsinF(2.0) = 1.57080
+safeLogF(-1) = 0.00000
 
 --- Utilities (float) ---
-lerp_f(0, 100, 0.5) = 50.00000
-distance_2d_f(0,0,3,4) = 5.00000
-smoothstep_f(0, 1, 0.5) = 0.50000
+lerpF(0, 100, 0.5) = 50.00000
+distance2DF(0,0,3,4) = 5.00000
+smoothstepF(0, 1, 0.5) = 0.50000
 
 --- Hyperbolic (float) ---
-sinhf(1) = 1.17520
-coshf(1) = 1.54308
-tanhf(1) = 0.76159
+sinhF(1) = 1.17520
+coshF(1) = 1.54308
+tanhF(1) = 0.76159
 
 --- Float vs Double Precision ---
 double pi = 3.14159

@@ -855,19 +855,32 @@ char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
                 needs_closure_wrap = true;
 
                 /* Generate a thunk wrapper that adapts the function to closure calling convention.
-                 * The thunk ignores the closure pointer (first arg) and calls the real function. */
+                 * The thunk uses the closure pointer to get the arena for user-defined functions. */
                 Type *fn_type = arg_expr->expr_type;
                 int thunk_id = gen->temp_count++;
                 thunk_name = arena_sprintf(gen->arena, "__fn_thunk_%d__", thunk_id);
 
+                /* Check if the target function needs an arena parameter.
+                 * User-defined (non-native) functions need the arena as first argument. */
+                bool target_needs_arena = sym->is_function && !sym->is_native;
+
                 /* Build thunk parameter list with closure as first param */
                 char *thunk_params = arena_strdup(gen->arena, "void *__cl__");
-                char *thunk_call_args = arena_strdup(gen->arena, "");
+                char *thunk_call_args;
+                if (target_needs_arena)
+                {
+                    /* Prepend arena from closure as first argument */
+                    thunk_call_args = arena_strdup(gen->arena, "((__Closure__ *)__cl__)->arena");
+                }
+                else
+                {
+                    thunk_call_args = arena_strdup(gen->arena, "");
+                }
                 for (int p = 0; p < fn_type->as.function.param_count; p++)
                 {
                     const char *param_type = get_c_type(gen->arena, fn_type->as.function.param_types[p]);
                     thunk_params = arena_sprintf(gen->arena, "%s, %s __p%d__", thunk_params, param_type, p);
-                    if (p > 0) thunk_call_args = arena_sprintf(gen->arena, "%s, ", thunk_call_args);
+                    if (p > 0 || target_needs_arena) thunk_call_args = arena_sprintf(gen->arena, "%s, ", thunk_call_args);
                     thunk_call_args = arena_sprintf(gen->arena, "%s__p%d__", thunk_call_args, p);
                 }
 
@@ -876,13 +889,13 @@ char *code_gen_thread_spawn_expression(CodeGen *gen, Expr *expr)
                 if (fn_type->as.function.return_type->kind == TYPE_VOID)
                 {
                     thunk_def = arena_sprintf(gen->arena,
-                        "static %s %s(%s) { (void)__cl__; %s(%s); }\n",
+                        "static %s %s(%s) { %s(%s); }\n",
                         ret_type, thunk_name, thunk_params, arg_code, thunk_call_args);
                 }
                 else
                 {
                     thunk_def = arena_sprintf(gen->arena,
-                        "static %s %s(%s) { (void)__cl__; return %s(%s); }\n",
+                        "static %s %s(%s) { return %s(%s); }\n",
                         ret_type, thunk_name, thunk_params, arg_code, thunk_call_args);
                 }
 

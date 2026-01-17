@@ -101,6 +101,13 @@ char *code_gen_variable_expression(CodeGen *gen, VariableExpr *expr)
     {
         return arena_sprintf(gen->arena, "(*%s)", var_name);
     }
+
+    /* For native functions with c_alias, use the C name instead of Sindarin name */
+    if (symbol && symbol->is_native && symbol->c_alias != NULL)
+    {
+        return arena_strdup(gen->arena, symbol->c_alias);
+    }
+
     return var_name;
 }
 

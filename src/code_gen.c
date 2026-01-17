@@ -158,7 +158,7 @@ static void code_gen_externs(CodeGen *gen)
 
     /* Generic closure type for lambdas */
     indented_fprintf(gen, 0, "/* Closure type for lambdas */\n");
-    indented_fprintf(gen, 0, "typedef struct __Closure__ { void *fn; RtArena *arena; } __Closure__;\n\n");
+    indented_fprintf(gen, 0, "typedef struct __Closure__ { void *fn; RtArena *arena; size_t size; } __Closure__;\n\n");
 
     indented_fprintf(gen, 0, "/* Runtime string operations */\n");
     indented_fprintf(gen, 0, "extern char *rt_str_concat(RtArena *, const char *, const char *);\n");

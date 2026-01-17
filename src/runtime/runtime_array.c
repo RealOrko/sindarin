@@ -35,7 +35,30 @@ void rt_array_clear(void *arr) {
  * Push element to end of array, growing capacity if needed.
  * Uses arena allocation - when capacity is exceeded, allocates new array and copies.
  * The arena parameter is used only for NEW arrays; existing arrays use their stored arena.
+ *
+ * Special case: If arena is NULL, uses malloc for allocation. This is used for
+ * global arrays that need to persist beyond any function's lifetime.
  */
+
+/* Helper to allocate array memory from arena or malloc */
+static inline void *rt_array_alloc(RtArena *arena, size_t size) {
+    if (arena == NULL) {
+        return malloc(size);
+    }
+    return rt_arena_alloc(arena, size);
+}
+
+/* Helper to duplicate string from arena or malloc */
+static inline char *rt_array_strdup(RtArena *arena, const char *str) {
+    if (str == NULL) {
+        return NULL;
+    }
+    if (arena == NULL) {
+        return strdup(str);
+    }
+    return rt_arena_strdup(arena, str);
+}
+
 #define DEFINE_ARRAY_PUSH(suffix, elem_type, assign_expr)                      \
 elem_type *rt_array_push_##suffix(RtArena *arena, elem_type *arr, elem_type element) { \
     ArrayMetadata *meta;                                                       \
@@ -44,7 +67,7 @@ elem_type *rt_array_push_##suffix(RtArena *arena, elem_type *arr, elem_type elem
     RtArena *alloc_arena;                                                      \
                                                                                \
     if (arr == NULL) {                                                         \
-        meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + 4 * sizeof(elem_type)); \
+        meta = rt_array_alloc(arena, sizeof(ArrayMetadata) + 4 * sizeof(elem_type)); \
         if (meta == NULL) {                                                    \
             fprintf(stderr, "rt_array_push_" #suffix ": allocation failed\n"); \
             exit(1);                                                           \
@@ -66,7 +89,7 @@ elem_type *rt_array_push_##suffix(RtArena *arena, elem_type *arr, elem_type elem
             fprintf(stderr, "rt_array_push_" #suffix ": capacity overflow\n"); \
             exit(1);                                                           \
         }                                                                      \
-        ArrayMetadata *new_meta = rt_arena_alloc(alloc_arena, sizeof(ArrayMetadata) + new_capacity * sizeof(elem_type)); \
+        ArrayMetadata *new_meta = rt_array_alloc(alloc_arena, sizeof(ArrayMetadata) + new_capacity * sizeof(elem_type)); \
         if (new_meta == NULL) {                                                \
             fprintf(stderr, "rt_array_push_" #suffix ": allocation failed\n"); \
             exit(1);                                                           \
@@ -107,7 +130,7 @@ char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
     RtArena *alloc_arena;
 
     if (arr == NULL) {
-        meta = rt_arena_alloc(arena, sizeof(ArrayMetadata) + 4 * sizeof(char *));
+        meta = rt_array_alloc(arena, sizeof(ArrayMetadata) + 4 * sizeof(char *));
         if (meta == NULL) {
             fprintf(stderr, "rt_array_push_string: allocation failed\n");
             exit(1);
@@ -116,7 +139,7 @@ char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
         meta->size = 1;
         meta->capacity = 4;
         new_arr = (char **)(meta + 1);
-        new_arr[0] = element ? rt_arena_strdup(arena, element) : NULL;
+        new_arr[0] = rt_array_strdup(arena, element);
         return new_arr;
     }
 
@@ -129,7 +152,7 @@ char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
             fprintf(stderr, "rt_array_push_string: capacity overflow\n");
             exit(1);
         }
-        ArrayMetadata *new_meta = rt_arena_alloc(alloc_arena, sizeof(ArrayMetadata) + new_capacity * sizeof(char *));
+        ArrayMetadata *new_meta = rt_array_alloc(alloc_arena, sizeof(ArrayMetadata) + new_capacity * sizeof(char *));
         if (new_meta == NULL) {
             fprintf(stderr, "rt_array_push_string: allocation failed\n");
             exit(1);
@@ -144,7 +167,7 @@ char **rt_array_push_string(RtArena *arena, char **arr, const char *element) {
         new_arr = arr;
     }
 
-    new_arr[meta->size] = element ? rt_arena_strdup(alloc_arena, element) : NULL;
+    new_arr[meta->size] = rt_array_strdup(alloc_arena, element);
     meta->size++;
     return new_arr;
 }

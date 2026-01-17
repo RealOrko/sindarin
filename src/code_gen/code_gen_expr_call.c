@@ -339,13 +339,20 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
          * member name as the function name. */
         if (object_type == NULL && member->object->type == EXPR_VARIABLE)
         {
-            /* Lookup the function in the namespace to check if it has a body */
+            /* Lookup the function in the namespace to check if it has a body and c_alias */
             Token ns_name = member->object->as.variable.name;
             Symbol *func_sym = symbol_table_lookup_in_namespace(gen->symbol_table, ns_name, member->member_name);
             bool callee_has_body = (func_sym != NULL &&
                                     func_sym->type != NULL &&
                                     func_sym->type->kind == TYPE_FUNCTION &&
                                     func_sym->type->as.function.has_body);
+
+            /* Use c_alias for native functions if available */
+            const char *func_name_to_use = member_name_str;
+            if (func_sym != NULL && func_sym->is_native && func_sym->c_alias != NULL)
+            {
+                func_name_to_use = func_sym->c_alias;
+            }
 
             /* Generate arguments */
             char **arg_strs = arena_alloc(gen->arena, call->arg_count * sizeof(char *));
@@ -381,8 +388,8 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                 }
             }
 
-            /* Emit function call using the member name (e.g., "add" for math.add) */
-            return arena_sprintf(gen->arena, "%s(%s)", member_name_str, args_list);
+            /* Emit function call using the resolved function name */
+            return arena_sprintf(gen->arena, "%s(%s)", func_name_to_use, args_list);
         }
 
         char *result = NULL;
@@ -608,17 +615,28 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
                         exit(1);
                 }
                 // push returns new array pointer, assign back to variable if object is a variable
+                // For global variables, use NULL arena to trigger malloc-based allocation
+                // that persists beyond any function's lifetime.
+                // Global variables are detected by declaration_scope_depth <= 1 (the initial global scope).
+                const char *arena_to_use = ARENA_VAR(gen);
+                if (member->object->type == EXPR_VARIABLE) {
+                    Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, member->object->as.variable.name);
+                    if (sym != NULL && (sym->kind == SYMBOL_GLOBAL || sym->declaration_scope_depth <= 1)) {
+                        arena_to_use = "NULL";
+                    }
+                }
+
                 // For pointer types (function/array), we need to cast to void**
                 if (element_type->kind == TYPE_FUNCTION || element_type->kind == TYPE_ARRAY) {
                     if (member->object->type == EXPR_VARIABLE) {
-                        return arena_sprintf(gen->arena, "(%s = (void *)%s(%s, (void **)%s, (void *)%s))", object_str, push_func, ARENA_VAR(gen), object_str, arg_str);
+                        return arena_sprintf(gen->arena, "(%s = (void *)%s(%s, (void **)%s, (void *)%s))", object_str, push_func, arena_to_use, object_str, arg_str);
                     }
-                    return arena_sprintf(gen->arena, "(void *)%s(%s, (void **)%s, (void *)%s)", push_func, ARENA_VAR(gen), object_str, arg_str);
+                    return arena_sprintf(gen->arena, "(void *)%s(%s, (void **)%s, (void *)%s)", push_func, arena_to_use, object_str, arg_str);
                 }
                 if (member->object->type == EXPR_VARIABLE) {
-                    return arena_sprintf(gen->arena, "(%s = %s(%s, %s, %s))", object_str, push_func, ARENA_VAR(gen), object_str, arg_str);
+                    return arena_sprintf(gen->arena, "(%s = %s(%s, %s, %s))", object_str, push_func, arena_to_use, object_str, arg_str);
                 }
-                return arena_sprintf(gen->arena, "%s(%s, %s, %s)", push_func, ARENA_VAR(gen), object_str, arg_str);
+                return arena_sprintf(gen->arena, "%s(%s, %s, %s)", push_func, arena_to_use, object_str, arg_str);
             }
 
             // Handle clear()

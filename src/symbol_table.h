@@ -55,6 +55,7 @@ typedef struct Symbol
     FunctionModifier declared_func_mod;  /* For function symbols: original declared modifier */
     bool is_function;           /* True if this is a named function definition */
     bool is_native;             /* True if this is a native function (external C or Sindarin-implemented native) */
+    const char *c_alias;        /* C function name alias (from #pragma alias), NULL if none */
     ThreadState thread_state;   /* Thread handle state for synchronization tracking */
     FrozenState frozen_state;   /* Frozen state for thread capture tracking */
     struct Symbol **frozen_args; /* Symbols frozen by this pending thread handle */

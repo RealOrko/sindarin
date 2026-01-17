@@ -472,8 +472,14 @@ void code_gen_var_declaration(CodeGen *gen, VarDeclStmt *stmt, int indent)
     {
         // Allocate on arena and store pointer
         // e.g., long *x = (long *)rt_arena_alloc(__arena_1__, sizeof(long)); *x = 42L;
+        // When the function returns a closure type, allocate in caller's arena so
+        // the captured data survives the function's local arena destruction.
+        const char *alloc_arena = (gen->allocate_closure_in_caller_arena &&
+                                   strcmp(gen->current_arena_var, "__local_arena__") == 0)
+            ? "__caller_arena__"
+            : ARENA_VAR(gen);
         indented_fprintf(gen, indent, "%s *%s = (%s *)rt_arena_alloc(%s, sizeof(%s));\n",
-                         type_c, var_name, type_c, ARENA_VAR(gen), type_c);
+                         type_c, var_name, type_c, alloc_arena, type_c);
         indented_fprintf(gen, indent, "*%s = %s;\n", var_name, init_str);
     }
     // Handle large struct allocation (>= 8KB threshold) - heap-allocate via arena
@@ -864,11 +870,24 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
         has_return = true;
     }
 
+    // If the function returns a closure type, set the flag so all closures
+    // created in this function are allocated in the caller's arena.
+    // This handles the pattern where a closure is stored in a variable
+    // before being returned.
+    bool old_allocate_closure_in_caller_arena = gen->allocate_closure_in_caller_arena;
+    if (!is_main && stmt->return_type && stmt->return_type->kind == TYPE_FUNCTION)
+    {
+        gen->allocate_closure_in_caller_arena = true;
+    }
+
     int body_indent = has_tail_calls ? 2 : 1;
     for (int i = 0; i < stmt->body_count; i++)
     {
         code_gen_statement(gen, stmt->body[i], body_indent);
     }
+
+    // Restore the flag
+    gen->allocate_closure_in_caller_arena = old_allocate_closure_in_caller_arena;
     if (!has_return)
     {
         indented_fprintf(gen, body_indent, "goto %s_return;\n", gen->current_function);
@@ -913,10 +932,15 @@ void code_gen_function(CodeGen *gen, FunctionStmt *stmt)
         }
         else if (kind == TYPE_FUNCTION)
         {
-            // Closures - promote the closure struct
-            indented_fprintf(gen, 1, "_return_value = rt_arena_promote(__caller_arena__, _return_value, sizeof(__Closure__));\n");
+            // Closures - promote the closure struct using its actual size
+            indented_fprintf(gen, 1, "_return_value = rt_arena_promote(__caller_arena__, _return_value, _return_value->size);\n");
         }
-        // TYPE_ANY - complex, may need runtime type checking for promotion
+        else if (kind == TYPE_ANY)
+        {
+            // Any values may contain heap-allocated data (strings, arrays).
+            // Use runtime promotion to copy to caller's arena.
+            indented_fprintf(gen, 1, "_return_value = rt_any_promote(__caller_arena__, _return_value);\n");
+        }
     }
 
     // Destroy local arena for main and non-shared functions
@@ -1003,7 +1027,20 @@ void code_gen_return_statement(CodeGen *gen, ReturnStmt *stmt, int indent)
     /* Normal return */
     if (stmt->value && !is_void_return)
     {
+        /* If returning a lambda expression directly, allocate it in the caller's
+         * arena so captured variables survive the function's arena destruction. */
+        bool is_lambda_return = (stmt->value->type == EXPR_LAMBDA);
+        if (is_lambda_return)
+        {
+            gen->allocate_closure_in_caller_arena = true;
+        }
+
         char *value_str = code_gen_expression(gen, stmt->value);
+
+        if (is_lambda_return)
+        {
+            gen->allocate_closure_in_caller_arena = false;
+        }
 
         /* Handle boxing when function returns 'any' but expression is a concrete type */
         if (gen->current_return_type != NULL && gen->current_return_type->kind == TYPE_ANY &&

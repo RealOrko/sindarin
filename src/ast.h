@@ -550,6 +550,7 @@ typedef struct
     FunctionModifier modifier;  /* shared or private modifier */
     bool is_native;             /* true if declared with 'native' keyword */
     bool is_variadic;           /* true if function has variadic parameters (...) */
+    const char *c_alias;        /* C function name alias (from #pragma alias), NULL if none */
 } FunctionStmt;
 
 typedef struct

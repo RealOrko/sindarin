@@ -635,11 +635,12 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
 
     if (cv.count > 0)
     {
-        /* Generate custom closure struct for this lambda (with arena field) */
+        /* Generate custom closure struct for this lambda (with arena and size fields) */
         char *struct_def = arena_sprintf(gen->arena,
             "typedef struct __closure_%d__ {\n"
             "    void *fn;\n"
-            "    RtArena *arena;\n",
+            "    RtArena *arena;\n"
+            "    size_t size;\n",
             lambda_id);
         for (int i = 0; i < cv.count; i++)
         {
@@ -855,13 +856,33 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         gen->lambda_definitions = arena_sprintf(gen->arena, "%s%s",
                                                 gen->lambda_definitions, lambda_func);
 
+        /* Determine which arena to use for closure allocation.
+         * If this closure is being returned from a function, allocate in the
+         * caller's arena so captured variables survive the function's local
+         * arena destruction.
+         * Note: In a lambda context (where current_arena_var is __lambda_arena__),
+         * __caller_arena__ doesn't exist. Use the lambda's arena instead, which
+         * is already the correct parent arena for returned closures. */
+        const char *closure_arena;
+        if (gen->allocate_closure_in_caller_arena)
+        {
+            /* Check if we're in a lambda context (no __caller_arena__) */
+            bool in_lambda_context = (strcmp(gen->current_arena_var, "__lambda_arena__") == 0);
+            closure_arena = in_lambda_context ? ARENA_VAR(gen) : "__caller_arena__";
+        }
+        else
+        {
+            closure_arena = ARENA_VAR(gen);
+        }
+
         /* Return code that creates and populates the closure */
         char *closure_init = arena_sprintf(gen->arena,
             "({\n"
             "    __closure_%d__ *__cl__ = rt_arena_alloc(%s, sizeof(__closure_%d__));\n"
             "    __cl__->fn = (void *)__lambda_%d__;\n"
-            "    __cl__->arena = %s;\n",
-            lambda_id, ARENA_VAR(gen), lambda_id, lambda_id, ARENA_VAR(gen));
+            "    __cl__->arena = %s;\n"
+            "    __cl__->size = sizeof(__closure_%d__);\n",
+            lambda_id, closure_arena, lambda_id, lambda_id, closure_arena, lambda_id);
 
         for (int i = 0; i < cv.count; i++)
         {
@@ -910,7 +931,7 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
                     const char *c_type = get_c_type(gen->arena, cv.types[i]);
                     closure_init = arena_sprintf(gen->arena,
                         "%s    __cl__->%s = ({ %s *__tmp__ = rt_arena_alloc(%s, sizeof(%s)); *__tmp__ = %s; __tmp__; });\n",
-                        closure_init, cv.names[i], c_type, ARENA_VAR(gen), c_type, cv.names[i]);
+                        closure_init, cv.names[i], c_type, closure_arena, c_type, cv.names[i]);
                 }
             }
             else
@@ -1073,14 +1094,29 @@ char *code_gen_lambda_expression(CodeGen *gen, Expr *expr)
         /* Pop the lambda parameter scope we pushed at the start */
         symbol_table_pop_scope(gen->symbol_table);
 
+        /* Determine which arena to use for closure allocation.
+         * If this closure is being returned from a function, allocate in the
+         * caller's arena. In a lambda context, use the lambda's arena. */
+        const char *closure_arena;
+        if (gen->allocate_closure_in_caller_arena)
+        {
+            bool in_lambda_context = (strcmp(gen->current_arena_var, "__lambda_arena__") == 0);
+            closure_arena = in_lambda_context ? ARENA_VAR(gen) : "__caller_arena__";
+        }
+        else
+        {
+            closure_arena = ARENA_VAR(gen);
+        }
+
         /* Return code that creates the closure using generic __Closure__ type */
         return arena_sprintf(gen->arena,
             "({\n"
             "    __Closure__ *__cl__ = rt_arena_alloc(%s, sizeof(__Closure__));\n"
             "    __cl__->fn = (void *)__lambda_%d__;\n"
             "    __cl__->arena = %s;\n"
+            "    __cl__->size = sizeof(__Closure__);\n"
             "    __cl__;\n"
             "})",
-            ARENA_VAR(gen), lambda_id, ARENA_VAR(gen));
+            closure_arena, lambda_id, closure_arena);
     }
 }

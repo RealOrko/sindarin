@@ -14,7 +14,7 @@ extern void rt_arena_destroy(RtArena *arena);
 extern void *rt_arena_alloc(RtArena *arena, size_t size);
 
 /* Closure type for lambdas */
-typedef struct __Closure__ { void *fn; RtArena *arena; } __Closure__;
+typedef struct __Closure__ { void *fn; RtArena *arena; size_t size; } __Closure__;
 
 /* Runtime string operations */
 extern char *rt_str_concat(RtArena *, const char *, const char *);

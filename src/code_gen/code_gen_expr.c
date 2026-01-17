@@ -104,6 +104,13 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
      * since C functions are referenced by name without namespace prefix. */
     if (object_type == NULL && member->object->type == EXPR_VARIABLE)
     {
+        /* Look up the namespace symbol to check for c_alias */
+        Token ns_name = member->object->as.variable.name;
+        Symbol *func_sym = symbol_table_lookup_in_namespace(gen->symbol_table, ns_name, member->member_name);
+        if (func_sym != NULL && func_sym->is_native && func_sym->c_alias != NULL)
+        {
+            return arena_strdup(gen->arena, func_sym->c_alias);
+        }
         /* Namespace member access - emit just the function name */
         return member_name_str;
     }

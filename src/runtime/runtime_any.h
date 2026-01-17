@@ -168,4 +168,9 @@ bool rt_any_same_type(RtAny a, RtAny b);
 /* Convert any value to string representation (for debugging) */
 char *rt_any_to_string(RtArena *arena, RtAny value);
 
+/* Promote an any value's heap-allocated data to a target arena.
+ * Used when returning any values from functions to ensure data survives
+ * the destruction of the function's local arena. */
+RtAny rt_any_promote(RtArena *target_arena, RtAny value);
+
 #endif /* RUNTIME_ANY_H */

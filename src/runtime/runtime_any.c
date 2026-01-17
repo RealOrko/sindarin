@@ -590,3 +590,62 @@ char *rt_any_to_string(RtArena *arena, RtAny value) {
             return rt_arena_strdup(arena, "[unknown]");
     }
 }
+
+/* ============================================================================
+ * Arena Promotion for Any Values
+ * ============================================================================
+ * Promotes an any value's heap-allocated data to a target arena.
+ * This is needed when returning any values from functions, as the function's
+ * local arena will be destroyed after return.
+ */
+
+RtAny rt_any_promote(RtArena *target_arena, RtAny value) {
+    RtAny result = value;
+    
+    switch (value.tag) {
+        case RT_ANY_STRING:
+            /* Strings need to be copied to the target arena */
+            if (value.value.s != NULL) {
+                result.value.s = rt_arena_strdup(target_arena, value.value.s);
+            }
+            break;
+            
+        case RT_ANY_ARRAY:
+            /* Arrays need deep cloning - for now just copy pointer
+             * TODO: implement proper array cloning for any[] */
+            break;
+            
+        /* Primitive types don't need promotion */
+        case RT_ANY_NIL:
+        case RT_ANY_INT:
+        case RT_ANY_LONG:
+        case RT_ANY_INT32:
+        case RT_ANY_UINT:
+        case RT_ANY_UINT32:
+        case RT_ANY_DOUBLE:
+        case RT_ANY_FLOAT:
+        case RT_ANY_CHAR:
+        case RT_ANY_BOOL:
+        case RT_ANY_BYTE:
+            break;
+            
+        /* Object types - shallow copy for now */
+        case RT_ANY_FUNCTION:
+        case RT_ANY_TEXT_FILE:
+        case RT_ANY_BINARY_FILE:
+        case RT_ANY_DATE:
+        case RT_ANY_TIME:
+        case RT_ANY_PROCESS:
+        case RT_ANY_TCP_LISTENER:
+        case RT_ANY_TCP_STREAM:
+        case RT_ANY_UDP_SOCKET:
+        case RT_ANY_RANDOM:
+        case RT_ANY_UUID:
+            break;
+            
+        default:
+            break;
+    }
+    
+    return result;
+}

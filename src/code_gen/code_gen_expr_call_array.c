@@ -7,10 +7,25 @@
 #include "code_gen/code_gen_expr_call.h"
 #include "code_gen/code_gen_expr.h"
 #include "code_gen/code_gen_util.h"
+#include "symbol_table.h"
 #include "debug.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+/* Helper to get the arena to use for array mutations.
+ * Returns "NULL" for global variables to use malloc-based allocation,
+ * otherwise returns the current arena. */
+static const char *get_arena_for_mutation(CodeGen *gen, Expr *object)
+{
+    if (object->type == EXPR_VARIABLE) {
+        Symbol *sym = symbol_table_lookup_symbol(gen->symbol_table, object->as.variable.name);
+        if (sym != NULL && (sym->kind == SYMBOL_GLOBAL || sym->declaration_scope_depth <= 1)) {
+            return "NULL";
+        }
+    }
+    return ARENA_VAR(gen);
+}
 
 /* Generate code for array.push(element) method */
 static char *code_gen_array_push(CodeGen *gen, Expr *object, Type *element_type,
@@ -18,6 +33,7 @@ static char *code_gen_array_push(CodeGen *gen, Expr *object, Type *element_type,
 {
     char *object_str = code_gen_expression(gen, object);
     char *arg_str = code_gen_expression(gen, arg);
+    const char *arena_to_use = get_arena_for_mutation(gen, object);
 
     const char *push_func = NULL;
     switch (element_type->kind) {
@@ -69,18 +85,18 @@ static char *code_gen_array_push(CodeGen *gen, Expr *object, Type *element_type,
     if (element_type->kind == TYPE_FUNCTION || element_type->kind == TYPE_ARRAY) {
         if (object->type == EXPR_VARIABLE) {
             return arena_sprintf(gen->arena, "(%s = (void *)%s(%s, (void **)%s, (void *)%s))",
-                                 object_str, push_func, ARENA_VAR(gen), object_str, arg_str);
+                                 object_str, push_func, arena_to_use, object_str, arg_str);
         }
         return arena_sprintf(gen->arena, "(void *)%s(%s, (void **)%s, (void *)%s)",
-                             push_func, ARENA_VAR(gen), object_str, arg_str);
+                             push_func, arena_to_use, object_str, arg_str);
     }
 
     if (object->type == EXPR_VARIABLE) {
         return arena_sprintf(gen->arena, "(%s = %s(%s, %s, %s))",
-                             object_str, push_func, ARENA_VAR(gen), object_str, arg_str);
+                             object_str, push_func, arena_to_use, object_str, arg_str);
     }
     return arena_sprintf(gen->arena, "%s(%s, %s, %s)",
-                         push_func, ARENA_VAR(gen), object_str, arg_str);
+                         push_func, arena_to_use, object_str, arg_str);
 }
 
 /* Generate code for array.clear() method */

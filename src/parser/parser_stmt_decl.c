@@ -532,6 +532,13 @@ Stmt *parser_native_function_declaration(Parser *parser)
         func_stmt->as.function.modifier = func_modifier;
         func_stmt->as.function.is_native = true;
         func_stmt->as.function.is_variadic = is_variadic;
+
+        /* Handle #pragma alias for native functions */
+        if (parser->pending_alias != NULL)
+        {
+            func_stmt->as.function.c_alias = parser->pending_alias;
+            parser->pending_alias = NULL;
+        }
     }
     return func_stmt;
 }
