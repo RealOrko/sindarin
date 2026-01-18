@@ -34,9 +34,6 @@
 /* Process module - depends on arena and string */
 #include "runtime/runtime_process.h"
 
-/* Environment module - depends on arena */
-#include "runtime/runtime_env.h"
-
 /* Any type module - depends on arena and array */
 #include "runtime/runtime_any.h"
 

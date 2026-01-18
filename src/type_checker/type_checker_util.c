@@ -987,7 +987,6 @@ bool is_valid_field_type(Type *type, SymbolTable *table)
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
         case TYPE_PROCESS:
-        case TYPE_ENVIRONMENT:
         case TYPE_ANY:
             return true;
 
@@ -1418,7 +1417,6 @@ size_t get_type_alignment(Type *type)
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
         case TYPE_PROCESS:
-        case TYPE_ENVIRONMENT:
         case TYPE_FUNCTION:
             return 8;
 

@@ -38,7 +38,6 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
     case TYPE_PROCESS:
-    case TYPE_ENVIRONMENT:
         break;
 
     case TYPE_OPAQUE:
@@ -431,8 +430,6 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "BinaryFile");
     case TYPE_PROCESS:
         return arena_strdup(arena, "Process");
-    case TYPE_ENVIRONMENT:
-        return arena_strdup(arena, "Environment");
 
     case TYPE_ARRAY:
     {

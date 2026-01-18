@@ -47,10 +47,6 @@ static void test_ast_create_primitive_type()
     assert(t_any != NULL);
     assert(t_any->kind == TYPE_ANY);
 
-    Type *t_env = ast_create_primitive_type(&arena, TYPE_ENVIRONMENT);
-    assert(t_env != NULL);
-    assert(t_env->kind == TYPE_ENVIRONMENT);
-
     cleanup_arena(&arena);
 }
 
@@ -254,7 +250,6 @@ static void test_ast_type_to_string()
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_VOID)), "void") == 0);
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_NIL)), "nil") == 0);
     assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_ANY)), "any") == 0);
-    assert(strcmp(ast_type_to_string(&arena, ast_create_primitive_type(&arena, TYPE_ENVIRONMENT)), "Environment") == 0);
 
     // Array
     Type *arr = ast_create_array_type(&arena, ast_create_primitive_type(&arena, TYPE_CHAR));

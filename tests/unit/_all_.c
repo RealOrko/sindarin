@@ -10,7 +10,6 @@
 #include "runtime/runtime_array_tests.c"
 #include "runtime/runtime_thread_tests.c"
 #include "runtime/runtime_process_tests.c"
-#include "runtime/runtime_env_tests.c"
 #include "standalone/symbol_table_tests_core.c"
 #include "standalone/symbol_table_tests_thread.c"
 #include "standalone/symbol_table_tests_namespace.c"
@@ -51,10 +50,6 @@ int main()
     // *** Runtime Process ***
 
     test_rt_process_main();
-
-    // *** Runtime Environment ***
-
-    test_rt_env_main();
 
     // *** AST ***
     

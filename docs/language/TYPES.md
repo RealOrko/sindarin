@@ -629,7 +629,6 @@ Methods:
 | `TcpListener` | TCP server socket | (from `TcpListener.bind()`) |
 | `TcpStream` | TCP connection | (from `TcpStream.connect()`) |
 | `UdpSocket` | UDP socket | (from `UdpSocket.bind()`) |
-| `Environment` | Environment variable access | (static methods only) |
 
 ### Utility Namespaces
 
@@ -641,7 +640,6 @@ Methods:
 | `Stdout` | Standard output stream |
 | `Stderr` | Standard error stream |
 | `Bytes` | Byte array conversions |
-| `Environment` | Environment variable access |
 | `Interceptor` | Function interception for debugging and mocking |
 
 ## Type Annotations
@@ -889,7 +887,7 @@ native fn example(): void =>
 - [TIME.md](TIME.md) - Time type operations
 - [RANDOM.md](RANDOM.md) - Random number generation
 - [UUID.md](UUID.md) - Universally unique identifiers
-- [ENVIRONMENT.md](ENVIRONMENT.md) - Environment variables
+- [SDK Environment](../sdk/env.md) - Environment variables (SDK)
 - [MEMORY.md](MEMORY.md) - Memory management and type lifetimes
 - [INTEROP.md](INTEROP.md) - C interoperability and pointer types
 - [INTERCEPTORS.md](INTERCEPTORS.md) - Function interception

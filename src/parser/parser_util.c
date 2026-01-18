@@ -250,10 +250,6 @@ Type *parser_type(Parser *parser)
     {
         type = ast_create_primitive_type(parser->arena, TYPE_VOID);
     }
-    else if (parser_match(parser, TOKEN_ENV))
-    {
-        type = ast_create_primitive_type(parser->arena, TYPE_ENVIRONMENT);
-    }
     else if (parser_match(parser, TOKEN_ANY))
     {
         type = ast_create_primitive_type(parser->arena, TYPE_ANY);
@@ -392,7 +388,6 @@ static const char *static_type_names[] = {
     "Stdout",
     "Stderr",
     "Process",
-    "Environment",
     "Interceptor",
     NULL
 };

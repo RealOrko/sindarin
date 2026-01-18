@@ -6,11 +6,12 @@
 # ==============================================================================
 
 import "../../../sdk/io/path"
+import "../../../sdk/env"
 
 # Cross-platform temp directory helper
 fn getTempDir(): str =>
     # Windows uses TEMP, Unix uses TMPDIR or /tmp
-    return Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+    return SnEnvironment.getOr("TEMP", SnEnvironment.getOr("TMPDIR", "/tmp")).replace("\\", "/")
 
 # Check if a path is absolute (cross-platform)
 fn isAbsolutePath(path: str): bool =>

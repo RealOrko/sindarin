@@ -158,7 +158,6 @@ set(SN_RUNTIME_SOURCES
     src/runtime/runtime_byte.c
     src/runtime/runtime_thread.c
     src/runtime/runtime_process.c
-    src/runtime/runtime_env.c
     src/runtime/runtime_any.c
     src/runtime/runtime_intercept.c
 )
@@ -255,7 +254,6 @@ if(NOT MSVC)
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_byte.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_thread.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_process.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_any.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_intercept.c
     )
