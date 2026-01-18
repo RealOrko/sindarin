@@ -1,6 +1,6 @@
 # TCP
 
-TCP provides connection-oriented, reliable communication using `SnTcpListener` for servers and `SnTcpStream` for connections.
+TCP provides connection-oriented, reliable communication using `TcpListener` for servers and `TcpStream` for connections.
 
 ## Import
 
@@ -10,16 +10,16 @@ import "sdk/net/tcp"
 
 ---
 
-## SnTcpListener
+## TcpListener
 
 A TCP socket that listens for incoming connections.
 
 ```sindarin
-var server: SnTcpListener = SnTcpListener.bind(":8080")
+var server: TcpListener = TcpListener.bind(":8080")
 print($"Listening on port {server.port()}\n")
 
 while true =>
-    var client: SnTcpStream = server.accept()
+    var client: TcpStream = server.accept()
     &handleClient(client)  // handle in background thread
 
 server.close()
@@ -27,19 +27,19 @@ server.close()
 
 ### Static Methods
 
-#### SnTcpListener.bind(address)
+#### TcpListener.bind(address)
 
 Creates a listener bound to the specified address.
 
 ```sindarin
 // Bind to all interfaces on port 8080
-var server: SnTcpListener = SnTcpListener.bind(":8080")
+var server: TcpListener = TcpListener.bind(":8080")
 
 // Bind to localhost only
-var local: SnTcpListener = SnTcpListener.bind("127.0.0.1:8080")
+var local: TcpListener = TcpListener.bind("127.0.0.1:8080")
 
 // Let OS assign a port
-var dynamic: SnTcpListener = SnTcpListener.bind(":0")
+var dynamic: TcpListener = TcpListener.bind(":0")
 print($"Assigned port: {dynamic.port()}\n")
 ```
 
@@ -47,10 +47,10 @@ print($"Assigned port: {dynamic.port()}\n")
 
 #### accept()
 
-Waits for and accepts an incoming connection. Returns a `SnTcpStream` for the connected client.
+Waits for and accepts an incoming connection. Returns a `TcpStream` for the connected client.
 
 ```sindarin
-var client: SnTcpStream = server.accept()
+var client: TcpStream = server.accept()
 print($"Client connected from {client.remoteAddress()}\n")
 ```
 
@@ -59,7 +59,7 @@ print($"Client connected from {client.remoteAddress()}\n")
 Returns the bound port number. Useful when binding to `:0` for OS-assigned ports.
 
 ```sindarin
-var server: SnTcpListener = SnTcpListener.bind(":0")
+var server: TcpListener = TcpListener.bind(":0")
 print($"Server listening on port {server.port()}\n")
 ```
 
@@ -73,13 +73,13 @@ server.close()
 
 ---
 
-## SnTcpStream
+## TcpStream
 
 A TCP connection for bidirectional communication.
 
 ```sindarin
 // Client connection
-var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+var conn: TcpStream = TcpStream.connect("example.com:80")
 conn.writeLine("GET / HTTP/1.0")
 conn.writeLine("Host: example.com")
 conn.writeLine("")
@@ -90,12 +90,12 @@ conn.close()
 
 ### Static Methods
 
-#### SnTcpStream.connect(address)
+#### TcpStream.connect(address)
 
 Connects to a remote address and returns a stream.
 
 ```sindarin
-var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+var conn: TcpStream = TcpStream.connect("example.com:80")
 ```
 
 ### Instance Methods
@@ -170,11 +170,11 @@ conn.close()
 
 ```sindarin
 fn main(): int =>
-    var server: SnTcpListener = SnTcpListener.bind(":8080")
+    var server: TcpListener = TcpListener.bind(":8080")
     print("Echo server on :8080\n")
 
     while true =>
-        var client: SnTcpStream = server.accept()
+        var client: TcpStream = server.accept()
 
         while true =>
             var data: byte[] = client.read(1024)
@@ -190,16 +190,16 @@ fn main(): int =>
 ### Threaded Server
 
 ```sindarin
-fn handleClient(client: SnTcpStream): void =>
+fn handleClient(client: TcpStream): void =>
     var line: str = client.readLine()
     client.writeLine($"Echo: {line}")
     client.close()
 
 fn main(): int =>
-    var server: SnTcpListener = SnTcpListener.bind(":8080")
+    var server: TcpListener = TcpListener.bind(":8080")
 
     while true =>
-        var client: SnTcpStream = server.accept()
+        var client: TcpStream = server.accept()
         &handleClient(client)
 
     return 0
@@ -208,7 +208,7 @@ fn main(): int =>
 ### Line-Based Protocol
 
 ```sindarin
-fn handleClient(client: SnTcpStream): void =>
+fn handleClient(client: TcpStream): void =>
     client.writeLine("Welcome! Commands: PING, TIME, QUIT")
 
     while true =>
@@ -217,7 +217,7 @@ fn handleClient(client: SnTcpStream): void =>
         if line == "PING" =>
             client.writeLine("PONG")
         else if line == "TIME" =>
-            client.writeLine(SnTime.now().toIso())
+            client.writeLine(Time.now().toIso())
         else if line == "QUIT" =>
             client.writeLine("Goodbye!")
             break
@@ -238,7 +238,7 @@ fn httpGet(url: str): str =>
     if parts.length > 1 =>
         path = $"/{parts[1]}"
 
-    var conn: SnTcpStream = SnTcpStream.connect($"{host}:80")
+    var conn: TcpStream = TcpStream.connect($"{host}:80")
     conn.writeLine($"GET {path} HTTP/1.0")
     conn.writeLine($"Host: {host}")
     conn.writeLine("Connection: close")
@@ -252,9 +252,9 @@ fn httpGet(url: str): str =>
 ### Parallel Connections
 
 ```sindarin
-var c1: SnTcpStream = &SnTcpStream.connect("api1.example.com:80")
-var c2: SnTcpStream = &SnTcpStream.connect("api2.example.com:80")
-var c3: SnTcpStream = &SnTcpStream.connect("api3.example.com:80")
+var c1: TcpStream = &TcpStream.connect("api1.example.com:80")
+var c2: TcpStream = &TcpStream.connect("api2.example.com:80")
+var c3: TcpStream = &TcpStream.connect("api3.example.com:80")
 
 [c1, c2, c3]!
 
@@ -270,13 +270,13 @@ c3.close()
 
 TCP operations panic on errors. Common error conditions:
 
-- `SnTcpListener.bind()` - Address already in use, permission denied
-- `SnTcpStream.connect()` - Connection refused, DNS failure, timeout
+- `TcpListener.bind()` - Address already in use, permission denied
+- `TcpStream.connect()` - Connection refused, DNS failure, timeout
 - `.read()` / `.write()` - Connection reset, broken pipe
 
 ```sindarin
 // Connection may fail - will panic if it does
-var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+var conn: TcpStream = TcpStream.connect("example.com:80")
 // If we reach here, connection succeeded
 ```
 

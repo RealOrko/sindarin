@@ -8,17 +8,17 @@
 #   import "sdk/net/tcp"
 #
 #   # Server
-#   var server: SnTcpListener = SnTcpListener.bind(":8080")
+#   var server: TcpListener = TcpListener.bind(":8080")
 #   print($"Listening on port {server.port()}\n")
 #   while true =>
-#       var client: SnTcpStream = server.accept()
+#       var client: TcpStream = server.accept()
 #       var line: str = client.readLine()
 #       client.writeLine($"Echo: {line}")
 #       client.close()
 #   server.close()
 #
 #   # Client
-#   var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+#   var conn: TcpStream = TcpStream.connect("example.com:80")
 #   conn.writeLine("GET / HTTP/1.0")
 #   conn.writeLine("")
 #   var response: byte[] = conn.readAll()
@@ -30,12 +30,12 @@
 #pragma source "tcp.sn.c"
 
 # ==============================================================================
-# SnTcpStream Native Struct Definition
+# TcpStream Native Struct Definition
 # ==============================================================================
 # A TCP connection for bidirectional communication.
 
 #pragma alias "RtTcpStream"
-native struct SnTcpStream as ref =>
+native struct TcpStream as ref =>
     #pragma alias "socket_fd"
     _socket_fd: int
 
@@ -47,7 +47,7 @@ native struct SnTcpStream as ref =>
     # ==========================================================================
 
     # Connect to a remote address (host:port)
-    static fn connect(address: str): SnTcpStream =>
+    static fn connect(address: str): TcpStream =>
         return sn_tcp_stream_connect(arena, address)
 
     # ==========================================================================
@@ -95,12 +95,12 @@ native struct SnTcpStream as ref =>
     native fn close(): void
 
 # ==============================================================================
-# SnTcpListener Native Struct Definition
+# TcpListener Native Struct Definition
 # ==============================================================================
 # A TCP socket that listens for incoming connections.
 
 #pragma alias "RtTcpListener"
-native struct SnTcpListener as ref =>
+native struct TcpListener as ref =>
     #pragma alias "socket_fd"
     _socket_fd: int
 
@@ -112,7 +112,7 @@ native struct SnTcpListener as ref =>
     # ==========================================================================
 
     # Create listener bound to address (host:port or :port)
-    static fn bind(address: str): SnTcpListener =>
+    static fn bind(address: str): TcpListener =>
         return sn_tcp_listener_bind(arena, address)
 
     # ==========================================================================
@@ -120,7 +120,7 @@ native struct SnTcpListener as ref =>
     # ==========================================================================
 
     # Wait for and accept a connection, returns TcpStream
-    fn accept(): SnTcpStream =>
+    fn accept(): TcpStream =>
         return sn_tcp_listener_accept(arena, self)
 
     # ==========================================================================
@@ -144,18 +144,18 @@ native struct SnTcpListener as ref =>
 # ==============================================================================
 
 # TcpStream factory functions
-native fn sn_tcp_stream_connect(a: *void, address: str): SnTcpStream
+native fn sn_tcp_stream_connect(a: *void, address: str): TcpStream
 
 # TcpStream read functions
-native fn sn_tcp_stream_read(a: *void, s: SnTcpStream, maxBytes: int): byte[]
-native fn sn_tcp_stream_read_all(a: *void, s: SnTcpStream): byte[]
-native fn sn_tcp_stream_read_line(a: *void, s: SnTcpStream): str
+native fn sn_tcp_stream_read(a: *void, s: TcpStream, maxBytes: int): byte[]
+native fn sn_tcp_stream_read_all(a: *void, s: TcpStream): byte[]
+native fn sn_tcp_stream_read_line(a: *void, s: TcpStream): str
 
 # TcpStream getter functions
-native fn sn_tcp_stream_get_remote_address(a: *void, s: SnTcpStream): str
+native fn sn_tcp_stream_get_remote_address(a: *void, s: TcpStream): str
 
 # TcpListener factory functions
-native fn sn_tcp_listener_bind(a: *void, address: str): SnTcpListener
+native fn sn_tcp_listener_bind(a: *void, address: str): TcpListener
 
 # TcpListener accept function
-native fn sn_tcp_listener_accept(a: *void, listener: SnTcpListener): SnTcpStream
+native fn sn_tcp_listener_accept(a: *void, listener: TcpListener): TcpStream

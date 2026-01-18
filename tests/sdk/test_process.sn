@@ -1,7 +1,7 @@
 # ==============================================================================
 # test_process.sn - Tests for SDK Process Type
 # ==============================================================================
-# Tests the SnProcess struct and its methods.
+# Tests the Process struct and its methods.
 # Cross-platform: works on Windows, Linux, and macOS
 # ==============================================================================
 
@@ -10,7 +10,7 @@ import "../../sdk/env"
 
 # Check if running on Windows by looking for COMSPEC environment variable
 fn isWindows(): bool =>
-    var comspec: str = SnEnvironment.getOr("COMSPEC", "")
+    var comspec: str = Environment.getOr("COMSPEC", "")
     return comspec.length > 0
 
 fn test_run_simple(): void =>
@@ -18,11 +18,11 @@ fn test_run_simple(): void =>
 
     # Run a simple command that should succeed
     # On Windows, use cmd /c echo; on Unix, echo is a standalone command
-    var p: SnProcess
+    var p: Process
     if isWindows() =>
-        p = SnProcess.runArgs("cmd", {"/c", "echo."})
+        p = Process.runArgs("cmd", {"/c", "echo."})
     else =>
-        p = SnProcess.run("echo")
+        p = Process.run("echo")
 
     # Exit code 0 means success
     assert(p.exitCode() == 0, "echo should succeed")
@@ -35,11 +35,11 @@ fn test_run_with_args(): void =>
     print("test_run_with_args: ")
 
     # Run echo with an argument
-    var p: SnProcess
+    var p: Process
     if isWindows() =>
-        p = SnProcess.runArgs("cmd", {"/c", "echo hello"})
+        p = Process.runArgs("cmd", {"/c", "echo hello"})
     else =>
-        p = SnProcess.runArgs("echo", {"hello"})
+        p = Process.runArgs("echo", {"hello"})
 
     assert(p.exitCode() == 0, "echo hello should succeed")
     assert(p.success(), "success() should be true")
@@ -54,11 +54,11 @@ fn test_run_multiple_args(): void =>
     print("test_run_multiple_args: ")
 
     # Run echo with multiple arguments
-    var p: SnProcess
+    var p: Process
     if isWindows() =>
-        p = SnProcess.runArgs("cmd", {"/c", "echo one two three"})
+        p = Process.runArgs("cmd", {"/c", "echo one two three"})
     else =>
-        p = SnProcess.runArgs("echo", {"one", "two", "three"})
+        p = Process.runArgs("echo", {"one", "two", "three"})
 
     assert(p.exitCode() == 0, "echo with multiple args should succeed")
 
@@ -73,7 +73,7 @@ fn test_command_not_found(): void =>
     print("test_command_not_found: ")
 
     # Run a non-existent command
-    var p: SnProcess = SnProcess.run("nonexistent_command_xyz123")
+    var p: Process = Process.run("nonexistent_command_xyz123")
 
     # Should fail - exit code 127 on Unix, 1 or 9009 on Windows
     assert(p.failed(), "failed() should be true")
@@ -90,11 +90,11 @@ fn test_exit_code(): void =>
     print("test_exit_code: ")
 
     # Run a command that returns a specific exit code
-    var p: SnProcess
+    var p: Process
     if isWindows() =>
-        p = SnProcess.runArgs("cmd", {"/c", "exit 42"})
+        p = Process.runArgs("cmd", {"/c", "exit 42"})
     else =>
-        p = SnProcess.runArgs("sh", {"-c", "exit 42"})
+        p = Process.runArgs("sh", {"-c", "exit 42"})
 
     assert(p.exitCode() == 42, "exit code should be 42")
     assert(p.failed(), "non-zero exit code means failed")
@@ -105,11 +105,11 @@ fn test_stderr_capture(): void =>
     print("test_stderr_capture: ")
 
     # Run a command that writes to stderr
-    var p: SnProcess
+    var p: Process
     if isWindows() =>
-        p = SnProcess.runArgs("cmd", {"/c", "echo error message 1>&2"})
+        p = Process.runArgs("cmd", {"/c", "echo error message 1>&2"})
     else =>
-        p = SnProcess.runArgs("sh", {"-c", "echo error message >&2"})
+        p = Process.runArgs("sh", {"-c", "echo error message >&2"})
 
     assert(p.exitCode() == 0, "command should succeed")
 
@@ -122,11 +122,11 @@ fn test_stdout_stderr_separate(): void =>
     print("test_stdout_stderr_separate: ")
 
     # Run a command that writes to both stdout and stderr
-    var p: SnProcess
+    var p: Process
     if isWindows() =>
-        p = SnProcess.runArgs("cmd", {"/c", "echo stdout_msg && echo stderr_msg 1>&2"})
+        p = Process.runArgs("cmd", {"/c", "echo stdout_msg && echo stderr_msg 1>&2"})
     else =>
-        p = SnProcess.runArgs("sh", {"-c", "echo stdout_msg; echo stderr_msg >&2"})
+        p = Process.runArgs("sh", {"-c", "echo stdout_msg; echo stderr_msg >&2"})
 
     assert(p.exitCode() == 0, "command should succeed")
 
@@ -142,11 +142,11 @@ fn test_empty_stdout(): void =>
     print("test_empty_stdout: ")
 
     # Run a command with no output
-    var p: SnProcess
+    var p: Process
     if isWindows() =>
-        p = SnProcess.runArgs("cmd", {"/c", "rem"})
+        p = Process.runArgs("cmd", {"/c", "rem"})
     else =>
-        p = SnProcess.runArgs("sh", {"-c", "true"})
+        p = Process.runArgs("sh", {"-c", "true"})
 
     assert(p.exitCode() == 0, "command should succeed")
 

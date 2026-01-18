@@ -8,12 +8,12 @@
 #   import "sdk/binaryfile"
 #
 #   # Static methods
-#   var data: byte[] = SnBinaryFile.readAll("data.bin")
-#   SnBinaryFile.writeAll("output.bin", data)
-#   var exists: bool = SnBinaryFile.exists("config.bin")
+#   var data: byte[] = BinaryFile.readAll("data.bin")
+#   BinaryFile.writeAll("output.bin", data)
+#   var exists: bool = BinaryFile.exists("config.bin")
 #
 #   # Instance methods
-#   var f: SnBinaryFile = SnBinaryFile.open("data.bin")
+#   var f: BinaryFile = BinaryFile.open("data.bin")
 #   var byte: int = f.readByte()
 #   f.writeByte(255)
 #   f.close()
@@ -24,13 +24,13 @@
 #pragma source "binaryfile.sn.c"
 
 # ==============================================================================
-# SnBinaryFile Native Struct Definition
+# BinaryFile Native Struct Definition
 # ==============================================================================
-# Uses #pragma alias to map SnBinaryFile to RtSnBinaryFile in the runtime.
+# Uses #pragma alias to map BinaryFile to RtBinaryFile in the runtime.
 # The 'as ref' modifier means native methods receive self by pointer.
 
-#pragma alias "RtSnBinaryFile"
-native struct SnBinaryFile as ref =>
+#pragma alias "RtBinaryFile"
+native struct BinaryFile as ref =>
     #pragma alias "fp"
     _fp: *void
     #pragma alias "path"
@@ -43,7 +43,7 @@ native struct SnBinaryFile as ref =>
     # ==========================================================================
 
     # Open a binary file for reading and writing
-    static fn open(path: str): SnBinaryFile =>
+    static fn open(path: str): BinaryFile =>
         return sn_binary_file_open(arena, path)
 
     # ==========================================================================
@@ -159,7 +159,7 @@ native struct SnBinaryFile as ref =>
 # ==============================================================================
 
 # Factory/open function
-native fn sn_binary_file_open(a: *void, path: str): SnBinaryFile
+native fn sn_binary_file_open(a: *void, path: str): BinaryFile
 
 # Static file operations
 native fn sn_binary_file_exists(path: str): int
@@ -170,9 +170,9 @@ native fn sn_binary_file_move(source: str, dest: str): void
 native fn sn_binary_file_delete(path: str): void
 
 # Instance reading functions that need arena
-native fn sn_binary_file_read_bytes(a: *void, f: SnBinaryFile, count: int): byte[]
-native fn sn_binary_file_read_remaining(a: *void, f: SnBinaryFile): byte[]
+native fn sn_binary_file_read_bytes(a: *void, f: BinaryFile, count: int): byte[]
+native fn sn_binary_file_read_remaining(a: *void, f: BinaryFile): byte[]
 
 # Property getters that need arena
-native fn sn_binary_file_get_path(a: *void, f: SnBinaryFile): str
-native fn sn_binary_file_get_name(a: *void, f: SnBinaryFile): str
+native fn sn_binary_file_get_path(a: *void, f: BinaryFile): str
+native fn sn_binary_file_get_name(a: *void, f: BinaryFile): str

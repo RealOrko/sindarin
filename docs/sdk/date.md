@@ -1,6 +1,6 @@
 # Date in Sindarin
 
-The built-in `Date` type has been deprecated. Please use the SDK-based `SnDate` type instead.
+The built-in `Date` type has been deprecated. Please use the SDK-based `Date` type instead.
 
 ## Migration to SDK
 
@@ -10,23 +10,23 @@ Import the date module from the SDK:
 import "sdk/date"
 ```
 
-The SDK provides the `SnDate` struct with equivalent functionality:
+The SDK provides the `Date` struct with equivalent functionality:
 
 ```sindarin
 import "sdk/date"
 
 // Get current date
-var today: SnDate = SnDate.today()
+var today: Date = Date.today()
 
 // Format and display
 print($"Today is: {today.format("YYYY-MM-DD")}\n")
 
 // Date arithmetic
-var nextWeek: SnDate = today.addDays(7)
+var nextWeek: Date = today.addDays(7)
 print($"Next week: {nextWeek.toIso()}\n")
 
 // Days between dates
-var birthday: SnDate = SnDate.fromYmd(2025, 6, 15)
+var birthday: Date = Date.fromYmd(2025, 6, 15)
 var daysUntil: int = birthday.diffDays(today)
 print($"Days until birthday: {daysUntil}\n")
 ```
@@ -35,12 +35,12 @@ print($"Days until birthday: {daysUntil}\n")
 
 See the SDK date module documentation for the complete API reference:
 
-- `SnDate.today()` - Get current local date
-- `SnDate.fromYmd(year, month, day)` - Create from components
-- `SnDate.fromString(str)` - Parse from ISO string
-- `SnDate.fromEpochDays(days)` - Create from epoch days
-- `SnDate.isLeapYear(year)` - Check leap year
-- `SnDate.daysInMonth(year, month)` - Get days in month
+- `Date.today()` - Get current local date
+- `Date.fromYmd(year, month, day)` - Create from components
+- `Date.fromString(str)` - Parse from ISO string
+- `Date.fromEpochDays(days)` - Create from epoch days
+- `Date.isLeapYear(year)` - Check leap year
+- `Date.daysInMonth(year, month)` - Get days in month
 
 Instance methods:
 - `year()`, `month()`, `day()` - Get components

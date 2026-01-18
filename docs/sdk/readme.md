@@ -29,17 +29,17 @@ import "sdk/net/tcp"
 
 fn main(): int =>
   // Current date and time
-  var today: SnDate = SnDate.today()
-  var now: SnTime = SnTime.now()
+  var today: Date = Date.today()
+  var now: Time = Time.now()
   print($"Today: {today.toIso()}\n")
   print($"Now: {now.format("HH:mm:ss")}\n")
 
   // Environment variables
-  var user: str = SnEnvironment.getOr("USER", "unknown")
+  var user: str = Environment.getOr("USER", "unknown")
   print($"User: {user}\n")
 
   // Run external command
-  var p: SnProcess = SnProcess.run("pwd")
+  var p: Process = Process.run("pwd")
   print($"Current dir: {p.stdout()}")
 
   // Random values
@@ -78,18 +78,18 @@ SDK types use the `Sn` prefix to distinguish them from built-in types:
 
 | SDK Type | Description |
 |----------|-------------|
-| `SnDate` | Calendar date |
-| `SnTime` | Timestamp |
-| `SnEnvironment` | Environment variables |
-| `SnProcess` | Process execution |
-| `SnTextFile` | Text file handle |
-| `SnBinaryFile` | Binary file handle |
-| `SnPath` | Path utilities |
-| `SnDirectory` | Directory operations |
-| `SnBytes` | Byte encoding/decoding |
-| `SnTcpListener` | TCP server socket |
-| `SnTcpStream` | TCP connection |
-| `SnUdpSocket` | UDP socket |
+| `Date` | Calendar date |
+| `Time` | Timestamp |
+| `Environment` | Environment variables |
+| `Process` | Process execution |
+| `TextFile` | Text file handle |
+| `BinaryFile` | Binary file handle |
+| `Path` | Path utilities |
+| `Directory` | Directory operations |
+| `Bytes` | Byte encoding/decoding |
+| `TcpListener` | TCP server socket |
+| `TcpStream` | TCP connection |
+| `UdpSocket` | UDP socket |
 
 Some types like `Random` and `UUID` don't use the prefix as they have no built-in equivalent.
 
@@ -99,7 +99,7 @@ SDK types typically provide both static methods (called on the type) and instanc
 
 ```sindarin
 // Static method - called on the type
-var today: SnDate = SnDate.today()
+var today: Date = Date.today()
 var exists: bool = TextFile.exists("file.txt")
 
 // Instance method - called on a value
@@ -154,8 +154,8 @@ Calendar date operations with formatting, arithmetic, and comparison.
 ```sindarin
 import "sdk/date"
 
-var today: SnDate = SnDate.today()
-var birthday: SnDate = SnDate.fromYmd(2025, 6, 15)
+var today: Date = Date.today()
+var birthday: Date = Date.fromYmd(2025, 6, 15)
 var days: int = birthday.diffDays(today)
 print($"Days until birthday: {days}\n")
 ```
@@ -169,9 +169,9 @@ Timestamps, duration calculations, and time formatting.
 ```sindarin
 import "sdk/time"
 
-var start: SnTime = SnTime.now()
+var start: Time = Time.now()
 doWork()
-var elapsed: int = SnTime.now().diff(start)
+var elapsed: int = Time.now().diff(start)
 print($"Elapsed: {elapsed}ms\n")
 ```
 
@@ -184,9 +184,9 @@ Environment variable access with required and optional (default) variants.
 ```sindarin
 import "sdk/env"
 
-var user: str = SnEnvironment.getOr("USER", "unknown")
-var apiKey: str = SnEnvironment.get("API_KEY")  // panics if not set
-if SnEnvironment.has("DEBUG") =>
+var user: str = Environment.getOr("USER", "unknown")
+var apiKey: str = Environment.get("API_KEY")  // panics if not set
+if Environment.has("DEBUG") =>
   enableDebugMode()
 ```
 
@@ -199,7 +199,7 @@ Execute external commands and capture their output.
 ```sindarin
 import "sdk/process"
 
-var p: SnProcess = SnProcess.runArgs("ls", {"-la"})
+var p: Process = Process.runArgs("ls", {"-la"})
 if p.success() =>
     print(p.stdout())
 else =>
@@ -262,8 +262,8 @@ TCP and UDP socket operations for network communication.
 import "sdk/net/tcp"
 import "sdk/net/udp"
 
-var server: SnTcpListener = SnTcpListener.bind(":8080")
-var client: SnTcpStream = server.accept()
+var server: TcpListener = TcpListener.bind(":8080")
+var client: TcpStream = server.accept()
 var line: str = client.readLine()
 client.writeLine($"Echo: {line}")
 ```

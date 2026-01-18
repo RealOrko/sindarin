@@ -7,10 +7,10 @@
 # Usage:
 #   import "sdk/bytes"
 #
-#   var bytes: byte[] = SnBytes.fromHex("48656c6c6f")
+#   var bytes: byte[] = Bytes.fromHex("48656c6c6f")
 #   var text: str = bytes.toString()  # "Hello"
 #
-#   var b64: byte[] = SnBytes.fromBase64("SGVsbG8=")
+#   var b64: byte[] = Bytes.fromBase64("SGVsbG8=")
 #
 # Note: The instance methods like .toString(), .toHex(), .toBase64()
 # are still handled by the builtin byte array methods. This SDK provides
@@ -22,13 +22,13 @@
 #pragma source "bytes.sn.c"
 
 # ==============================================================================
-# SnBytes Static Class
+# Bytes Static Class
 # ==============================================================================
 # Bytes is a utility class with only static methods for decoding.
 # We use a native struct with no fields just to have a namespace.
 
-#pragma alias "RtSnBytes"
-native struct SnBytes =>
+#pragma alias "RtBytes"
+native struct Bytes =>
     _unused: int32
 
     # ==========================================================================

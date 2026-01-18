@@ -1,6 +1,6 @@
 # Time in Sindarin
 
-The built-in `Time` type has been deprecated. Please use the SDK-based `SnTime` type instead.
+The built-in `Time` type has been deprecated. Please use the SDK-based `Time` type instead.
 
 ## Migration to SDK
 
@@ -10,25 +10,25 @@ Import the time module from the SDK:
 import "sdk/time"
 ```
 
-The SDK provides the `SnTime` struct with equivalent functionality:
+The SDK provides the `Time` struct with equivalent functionality:
 
 ```sindarin
 import "sdk/time"
 
 // Get current time
-var now: SnTime = SnTime.now()
+var now: Time = Time.now()
 
 // Format and display
 print($"Current time: {now.format("YYYY-MM-DD HH:mm:ss")}\n")
 
 // Time arithmetic
-var later: SnTime = now.addHours(2)
+var later: Time = now.addHours(2)
 print($"Two hours from now: {later.toIso()}\n")
 
 // Measure elapsed time
-var start: SnTime = SnTime.now()
+var start: Time = Time.now()
 doSomeWork()
-var elapsed: int = SnTime.now().diff(start)
+var elapsed: int = Time.now().diff(start)
 print($"Elapsed: {elapsed}ms\n")
 ```
 
@@ -36,11 +36,11 @@ print($"Elapsed: {elapsed}ms\n")
 
 See the SDK time module documentation for the complete API reference:
 
-- `SnTime.now()` - Get current local time
-- `SnTime.utc()` - Get current UTC time
-- `SnTime.fromMillis(ms)` - Create from epoch milliseconds
-- `SnTime.fromSeconds(s)` - Create from epoch seconds
-- `SnTime.sleep(ms)` - Sleep for milliseconds
+- `Time.now()` - Get current local time
+- `Time.utc()` - Get current UTC time
+- `Time.fromMillis(ms)` - Create from epoch milliseconds
+- `Time.fromSeconds(s)` - Create from epoch seconds
+- `Time.sleep(ms)` - Sleep for milliseconds
 
 Instance methods:
 - `millis()`, `seconds()` - Get epoch time

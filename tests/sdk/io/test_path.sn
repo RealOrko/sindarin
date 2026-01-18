@@ -1,7 +1,7 @@
 # ==============================================================================
 # test_path.sn - Tests for SDK Path Type
 # ==============================================================================
-# Tests the SnPath struct and its methods.
+# Tests the Path struct and its methods.
 # Cross-platform: works on Windows, Linux, and macOS
 # ==============================================================================
 
@@ -11,7 +11,7 @@ import "../../../sdk/env"
 # Cross-platform temp directory helper
 fn getTempDir(): str =>
     # Windows uses TEMP, Unix uses TMPDIR or /tmp
-    return SnEnvironment.getOr("TEMP", SnEnvironment.getOr("TMPDIR", "/tmp")).replace("\\", "/")
+    return Environment.getOr("TEMP", Environment.getOr("TMPDIR", "/tmp")).replace("\\", "/")
 
 # Check if a path is absolute (cross-platform)
 fn isAbsolutePath(path: str): bool =>
@@ -34,34 +34,34 @@ fn test_directory(): void =>
     print("test_directory: ")
 
     # Unix-style paths
-    assert(SnPath.directory("/home/user/file.txt") == "/home/user", "Unix directory")
-    assert(SnPath.directory("/file.txt") == "/", "Root directory")
-    assert(SnPath.directory("file.txt") == ".", "No directory")
-    assert(SnPath.directory("a/b/c") == "a/b", "Relative directory")
-    assert(SnPath.directory("") == ".", "Empty path")
+    assert(Path.directory("/home/user/file.txt") == "/home/user", "Unix directory")
+    assert(Path.directory("/file.txt") == "/", "Root directory")
+    assert(Path.directory("file.txt") == ".", "No directory")
+    assert(Path.directory("a/b/c") == "a/b", "Relative directory")
+    assert(Path.directory("") == ".", "Empty path")
 
     print("PASS\n")
 
 fn test_filename(): void =>
     print("test_filename: ")
 
-    assert(SnPath.filename("/home/user/file.txt") == "file.txt", "Unix filename")
-    assert(SnPath.filename("/file.txt") == "file.txt", "Root filename")
-    assert(SnPath.filename("file.txt") == "file.txt", "No directory")
-    assert(SnPath.filename("a/b/c") == "c", "Relative filename")
-    assert(SnPath.filename("") == "", "Empty path")
+    assert(Path.filename("/home/user/file.txt") == "file.txt", "Unix filename")
+    assert(Path.filename("/file.txt") == "file.txt", "Root filename")
+    assert(Path.filename("file.txt") == "file.txt", "No directory")
+    assert(Path.filename("a/b/c") == "c", "Relative filename")
+    assert(Path.filename("") == "", "Empty path")
 
     print("PASS\n")
 
 fn test_extension(): void =>
     print("test_extension: ")
 
-    assert(SnPath.extension("/home/user/file.txt") == "txt", "Simple extension")
-    assert(SnPath.extension("file.tar.gz") == "gz", "Multiple dots")
-    assert(SnPath.extension("file") == "", "No extension")
-    assert(SnPath.extension(".bashrc") == "", "Hidden file")
-    assert(SnPath.extension("a/b/.gitignore") == "", "Hidden file in path")
-    assert(SnPath.extension("") == "", "Empty path")
+    assert(Path.extension("/home/user/file.txt") == "txt", "Simple extension")
+    assert(Path.extension("file.tar.gz") == "gz", "Multiple dots")
+    assert(Path.extension("file") == "", "No extension")
+    assert(Path.extension(".bashrc") == "", "Hidden file")
+    assert(Path.extension("a/b/.gitignore") == "", "Hidden file in path")
+    assert(Path.extension("") == "", "Empty path")
 
     print("PASS\n")
 
@@ -69,13 +69,13 @@ fn test_join(): void =>
     print("test_join: ")
 
     # Basic joins
-    assert(SnPath.join("/home", "user") == "/home/user", "Basic join")
-    assert(SnPath.join("/home/", "user") == "/home/user", "Join with trailing slash")
-    assert(SnPath.join("", "user") == "user", "Join with empty first")
-    assert(SnPath.join("/home", "") == "/home/", "Join with empty second")
+    assert(Path.join("/home", "user") == "/home/user", "Basic join")
+    assert(Path.join("/home/", "user") == "/home/user", "Join with trailing slash")
+    assert(Path.join("", "user") == "user", "Join with empty first")
+    assert(Path.join("/home", "") == "/home/", "Join with empty second")
 
     # Join three
-    assert(SnPath.join3("/home", "user", "file.txt") == "/home/user/file.txt", "Join three")
+    assert(Path.join3("/home", "user", "file.txt") == "/home/user/file.txt", "Join three")
 
     print("PASS\n")
 
@@ -86,11 +86,11 @@ fn test_absolute(): void =>
     var tempDir: str = getTempDir()
 
     # Absolute paths should return themselves (mostly)
-    var abs: str = SnPath.absolute(tempDir)
+    var abs: str = Path.absolute(tempDir)
     assert(isAbsolutePath(abs), "Absolute should be absolute path")
 
     # Relative paths should become absolute
-    var rel: str = SnPath.absolute(".")
+    var rel: str = Path.absolute(".")
     assert(isAbsolutePath(rel), "Relative should become absolute")
 
     print("PASS\n")
@@ -100,10 +100,10 @@ fn test_exists(): void =>
 
     # Temp directory should exist
     var tempDir: str = getTempDir()
-    assert(SnPath.exists(tempDir), "Temp directory should exist")
+    assert(Path.exists(tempDir), "Temp directory should exist")
 
     # Random path should not exist
-    assert(!SnPath.exists("/nonexistent_path_12345_xyzabc"), "Nonexistent should not exist")
+    assert(!Path.exists("/nonexistent_path_12345_xyzabc"), "Nonexistent should not exist")
 
     print("PASS\n")
 
@@ -114,10 +114,10 @@ fn test_is_file(): void =>
     var tempDir: str = getTempDir()
 
     # Temp directory should not be a file
-    assert(!SnPath.isFile(tempDir), "Temp directory should not be a file")
+    assert(!Path.isFile(tempDir), "Temp directory should not be a file")
 
     # Nonexistent path should not be a file
-    assert(!SnPath.isFile("/nonexistent_path_12345_xyzabc"), "Nonexistent should not be a file")
+    assert(!Path.isFile("/nonexistent_path_12345_xyzabc"), "Nonexistent should not be a file")
 
     print("PASS\n")
 
@@ -126,10 +126,10 @@ fn test_is_directory(): void =>
 
     # Temp directory should be a directory
     var tempDir: str = getTempDir()
-    assert(SnPath.isDirectory(tempDir), "Temp directory should be a directory")
+    assert(Path.isDirectory(tempDir), "Temp directory should be a directory")
 
     # A nonexistent path should not be a directory
-    assert(!SnPath.isDirectory("/nonexistent_path_12345_xyzabc"), "Nonexistent should not be directory")
+    assert(!Path.isDirectory("/nonexistent_path_12345_xyzabc"), "Nonexistent should not be directory")
 
     print("PASS\n")
 

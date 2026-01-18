@@ -7,12 +7,12 @@
 # Usage:
 #   import "sdk/time"
 #
-#   var now: SnTime = SnTime.now()
+#   var now: Time = Time.now()
 #   print($"Year: {now.year()}\n")
 #   print($"Hour: {now.hour()}\n")
 #   print($"ISO: {now.toIso()}\n")
 #
-#   var later: SnTime = now.addHours(2)
+#   var later: Time = now.addHours(2)
 #   var diff: long = later.diff(now)
 #
 # ==============================================================================
@@ -21,14 +21,14 @@
 #pragma source "time.sn.c"
 
 # ==============================================================================
-# SnTime Native Struct Definition
+# Time Native Struct Definition
 # ==============================================================================
-# Uses #pragma alias to map SnTime to RtTime in the runtime.
+# Uses #pragma alias to map Time to RtTime in the runtime.
 # The 'as ref' modifier means native methods receive self by pointer.
-# SnTime represents an opaque handle type (like built-in Time).
+# Time represents an opaque handle type (like built-in Time).
 
 #pragma alias "RtTime"
-native struct SnTime as ref =>
+native struct Time as ref =>
     #pragma alias "milliseconds"
     _milliseconds: long
 
@@ -37,19 +37,19 @@ native struct SnTime as ref =>
     # ==========================================================================
 
     # Get current local time
-    static fn now(): SnTime =>
+    static fn now(): Time =>
         return sn_time_now(arena)
 
     # Get current UTC time
-    static fn utc(): SnTime =>
+    static fn utc(): Time =>
         return sn_time_utc(arena)
 
     # Create time from milliseconds since Unix epoch
-    static fn fromMillis(ms: long): SnTime =>
+    static fn fromMillis(ms: long): Time =>
         return sn_time_from_millis(arena, ms)
 
     # Create time from seconds since Unix epoch
-    static fn fromSeconds(s: long): SnTime =>
+    static fn fromSeconds(s: long): Time =>
         return sn_time_from_seconds(arena, s)
 
     # ==========================================================================
@@ -106,15 +106,15 @@ native struct SnTime as ref =>
 
     # Check if this time is before another time
     #pragma alias "sn_time_is_before"
-    native fn isBefore(other: SnTime): bool
+    native fn isBefore(other: Time): bool
 
     # Check if this time is after another time
     #pragma alias "sn_time_is_after"
-    native fn isAfter(other: SnTime): bool
+    native fn isAfter(other: Time): bool
 
     # Check if this time equals another time
     #pragma alias "sn_time_equals"
-    native fn equals(other: SnTime): bool
+    native fn equals(other: Time): bool
 
     # ==========================================================================
     # Formatting Methods (non-native - need arena for string allocation)
@@ -141,72 +141,72 @@ native struct SnTime as ref =>
     # ==========================================================================
 
     # Add milliseconds to this time - matches builtin Time.add(ms)
-    fn add(ms: long): SnTime =>
+    fn add(ms: long): Time =>
         return sn_time_add(arena, self, ms)
 
     # Add seconds to this time
-    fn addSeconds(seconds: int): SnTime =>
+    fn addSeconds(seconds: int): Time =>
         return sn_time_add_seconds(arena, self, seconds)
 
     # Add minutes to this time
-    fn addMinutes(minutes: int): SnTime =>
+    fn addMinutes(minutes: int): Time =>
         return sn_time_add_minutes(arena, self, minutes)
 
     # Add hours to this time
-    fn addHours(hours: int): SnTime =>
+    fn addHours(hours: int): Time =>
         return sn_time_add_hours(arena, self, hours)
 
     # Add days to this time
-    fn addDays(days: int): SnTime =>
+    fn addDays(days: int): Time =>
         return sn_time_add_days(arena, self, days)
 
     # Get difference in milliseconds between this time and another - matches builtin Time.diff(other)
-    fn diff(other: SnTime): long =>
+    fn diff(other: Time): long =>
         return sn_time_diff(self, other)
 
 # ==============================================================================
 # Runtime Function Declarations
 # ==============================================================================
 # These declare the runtime functions directly.
-# SnTime is an opaque handle type that generates as RtTime* in C.
+# Time is an opaque handle type that generates as RtTime* in C.
 
-# Factory functions - return SnTime (which is RtTime*)
-native fn sn_time_now(a: *void): SnTime
-native fn sn_time_utc(a: *void): SnTime
-native fn sn_time_from_millis(a: *void, ms: long): SnTime
-native fn sn_time_from_seconds(a: *void, s: long): SnTime
+# Factory functions - return Time (which is RtTime*)
+native fn sn_time_now(a: *void): Time
+native fn sn_time_utc(a: *void): Time
+native fn sn_time_from_millis(a: *void, ms: long): Time
+native fn sn_time_from_seconds(a: *void, s: long): Time
 
 # Utility functions
 native fn sn_time_sleep(ms: int): void
 
-# Formatting functions - take SnTime (which is RtTime*)
-native fn sn_time_format(a: *void, t: SnTime, pattern: str): str
-native fn sn_time_to_iso(a: *void, t: SnTime): str
-native fn sn_time_to_date(a: *void, t: SnTime): str
-native fn sn_time_to_time(a: *void, t: SnTime): str
+# Formatting functions - take Time (which is RtTime*)
+native fn sn_time_format(a: *void, t: Time, pattern: str): str
+native fn sn_time_to_iso(a: *void, t: Time): str
+native fn sn_time_to_date(a: *void, t: Time): str
+native fn sn_time_to_time(a: *void, t: Time): str
 
-# Arithmetic functions - take SnTime, return new SnTime
-native fn sn_time_add(a: *void, t: SnTime, ms: long): SnTime
-native fn sn_time_add_seconds(a: *void, t: SnTime, seconds: int): SnTime
-native fn sn_time_add_minutes(a: *void, t: SnTime, minutes: int): SnTime
-native fn sn_time_add_hours(a: *void, t: SnTime, hours: int): SnTime
-native fn sn_time_add_days(a: *void, t: SnTime, days: int): SnTime
-native fn sn_time_diff(t: SnTime, other: SnTime): long
+# Arithmetic functions - take Time, return new Time
+native fn sn_time_add(a: *void, t: Time, ms: long): Time
+native fn sn_time_add_seconds(a: *void, t: Time, seconds: int): Time
+native fn sn_time_add_minutes(a: *void, t: Time, minutes: int): Time
+native fn sn_time_add_hours(a: *void, t: Time, hours: int): Time
+native fn sn_time_add_days(a: *void, t: Time, days: int): Time
+native fn sn_time_diff(t: Time, other: Time): long
 
 # Getter functions - these need explicit declarations for proper return types
 # (used by native methods via #pragma alias)
-native fn sn_time_get_millis(t: SnTime): long
-native fn sn_time_get_seconds(t: SnTime): long
-native fn sn_time_get_year(t: SnTime): int
-native fn sn_time_get_month(t: SnTime): int
-native fn sn_time_get_day(t: SnTime): int
-native fn sn_time_get_hour(t: SnTime): int
-native fn sn_time_get_minute(t: SnTime): int
-native fn sn_time_get_second(t: SnTime): int
-native fn sn_time_get_weekday(t: SnTime): int
+native fn sn_time_get_millis(t: Time): long
+native fn sn_time_get_seconds(t: Time): long
+native fn sn_time_get_year(t: Time): int
+native fn sn_time_get_month(t: Time): int
+native fn sn_time_get_day(t: Time): int
+native fn sn_time_get_hour(t: Time): int
+native fn sn_time_get_minute(t: Time): int
+native fn sn_time_get_second(t: Time): int
+native fn sn_time_get_weekday(t: Time): int
 
 # Comparison functions (used by native methods via #pragma alias)
-native fn sn_time_is_before(t: SnTime, other: SnTime): bool
-native fn sn_time_is_after(t: SnTime, other: SnTime): bool
-native fn sn_time_equals(t: SnTime, other: SnTime): bool
+native fn sn_time_is_before(t: Time, other: Time): bool
+native fn sn_time_is_after(t: Time, other: Time): bool
+native fn sn_time_equals(t: Time, other: Time): bool
 

@@ -7,11 +7,11 @@
 # Usage:
 #   import "sdk/directory"
 #
-#   var files: str[] = SnDirectory.list("/home/user")
-#   var allFiles: str[] = SnDirectory.listRecursive("/home/user")
-#   SnDirectory.create("/new/path")
-#   SnDirectory.delete("/old/path")
-#   SnDirectory.deleteRecursive("/old/path")
+#   var files: str[] = Directory.list("/home/user")
+#   var allFiles: str[] = Directory.listRecursive("/home/user")
+#   Directory.create("/new/path")
+#   Directory.delete("/old/path")
+#   Directory.deleteRecursive("/old/path")
 #
 # ==============================================================================
 
@@ -19,13 +19,13 @@
 #pragma source "directory.sn.c"
 
 # ==============================================================================
-# SnDirectory Static Class
+# Directory Static Class
 # ==============================================================================
 # Directory is a utility class with only static methods.
 # We use a native struct with no fields just to have a namespace.
 
-#pragma alias "RtSnDirectory"
-native struct SnDirectory =>
+#pragma alias "RtDirectory"
+native struct Directory =>
     _unused: int32
 
     # ==========================================================================

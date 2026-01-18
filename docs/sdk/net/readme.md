@@ -16,15 +16,15 @@ import "sdk/net/tcp"
 import "sdk/net/udp"
 
 // TCP Server
-var server: SnTcpListener = SnTcpListener.bind(":8080")
-var client: SnTcpStream = server.accept()
+var server: TcpListener = TcpListener.bind(":8080")
+var client: TcpStream = server.accept()
 var line: str = client.readLine()
 client.writeLine($"Echo: {line}")
 client.close()
 server.close()
 
 // TCP Client
-var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+var conn: TcpStream = TcpStream.connect("example.com:80")
 conn.writeLine("GET / HTTP/1.0")
 conn.writeLine("")
 var response: byte[] = conn.readAll()
@@ -32,8 +32,8 @@ print(response.toString())
 conn.close()
 
 // UDP Echo
-var socket: SnUdpSocket = SnUdpSocket.bind(":9000")
-var result: SnUdpReceiveResult = socket.receiveFrom(1024)
+var socket: UdpSocket = UdpSocket.bind(":9000")
+var result: UdpReceiveResult = socket.receiveFrom(1024)
 socket.sendTo(result.data(), result.sender())
 socket.close()
 ```
@@ -61,9 +61,9 @@ Network operations integrate with Sindarin's threading model using `&` and `!`.
 ### Parallel Connections
 
 ```sindarin
-var c1: SnTcpStream = &SnTcpStream.connect("api1.example.com:80")
-var c2: SnTcpStream = &SnTcpStream.connect("api2.example.com:80")
-var c3: SnTcpStream = &SnTcpStream.connect("api3.example.com:80")
+var c1: TcpStream = &TcpStream.connect("api1.example.com:80")
+var c2: TcpStream = &TcpStream.connect("api2.example.com:80")
+var c3: TcpStream = &TcpStream.connect("api3.example.com:80")
 
 [c1, c2, c3]!
 
@@ -73,16 +73,16 @@ var c3: SnTcpStream = &SnTcpStream.connect("api3.example.com:80")
 ### Threaded Server
 
 ```sindarin
-fn handleClient(client: SnTcpStream): void =>
+fn handleClient(client: TcpStream): void =>
     var line: str = client.readLine()
     client.writeLine($"You said: {line}")
     client.close()
 
 fn main(): int =>
-    var server: SnTcpListener = SnTcpListener.bind(":8080")
+    var server: TcpListener = TcpListener.bind(":8080")
 
     while true =>
-        var client: SnTcpStream = server.accept()
+        var client: TcpStream = server.accept()
         &handleClient(client)  // fire and forget
 
     return 0
@@ -92,7 +92,7 @@ fn main(): int =>
 
 ```sindarin
 fn httpGet(host: str, path: str): str =>
-    var conn: SnTcpStream = SnTcpStream.connect($"{host}:80")
+    var conn: TcpStream = TcpStream.connect($"{host}:80")
     conn.writeLine($"GET {path} HTTP/1.0")
     conn.writeLine($"Host: {host}")
     conn.writeLine("")
@@ -120,7 +120,7 @@ Network handles integrate with arena-based memory management.
 
 ```sindarin
 fn fetchData(host: str): byte[] =>
-    var conn: SnTcpStream = SnTcpStream.connect(host)
+    var conn: TcpStream = TcpStream.connect(host)
     var data: byte[] = conn.readAll()
     // conn automatically closed when function returns
     return data
@@ -129,13 +129,13 @@ fn fetchData(host: str): byte[] =>
 ### Handle Promotion
 
 ```sindarin
-fn acceptClient(server: SnTcpListener): SnTcpStream =>
-    var client: SnTcpStream = server.accept()
+fn acceptClient(server: TcpListener): TcpStream =>
+    var client: TcpStream = server.accept()
     return client  // promoted to caller's arena
 
 fn main(): int =>
-    var server: SnTcpListener = SnTcpListener.bind(":8080")
-    var client: SnTcpStream = acceptClient(server)
+    var server: TcpListener = TcpListener.bind(":8080")
+    var client: TcpStream = acceptClient(server)
     // client is valid here
     client.close()
     return 0
@@ -147,14 +147,14 @@ fn main(): int =>
 
 Network operations panic on errors:
 
-- `SnTcpStream.connect()` - Connection refused, DNS failure, timeout
-- `SnTcpListener.bind()` - Address in use, permission denied
+- `TcpStream.connect()` - Connection refused, DNS failure, timeout
+- `TcpListener.bind()` - Address in use, permission denied
 - `.read()` / `.write()` - Connection reset, broken pipe
-- `SnUdpSocket.bind()` - Address in use, permission denied
+- `UdpSocket.bind()` - Address in use, permission denied
 
 ```sindarin
 // Connection may fail
-var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+var conn: TcpStream = TcpStream.connect("example.com:80")
 // If we reach here, connection succeeded
 ```
 

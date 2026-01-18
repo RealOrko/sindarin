@@ -8,12 +8,12 @@
 #   import "sdk/textfile"
 #
 #   # Static methods
-#   var content: str = SnTextFile.readAll("data.txt")
-#   SnTextFile.writeAll("output.txt", "Hello, World!")
-#   var exists: bool = SnTextFile.exists("config.txt")
+#   var content: str = TextFile.readAll("data.txt")
+#   TextFile.writeAll("output.txt", "Hello, World!")
+#   var exists: bool = TextFile.exists("config.txt")
 #
 #   # Instance methods
-#   var f: SnTextFile = SnTextFile.open("data.txt")
+#   var f: TextFile = TextFile.open("data.txt")
 #   var line: str = f.readLine()
 #   f.writeLine("New line")
 #   f.close()
@@ -24,13 +24,13 @@
 #pragma source "textfile.sn.c"
 
 # ==============================================================================
-# SnTextFile Native Struct Definition
+# TextFile Native Struct Definition
 # ==============================================================================
-# Uses #pragma alias to map SnTextFile to RtSnTextFile in the runtime.
+# Uses #pragma alias to map TextFile to RtTextFile in the runtime.
 # The 'as ref' modifier means native methods receive self by pointer.
 
-#pragma alias "RtSnTextFile"
-native struct SnTextFile as ref =>
+#pragma alias "RtTextFile"
+native struct TextFile as ref =>
     #pragma alias "fp"
     _fp: *void
     #pragma alias "path"
@@ -43,7 +43,7 @@ native struct SnTextFile as ref =>
     # ==========================================================================
 
     # Open a text file for reading and writing
-    static fn open(path: str): SnTextFile =>
+    static fn open(path: str): TextFile =>
         return sn_text_file_open(arena, path)
 
     # ==========================================================================
@@ -183,7 +183,7 @@ native struct SnTextFile as ref =>
 # ==============================================================================
 
 # Factory/open function
-native fn sn_text_file_open(a: *void, path: str): SnTextFile
+native fn sn_text_file_open(a: *void, path: str): TextFile
 
 # Static file operations
 native fn sn_text_file_exists(path: str): int
@@ -194,11 +194,11 @@ native fn sn_text_file_move(source: str, dest: str): void
 native fn sn_text_file_delete(path: str): void
 
 # Instance reading functions that need arena
-native fn sn_text_file_read_line(a: *void, f: SnTextFile): str
-native fn sn_text_file_read_remaining(a: *void, f: SnTextFile): str
-native fn sn_text_file_read_lines(a: *void, f: SnTextFile): str[]
-native fn sn_text_file_read_word(a: *void, f: SnTextFile): str
+native fn sn_text_file_read_line(a: *void, f: TextFile): str
+native fn sn_text_file_read_remaining(a: *void, f: TextFile): str
+native fn sn_text_file_read_lines(a: *void, f: TextFile): str[]
+native fn sn_text_file_read_word(a: *void, f: TextFile): str
 
 # Property getters that need arena
-native fn sn_text_file_get_path(a: *void, f: SnTextFile): str
-native fn sn_text_file_get_name(a: *void, f: SnTextFile): str
+native fn sn_text_file_get_path(a: *void, f: TextFile): str
+native fn sn_text_file_get_name(a: *void, f: TextFile): str

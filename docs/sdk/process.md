@@ -1,6 +1,6 @@
 # Process in Sindarin
 
-The built-in `Process` type has been deprecated. Please use the SDK-based `SnProcess` type instead.
+The built-in `Process` type has been deprecated. Please use the SDK-based `Process` type instead.
 
 ## Migration to SDK
 
@@ -10,18 +10,18 @@ Import the process module from the SDK:
 import "sdk/process"
 ```
 
-The SDK provides the `SnProcess` struct with equivalent functionality:
+The SDK provides the `Process` struct with equivalent functionality:
 
 ```sindarin
 import "sdk/process"
 
 // Run a command
-var p: SnProcess = SnProcess.run("pwd")
+var p: Process = Process.run("pwd")
 print(p.stdout())
 print($"Exit code: {p.exitCode()}\n")
 
 // Run a command with arguments
-var p2: SnProcess = SnProcess.runArgs("ls", {"-la", "/tmp"})
+var p2: Process = Process.runArgs("ls", {"-la", "/tmp"})
 if p2.success() =>
     print(p2.stdout())
 else =>
@@ -34,8 +34,8 @@ else =>
 
 | Method | Return | Description |
 |--------|--------|-------------|
-| `SnProcess.run(cmd)` | `SnProcess` | Run command with no arguments |
-| `SnProcess.runArgs(cmd, args)` | `SnProcess` | Run command with arguments |
+| `Process.run(cmd)` | `Process` | Run command with no arguments |
+| `Process.runArgs(cmd, args)` | `Process` | Run command with arguments |
 
 ### Instance Methods
 
@@ -55,7 +55,7 @@ else =>
 ```sindarin
 import "sdk/process"
 
-var p: SnProcess = SnProcess.run("pwd")
+var p: Process = Process.run("pwd")
 print(p.stdout())      // prints current directory
 print(p.exitCode())    // 0 on success
 ```
@@ -65,7 +65,7 @@ print(p.exitCode())    // 0 on success
 ```sindarin
 import "sdk/process"
 
-var p: SnProcess = SnProcess.runArgs("ls", {"-la", "/tmp"})
+var p: Process = Process.runArgs("ls", {"-la", "/tmp"})
 print(p.stdout())
 ```
 
@@ -74,7 +74,7 @@ print(p.stdout())
 ```sindarin
 import "sdk/process"
 
-var p: SnProcess = SnProcess.runArgs("make", {"build"})
+var p: Process = Process.runArgs("make", {"build"})
 
 if p.success() =>
     print("Build succeeded\n")
@@ -91,7 +91,7 @@ Stdout and stderr are captured independently:
 ```sindarin
 import "sdk/process"
 
-var p: SnProcess = SnProcess.runArgs("sh", {"-c", "echo out; echo err >&2"})
+var p: Process = Process.runArgs("sh", {"-c", "echo out; echo err >&2"})
 
 print(p.stdout())    // "out\n"
 print(p.stderr())    // "err\n"
@@ -105,11 +105,11 @@ For pipes, redirection, or shell features, use `sh -c`:
 import "sdk/process"
 
 // Using pipes
-var p1: SnProcess = SnProcess.runArgs("sh", {"-c", "ls -la | grep .txt"})
+var p1: Process = Process.runArgs("sh", {"-c", "ls -la | grep .txt"})
 print(p1.stdout())
 
 // Multiple commands
-var p2: SnProcess = SnProcess.runArgs("sh", {"-c", "cd /tmp && pwd"})
+var p2: Process = Process.runArgs("sh", {"-c", "cd /tmp && pwd"})
 print(p2.stdout())    // "/tmp\n"
 ```
 
@@ -120,7 +120,7 @@ Non-zero exit codes indicate failure:
 ```sindarin
 import "sdk/process"
 
-var p: SnProcess = SnProcess.run("false")
+var p: Process = Process.run("false")
 
 if p.failed() =>
     print($"Command failed with code {p.exitCode()}\n")
@@ -133,7 +133,7 @@ If the command doesn't exist, the exit code is 127:
 ```sindarin
 import "sdk/process"
 
-var p: SnProcess = SnProcess.run("nonexistent-command")
+var p: Process = Process.run("nonexistent-command")
 
 if p.notFound() =>
     print("Command not found\n")

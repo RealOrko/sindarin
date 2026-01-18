@@ -1,7 +1,7 @@
 # ==============================================================================
 # test_udp.sn - Tests for SDK UDP Type (UdpSocket)
 # ==============================================================================
-# Tests the SnUdpSocket struct and its methods.
+# Tests the UdpSocket struct and its methods.
 # ==============================================================================
 
 import "../../../sdk/net/udp"
@@ -10,7 +10,7 @@ fn test_socket_bind(): void =>
     print("test_socket_bind: ")
 
     # Bind to any available port
-    var socket: SnUdpSocket = SnUdpSocket.bind(":0")
+    var socket: UdpSocket = UdpSocket.bind(":0")
     var port: int = socket.port()
 
     assert(port > 0, "Port should be assigned")
@@ -23,10 +23,10 @@ fn test_send_receive(): void =>
     print("test_send_receive: ")
 
     # Create two sockets
-    var server: SnUdpSocket = SnUdpSocket.bind(":0")
+    var server: UdpSocket = UdpSocket.bind(":0")
     var serverPort: int = server.port()
 
-    var client: SnUdpSocket = SnUdpSocket.bind(":0")
+    var client: UdpSocket = UdpSocket.bind(":0")
 
     # Client sends to server
     var message: byte[] = "Hello, UDP!".toBytes()
@@ -34,7 +34,7 @@ fn test_send_receive(): void =>
     assert(sent == 11, "Should send 11 bytes")
 
     # Server receives
-    var result: SnUdpReceiveResult = server.receiveFrom(1024)
+    var result: UdpReceiveResult = server.receiveFrom(1024)
     var data: byte[] = result.data()
     var sender: str = result.sender()
 
@@ -52,21 +52,21 @@ fn test_echo(): void =>
     print("test_echo: ")
 
     # Create server and client sockets
-    var server: SnUdpSocket = SnUdpSocket.bind(":0")
+    var server: UdpSocket = UdpSocket.bind(":0")
     var serverPort: int = server.port()
 
-    var client: SnUdpSocket = SnUdpSocket.bind(":0")
+    var client: UdpSocket = UdpSocket.bind(":0")
 
     # Client sends to server
     var outgoing: byte[] = "Ping".toBytes()
     client.sendTo(outgoing, $"127.0.0.1:{serverPort}")
 
     # Server receives and echoes back
-    var serverResult: SnUdpReceiveResult = server.receiveFrom(1024)
+    var serverResult: UdpReceiveResult = server.receiveFrom(1024)
     server.sendTo(serverResult.data(), serverResult.sender())
 
     # Client receives echo
-    var clientResult: SnUdpReceiveResult = client.receiveFrom(1024)
+    var clientResult: UdpReceiveResult = client.receiveFrom(1024)
 
     assert(clientResult.data().toString() == "Ping", "Echo should match")
 

@@ -7,14 +7,14 @@
 # Usage:
 #   import "sdk/path"
 #
-#   var dir: str = SnPath.directory("/home/user/file.txt")   # "/home/user"
-#   var name: str = SnPath.filename("/home/user/file.txt")   # "file.txt"
-#   var ext: str = SnPath.extension("/home/user/file.txt")   # "txt"
-#   var full: str = SnPath.join("/home", "user", "file.txt") # "/home/user/file.txt"
-#   var abs: str = SnPath.absolute("./file.txt")
-#   var exists: bool = SnPath.exists("/some/path")
-#   var isFile: bool = SnPath.isFile("/some/path")
-#   var isDir: bool = SnPath.isDirectory("/some/path")
+#   var dir: str = Path.directory("/home/user/file.txt")   # "/home/user"
+#   var name: str = Path.filename("/home/user/file.txt")   # "file.txt"
+#   var ext: str = Path.extension("/home/user/file.txt")   # "txt"
+#   var full: str = Path.join("/home", "user", "file.txt") # "/home/user/file.txt"
+#   var abs: str = Path.absolute("./file.txt")
+#   var exists: bool = Path.exists("/some/path")
+#   var isFile: bool = Path.isFile("/some/path")
+#   var isDir: bool = Path.isDirectory("/some/path")
 #
 # ==============================================================================
 
@@ -22,13 +22,13 @@
 #pragma source "path.sn.c"
 
 # ==============================================================================
-# SnPath Static Class
+# Path Static Class
 # ==============================================================================
 # Path is a utility class with only static methods.
 # We use a native struct with no fields just to have a namespace.
 
-#pragma alias "RtSnPath"
-native struct SnPath =>
+#pragma alias "RtPath"
+native struct Path =>
     _unused: int32
 
     # ==========================================================================

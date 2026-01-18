@@ -7,11 +7,11 @@
 # Usage:
 #   import "sdk/process"
 #
-#   var p: SnProcess = SnProcess.run("pwd")
+#   var p: Process = Process.run("pwd")
 #   print(p.stdout())
 #   print($"Exit code: {p.exitCode()}\n")
 #
-#   var p2: SnProcess = SnProcess.run("ls", {"-la", "/tmp"})
+#   var p2: Process = Process.run("ls", {"-la", "/tmp"})
 #   if p2.exitCode() == 0 =>
 #       print(p2.stdout())
 #   else =>
@@ -23,14 +23,14 @@
 #pragma source "process.sn.c"
 
 # ==============================================================================
-# SnProcess Native Struct Definition
+# Process Native Struct Definition
 # ==============================================================================
-# Uses #pragma alias to map SnProcess to RtProcess in the runtime.
+# Uses #pragma alias to map Process to RtProcess in the runtime.
 # The 'as ref' modifier means native methods receive self by pointer.
-# SnProcess represents a completed process with captured output.
+# Process represents a completed process with captured output.
 
 #pragma alias "RtProcess"
-native struct SnProcess as ref =>
+native struct Process as ref =>
     #pragma alias "exit_code"
     _exitCode: int32
 
@@ -45,11 +45,11 @@ native struct SnProcess as ref =>
     # ==========================================================================
 
     # Run a command with no arguments
-    static fn run(cmd: str): SnProcess =>
+    static fn run(cmd: str): Process =>
         return sn_process_run(arena, cmd)
 
     # Run a command with arguments
-    static fn runArgs(cmd: str, args: str[]): SnProcess =>
+    static fn runArgs(cmd: str, args: str[]): Process =>
         return sn_process_run_args(arena, cmd, args)
 
     # ==========================================================================
@@ -88,8 +88,8 @@ native struct SnProcess as ref =>
 # Runtime Function Declarations
 # ==============================================================================
 # These declare the runtime functions directly.
-# SnProcess is an opaque handle type that generates as RtProcess* in C.
+# Process is an opaque handle type that generates as RtProcess* in C.
 
-# Factory functions - return SnProcess (which is RtProcess*)
-native fn sn_process_run(a: *void, cmd: str): SnProcess
-native fn sn_process_run_args(a: *void, cmd: str, args: str[]): SnProcess
+# Factory functions - return Process (which is RtProcess*)
+native fn sn_process_run(a: *void, cmd: str): Process
+native fn sn_process_run_args(a: *void, cmd: str, args: str[]): Process

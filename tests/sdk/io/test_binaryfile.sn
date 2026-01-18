@@ -1,7 +1,7 @@
 # ==============================================================================
 # test_binaryfile.sn - Tests for SDK BinaryFile Type
 # ==============================================================================
-# Tests the SnBinaryFile struct and its methods.
+# Tests the BinaryFile struct and its methods.
 # ==============================================================================
 
 import "../../../sdk/io/binaryfile"
@@ -13,10 +13,10 @@ fn test_static_write_and_read(): void =>
     var data: byte[] = {72, 101, 108, 108, 111}  # "Hello"
 
     # Write content
-    SnBinaryFile.writeAll(testPath, data)
+    BinaryFile.writeAll(testPath, data)
 
     # Read it back
-    var readData: byte[] = SnBinaryFile.readAll(testPath)
+    var readData: byte[] = BinaryFile.readAll(testPath)
 
     assert(readData.length == 5, "Should have 5 bytes")
     assert(readData[0] == 72, "First byte")
@@ -26,7 +26,7 @@ fn test_static_write_and_read(): void =>
     assert(readData[4] == 111, "Fifth byte")
 
     # Clean up
-    SnBinaryFile.delete(testPath)
+    BinaryFile.delete(testPath)
 
     print("PASS\n")
 
@@ -36,20 +36,20 @@ fn test_exists(): void =>
     var testPath: str = "sdk_binaryfile_test2.bin"
 
     # File should not exist yet
-    assert(!SnBinaryFile.exists(testPath), "File should not exist initially")
+    assert(!BinaryFile.exists(testPath), "File should not exist initially")
 
     # Create it
     var data: byte[] = {1, 2, 3}
-    SnBinaryFile.writeAll(testPath, data)
+    BinaryFile.writeAll(testPath, data)
 
     # Now it should exist
-    assert(SnBinaryFile.exists(testPath), "File should exist after creation")
+    assert(BinaryFile.exists(testPath), "File should exist after creation")
 
     # Clean up
-    SnBinaryFile.delete(testPath)
+    BinaryFile.delete(testPath)
 
     # Should not exist anymore
-    assert(!SnBinaryFile.exists(testPath), "File should not exist after deletion")
+    assert(!BinaryFile.exists(testPath), "File should not exist after deletion")
 
     print("PASS\n")
 
@@ -59,7 +59,7 @@ fn test_instance_read_write(): void =>
     var testPath: str = "sdk_binaryfile_test3.bin"
 
     # Open file and write
-    var f: SnBinaryFile = SnBinaryFile.open(testPath)
+    var f: BinaryFile = BinaryFile.open(testPath)
     f.writeByte(10)
     f.writeByte(20)
     f.writeByte(30)
@@ -68,7 +68,7 @@ fn test_instance_read_write(): void =>
     f.close()
 
     # Open and read back
-    var f2: SnBinaryFile = SnBinaryFile.open(testPath)
+    var f2: BinaryFile = BinaryFile.open(testPath)
     var b1: int = f2.readByte()
     var b2: int = f2.readByte()
     var b3: int = f2.readByte()
@@ -84,7 +84,7 @@ fn test_instance_read_write(): void =>
     assert(rest[2] == 60, "Sixth byte")
 
     # Clean up
-    SnBinaryFile.delete(testPath)
+    BinaryFile.delete(testPath)
 
     print("PASS\n")
 
@@ -93,9 +93,9 @@ fn test_read_remaining(): void =>
 
     var testPath: str = "sdk_binaryfile_test4.bin"
     var data: byte[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-    SnBinaryFile.writeAll(testPath, data)
+    BinaryFile.writeAll(testPath, data)
 
-    var f: SnBinaryFile = SnBinaryFile.open(testPath)
+    var f: BinaryFile = BinaryFile.open(testPath)
     # Read first 3 bytes
     f.readByte()
     f.readByte()
@@ -109,7 +109,7 @@ fn test_read_remaining(): void =>
     assert(remaining[0] == 4, "First remaining byte")
     assert(remaining[6] == 10, "Last remaining byte")
 
-    SnBinaryFile.delete(testPath)
+    BinaryFile.delete(testPath)
 
     print("PASS\n")
 
@@ -118,9 +118,9 @@ fn test_position_and_seek(): void =>
 
     var testPath: str = "sdk_binaryfile_test5.bin"
     var data: byte[] = {65, 66, 67, 68, 69, 70, 71, 72, 73, 74}
-    SnBinaryFile.writeAll(testPath, data)
+    BinaryFile.writeAll(testPath, data)
 
-    var f: SnBinaryFile = SnBinaryFile.open(testPath)
+    var f: BinaryFile = BinaryFile.open(testPath)
 
     # Read first 3 bytes
     var b1: int = f.readByte()
@@ -147,7 +147,7 @@ fn test_position_and_seek(): void =>
     assert(f.position() == 0, "Position should be 0 after rewind")
 
     f.close()
-    SnBinaryFile.delete(testPath)
+    BinaryFile.delete(testPath)
 
     print("PASS\n")
 
@@ -156,9 +156,9 @@ fn test_eof_and_has_bytes(): void =>
 
     var testPath: str = "sdk_binaryfile_test6.bin"
     var data: byte[] = {1, 2}
-    SnBinaryFile.writeAll(testPath, data)
+    BinaryFile.writeAll(testPath, data)
 
-    var f: SnBinaryFile = SnBinaryFile.open(testPath)
+    var f: BinaryFile = BinaryFile.open(testPath)
 
     assert(!f.isEof(), "Should not be at EOF initially")
     assert(f.hasBytes(), "Should have bytes initially")
@@ -170,7 +170,7 @@ fn test_eof_and_has_bytes(): void =>
     assert(!f.hasBytes(), "Should not have bytes after reading all")
 
     f.close()
-    SnBinaryFile.delete(testPath)
+    BinaryFile.delete(testPath)
 
     print("PASS\n")
 
@@ -182,24 +182,24 @@ fn test_copy_and_move(): void =>
     var movePath: str = "sdk_binaryfile_test_moved.bin"
 
     var data: byte[] = {100, 200, 255, 0, 50}
-    SnBinaryFile.writeAll(srcPath, data)
+    BinaryFile.writeAll(srcPath, data)
 
     # Test copy
-    SnBinaryFile.copy(srcPath, dstPath)
-    assert(SnBinaryFile.exists(srcPath), "Source should still exist after copy")
-    assert(SnBinaryFile.exists(dstPath), "Destination should exist after copy")
-    var copiedData: byte[] = SnBinaryFile.readAll(dstPath)
+    BinaryFile.copy(srcPath, dstPath)
+    assert(BinaryFile.exists(srcPath), "Source should still exist after copy")
+    assert(BinaryFile.exists(dstPath), "Destination should exist after copy")
+    var copiedData: byte[] = BinaryFile.readAll(dstPath)
     assert(copiedData.length == 5, "Copied data length")
     assert(copiedData[2] == 255, "Copied data content")
 
     # Test move
-    SnBinaryFile.move(dstPath, movePath)
-    assert(!SnBinaryFile.exists(dstPath), "Source should not exist after move")
-    assert(SnBinaryFile.exists(movePath), "Destination should exist after move")
+    BinaryFile.move(dstPath, movePath)
+    assert(!BinaryFile.exists(dstPath), "Source should not exist after move")
+    assert(BinaryFile.exists(movePath), "Destination should exist after move")
 
     # Clean up
-    SnBinaryFile.delete(srcPath)
-    SnBinaryFile.delete(movePath)
+    BinaryFile.delete(srcPath)
+    BinaryFile.delete(movePath)
 
     print("PASS\n")
 
@@ -208,15 +208,15 @@ fn test_properties(): void =>
 
     var testPath: str = "sdk_binaryfile_test7.bin"
     var data: byte[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-    SnBinaryFile.writeAll(testPath, data)
+    BinaryFile.writeAll(testPath, data)
 
-    var f: SnBinaryFile = SnBinaryFile.open(testPath)
+    var f: BinaryFile = BinaryFile.open(testPath)
 
     assert(f.size() == 10, "Size should be 10 bytes")
     assert(f.name() == "sdk_binaryfile_test7.bin", "Name should be filename only")
 
     f.close()
-    SnBinaryFile.delete(testPath)
+    BinaryFile.delete(testPath)
 
     print("PASS\n")
 

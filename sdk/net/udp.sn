@@ -8,16 +8,16 @@
 #   import "sdk/net/udp"
 #
 #   # Server
-#   var socket: SnUdpSocket = SnUdpSocket.bind(":9000")
+#   var socket: UdpSocket = UdpSocket.bind(":9000")
 #   while true =>
-#       var result: SnUdpReceiveResult = socket.receiveFrom(1024)
+#       var result: UdpReceiveResult = socket.receiveFrom(1024)
 #       print($"From {result.sender}: {result.data.toString()}\n")
 #       socket.sendTo(result.data, result.sender)  # echo back
 #
 #   # Client
-#   var socket: SnUdpSocket = SnUdpSocket.bind(":0")  # OS assigns port
+#   var socket: UdpSocket = UdpSocket.bind(":0")  # OS assigns port
 #   socket.sendTo("Hello".toBytes(), "127.0.0.1:9000")
-#   var result: SnUdpReceiveResult = socket.receiveFrom(1024)
+#   var result: UdpReceiveResult = socket.receiveFrom(1024)
 #   print(result.data.toString())
 #   socket.close()
 #
@@ -27,12 +27,12 @@
 #pragma source "udp.sn.c"
 
 # ==============================================================================
-# SnUdpReceiveResult - Result struct for receiveFrom
+# UdpReceiveResult - Result struct for receiveFrom
 # ==============================================================================
 # Contains both the received data and the sender's address.
 
 #pragma alias "RtUdpReceiveResult"
-native struct SnUdpReceiveResult as ref =>
+native struct UdpReceiveResult as ref =>
     #pragma alias "data"
     _data: byte[]
 
@@ -48,13 +48,13 @@ native struct SnUdpReceiveResult as ref =>
         return sn_udp_result_get_sender(arena, self)
 
 # ==============================================================================
-# SnUdpSocket Native Struct Definition
+# UdpSocket Native Struct Definition
 # ==============================================================================
-# Uses #pragma alias to map SnUdpSocket to RtUdpSocket in the runtime.
+# Uses #pragma alias to map UdpSocket to RtUdpSocket in the runtime.
 # The 'as ref' modifier means native methods receive self by pointer.
 
 #pragma alias "RtUdpSocket"
-native struct SnUdpSocket as ref =>
+native struct UdpSocket as ref =>
     #pragma alias "socket_fd"
     _socket_fd: int
 
@@ -66,7 +66,7 @@ native struct SnUdpSocket as ref =>
     # ==========================================================================
 
     # Create socket bound to address (host:port or :port, use :0 for OS-assigned port)
-    static fn bind(address: str): SnUdpSocket =>
+    static fn bind(address: str): UdpSocket =>
         return sn_udp_socket_bind(arena, address)
 
     # ==========================================================================
@@ -78,7 +78,7 @@ native struct SnUdpSocket as ref =>
     native fn sendTo(data: byte[], address: str): int
 
     # Receive datagram and sender address
-    fn receiveFrom(maxBytes: int): SnUdpReceiveResult =>
+    fn receiveFrom(maxBytes: int): UdpReceiveResult =>
         return sn_udp_socket_receive_from(arena, self, maxBytes)
 
     # ==========================================================================
@@ -102,11 +102,11 @@ native struct SnUdpSocket as ref =>
 # ==============================================================================
 
 # Factory functions
-native fn sn_udp_socket_bind(a: *void, address: str): SnUdpSocket
+native fn sn_udp_socket_bind(a: *void, address: str): UdpSocket
 
 # Receive function - returns result struct
-native fn sn_udp_socket_receive_from(a: *void, socket: SnUdpSocket, maxBytes: int): SnUdpReceiveResult
+native fn sn_udp_socket_receive_from(a: *void, socket: UdpSocket, maxBytes: int): UdpReceiveResult
 
 # Result getters
-native fn sn_udp_result_get_data(a: *void, result: SnUdpReceiveResult): byte[]
-native fn sn_udp_result_get_sender(a: *void, result: SnUdpReceiveResult): str
+native fn sn_udp_result_get_data(a: *void, result: UdpReceiveResult): byte[]
+native fn sn_udp_result_get_sender(a: *void, result: UdpReceiveResult): str
