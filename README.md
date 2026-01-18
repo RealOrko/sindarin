@@ -108,7 +108,7 @@ cmake --build build
 bin/sn --version
 ```
 
-See [docs/language/BUILDING.md](docs/language/BUILDING.md) for detailed build instructions.
+See [docs/building.md](docs/building.md) for detailed build instructions.
 
 ## Quick Start
 
@@ -144,37 +144,35 @@ fn main(): void =>
 
 ## Documentation
 
-See [docs/README.md](docs/README.md) for the full documentation index.
-
-### Getting Started
+### Language
 
 | Document | Description |
 |----------|-------------|
-| [BUILDING](docs/language/BUILDING.md) | Build instructions for Linux, macOS, Windows |
-| [OVERVIEW](docs/language/OVERVIEW.md) | Language philosophy, syntax overview, examples |
+| [Overview](docs/readme.md) | Language philosophy, syntax overview, examples |
+| [Building](docs/building.md) | Build instructions for Linux, macOS, Windows |
+| [Strings](docs/strings.md) | String methods and interpolation |
+| [Arrays](docs/arrays.md) | Array operations and slicing |
+| [Structs](docs/structs.md) | Struct declarations and C interop |
+| [Lambdas](docs/lambdas.md) | Lambda expressions and closures |
+| [Memory](docs/memory.md) | Arena memory management |
+| [Threading](docs/threading.md) | Threading with spawn and sync |
+| [Namespaces](docs/namespaces.md) | Namespaced imports for collision resolution |
+| [Interop](docs/interop.md) | C interoperability and native functions |
+| [Interceptors](docs/interceptors.md) | Function interception for debugging and mocking |
 
-### Language Reference
+### SDK Modules
 
 | Document | Description |
 |----------|-------------|
-| [TYPES](docs/language/TYPES.md) | Primitive and built-in types |
-| [STRINGS](docs/language/STRINGS.md) | String methods and interpolation |
-| [ARRAYS](docs/language/ARRAYS.md) | Array operations and slicing |
-| [STRUCTS](docs/language/STRUCTS.md) | Struct declarations and C interop |
-| [LAMBDAS](docs/language/LAMBDAS.md) | Lambda expressions and closures |
-| [FILE_IO](docs/language/FILE_IO.md) | TextFile and BinaryFile operations |
-| [NETWORK_IO](docs/language/NETWORK_IO.md) | TCP and UDP networking |
-| [DATE](docs/language/DATE.md) | Calendar date operations |
-| [TIME](docs/language/TIME.md) | Date and time operations |
-| [RANDOM](docs/language/RANDOM.md) | Random number generation |
-| [UUID](docs/language/UUID.md) | UUID generation and manipulation |
-| [ENVIRONMENT](docs/language/ENVIRONMENT.md) | Environment variable access |
-| [MEMORY](docs/language/MEMORY.md) | Arena memory management |
-| [THREADING](docs/language/THREADING.md) | Threading with spawn and sync |
-| [PROCESSES](docs/language/PROCESSES.md) | Process execution and output capture |
-| [NAMESPACES](docs/language/NAMESPACES.md) | Namespaced imports for collision resolution |
-| [INTEROP](docs/language/INTEROP.md) | C interoperability and native functions |
-| [INTERCEPTORS](docs/language/INTERCEPTORS.md) | Function interception for debugging and mocking |
+| [SDK Overview](docs/sdk/readme.md) | All SDK modules |
+| [Date](docs/sdk/date.md) | Calendar date operations |
+| [Time](docs/sdk/time.md) | Time and duration operations |
+| [Random](docs/sdk/random.md) | Random number generation |
+| [UUID](docs/sdk/uuid.md) | UUID generation and manipulation |
+| [Environment](docs/sdk/env.md) | Environment variable access |
+| [Process](docs/sdk/process.md) | Process execution and output capture |
+| [File I/O](docs/sdk/io/readme.md) | TextFile, BinaryFile, Path, Directory |
+| [Networking](docs/sdk/net/readme.md) | TCP and UDP operations |
 
 ## Architecture
 
