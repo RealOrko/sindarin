@@ -8,6 +8,7 @@ The Sindarin SDK provides a collection of modules that extend the language's cap
 |--------|--------|-------------|
 | [Date](date.md) | `import "sdk/date"` | Calendar date operations |
 | [Time](time.md) | `import "sdk/time"` | Time and duration operations |
+| [Environment](env.md) | `import "sdk/env"` | Environment variable access |
 | [Random](random.md) | `import "sdk/random"` | Random number generation |
 | [UUID](uuid.md) | `import "sdk/uuid"` | UUID generation and parsing |
 | [I/O](io/readme.md) | `import "sdk/io/..."` | File and directory operations |
@@ -18,6 +19,7 @@ The Sindarin SDK provides a collection of modules that extend the language's cap
 ```sindarin
 import "sdk/date"
 import "sdk/time"
+import "sdk/env"
 import "sdk/random"
 import "sdk/uuid"
 import "sdk/io/textfile"
@@ -29,6 +31,10 @@ fn main(): int =>
   var now: SnTime = SnTime.now()
   print($"Today: {today.toIso()}\n")
   print($"Now: {now.format("HH:mm:ss")}\n")
+
+  // Environment variables
+  var user: str = SnEnvironment.getOr("USER", "unknown")
+  print($"User: {user}\n")
 
   // Random values
   var dice: int = Random.int(1, 6)
@@ -68,6 +74,7 @@ SDK types use the `Sn` prefix to distinguish them from built-in types:
 |----------|-------------|
 | `SnDate` | Calendar date |
 | `SnTime` | Timestamp |
+| `SnEnvironment` | Environment variables |
 | `SnTextFile` | Text file handle |
 | `SnBinaryFile` | Binary file handle |
 | `SnPath` | Path utilities |
@@ -162,6 +169,21 @@ print($"Elapsed: {elapsed}ms\n")
 ```
 
 [Full documentation →](time.md)
+
+### Environment
+
+Environment variable access with required and optional (default) variants.
+
+```sindarin
+import "sdk/env"
+
+var user: str = SnEnvironment.getOr("USER", "unknown")
+var apiKey: str = SnEnvironment.get("API_KEY")  // panics if not set
+if SnEnvironment.has("DEBUG") =>
+  enableDebugMode()
+```
+
+[Full documentation →](env.md)
 
 ### Random
 
