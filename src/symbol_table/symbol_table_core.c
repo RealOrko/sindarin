@@ -81,8 +81,6 @@ int get_type_size(Type *type)
     case TYPE_TCP_LISTENER:
     case TYPE_TCP_STREAM:
     case TYPE_UDP_SOCKET:
-    case TYPE_RANDOM:
-    case TYPE_UUID:
     case TYPE_ENVIRONMENT:
         DEBUG_VERBOSE("Returning size 8 for built-in object type");
         return 8;

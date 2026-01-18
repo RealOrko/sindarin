@@ -125,30 +125,6 @@ char *code_gen_binary_expression(CodeGen *gen, BinaryExpr *expr)
         return arena_sprintf(gen->arena, "((%s) %s (%s))", left_str, c_op, right_str);
     }
 
-    // Handle UUID comparison operators
-    if (type->kind == TYPE_UUID)
-    {
-        switch (op)
-        {
-            case TOKEN_EQUAL_EQUAL:
-                return arena_sprintf(gen->arena, "rt_uuid_equals(%s, %s)", left_str, right_str);
-            case TOKEN_BANG_EQUAL:
-                return arena_sprintf(gen->arena, "(!rt_uuid_equals(%s, %s))", left_str, right_str);
-            case TOKEN_LESS:
-                return arena_sprintf(gen->arena, "rt_uuid_is_less_than(%s, %s)", left_str, right_str);
-            case TOKEN_LESS_EQUAL:
-                return arena_sprintf(gen->arena, "(rt_uuid_is_less_than(%s, %s) || rt_uuid_equals(%s, %s))",
-                                     left_str, right_str, left_str, right_str);
-            case TOKEN_GREATER:
-                return arena_sprintf(gen->arena, "rt_uuid_is_greater_than(%s, %s)", left_str, right_str);
-            case TOKEN_GREATER_EQUAL:
-                return arena_sprintf(gen->arena, "(rt_uuid_is_greater_than(%s, %s) || rt_uuid_equals(%s, %s))",
-                                     left_str, right_str, left_str, right_str);
-            default:
-                break;
-        }
-    }
-
     // Handle struct comparison (== and !=) using memcmp
     if (type->kind == TYPE_STRUCT && (op == TOKEN_EQUAL_EQUAL || op == TOKEN_BANG_EQUAL))
     {

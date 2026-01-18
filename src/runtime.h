@@ -39,12 +39,6 @@
 /* Network module - depends on arena */
 #include "runtime/runtime_net.h"
 
-/* Random module - depends on arena and array */
-#include "runtime/runtime_random.h"
-
-/* UUID module - depends on arena and random */
-#include "runtime/runtime_uuid.h"
-
 /* Environment module - depends on arena */
 #include "runtime/runtime_env.h"
 

@@ -62,8 +62,6 @@ typedef enum
     TOKEN_STRUCT,
     // Static keyword (for static methods)
     TOKEN_STATIC,
-    // UUID type keyword
-    TOKEN_UUID,
     // Environment access keyword
     TOKEN_ENV,
     // Any type and type operators

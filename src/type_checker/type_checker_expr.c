@@ -4,7 +4,6 @@
 #include "type_checker/type_checker_expr_call_string.h"
 #include "type_checker/type_checker_expr_call_file.h"
 #include "type_checker/type_checker_expr_call_net.h"
-#include "type_checker/type_checker_expr_call_random.h"
 #include "type_checker/type_checker_expr_array.h"
 #include "type_checker/type_checker_expr_lambda.h"
 #include "type_checker/type_checker_util.h"
@@ -728,28 +727,6 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
             return result;
         }
         /* Fall through to error handling if not a valid UdpSocket method/property */
-    }
-
-    /* Try Random method type checking */
-    if (object_type->kind == TYPE_RANDOM)
-    {
-        Type *result = type_check_random_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid Random method */
-    }
-
-    /* Try UUID method type checking */
-    if (object_type->kind == TYPE_UUID)
-    {
-        Type *result = type_check_uuid_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid UUID method */
     }
 
     /* Handle struct field access and methods via EXPR_MEMBER */

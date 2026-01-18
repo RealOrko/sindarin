@@ -8,8 +8,6 @@
  * - code_gen_expr_call_string.c
  * - code_gen_expr_call_file.c
  * - code_gen_expr_call_time.c
- * - code_gen_expr_call_random.c
- * - code_gen_expr_call_uuid.c
  */
 
 #include "code_gen/code_gen_expr_call.h"
@@ -421,18 +419,6 @@ char *code_gen_call_expression(CodeGen *gen, Expr *expr)
             }
             case TYPE_BINARY_FILE: {
                 result = code_gen_binary_file_method_call(gen, member_name_str,
-                    member->object, call->arg_count, call->arguments);
-                if (result) return result;
-                break;
-            }
-            case TYPE_RANDOM: {
-                result = code_gen_random_method_call(gen, expr, member_name_str,
-                    member->object, call->arg_count, call->arguments);
-                if (result) return result;
-                break;
-            }
-            case TYPE_UUID: {
-                result = code_gen_uuid_method_call(gen, expr, member_name_str,
                     member->object, call->arg_count, call->arguments);
                 if (result) return result;
                 break;

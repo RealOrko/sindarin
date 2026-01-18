@@ -228,3 +228,49 @@ Type *type_check_udp_socket_method(Expr *expr, Type *object_type, Token member_n
     /* Not a UdpSocket method/property */
     return NULL;
 }
+
+/* ============================================================================
+ * Process Property Type Checking
+ * ============================================================================
+ * Handles type checking for Process property access.
+ * Process has:
+ * - Properties: exitCode (int), stdout (str), stderr (str)
+ * ============================================================================ */
+
+Type *type_check_process_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table)
+{
+    (void)expr; /* Reserved for future use (e.g., error location) */
+
+    /* Only handle Process types */
+    if (object_type->kind != TYPE_PROCESS)
+    {
+        return NULL;
+    }
+
+    /* process.exitCode -> int */
+    if (token_equals(member_name, "exitCode"))
+    {
+        Type *int_type = ast_create_primitive_type(table->arena, TYPE_INT);
+        DEBUG_VERBOSE("Returning int type for Process exitCode property");
+        return int_type;
+    }
+
+    /* process.stdout -> str */
+    if (token_equals(member_name, "stdout"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning str type for Process stdout property");
+        return string_type;
+    }
+
+    /* process.stderr -> str */
+    if (token_equals(member_name, "stderr"))
+    {
+        Type *string_type = ast_create_primitive_type(table->arena, TYPE_STRING);
+        DEBUG_VERBOSE("Returning str type for Process stderr property");
+        return string_type;
+    }
+
+    /* Not a Process property */
+    return NULL;
+}

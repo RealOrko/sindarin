@@ -31,7 +31,7 @@ bool token_equals(Token tok, const char *str);
 /* Static method type checking for built-in types
  * Handles: TextFile, BinaryFile, Stdin, Stdout, Stderr, Bytes,
  *          Path, Directory, Process, TcpListener, TcpStream, UdpSocket,
- *          Random, UUID, Environment
+ *          Environment
  */
 Type *type_check_static_method_call(Expr *expr, SymbolTable *table);
 

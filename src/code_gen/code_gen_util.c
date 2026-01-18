@@ -158,10 +158,6 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtTcpStream *");
     case TYPE_UDP_SOCKET:
         return arena_strdup(arena, "RtUdpSocket *");
-    case TYPE_RANDOM:
-        return arena_strdup(arena, "RtRandom *");
-    case TYPE_UUID:
-        return arena_strdup(arena, "RtUuid *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally
@@ -436,10 +432,6 @@ const char *get_boxing_function(Type *type)
         return "rt_box_tcp_stream";
     case TYPE_UDP_SOCKET:
         return "rt_box_udp_socket";
-    case TYPE_RANDOM:
-        return "rt_box_random";
-    case TYPE_UUID:
-        return "rt_box_uuid";
     case TYPE_NIL:
     case TYPE_VOID:
         return "rt_box_nil";
@@ -495,10 +487,6 @@ const char *get_unboxing_function(Type *type)
         return "rt_unbox_tcp_stream";
     case TYPE_UDP_SOCKET:
         return "rt_unbox_udp_socket";
-    case TYPE_RANDOM:
-        return "rt_unbox_random";
-    case TYPE_UUID:
-        return "rt_unbox_uuid";
     default:
         return NULL;
     }

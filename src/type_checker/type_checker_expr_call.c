@@ -12,7 +12,6 @@
  * - type_checker_expr_call_file.c: TextFile/BinaryFile method type checking
  * - type_checker_expr_call_time.c: Time/Date method type checking
  * - type_checker_expr_call_net.c: TcpListener/TcpStream/UdpSocket type checking
- * - type_checker_expr_call_random.c: Random/UUID/Process method type checking
  * ============================================================================ */
 
 /* This file intentionally left mostly empty.

@@ -485,8 +485,6 @@ static const char *get_type_tag_constant(TypeKind kind)
         case TYPE_TCP_LISTENER: return "RT_ANY_TCP_LISTENER";
         case TYPE_TCP_STREAM: return "RT_ANY_TCP_STREAM";
         case TYPE_UDP_SOCKET: return "RT_ANY_UDP_SOCKET";
-        case TYPE_RANDOM: return "RT_ANY_RANDOM";
-        case TYPE_UUID: return "RT_ANY_UUID";
         case TYPE_ANY: return "RT_ANY_NIL";  /* any has no fixed tag */
         default: return "RT_ANY_NIL";
     }

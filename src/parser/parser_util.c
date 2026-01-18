@@ -250,10 +250,6 @@ Type *parser_type(Parser *parser)
     {
         type = ast_create_primitive_type(parser->arena, TYPE_VOID);
     }
-    else if (parser_match(parser, TOKEN_UUID))
-    {
-        type = ast_create_primitive_type(parser->arena, TYPE_UUID);
-    }
     else if (parser_match(parser, TOKEN_ENV))
     {
         type = ast_create_primitive_type(parser->arena, TYPE_ENVIRONMENT);
@@ -295,11 +291,6 @@ Type *parser_type(Parser *parser)
         {
             parser_advance(parser);
             type = ast_create_primitive_type(parser->arena, TYPE_UDP_SOCKET);
-        }
-        else if (id.length == 6 && strncmp(id.start, "Random", 6) == 0)
-        {
-            parser_advance(parser);
-            type = ast_create_primitive_type(parser->arena, TYPE_RANDOM);
         }
         else
         {
@@ -419,8 +410,6 @@ static const char *static_type_names[] = {
     "TcpListener",
     "TcpStream",
     "UdpSocket",
-    "Random",
-    "UUID",
     "Environment",
     "Interceptor",
     NULL
@@ -446,7 +435,7 @@ int parser_check_method_name(Parser *parser)
     {
         return 1;
     }
-    /* Allow type keywords as method names (for Random.int, rng.int, etc.) */
+    /* Allow type keywords as method names (e.g., obj.int, obj.bool, etc.) */
     SnTokenType type = parser->current.type;
     if (type == TOKEN_INT || type == TOKEN_LONG || type == TOKEN_DOUBLE ||
         type == TOKEN_BOOL || type == TOKEN_BYTE)

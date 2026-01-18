@@ -626,62 +626,6 @@ static void test_lexer_spread_operator(void)
     DEBUG_INFO("Finished test_lexer_spread_operator");
 }
 
-static void test_lexer_uuid_keyword(void)
-{
-    DEBUG_INFO("Starting test_lexer_uuid_keyword");
-
-    const char *source = "UUID";
-    Arena arena;
-    arena_init(&arena, 1024);
-    Lexer lexer;
-    lexer_init(&arena, &lexer, source, "test.sn");
-
-    Token t1 = lexer_scan_token(&lexer);
-    assert(t1.type == TOKEN_UUID);
-    assert(t1.length == 4);
-
-    Token t2 = lexer_scan_token(&lexer);
-    assert(t2.type == TOKEN_EOF);
-
-    lexer_cleanup(&lexer);
-    arena_free(&arena);
-
-    DEBUG_INFO("Finished test_lexer_uuid_keyword");
-}
-
-static void test_lexer_uuid_in_context(void)
-{
-    DEBUG_INFO("Starting test_lexer_uuid_in_context");
-
-    const char *source = "var id: UUID";
-    Arena arena;
-    arena_init(&arena, 1024);
-    Lexer lexer;
-    lexer_init(&arena, &lexer, source, "test.sn");
-
-    Token t1 = lexer_scan_token(&lexer);
-    assert(t1.type == TOKEN_VAR);
-
-    Token t2 = lexer_scan_token(&lexer);
-    assert(t2.type == TOKEN_IDENTIFIER);
-    assert(t2.length == 2);
-
-    Token t3 = lexer_scan_token(&lexer);
-    assert(t3.type == TOKEN_COLON);
-
-    Token t4 = lexer_scan_token(&lexer);
-    assert(t4.type == TOKEN_UUID);
-    assert(t4.length == 4);
-
-    Token t5 = lexer_scan_token(&lexer);
-    assert(t5.type == TOKEN_EOF);
-
-    lexer_cleanup(&lexer);
-    arena_free(&arena);
-
-    DEBUG_INFO("Finished test_lexer_uuid_in_context");
-}
-
 static void test_lexer_environment_keyword(void)
 {
     DEBUG_INFO("Starting test_lexer_environment_keyword");
@@ -879,9 +823,6 @@ void test_lexer_literal_main(void)
     TEST_RUN("lexer_ampersand_operator", test_lexer_ampersand_operator);
     TEST_RUN("lexer_pointer_type_syntax", test_lexer_pointer_type_syntax);
     TEST_RUN("lexer_spread_operator", test_lexer_spread_operator);
-    // UUID keyword tests
-    TEST_RUN("lexer_uuid_keyword", test_lexer_uuid_keyword);
-    TEST_RUN("lexer_uuid_in_context", test_lexer_uuid_in_context);
     // Environment keyword tests
     TEST_RUN("lexer_environment_keyword", test_lexer_environment_keyword);
     TEST_RUN("lexer_environment_in_context", test_lexer_environment_in_context);

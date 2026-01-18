@@ -186,22 +186,6 @@ RtAny rt_box_udp_socket(void *socket) {
     return result;
 }
 
-RtAny rt_box_random(void *random) {
-    RtAny result;
-    result.tag = RT_ANY_RANDOM;
-    result.value.obj = random;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
-RtAny rt_box_uuid(void *uuid) {
-    RtAny result;
-    result.tag = RT_ANY_UUID;
-    result.value.obj = uuid;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
 /* ============================================================================
  * Unboxing Functions
  * ============================================================================ */
@@ -360,20 +344,6 @@ void *rt_unbox_udp_socket(RtAny value) {
     return value.value.obj;
 }
 
-void *rt_unbox_random(RtAny value) {
-    if (value.tag != RT_ANY_RANDOM) {
-        rt_any_type_error("Random", value);
-    }
-    return value.value.obj;
-}
-
-void *rt_unbox_uuid(RtAny value) {
-    if (value.tag != RT_ANY_UUID) {
-        rt_any_type_error("UUID", value);
-    }
-    return value.value.obj;
-}
-
 /* ============================================================================
  * Type Checking Functions
  * ============================================================================ */
@@ -421,8 +391,6 @@ const char *rt_any_tag_name(RtAnyTag tag) {
         case RT_ANY_TCP_LISTENER: return "TcpListener";
         case RT_ANY_TCP_STREAM: return "TcpStream";
         case RT_ANY_UDP_SOCKET: return "UdpSocket";
-        case RT_ANY_RANDOM: return "Random";
-        case RT_ANY_UUID: return "UUID";
         default: return "unknown";
     }
 }
@@ -504,8 +472,6 @@ bool rt_any_equals(RtAny a, RtAny b) {
         case RT_ANY_TCP_LISTENER:
         case RT_ANY_TCP_STREAM:
         case RT_ANY_UDP_SOCKET:
-        case RT_ANY_RANDOM:
-        case RT_ANY_UUID:
             return a.value.obj == b.value.obj;
         default:
             return false;
@@ -582,10 +548,6 @@ char *rt_any_to_string(RtArena *arena, RtAny value) {
             return rt_arena_strdup(arena, "[TcpStream]");
         case RT_ANY_UDP_SOCKET:
             return rt_arena_strdup(arena, "[UdpSocket]");
-        case RT_ANY_RANDOM:
-            return rt_arena_strdup(arena, "[Random]");
-        case RT_ANY_UUID:
-            return rt_arena_strdup(arena, "[UUID]");
         default:
             return rt_arena_strdup(arena, "[unknown]");
     }
@@ -639,10 +601,8 @@ RtAny rt_any_promote(RtArena *target_arena, RtAny value) {
         case RT_ANY_TCP_LISTENER:
         case RT_ANY_TCP_STREAM:
         case RT_ANY_UDP_SOCKET:
-        case RT_ANY_RANDOM:
-        case RT_ANY_UUID:
             break;
-            
+
         default:
             break;
     }

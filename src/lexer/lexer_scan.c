@@ -221,8 +221,6 @@ SnTokenType lexer_identifier_type(Lexer *lexer)
             }
         }
         break;
-    case 'U':
-        return lexer_check_keyword(lexer, 1, 3, "UID", TOKEN_UUID);
     case 'v':
         if (lexer->current - lexer->start > 1)
         {

@@ -26,14 +26,6 @@ set(SN_RUNTIME_SOURCE_FILES
     runtime/runtime_thread.c
     runtime/runtime_process.c
     runtime/runtime_net.c
-    runtime/runtime_random_core.c
-    runtime/runtime_random_basic.c
-    runtime/runtime_random_static.c
-    runtime/runtime_random_choice.c
-    runtime/runtime_random_collection.c
-    runtime/runtime_random.c
-    runtime/runtime_uuid.c
-    runtime/runtime_sha1.c
     runtime/runtime_env.c
     runtime/runtime_any.c
     runtime/runtime_intercept.c

@@ -49,8 +49,6 @@ const char *type_name(Type *type)
         case TYPE_TCP_LISTENER: return "TcpListener";
         case TYPE_TCP_STREAM:   return "TcpStream";
         case TYPE_UDP_SOCKET:   return "UdpSocket";
-        case TYPE_RANDOM:       return "Random";
-        case TYPE_UUID:         return "UUID";
         case TYPE_POINTER:      return "pointer";
         default:                return "unknown";
     }
@@ -282,9 +280,7 @@ static bool struct_has_only_primitives(Type *struct_type)
             field_type->kind == TYPE_PROCESS ||
             field_type->kind == TYPE_TCP_LISTENER ||
             field_type->kind == TYPE_TCP_STREAM ||
-            field_type->kind == TYPE_UDP_SOCKET ||
-            field_type->kind == TYPE_RANDOM ||
-            field_type->kind == TYPE_UUID)
+            field_type->kind == TYPE_UDP_SOCKET)
         {
             DEBUG_VERBOSE("Struct field '%s' is built-in reference type - cannot escape private",
                           field->name ? field->name : "unknown");
@@ -397,12 +393,6 @@ static const char *find_blocking_struct_field(Type *struct_type)
             case TYPE_UDP_SOCKET:
                 type_desc = "network socket";
                 break;
-            case TYPE_RANDOM:
-                type_desc = "random generator";
-                break;
-            case TYPE_UUID:
-                type_desc = "UUID";
-                break;
             case TYPE_OPAQUE:
                 type_desc = "opaque type";
                 break;
@@ -469,10 +459,6 @@ const char *get_private_escape_block_reason(Type *type)
         case TYPE_TCP_STREAM:
         case TYPE_UDP_SOCKET:
             return "network socket is a heap resource";
-        case TYPE_RANDOM:
-            return "random generator is heap-allocated";
-        case TYPE_UUID:
-            return "UUID type is heap-allocated";
         case TYPE_OPAQUE:
             return "opaque type references external C memory";
         case TYPE_ANY:
@@ -754,17 +740,6 @@ static const char *string_methods[] = {
     NULL
 };
 
-/* Known Random methods for suggestions */
-static const char *random_methods[] = {
-    /* Value generation */
-    "int", "long", "double", "bool", "byte", "bytes", "gaussian",
-    /* Batch generation */
-    "intMany", "longMany", "doubleMany", "boolMany", "gaussianMany",
-    /* Collection operations */
-    "choice", "shuffle", "weightedChoice", "sample",
-    NULL
-};
-
 /*
  * Find a similar method name for a given type.
  * Returns NULL if no good match found.
@@ -782,10 +757,6 @@ const char *find_similar_method(Type *type, const char *method_name)
     else if (type->kind == TYPE_STRING)
     {
         methods = string_methods;
-    }
-    else if (type->kind == TYPE_RANDOM)
-    {
-        methods = random_methods;
     }
     else
     {
@@ -1040,8 +1011,6 @@ bool is_valid_field_type(Type *type, SymbolTable *table)
         case TYPE_TCP_LISTENER:
         case TYPE_TCP_STREAM:
         case TYPE_UDP_SOCKET:
-        case TYPE_RANDOM:
-        case TYPE_UUID:
         case TYPE_ENVIRONMENT:
         case TYPE_ANY:
             return true;
@@ -1476,8 +1445,6 @@ size_t get_type_alignment(Type *type)
         case TYPE_TCP_LISTENER:
         case TYPE_TCP_STREAM:
         case TYPE_UDP_SOCKET:
-        case TYPE_RANDOM:
-        case TYPE_UUID:
         case TYPE_ENVIRONMENT:
         case TYPE_FUNCTION:
             return 8;

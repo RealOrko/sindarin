@@ -36,9 +36,7 @@ typedef enum {
     RT_ANY_PROCESS,
     RT_ANY_TCP_LISTENER,
     RT_ANY_TCP_STREAM,
-    RT_ANY_UDP_SOCKET,
-    RT_ANY_RANDOM,
-    RT_ANY_UUID
+    RT_ANY_UDP_SOCKET
 } RtAnyTag;
 
 /* The any type - a tagged union */
@@ -91,8 +89,6 @@ RtAny rt_box_process(void *process);
 RtAny rt_box_tcp_listener(void *listener);
 RtAny rt_box_tcp_stream(void *stream);
 RtAny rt_box_udp_socket(void *socket);
-RtAny rt_box_random(void *random);
-RtAny rt_box_uuid(void *uuid);
 
 /* ============================================================================
  * Unboxing Functions - Convert any to concrete types (panic on type mismatch)
@@ -121,8 +117,6 @@ void *rt_unbox_process(RtAny value);
 void *rt_unbox_tcp_listener(RtAny value);
 void *rt_unbox_tcp_stream(RtAny value);
 void *rt_unbox_udp_socket(RtAny value);
-void *rt_unbox_random(RtAny value);
-void *rt_unbox_uuid(RtAny value);
 
 /* ============================================================================
  * Type Checking Functions

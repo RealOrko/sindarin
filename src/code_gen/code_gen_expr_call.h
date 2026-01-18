@@ -123,31 +123,4 @@ char *code_gen_binary_file_property(CodeGen *gen, const char *property_name,
 char *code_gen_binary_file_static_call(CodeGen *gen, const char *method_name,
                                         int arg_count, Expr **arguments);
 
-/* ============================================================================
- * Random Method Code Generation (code_gen_expr_call_random.c)
- * ============================================================================ */
-
-/**
- * Generate code for Random instance method calls.
- * Handles: int, long, double, bool, byte, bytes, gaussian,
- *          intMany, longMany, doubleMany, boolMany, gaussianMany,
- *          choice, shuffle, weightedChoice, sample
- * Returns generated C code string, or NULL if not a Random method.
- */
-char *code_gen_random_method_call(CodeGen *gen, Expr *expr, const char *method_name,
-                                   Expr *object, int arg_count, Expr **arguments);
-
-/* ============================================================================
- * UUID Method Code Generation (code_gen_expr_call_uuid.c)
- * ============================================================================ */
-
-/**
- * Generate code for UUID instance method calls.
- * Handles: toString, toHex, toBase64, toBytes, version, variant, isNil,
- *          timestamp, time, equals
- * Returns generated C code string, or NULL if not a UUID method.
- */
-char *code_gen_uuid_method_call(CodeGen *gen, Expr *expr, const char *method_name,
-                                 Expr *object, int arg_count, Expr **arguments);
-
 #endif /* CODE_GEN_EXPR_CALL_H */

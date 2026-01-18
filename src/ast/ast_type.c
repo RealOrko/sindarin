@@ -41,8 +41,6 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_TCP_LISTENER:
     case TYPE_TCP_STREAM:
     case TYPE_UDP_SOCKET:
-    case TYPE_RANDOM:
-    case TYPE_UUID:
     case TYPE_ENVIRONMENT:
         break;
 
@@ -442,10 +440,6 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "TcpStream");
     case TYPE_UDP_SOCKET:
         return arena_strdup(arena, "UdpSocket");
-    case TYPE_RANDOM:
-        return arena_strdup(arena, "Random");
-    case TYPE_UUID:
-        return arena_strdup(arena, "UUID");
     case TYPE_ENVIRONMENT:
         return arena_strdup(arena, "Environment");
 

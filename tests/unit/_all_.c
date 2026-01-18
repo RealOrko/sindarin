@@ -14,14 +14,6 @@
 #include "runtime/runtime_thread_tests.c"
 #include "runtime/runtime_process_tests.c"
 #include "runtime/runtime_net_tests.c"
-#include "runtime/runtime_random_tests_core.c"
-#include "runtime/runtime_random_tests_basic.c"
-#include "runtime/runtime_random_tests_static.c"
-#include "runtime/runtime_random_tests_many.c"
-#include "runtime/runtime_random_tests_choice.c"
-#include "runtime/runtime_random_tests_collection.c"
-#include "runtime/runtime_uuid_tests.c"
-#include "runtime/runtime_sha1_tests.c"
 #include "runtime/runtime_env_tests.c"
 #include "standalone/symbol_table_tests_core.c"
 #include "standalone/symbol_table_tests_thread.c"
@@ -75,23 +67,6 @@ int main()
     // *** Runtime Network ***
 
     test_rt_net_main();
-
-    // *** Runtime Random ***
-
-    test_rt_random_core_main();
-    test_rt_random_basic_main();
-    test_rt_random_static_main();
-    test_rt_random_many_main();
-    test_rt_random_choice_main();
-    test_rt_random_collection_main();
-
-    // *** Runtime UUID ***
-
-    test_rt_uuid_main();
-
-    // *** Runtime SHA-1 ***
-
-    test_rt_sha1_main();
 
     // *** Runtime Environment ***
 

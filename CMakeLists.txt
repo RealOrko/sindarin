@@ -116,7 +116,6 @@ set(SN_TYPE_CHECKER_SOURCES
     src/type_checker/type_checker_expr_call_string.c
     src/type_checker/type_checker_expr_call_file.c
     src/type_checker/type_checker_expr_call_net.c
-    src/type_checker/type_checker_expr_call_random.c
     src/type_checker/type_checker_expr_array.c
     src/type_checker/type_checker_expr_lambda.c
     src/type_checker/type_checker_stmt.c
@@ -140,8 +139,6 @@ set(SN_CODEGEN_SOURCES
     src/code_gen/code_gen_expr_call_array.c
     src/code_gen/code_gen_expr_call_file.c
     src/code_gen/code_gen_expr_call_string.c
-    src/code_gen/code_gen_expr_call_random.c
-    src/code_gen/code_gen_expr_call_uuid.c
     src/code_gen/code_gen_expr_array.c
     src/code_gen/code_gen_expr_static.c
     src/code_gen/code_gen_expr_string.c
@@ -168,14 +165,6 @@ set(SN_RUNTIME_SOURCES
     src/runtime/runtime_thread.c
     src/runtime/runtime_process.c
     src/runtime/runtime_net.c
-    src/runtime/runtime_random_core.c
-    src/runtime/runtime_random_basic.c
-    src/runtime/runtime_random_static.c
-    src/runtime/runtime_random_choice.c
-    src/runtime/runtime_random_collection.c
-    src/runtime/runtime_random.c
-    src/runtime/runtime_uuid.c
-    src/runtime/runtime_sha1.c
     src/runtime/runtime_env.c
     src/runtime/runtime_any.c
     src/runtime/runtime_intercept.c
@@ -277,14 +266,6 @@ if(NOT MSVC)
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_thread.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_process.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_net.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_core.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_basic.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_static.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_choice.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random_collection.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_random.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_uuid.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_sha1.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_env.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_any.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_intercept.c
