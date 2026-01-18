@@ -114,7 +114,6 @@ set(SN_TYPE_CHECKER_SOURCES
     src/type_checker/type_checker_expr_call_core.c
     src/type_checker/type_checker_expr_call_array.c
     src/type_checker/type_checker_expr_call_string.c
-    src/type_checker/type_checker_expr_call_file.c
     src/type_checker/type_checker_expr_call_net.c
     src/type_checker/type_checker_expr_array.c
     src/type_checker/type_checker_expr_lambda.c
@@ -137,7 +136,6 @@ set(SN_CODEGEN_SOURCES
     src/code_gen/code_gen_expr_lambda.c
     src/code_gen/code_gen_expr_call.c
     src/code_gen/code_gen_expr_call_array.c
-    src/code_gen/code_gen_expr_call_file.c
     src/code_gen/code_gen_expr_call_string.c
     src/code_gen/code_gen_expr_array.c
     src/code_gen/code_gen_expr_static.c
@@ -157,11 +155,8 @@ set(SN_RUNTIME_SOURCES
     src/runtime/runtime_arena.c
     src/runtime/runtime_string.c
     src/runtime/runtime_array.c
-    src/runtime/runtime_text_file.c
-    src/runtime/runtime_binary_file.c
     src/runtime/runtime_io.c
     src/runtime/runtime_byte.c
-    src/runtime/runtime_path.c
     src/runtime/runtime_thread.c
     src/runtime/runtime_process.c
     src/runtime/runtime_net.c
@@ -258,11 +253,8 @@ if(NOT MSVC)
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_arena.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_string.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_array.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_text_file.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_binary_file.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_io.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_byte.c
-        ${CMAKE_SOURCE_DIR}/src/runtime/runtime_path.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_thread.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_process.c
         ${CMAKE_SOURCE_DIR}/src/runtime/runtime_net.c

@@ -174,4 +174,14 @@ static inline int rt_str_region_equals(const char *str, long start, long end, co
     return 1;
 }
 
+/* ============================================================================
+ * String Array Helpers
+ * ============================================================================ */
+
+/* Create a new string array with initial capacity */
+char **rt_create_string_array(RtArena *arena, size_t initial_capacity);
+
+/* Push a string to the array, growing if necessary */
+char **rt_push_string_to_array(RtArena *arena, char **arr, char *str);
+
 #endif /* RUNTIME_STRING_H */

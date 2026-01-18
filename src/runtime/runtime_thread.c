@@ -16,7 +16,6 @@
 #include <setjmp.h>
 #include "runtime_thread.h"
 #include "runtime_array.h"
-#include "runtime_file.h"
 #include "runtime_process.h"
 
 /* ============================================================================
@@ -807,17 +806,10 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
             return rt_array_clone_string(dest, arr);
         }
 
-        /* File handle types - use file promotion functions
-         * Note: value is a pointer to the file pointer. */
-        case RT_TYPE_TEXT_FILE: {
-            RtTextFile *file = *(RtTextFile **)value;
-            return rt_text_file_promote(dest, src_arena, file);
-        }
-
-        case RT_TYPE_BINARY_FILE: {
-            RtBinaryFile *file = *(RtBinaryFile **)value;
-            return rt_binary_file_promote(dest, src_arena, file);
-        }
+        /* File handle types - now handled by SDK, return NULL */
+        case RT_TYPE_TEXT_FILE:
+        case RT_TYPE_BINARY_FILE:
+            return NULL;
 
         /* Process type - struct with strings that need promotion */
         case RT_TYPE_PROCESS: {

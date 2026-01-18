@@ -1,4 +1,0 @@
-version: sn 0.1.0
-help lines: true
-multi args exit: 1
-flags: sn 0.1.0

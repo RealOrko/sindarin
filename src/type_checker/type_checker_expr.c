@@ -2,7 +2,6 @@
 #include "type_checker/type_checker_expr_call.h"
 #include "type_checker/type_checker_expr_call_array.h"
 #include "type_checker/type_checker_expr_call_string.h"
-#include "type_checker/type_checker_expr_call_file.h"
 #include "type_checker/type_checker_expr_call_net.h"
 #include "type_checker/type_checker_expr_array.h"
 #include "type_checker/type_checker_expr_lambda.h"
@@ -661,28 +660,6 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
             return result;
         }
         /* Fall through to error handling if not a valid string method */
-    }
-
-    /* TextFile methods - DELEGATED to type_checker_expr_call.c */
-    if (object_type->kind == TYPE_TEXT_FILE)
-    {
-        Type *result = type_check_text_file_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid TextFile method */
-    }
-
-    /* BinaryFile methods - DELEGATED to type_checker_expr_call.c */
-    if (object_type->kind == TYPE_BINARY_FILE)
-    {
-        Type *result = type_check_binary_file_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid BinaryFile method */
     }
 
     /* Try Process property type checking */

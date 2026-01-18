@@ -23,12 +23,10 @@
 #include "runtime/runtime_array.h"
 
 /* I/O modules - depend on arena and string */
-#include "runtime/runtime_file.h"
 #include "runtime/runtime_io.h"
 
 /* Utility modules - depend on arena */
 #include "runtime/runtime_byte.h"
-#include "runtime/runtime_path.h"
 
 /* Threading module - depends on arena */
 #include "runtime/runtime_thread.h"

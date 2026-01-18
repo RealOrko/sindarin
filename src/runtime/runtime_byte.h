@@ -33,10 +33,4 @@ char *rt_byte_array_to_base64(RtArena *arena, unsigned char *bytes);
 /* Convert string to byte array using UTF-8 encoding */
 unsigned char *rt_string_to_bytes(RtArena *arena, const char *str);
 
-/* Convert hexadecimal string to byte array */
-unsigned char *rt_bytes_from_hex(RtArena *arena, const char *hex);
-
-/* Convert Base64 string to byte array */
-unsigned char *rt_bytes_from_base64(RtArena *arena, const char *b64);
-
 #endif /* RUNTIME_BYTE_H */

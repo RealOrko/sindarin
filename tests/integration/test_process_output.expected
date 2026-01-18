@@ -1,4 +1,0 @@
-stdout: sn 0.1.0
-stderr has error: true
-multiline count: true
-stdout empty on error: true

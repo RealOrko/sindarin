@@ -127,41 +127,6 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
         return arena_sprintf(gen->arena, "rt_str_length(%s)", object_str);
     }
 
-    /* TextFile and BinaryFile properties - also in code_gen_expr_call_file.c */
-    // Handle TextFile.path
-    if (object_type->kind == TYPE_TEXT_FILE && strcmp(member_name_str, "path") == 0) {
-        return arena_sprintf(gen->arena, "rt_text_file_get_path(%s, %s)",
-            ARENA_VAR(gen), object_str);
-    }
-
-    // Handle TextFile.name
-    if (object_type->kind == TYPE_TEXT_FILE && strcmp(member_name_str, "name") == 0) {
-        return arena_sprintf(gen->arena, "rt_text_file_get_name(%s, %s)",
-            ARENA_VAR(gen), object_str);
-    }
-
-    // Handle TextFile.size
-    if (object_type->kind == TYPE_TEXT_FILE && strcmp(member_name_str, "size") == 0) {
-        return arena_sprintf(gen->arena, "rt_text_file_get_size(%s)", object_str);
-    }
-
-    // Handle BinaryFile.path
-    if (object_type->kind == TYPE_BINARY_FILE && strcmp(member_name_str, "path") == 0) {
-        return arena_sprintf(gen->arena, "rt_binary_file_get_path(%s, %s)",
-            ARENA_VAR(gen), object_str);
-    }
-
-    // Handle BinaryFile.name
-    if (object_type->kind == TYPE_BINARY_FILE && strcmp(member_name_str, "name") == 0) {
-        return arena_sprintf(gen->arena, "rt_binary_file_get_name(%s, %s)",
-            ARENA_VAR(gen), object_str);
-    }
-
-    // Handle BinaryFile.size
-    if (object_type->kind == TYPE_BINARY_FILE && strcmp(member_name_str, "size") == 0) {
-        return arena_sprintf(gen->arena, "rt_binary_file_get_size(%s)", object_str);
-    }
-
     /* Process properties - direct struct member access */
     // Handle Process.exitCode
     if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "exitCode") == 0) {

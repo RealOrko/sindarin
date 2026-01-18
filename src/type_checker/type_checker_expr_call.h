@@ -16,7 +16,6 @@
  * - type_checker_expr_call_core.c: Main dispatchers and helpers
  * - type_checker_expr_call_array.c: Array method type checking
  * - type_checker_expr_call_string.c: String method type checking
- * - type_checker_expr_call_file.c: TextFile/BinaryFile method type checking
  * - type_checker_expr_call_net.c: TcpListener/TcpStream/UdpSocket type checking
  * ============================================================================ */
 
@@ -34,8 +33,7 @@
 Type *type_check_call_expression(Expr *expr, SymbolTable *table);
 
 /* Static method type checking for built-in types
- * Handles: TextFile, BinaryFile, Stdin, Stdout, Stderr, Bytes,
- *          Path, Directory, Process, TcpListener, TcpStream, UdpSocket,
+ * Handles: Stdin, Stdout, Stderr, Process, TcpListener, TcpStream, UdpSocket,
  *          Environment
  */
 Type *type_check_static_method_call(Expr *expr, SymbolTable *table);
@@ -69,21 +67,6 @@ Type *type_check_array_method(Expr *expr, Type *object_type, Token member_name, 
  * toBytes, toHex, toBase64, fromHex, fromBase64
  */
 Type *type_check_string_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
-
-/* ============================================================================
- * File Methods (type_checker_expr_call_file.c)
- * ============================================================================ */
-
-/* Type check TextFile instance methods:
- * path, isOpen, isEof, read, readLine, readAll, write, writeLine, flush,
- * close, seek, position, size
- */
-Type *type_check_text_file_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
-
-/* Type check BinaryFile instance methods:
- * path, isOpen, isEof, read, readAll, write, flush, close, seek, position, size
- */
-Type *type_check_binary_file_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 
 /* ============================================================================
  * Network Methods (type_checker_expr_call_net.c)

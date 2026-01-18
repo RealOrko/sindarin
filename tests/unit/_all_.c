@@ -1,16 +1,13 @@
 #include "standalone/arena_tests.c"
 #include "ast/ast_tests.c"
 #include "code_gen/code_gen_tests.c"
-#include "standalone/file_tests.c"
 #include "lexer/lexer_tests.c"
 #include "optimizer/optimizer_tests.c"
 #include "parser/parser_tests.c"
 #include "runtime/runtime_arena_tests.c"
 #include "runtime/runtime_arithmetic_tests.c"
 #include "runtime/runtime_string_tests.c"
-#include "runtime/runtime_byte_tests.c"
 #include "runtime/runtime_array_tests.c"
-#include "runtime/runtime_path_tests.c"
 #include "runtime/runtime_thread_tests.c"
 #include "runtime/runtime_process_tests.c"
 #include "runtime/runtime_net_tests.c"
@@ -44,17 +41,9 @@ int main()
 
     test_rt_string_main();
 
-    // *** Runtime Byte ***
-
-    test_rt_byte_main();
-
     // *** Runtime Array ***
 
     test_rt_array_main();
-
-    // *** Runtime Path ***
-
-    test_rt_path_main();
 
     // *** Runtime Thread ***
 
@@ -77,12 +66,8 @@ int main()
     test_ast_main();
 
     // *** Code Gen ***
-    
+
     test_code_gen_main();
-
-    // *** File ***
-
-    test_file_main();
 
     // *** Lexer ***
 

@@ -1,5 +1,0 @@
-version: sn 0.1.0
-help: Sindarin Compiler
-flags: sn 0.1.0
-error exit: 1
-multiline: true
