@@ -11,6 +11,7 @@ The Sindarin SDK provides a collection of modules that extend the language's cap
 | [Random](random.md) | `import "sdk/random"` | Random number generation |
 | [UUID](uuid.md) | `import "sdk/uuid"` | UUID generation and parsing |
 | [I/O](io/readme.md) | `import "sdk/io/..."` | File and directory operations |
+| [Net](net/readme.md) | `import "sdk/net/..."` | TCP and UDP networking |
 
 ## Quick Start
 
@@ -20,6 +21,7 @@ import "sdk/time"
 import "sdk/random"
 import "sdk/uuid"
 import "sdk/io/textfile"
+import "sdk/net/tcp"
 
 fn main(): int =>
   // Current date and time
@@ -71,6 +73,9 @@ SDK types use the `Sn` prefix to distinguish them from built-in types:
 | `SnPath` | Path utilities |
 | `SnDirectory` | Directory operations |
 | `SnBytes` | Byte encoding/decoding |
+| `SnTcpListener` | TCP server socket |
+| `SnTcpStream` | TCP connection |
+| `SnUdpSocket` | UDP socket |
 
 Some types like `Random` and `UUID` don't use the prefix as they have no built-in equivalent.
 
@@ -203,6 +208,22 @@ var files: str[] = Directory.list("/home/user")
 ```
 
 [Full documentation →](io/readme.md)
+
+### Net
+
+TCP and UDP socket operations for network communication.
+
+```sindarin
+import "sdk/net/tcp"
+import "sdk/net/udp"
+
+var server: SnTcpListener = SnTcpListener.bind(":8080")
+var client: SnTcpStream = server.accept()
+var line: str = client.readLine()
+client.writeLine($"Echo: {line}")
+```
+
+[Full documentation →](net/readme.md)
 
 ---
 
