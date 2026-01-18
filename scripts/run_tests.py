@@ -24,6 +24,7 @@ Options:
     --exclude TESTS   - Comma-separated list of test names to exclude
     --verbose         - Show detailed output
     --no-color        - Disable colored output
+    --parallel, -j N  - Run tests with N parallel workers (default: 1)
 """
 
 import argparse
@@ -34,9 +35,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
 
 # ANSI color codes
 class Colors:
@@ -153,13 +156,17 @@ TEST_CONFIGS = {
 class TestRunner:
     def __init__(self, compiler: str, compile_timeout: int = 10,
                  run_timeout: int = 30, excluded_tests: List[str] = None,
-                 verbose: bool = False):
+                 verbose: bool = False, parallel: int = 1):
         self.compiler = compiler
         self.compile_timeout = compile_timeout
         self.run_timeout = run_timeout
         self.excluded_tests = excluded_tests or []
         self.verbose = verbose
+        self.parallel = parallel
         self.temp_dir = None
+        self._progress_lock = threading.Lock()
+        self._completed_count = 0
+        self._total_count = 0
 
         # Setup environment
         self.env = os.environ.copy()
@@ -219,6 +226,52 @@ class TestRunner:
             print(f"{Colors.RED}Unit tests failed{Colors.NC}")
             return False
 
+    def _run_single_test(self, test_info: Dict[str, Any]) -> Dict[str, Any]:
+        """Run a single test and return result dict. Thread-safe."""
+        test_file = test_info['test_file']
+        test_name = test_info['test_name']
+        config = test_info['config']
+        test_type = test_info['test_type']
+        exe_file = test_info['exe_file']
+
+        # Check if test is excluded
+        if test_name in self.excluded_tests:
+            result = {
+                'test_name': test_name,
+                'status': 'skip',
+                'reason': 'excluded',
+                'details': None
+            }
+        else:
+            expected_file = test_file.replace('.sn', '.expected')
+            panic_file = test_file.replace('.sn', '.panic')
+
+            if config.expect_compile_fail:
+                status, reason, details = self._run_error_test_internal(
+                    test_file, expected_file, exe_file
+                )
+            else:
+                status, reason, details = self._run_positive_test_internal(
+                    test_file, expected_file, panic_file, exe_file, test_type
+                )
+
+            result = {
+                'test_name': test_name,
+                'status': status,
+                'reason': reason,
+                'details': details
+            }
+
+        # Update progress counter
+        with self._progress_lock:
+            self._completed_count += 1
+            if self.parallel > 1 and sys.stdout.isatty():
+                # Show progress indicator for parallel runs (only on TTY)
+                sys.stdout.write(f"\r  [{self._completed_count}/{self._total_count}] Running tests...    ")
+                sys.stdout.flush()
+
+        return result
+
     def run_sn_tests(self, test_type: str) -> bool:
         """Run Sindarin source file tests."""
         config = TEST_CONFIGS.get(test_type)
@@ -238,45 +291,67 @@ class TestRunner:
             print(f"No test files found matching: {pattern}")
             return True
 
+        exe_ext = get_exe_extension()
+
+        # Build test info list
+        test_infos = []
+        for idx, test_file in enumerate(test_files):
+            rel_path = os.path.relpath(test_file, config.test_dir)
+            test_name = os.path.splitext(rel_path)[0]
+            # Use unique exe name with index to avoid conflicts in parallel runs
+            exe_basename = f"test_{idx}_{os.path.basename(test_file).replace('.sn', '')}"
+            exe_file = os.path.join(self.temp_dir, f"{exe_basename}{exe_ext}")
+
+            test_infos.append({
+                'test_file': test_file,
+                'test_name': test_name,
+                'config': config,
+                'test_type': test_type,
+                'exe_file': exe_file,
+                'index': idx
+            })
+
+        # Reset progress counters
+        self._completed_count = 0
+        self._total_count = len(test_infos)
+
+        # Run tests (parallel or sequential)
+        if self.parallel > 1:
+            print(f"  Running {len(test_infos)} tests with {self.parallel} workers...")
+            with ThreadPoolExecutor(max_workers=self.parallel) as executor:
+                futures = {executor.submit(self._run_single_test, info): info for info in test_infos}
+                results = []
+                for future in as_completed(futures):
+                    results.append(future.result())
+            # Clear progress line
+            print("\r" + " " * 60 + "\r", end='')
+            # Sort results by original index to maintain order
+            results.sort(key=lambda r: next(i['index'] for i in test_infos if i['test_name'] == r['test_name']))
+        else:
+            # Sequential execution (original behavior with live output)
+            results = []
+            for info in test_infos:
+                test_name = info['test_name']
+                print(f"  {test_name:45} ", end='', flush=True)
+                result = self._run_single_test(info)
+                results.append(result)
+                # Print result immediately in sequential mode
+                self._print_test_result(result)
+
+        # Print results (for parallel mode, print all at end)
         passed = 0
         failed = 0
         skipped = 0
 
-        exe_ext = get_exe_extension()
+        if self.parallel > 1:
+            for result in results:
+                self._print_test_result(result, include_name=True)
 
-        for test_file in test_files:
-            # Get relative path from test_dir to show subfolder structure
-            rel_path = os.path.relpath(test_file, config.test_dir)
-            test_name = os.path.splitext(rel_path)[0]
-
-            # Check if test is excluded
-            if test_name in self.excluded_tests:
-                print(f"  {test_name:45} {Colors.YELLOW}SKIP{Colors.NC} (excluded)")
-                skipped += 1
-                continue
-
-            # Paths for expected output and panic markers
-            expected_file = test_file.replace('.sn', '.expected')
-            panic_file = test_file.replace('.sn', '.panic')
-            # Use basename for exe to avoid path issues in temp dir
-            exe_basename = os.path.basename(test_file).replace('.sn', '')
-            exe_file = os.path.join(self.temp_dir, f"{exe_basename}{exe_ext}")
-
-            print(f"  {test_name:45} ", end='', flush=True)
-
-            if config.expect_compile_fail:
-                # Error test: should fail to compile
-                result = self._run_error_test(test_file, expected_file, exe_file)
-            else:
-                # Positive test: should compile and run
-                result = self._run_positive_test(
-                    test_file, expected_file, panic_file, exe_file, test_type
-                )
-
-            if result == 'pass':
-                print(f"{Colors.GREEN}PASS{Colors.NC}")
+        # Count results
+        for result in results:
+            if result['status'] == 'pass':
                 passed += 1
-            elif result == 'skip':
+            elif result['status'] == 'skip':
                 skipped += 1
             else:
                 failed += 1
@@ -289,11 +364,31 @@ class TestRunner:
 
         return failed == 0
 
-    def _run_error_test(self, test_file: str, expected_file: str, exe_file: str) -> str:
-        """Run a test that should fail to compile."""
+    def _print_test_result(self, result: Dict[str, Any], include_name: bool = False):
+        """Print a single test result."""
+        test_name = result['test_name']
+        status = result['status']
+        reason = result['reason']
+        details = result['details']
+
+        if include_name:
+            print(f"  {test_name:45} ", end='')
+
+        if status == 'pass':
+            print(f"{Colors.GREEN}PASS{Colors.NC}")
+        elif status == 'skip':
+            print(f"{Colors.YELLOW}SKIP{Colors.NC} ({reason})")
+        else:
+            print(f"{Colors.RED}FAIL{Colors.NC} ({reason})")
+            if self.verbose and details:
+                for line in details[:3]:
+                    print(f"    {line}")
+
+    def _run_error_test_internal(self, test_file: str, expected_file: str,
+                                    exe_file: str) -> Tuple[str, str, Optional[List[str]]]:
+        """Run a test that should fail to compile. Returns (status, reason, details)."""
         if not os.path.isfile(expected_file):
-            print(f"{Colors.YELLOW}SKIP{Colors.NC} (no .expected)")
-            return 'skip'
+            return ('skip', 'no .expected', None)
 
         # Try to compile (should fail)
         exit_code, stdout, stderr = run_with_timeout(
@@ -302,32 +397,31 @@ class TestRunner:
         )
 
         if exit_code == 0:
-            print(f"{Colors.RED}FAIL{Colors.NC} (should not compile)")
-            return 'fail'
+            return ('fail', 'should not compile', None)
 
         # Check error message
         with open(expected_file, 'r') as f:
             expected_error = f.readline().strip()
 
         if expected_error in stderr:
-            return 'pass'
+            return ('pass', '', None)
         else:
-            print(f"{Colors.RED}FAIL{Colors.NC} (wrong error)")
-            if self.verbose:
-                print(f"    Expected: {expected_error}")
-                print(f"    Got:      {stderr.split(chr(10))[0] if stderr else '(empty)'}")
-            return 'fail'
+            details = [
+                f"Expected: {expected_error}",
+                f"Got:      {stderr.split(chr(10))[0] if stderr else '(empty)'}"
+            ]
+            return ('fail', 'wrong error', details)
 
-    def _run_positive_test(self, test_file: str, expected_file: str,
-                          panic_file: str, exe_file: str, test_type: str) -> str:
-        """Run a test that should compile and run successfully."""
+    def _run_positive_test_internal(self, test_file: str, expected_file: str,
+                                     panic_file: str, exe_file: str,
+                                     test_type: str) -> Tuple[str, str, Optional[List[str]]]:
+        """Run a test that should compile and run successfully. Returns (status, reason, details)."""
         has_expected = os.path.isfile(expected_file)
         expects_panic = os.path.isfile(panic_file)
 
         # For non-explore tests, require .expected file
         if not has_expected and test_type not in ('explore', 'sdk'):
-            print(f"{Colors.YELLOW}SKIP{Colors.NC} (no .expected)")
-            return 'skip'
+            return ('skip', 'no .expected', None)
 
         # Standard compilation (use #pragma source for C helper files)
         compile_cmd = [self.compiler, test_file, '-o', exe_file, '-l', '1', '-O0']
@@ -338,11 +432,8 @@ class TestRunner:
         )
 
         if exit_code != 0:
-                print(f"{Colors.RED}FAIL{Colors.NC} (compile error)")
-                if self.verbose and stderr:
-                    for line in stderr.split('\n')[:3]:
-                        print(f"    {line}")
-                return 'fail'
+            details = stderr.split('\n')[:3] if stderr else None
+            return ('fail', 'compile error', details)
 
         # Run with merged stdout/stderr (like bash's 2>&1)
         run_timeout = 5 if test_type == 'integration' else self.run_timeout
@@ -353,18 +444,14 @@ class TestRunner:
         # Check for expected panic
         if expects_panic:
             if exit_code == 0:
-                print(f"{Colors.RED}FAIL{Colors.NC} (expected panic)")
-                return 'fail'
+                return ('fail', 'expected panic', None)
         else:
             if exit_code != 0:
                 if timeout_marker == 'TIMEOUT':
-                    print(f"{Colors.RED}FAIL{Colors.NC} (timeout)")
+                    return ('fail', 'timeout', output.split('\n')[:3] if output else None)
                 else:
-                    print(f"{Colors.RED}FAIL{Colors.NC} (exit code: {exit_code})")
-                if self.verbose and output:
-                    for line in output.split('\n')[:3]:
-                        print(f"    {line}")
-                return 'fail'
+                    details = output.split('\n')[:3] if output else None
+                    return ('fail', f'exit code: {exit_code}', details)
 
         # Compare output if expected file exists
         if has_expected:
@@ -376,15 +463,15 @@ class TestRunner:
             normalized_expected = expected_output.replace('\r\n', '\n').replace('\r', '\n')
 
             if normalized_output == normalized_expected:
-                return 'pass'
+                return ('pass', '', None)
             else:
-                print(f"{Colors.RED}FAIL{Colors.NC} (output mismatch)")
-                if self.verbose:
-                    print(f"    Expected: {expected_output.split(chr(10))[0]}")
-                    print(f"    Got:      {output.split(chr(10))[0] if output else '(empty)'}")
-                return 'fail'
+                details = [
+                    f"Expected: {expected_output.split(chr(10))[0]}",
+                    f"Got:      {output.split(chr(10))[0] if output else '(empty)'}"
+                ]
+                return ('fail', 'output mismatch', details)
 
-        return 'pass'
+        return ('pass', '', None)
 
 
 def main():
@@ -405,6 +492,8 @@ def main():
                        help='Show detailed output')
     parser.add_argument('--no-color', action='store_true',
                        help='Disable colored output')
+    parser.add_argument('--parallel', '-j', type=int, default=os.cpu_count() or 4,
+                       help=f'Number of parallel test workers (default: {os.cpu_count() or 4})')
 
     args = parser.parse_args()
 
@@ -439,11 +528,13 @@ def main():
 
     print(f"Compiler: {compiler}")
     print(f"Platform: {platform.system()}")
+    if args.parallel > 1:
+        print(f"Parallel: {args.parallel} workers")
 
     all_passed = True
 
     with TestRunner(compiler, args.timeout, args.run_timeout,
-                    excluded, args.verbose) as runner:
+                    excluded, args.verbose, args.parallel) as runner:
         if args.test_type == 'all':
             # Run all test types
             all_passed &= runner.run_unit_tests()
