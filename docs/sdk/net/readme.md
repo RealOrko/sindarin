@@ -1,0 +1,167 @@
+# Network I/O in Sindarin
+
+Sindarin provides TCP and UDP socket types through the SDK for network communication. All network types integrate with Sindarin's arena-based memory management and threading model.
+
+## SDK Modules
+
+| Module | Description |
+|--------|-------------|
+| [TCP](tcp.md) | TCP listener and stream for connection-oriented communication |
+| [UDP](udp.md) | UDP socket for connectionless datagram communication |
+
+## Quick Start
+
+```sindarin
+import "sdk/net/tcp"
+import "sdk/net/udp"
+
+// TCP Server
+var server: SnTcpListener = SnTcpListener.bind(":8080")
+var client: SnTcpStream = server.accept()
+var line: str = client.readLine()
+client.writeLine($"Echo: {line}")
+client.close()
+server.close()
+
+// TCP Client
+var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+conn.writeLine("GET / HTTP/1.0")
+conn.writeLine("")
+var response: byte[] = conn.readAll()
+print(response.toString())
+conn.close()
+
+// UDP Echo
+var socket: SnUdpSocket = SnUdpSocket.bind(":9000")
+var result: SnUdpReceiveResult = socket.receiveFrom(1024)
+socket.sendTo(result.data(), result.sender())
+socket.close()
+```
+
+---
+
+## Address Format
+
+All addresses use `host:port` format:
+
+| Format | Description |
+|--------|-------------|
+| `"127.0.0.1:8080"` | IPv4 with port |
+| `"[::1]:8080"` | IPv6 with port |
+| `":8080"` | All interfaces, specific port |
+| `":0"` | All interfaces, OS-assigned port |
+| `"example.com:80"` | Hostname (resolved via DNS) |
+
+---
+
+## Threading
+
+Network operations integrate with Sindarin's threading model using `&` and `!`.
+
+### Parallel Connections
+
+```sindarin
+var c1: SnTcpStream = &SnTcpStream.connect("api1.example.com:80")
+var c2: SnTcpStream = &SnTcpStream.connect("api2.example.com:80")
+var c3: SnTcpStream = &SnTcpStream.connect("api3.example.com:80")
+
+[c1, c2, c3]!
+
+// All connected, use them...
+```
+
+### Threaded Server
+
+```sindarin
+fn handleClient(client: SnTcpStream): void =>
+    var line: str = client.readLine()
+    client.writeLine($"You said: {line}")
+    client.close()
+
+fn main(): int =>
+    var server: SnTcpListener = SnTcpListener.bind(":8080")
+
+    while true =>
+        var client: SnTcpStream = server.accept()
+        &handleClient(client)  // fire and forget
+
+    return 0
+```
+
+### Parallel Requests
+
+```sindarin
+fn httpGet(host: str, path: str): str =>
+    var conn: SnTcpStream = SnTcpStream.connect($"{host}:80")
+    conn.writeLine($"GET {path} HTTP/1.0")
+    conn.writeLine($"Host: {host}")
+    conn.writeLine("")
+    var response: byte[] = conn.readAll()
+    conn.close()
+    return response.toString()
+
+// Fetch in parallel
+var r1: str = &httpGet("example.com", "/page1")
+var r2: str = &httpGet("example.com", "/page2")
+var r3: str = &httpGet("example.com", "/page3")
+
+[r1, r2, r3]!
+
+print($"Total bytes: {r1.length + r2.length + r3.length}\n")
+```
+
+---
+
+## Memory Management
+
+Network handles integrate with arena-based memory management.
+
+### Automatic Cleanup
+
+```sindarin
+fn fetchData(host: str): byte[] =>
+    var conn: SnTcpStream = SnTcpStream.connect(host)
+    var data: byte[] = conn.readAll()
+    // conn automatically closed when function returns
+    return data
+```
+
+### Handle Promotion
+
+```sindarin
+fn acceptClient(server: SnTcpListener): SnTcpStream =>
+    var client: SnTcpStream = server.accept()
+    return client  // promoted to caller's arena
+
+fn main(): int =>
+    var server: SnTcpListener = SnTcpListener.bind(":8080")
+    var client: SnTcpStream = acceptClient(server)
+    // client is valid here
+    client.close()
+    return 0
+```
+
+---
+
+## Error Handling
+
+Network operations panic on errors:
+
+- `SnTcpStream.connect()` - Connection refused, DNS failure, timeout
+- `SnTcpListener.bind()` - Address in use, permission denied
+- `.read()` / `.write()` - Connection reset, broken pipe
+- `SnUdpSocket.bind()` - Address in use, permission denied
+
+```sindarin
+// Connection may fail
+var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
+// If we reach here, connection succeeded
+```
+
+---
+
+## See Also
+
+- [SDK Overview](../readme.md) - All SDK modules
+- [Threading](../../language/THREADING.md) - Threading model (`&` spawn, `!` sync)
+- [Memory](../../language/MEMORY.md) - Arena memory management
