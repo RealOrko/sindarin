@@ -162,30 +162,6 @@ RtAny rt_box_process(void *process) {
     return result;
 }
 
-RtAny rt_box_tcp_listener(void *listener) {
-    RtAny result;
-    result.tag = RT_ANY_TCP_LISTENER;
-    result.value.obj = listener;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
-RtAny rt_box_tcp_stream(void *stream) {
-    RtAny result;
-    result.tag = RT_ANY_TCP_STREAM;
-    result.value.obj = stream;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
-RtAny rt_box_udp_socket(void *socket) {
-    RtAny result;
-    result.tag = RT_ANY_UDP_SOCKET;
-    result.value.obj = socket;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
 /* ============================================================================
  * Unboxing Functions
  * ============================================================================ */
@@ -323,27 +299,6 @@ void *rt_unbox_process(RtAny value) {
     return value.value.obj;
 }
 
-void *rt_unbox_tcp_listener(RtAny value) {
-    if (value.tag != RT_ANY_TCP_LISTENER) {
-        rt_any_type_error("TcpListener", value);
-    }
-    return value.value.obj;
-}
-
-void *rt_unbox_tcp_stream(RtAny value) {
-    if (value.tag != RT_ANY_TCP_STREAM) {
-        rt_any_type_error("TcpStream", value);
-    }
-    return value.value.obj;
-}
-
-void *rt_unbox_udp_socket(RtAny value) {
-    if (value.tag != RT_ANY_UDP_SOCKET) {
-        rt_any_type_error("UdpSocket", value);
-    }
-    return value.value.obj;
-}
-
 /* ============================================================================
  * Type Checking Functions
  * ============================================================================ */
@@ -388,9 +343,6 @@ const char *rt_any_tag_name(RtAnyTag tag) {
         case RT_ANY_DATE: return "Date";
         case RT_ANY_TIME: return "Time";
         case RT_ANY_PROCESS: return "Process";
-        case RT_ANY_TCP_LISTENER: return "TcpListener";
-        case RT_ANY_TCP_STREAM: return "TcpStream";
-        case RT_ANY_UDP_SOCKET: return "UdpSocket";
         default: return "unknown";
     }
 }
@@ -469,9 +421,6 @@ bool rt_any_equals(RtAny a, RtAny b) {
         case RT_ANY_DATE:
         case RT_ANY_TIME:
         case RT_ANY_PROCESS:
-        case RT_ANY_TCP_LISTENER:
-        case RT_ANY_TCP_STREAM:
-        case RT_ANY_UDP_SOCKET:
             return a.value.obj == b.value.obj;
         default:
             return false;
@@ -542,12 +491,6 @@ char *rt_any_to_string(RtArena *arena, RtAny value) {
             return rt_arena_strdup(arena, "[Time]");
         case RT_ANY_PROCESS:
             return rt_arena_strdup(arena, "[Process]");
-        case RT_ANY_TCP_LISTENER:
-            return rt_arena_strdup(arena, "[TcpListener]");
-        case RT_ANY_TCP_STREAM:
-            return rt_arena_strdup(arena, "[TcpStream]");
-        case RT_ANY_UDP_SOCKET:
-            return rt_arena_strdup(arena, "[UdpSocket]");
         default:
             return rt_arena_strdup(arena, "[unknown]");
     }
@@ -598,9 +541,6 @@ RtAny rt_any_promote(RtArena *target_arena, RtAny value) {
         case RT_ANY_DATE:
         case RT_ANY_TIME:
         case RT_ANY_PROCESS:
-        case RT_ANY_TCP_LISTENER:
-        case RT_ANY_TCP_STREAM:
-        case RT_ANY_UDP_SOCKET:
             break;
 
         default:

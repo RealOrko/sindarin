@@ -9,14 +9,12 @@
  * Type-specific method checking is delegated to specialized modules:
  * - type_checker_expr_call_array.c for array methods
  * - type_checker_expr_call_string.c for string methods
- * - type_checker_expr_call_net.c for TcpListener/TcpStream/UdpSocket methods
  * ============================================================================ */
 
 #include "type_checker/type_checker_expr_call_core.h"
 #include "type_checker/type_checker_expr_call.h"
 #include "type_checker/type_checker_expr_call_array.h"
 #include "type_checker/type_checker_expr_call_string.h"
-#include "type_checker/type_checker_expr_call_net.h"
 #include "type_checker/type_checker_expr.h"
 #include "type_checker/type_checker_util.h"
 #include "debug.h"
@@ -491,93 +489,6 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         {
             char msg[128];
             snprintf(msg, sizeof(msg), "Unknown Process static method '%.*s'",
-                     method_name.length, method_name.start);
-            type_error(&method_name, msg);
-            return NULL;
-        }
-    }
-
-    /* TcpListener static methods - TCP server creation */
-    if (token_equals(type_name, "TcpListener"))
-    {
-        if (token_equals(method_name, "bind"))
-        {
-            /* TcpListener.bind(address: str): TcpListener */
-            if (call->arg_count != 1)
-            {
-                type_error(&method_name, "TcpListener.bind requires exactly 1 argument (address)");
-                return NULL;
-            }
-            Type *arg_type = call->arguments[0]->expr_type;
-            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
-            {
-                type_error(&method_name, "TcpListener.bind requires a string address argument");
-                return NULL;
-            }
-            return ast_create_primitive_type(table->arena, TYPE_TCP_LISTENER);
-        }
-        else
-        {
-            char msg[128];
-            snprintf(msg, sizeof(msg), "Unknown TcpListener static method '%.*s'",
-                     method_name.length, method_name.start);
-            type_error(&method_name, msg);
-            return NULL;
-        }
-    }
-
-    /* TcpStream static methods - TCP client creation */
-    if (token_equals(type_name, "TcpStream"))
-    {
-        if (token_equals(method_name, "connect"))
-        {
-            /* TcpStream.connect(address: str): TcpStream */
-            if (call->arg_count != 1)
-            {
-                type_error(&method_name, "TcpStream.connect requires exactly 1 argument (address)");
-                return NULL;
-            }
-            Type *arg_type = call->arguments[0]->expr_type;
-            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
-            {
-                type_error(&method_name, "TcpStream.connect requires a string address argument");
-                return NULL;
-            }
-            return ast_create_primitive_type(table->arena, TYPE_TCP_STREAM);
-        }
-        else
-        {
-            char msg[128];
-            snprintf(msg, sizeof(msg), "Unknown TcpStream static method '%.*s'",
-                     method_name.length, method_name.start);
-            type_error(&method_name, msg);
-            return NULL;
-        }
-    }
-
-    /* UdpSocket static methods - UDP socket creation */
-    if (token_equals(type_name, "UdpSocket"))
-    {
-        if (token_equals(method_name, "bind"))
-        {
-            /* UdpSocket.bind(address: str): UdpSocket */
-            if (call->arg_count != 1)
-            {
-                type_error(&method_name, "UdpSocket.bind requires exactly 1 argument (address)");
-                return NULL;
-            }
-            Type *arg_type = call->arguments[0]->expr_type;
-            if (arg_type == NULL || arg_type->kind != TYPE_STRING)
-            {
-                type_error(&method_name, "UdpSocket.bind requires a string address argument");
-                return NULL;
-            }
-            return ast_create_primitive_type(table->arena, TYPE_UDP_SOCKET);
-        }
-        else
-        {
-            char msg[128];
-            snprintf(msg, sizeof(msg), "Unknown UdpSocket static method '%.*s'",
                      method_name.length, method_name.start);
             type_error(&method_name, msg);
             return NULL;
@@ -1140,5 +1051,47 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
     }
 
     type_error(&type_name, "Unknown static type");
+    return NULL;
+}
+
+/* ============================================================================
+ * Process Instance Method Type Checking
+ * ============================================================================ */
+
+Type *type_check_process_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table)
+{
+    (void)expr; /* Reserved for future use */
+
+    /* Only handle Process types */
+    if (object_type->kind != TYPE_PROCESS)
+    {
+        return NULL;
+    }
+
+    const char *name = member_name.start;
+    int len = member_name.length;
+
+    /* Process.exitCode property - returns int */
+    if (len == 8 && strncmp(name, "exitCode", 8) == 0)
+    {
+        DEBUG_VERBOSE("Returning INT type for Process.exitCode");
+        return ast_create_primitive_type(table->arena, TYPE_INT);
+    }
+
+    /* Process.stdout property - returns str */
+    if (len == 6 && strncmp(name, "stdout", 6) == 0)
+    {
+        DEBUG_VERBOSE("Returning STRING type for Process.stdout");
+        return ast_create_primitive_type(table->arena, TYPE_STRING);
+    }
+
+    /* Process.stderr property - returns str */
+    if (len == 6 && strncmp(name, "stderr", 6) == 0)
+    {
+        DEBUG_VERBOSE("Returning STRING type for Process.stderr");
+        return ast_create_primitive_type(table->arena, TYPE_STRING);
+    }
+
+    /* Unknown property/method */
     return NULL;
 }

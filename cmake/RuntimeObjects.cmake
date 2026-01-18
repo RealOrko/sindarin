@@ -25,7 +25,6 @@ set(SN_RUNTIME_SOURCE_FILES
     runtime/runtime_path.c
     runtime/runtime_thread.c
     runtime/runtime_process.c
-    runtime/runtime_net.c
     runtime/runtime_env.c
     runtime/runtime_any.c
     runtime/runtime_intercept.c

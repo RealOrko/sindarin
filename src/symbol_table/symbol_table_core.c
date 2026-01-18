@@ -78,9 +78,6 @@ int get_type_size(Type *type)
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
     case TYPE_PROCESS:
-    case TYPE_TCP_LISTENER:
-    case TYPE_TCP_STREAM:
-    case TYPE_UDP_SOCKET:
     case TYPE_ENVIRONMENT:
         DEBUG_VERBOSE("Returning size 8 for built-in object type");
         return 8;

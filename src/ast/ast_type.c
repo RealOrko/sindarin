@@ -38,9 +38,6 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
     case TYPE_PROCESS:
-    case TYPE_TCP_LISTENER:
-    case TYPE_TCP_STREAM:
-    case TYPE_UDP_SOCKET:
     case TYPE_ENVIRONMENT:
         break;
 
@@ -434,12 +431,6 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "BinaryFile");
     case TYPE_PROCESS:
         return arena_strdup(arena, "Process");
-    case TYPE_TCP_LISTENER:
-        return arena_strdup(arena, "TcpListener");
-    case TYPE_TCP_STREAM:
-        return arena_strdup(arena, "TcpStream");
-    case TYPE_UDP_SOCKET:
-        return arena_strdup(arena, "UdpSocket");
     case TYPE_ENVIRONMENT:
         return arena_strdup(arena, "Environment");
 

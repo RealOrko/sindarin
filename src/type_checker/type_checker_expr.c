@@ -2,7 +2,6 @@
 #include "type_checker/type_checker_expr_call.h"
 #include "type_checker/type_checker_expr_call_array.h"
 #include "type_checker/type_checker_expr_call_string.h"
-#include "type_checker/type_checker_expr_call_net.h"
 #include "type_checker/type_checker_expr_array.h"
 #include "type_checker/type_checker_expr_lambda.h"
 #include "type_checker/type_checker_util.h"
@@ -671,39 +670,6 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
             return result;
         }
         /* Fall through to error handling if not a valid Process property */
-    }
-
-    /* Try TcpListener method/property type checking */
-    if (object_type->kind == TYPE_TCP_LISTENER)
-    {
-        Type *result = type_check_tcp_listener_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid TcpListener method/property */
-    }
-
-    /* Try TcpStream method/property type checking */
-    if (object_type->kind == TYPE_TCP_STREAM)
-    {
-        Type *result = type_check_tcp_stream_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid TcpStream method/property */
-    }
-
-    /* Try UdpSocket method/property type checking */
-    if (object_type->kind == TYPE_UDP_SOCKET)
-    {
-        Type *result = type_check_udp_socket_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid UdpSocket method/property */
     }
 
     /* Handle struct field access and methods via EXPR_MEMBER */

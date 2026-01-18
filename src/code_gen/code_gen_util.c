@@ -152,12 +152,6 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtBinaryFile *");
     case TYPE_PROCESS:
         return arena_strdup(arena, "RtProcess *");
-    case TYPE_TCP_LISTENER:
-        return arena_strdup(arena, "RtTcpListener *");
-    case TYPE_TCP_STREAM:
-        return arena_strdup(arena, "RtTcpStream *");
-    case TYPE_UDP_SOCKET:
-        return arena_strdup(arena, "RtUdpSocket *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally
@@ -426,12 +420,6 @@ const char *get_boxing_function(Type *type)
         return "rt_box_binary_file";
     case TYPE_PROCESS:
         return "rt_box_process";
-    case TYPE_TCP_LISTENER:
-        return "rt_box_tcp_listener";
-    case TYPE_TCP_STREAM:
-        return "rt_box_tcp_stream";
-    case TYPE_UDP_SOCKET:
-        return "rt_box_udp_socket";
     case TYPE_NIL:
     case TYPE_VOID:
         return "rt_box_nil";
@@ -481,12 +469,6 @@ const char *get_unboxing_function(Type *type)
         return "rt_unbox_binary_file";
     case TYPE_PROCESS:
         return "rt_unbox_process";
-    case TYPE_TCP_LISTENER:
-        return "rt_unbox_tcp_listener";
-    case TYPE_TCP_STREAM:
-        return "rt_unbox_tcp_stream";
-    case TYPE_UDP_SOCKET:
-        return "rt_unbox_udp_socket";
     default:
         return NULL;
     }
@@ -1198,12 +1180,9 @@ static bool type_needs_arena(Type *type)
     default:
         return false;
     case TYPE_OPAQUE:
-    case TYPE_TCP_LISTENER:
-    case TYPE_TCP_STREAM:
-    case TYPE_UDP_SOCKET:
-        /* Runtime objects (TcpStream, TcpListener, UdpSocket, Process, etc.)
-         * that may be allocated via arena. Functions using these types need an arena
-         * even though the type itself isn't a heap type like string/array. */
+        /* Runtime objects (Process, etc.) that may be allocated via arena.
+         * Functions using these types need an arena even though the type
+         * itself isn't a heap type like string/array. */
         return true;
     }
 }

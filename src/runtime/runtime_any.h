@@ -33,10 +33,7 @@ typedef enum {
     RT_ANY_BINARY_FILE,
     RT_ANY_DATE,
     RT_ANY_TIME,
-    RT_ANY_PROCESS,
-    RT_ANY_TCP_LISTENER,
-    RT_ANY_TCP_STREAM,
-    RT_ANY_UDP_SOCKET
+    RT_ANY_PROCESS
 } RtAnyTag;
 
 /* The any type - a tagged union */

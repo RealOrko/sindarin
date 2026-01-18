@@ -16,7 +16,6 @@
  * - type_checker_expr_call_core.c: Main dispatchers and helpers
  * - type_checker_expr_call_array.c: Array method type checking
  * - type_checker_expr_call_string.c: String method type checking
- * - type_checker_expr_call_net.c: TcpListener/TcpStream/UdpSocket type checking
  * ============================================================================ */
 
 /* ============================================================================
@@ -33,8 +32,7 @@
 Type *type_check_call_expression(Expr *expr, SymbolTable *table);
 
 /* Static method type checking for built-in types
- * Handles: Stdin, Stdout, Stderr, Process, TcpListener, TcpStream, UdpSocket,
- *          Environment
+ * Handles: Stdin, Stdout, Stderr, Process, Environment
  */
 Type *type_check_static_method_call(Expr *expr, SymbolTable *table);
 
@@ -67,25 +65,6 @@ Type *type_check_array_method(Expr *expr, Type *object_type, Token member_name, 
  * toBytes, toHex, toBase64, fromHex, fromBase64
  */
 Type *type_check_string_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
-
-/* ============================================================================
- * Network Methods (type_checker_expr_call_net.c)
- * ============================================================================ */
-
-/* Type check TcpListener instance methods:
- * port, accept, close
- */
-Type *type_check_tcp_listener_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
-
-/* Type check TcpStream instance methods:
- * remoteAddress, read, readAll, readLine, write, writeLine, close
- */
-Type *type_check_tcp_stream_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
-
-/* Type check UdpSocket instance methods:
- * port, lastSender, sendTo, receiveFrom, close
- */
-Type *type_check_udp_socket_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table);
 
 /* ============================================================================
  * Process Methods
