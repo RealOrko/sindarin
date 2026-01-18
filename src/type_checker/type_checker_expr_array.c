@@ -60,7 +60,8 @@ Type *type_check_array(Expr *expr, SymbolTable *table)
             bool equal = false;
             if (elem_type->kind == actual_elem_type->kind)
             {
-                if (elem_type->kind == TYPE_ARRAY || elem_type->kind == TYPE_FUNCTION)
+                if (elem_type->kind == TYPE_ARRAY || elem_type->kind == TYPE_FUNCTION ||
+                    elem_type->kind == TYPE_STRUCT)
                 {
                     equal = ast_type_equals(elem_type, actual_elem_type);
                 }
