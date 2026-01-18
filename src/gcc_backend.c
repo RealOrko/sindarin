@@ -1166,15 +1166,52 @@ bool gcc_compile(const CCBackendConfig *config, const char *c_file,
     }
     else
     {
-        /* Try vcpkg path for local development (compiler_dir is bin/, vcpkg is at project root) */
-        snprintf(deps_include_dir, sizeof(deps_include_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "include", compiler_dir);
-        if (dir_exists(deps_include_dir))
+        /* Packaged deps not found, clear the path */
+        deps_include_dir[0] = '\0';
+        /* Try VCPKG_ROOT environment variable first */
+        const char *vcpkg_root = getenv("VCPKG_ROOT");
+        if (vcpkg_root != NULL && vcpkg_root[0] != '\0')
         {
-            snprintf(deps_lib_dir, sizeof(deps_lib_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "lib", compiler_dir);
+            /* Try MinGW triplet first (for clang/gcc), then MSVC triplet */
+            snprintf(deps_include_dir, sizeof(deps_include_dir), "%s" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-mingw-dynamic" SN_PATH_SEP_STR "include", vcpkg_root);
+            if (dir_exists(deps_include_dir))
+            {
+                snprintf(deps_lib_dir, sizeof(deps_lib_dir), "%s" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-mingw-dynamic" SN_PATH_SEP_STR "lib", vcpkg_root);
+            }
+            else
+            {
+                snprintf(deps_include_dir, sizeof(deps_include_dir), "%s" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "include", vcpkg_root);
+                if (dir_exists(deps_include_dir))
+                {
+                    snprintf(deps_lib_dir, sizeof(deps_lib_dir), "%s" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "lib", vcpkg_root);
+                }
+                else
+                {
+                    deps_include_dir[0] = '\0';
+                }
+            }
         }
-        else
+
+        /* Try vcpkg path for local development (compiler_dir is bin/, vcpkg is at project root) */
+        if (deps_include_dir[0] == '\0')
         {
-            deps_include_dir[0] = '\0';  /* Not found */
+            snprintf(deps_include_dir, sizeof(deps_include_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-mingw-dynamic" SN_PATH_SEP_STR "include", compiler_dir);
+            if (dir_exists(deps_include_dir))
+            {
+                snprintf(deps_lib_dir, sizeof(deps_lib_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-mingw-dynamic" SN_PATH_SEP_STR "lib", compiler_dir);
+            }
+            else
+            {
+                snprintf(deps_include_dir, sizeof(deps_include_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "include", compiler_dir);
+                if (dir_exists(deps_include_dir))
+                {
+                    snprintf(deps_lib_dir, sizeof(deps_lib_dir), "%s" SN_PATH_SEP_STR ".." SN_PATH_SEP_STR "vcpkg" SN_PATH_SEP_STR "installed" SN_PATH_SEP_STR "x64-windows" SN_PATH_SEP_STR "lib", compiler_dir);
+                }
+                else
+                {
+                    deps_include_dir[0] = '\0';  /* Not found */
+                }
+            }
         }
     }
 

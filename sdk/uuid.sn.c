@@ -17,15 +17,15 @@
 #include <errno.h>
 
 #ifdef _WIN32
-    #if defined(__MINGW32__) || defined(__MINGW64__)
-    /* MinGW is POSIX-compatible */
-    #include <sys/time.h>
-    #else
-    /* MSVC Windows */
     #include <windows.h>
     #include <bcrypt.h>
+    #if defined(__MINGW32__) || defined(__MINGW64__)
+    /* MinGW has POSIX-compatible gettimeofday */
+    #include <sys/time.h>
+    #else
+    /* MSVC needs pragma comment and custom gettimeofday */
     #pragma comment(lib, "bcrypt.lib")
-    /* Custom gettimeofday for Windows */
+    struct timeval { long tv_sec; long tv_usec; };
     static int gettimeofday(struct timeval *tv, void *tz) {
         (void)tz;
         FILETIME ft;
@@ -37,7 +37,6 @@
         tv->tv_usec = (long)(time % 1000000);
         return 0;
     }
-    struct timeval { long tv_sec; long tv_usec; };
     #endif
 #else
 #include <sys/time.h>
@@ -122,7 +121,8 @@ static void sn_uuid_fill_entropy(uint8_t *buf, size_t len) {
 #elif defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__)
     arc4random_buf(buf, len);
 
-#elif defined(_WIN32) && !defined(__MINGW32__) && !defined(__MINGW64__)
+#elif defined(_WIN32)
+    /* BCryptGenRandom works with both MSVC and MinGW */
     NTSTATUS status = BCryptGenRandom(
         NULL,
         buf,
@@ -693,7 +693,7 @@ int sn_uuid_equals(RtUuid *uuid, RtUuid *other) {
     return (uuid->high == other->high && uuid->low == other->low) ? 1 : 0;
 }
 
-long sn_uuid_compare(RtUuid *uuid, RtUuid *other) {
+long long sn_uuid_compare(RtUuid *uuid, RtUuid *other) {
     if (uuid == NULL && other == NULL) return 0;
     if (uuid == NULL) return -1;
     if (other == NULL) return 1;

@@ -167,6 +167,17 @@ class TestRunner:
         if 'ASAN_OPTIONS' not in self.env:
             self.env['ASAN_OPTIONS'] = 'detect_leaks=0'
 
+        # On Windows, add vcpkg DLL directories to PATH for runtime linking
+        if is_windows():
+            vcpkg_bins = [
+                os.path.join('vcpkg', 'installed', 'x64-windows', 'bin'),
+                os.path.join('vcpkg', 'installed', 'x64-mingw-dynamic', 'bin'),
+            ]
+            for vcpkg_bin in vcpkg_bins:
+                if os.path.isdir(vcpkg_bin):
+                    abs_bin = os.path.abspath(vcpkg_bin)
+                    self.env['PATH'] = abs_bin + os.pathsep + self.env.get('PATH', '')
+
     def __enter__(self):
         self.temp_dir = tempfile.mkdtemp(prefix='sn_test_')
         return self
