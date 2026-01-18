@@ -2,9 +2,32 @@
 # test_path.sn - Tests for SDK Path Type
 # ==============================================================================
 # Tests the SnPath struct and its methods.
+# Cross-platform: works on Windows, Linux, and macOS
 # ==============================================================================
 
 import "../../../sdk/io/path"
+
+# Cross-platform temp directory helper
+fn getTempDir(): str =>
+    # Windows uses TEMP, Unix uses TMPDIR or /tmp
+    return Environment.get("TEMP", Environment.get("TMPDIR", "/tmp")).replace("\\", "/")
+
+# Check if a path is absolute (cross-platform)
+fn isAbsolutePath(path: str): bool =>
+    if path.length < 1 =>
+        return false
+    # Unix: starts with /
+    if path.startsWith("/") =>
+        return true
+    # Windows: starts with drive letter like C:\ or C:/
+    if path.length >= 3 =>
+        var firstChar: char = path.charAt(0)
+        var secondChar: char = path.charAt(1)
+        var thirdChar: char = path.charAt(2)
+        if (firstChar >= 'A' && firstChar <= 'Z') || (firstChar >= 'a' && firstChar <= 'z') =>
+            if secondChar == ':' && (thirdChar == '/' || thirdChar == '\\') =>
+                return true
+    return false
 
 fn test_directory(): void =>
     print("test_directory: ")
@@ -58,49 +81,54 @@ fn test_join(): void =>
 fn test_absolute(): void =>
     print("test_absolute: ")
 
+    # Use cross-platform temp directory
+    var tempDir: str = getTempDir()
+
     # Absolute paths should return themselves (mostly)
-    var abs: str = SnPath.absolute("/tmp")
-    assert(abs.startsWith("/"), "Absolute should start with /")
+    var abs: str = SnPath.absolute(tempDir)
+    assert(isAbsolutePath(abs), "Absolute should be absolute path")
 
     # Relative paths should become absolute
     var rel: str = SnPath.absolute(".")
-    assert(rel.startsWith("/"), "Relative should become absolute")
+    assert(isAbsolutePath(rel), "Relative should become absolute")
 
     print("PASS\n")
 
 fn test_exists(): void =>
     print("test_exists: ")
 
-    # /tmp should exist
-    assert(SnPath.exists("/tmp"), "/tmp should exist")
+    # Temp directory should exist
+    var tempDir: str = getTempDir()
+    assert(SnPath.exists(tempDir), "Temp directory should exist")
 
     # Random path should not exist
-    assert(!SnPath.exists("/nonexistent_path_12345"), "Nonexistent should not exist")
+    assert(!SnPath.exists("/nonexistent_path_12345_xyzabc"), "Nonexistent should not exist")
 
     print("PASS\n")
 
 fn test_is_file(): void =>
     print("test_is_file: ")
 
-    # Create a test file
-    var testPath: str = "/tmp/sdk_path_test_file.txt"
-    # We can't use SnTextFile here because we're testing Path independently
-    # So we'll use a known file that should exist on Linux
+    # Get cross-platform temp directory
+    var tempDir: str = getTempDir()
 
-    # /etc/passwd should be a file on most Linux systems
-    # But let's just test that directories aren't files
-    assert(!SnPath.isFile("/tmp"), "/tmp should not be a file")
+    # Temp directory should not be a file
+    assert(!SnPath.isFile(tempDir), "Temp directory should not be a file")
+
+    # Nonexistent path should not be a file
+    assert(!SnPath.isFile("/nonexistent_path_12345_xyzabc"), "Nonexistent should not be a file")
 
     print("PASS\n")
 
 fn test_is_directory(): void =>
     print("test_is_directory: ")
 
-    # /tmp should be a directory
-    assert(SnPath.isDirectory("/tmp"), "/tmp should be a directory")
+    # Temp directory should be a directory
+    var tempDir: str = getTempDir()
+    assert(SnPath.isDirectory(tempDir), "Temp directory should be a directory")
 
     # A nonexistent path should not be a directory
-    assert(!SnPath.isDirectory("/nonexistent_path_12345"), "Nonexistent should not be directory")
+    assert(!SnPath.isDirectory("/nonexistent_path_12345_xyzabc"), "Nonexistent should not be directory")
 
     print("PASS\n")
 
