@@ -163,5 +163,5 @@ var conn: SnTcpStream = SnTcpStream.connect("example.com:80")
 ## See Also
 
 - [SDK Overview](../readme.md) - All SDK modules
-- [Threading](../../language/THREADING.md) - Threading model (`&` spawn, `!` sync)
-- [Memory](../../language/MEMORY.md) - Arena memory management
+- [Threading](../../threading.md) - Threading model (`&` spawn, `!` sync)
+- [Memory](../../memory.md) - Arena memory management

@@ -292,6 +292,6 @@ fn main(): int =>
 ## See Also
 
 - [SDK Overview](../readme.md) - All SDK modules
-- [Threading](../../language/THREADING.md) - Threading model (`&` spawn, `!` sync)
-- [Memory](../../language/MEMORY.md) - Arena memory management details
-- [Arrays](../../language/ARRAYS.md) - Array operations including byte arrays
+- [Threading](../../threading.md) - Threading model (`&` spawn, `!` sync)
+- [Memory](../../memory.md) - Arena memory management details
+- [Arrays](../../arrays.md) - Array operations including byte arrays

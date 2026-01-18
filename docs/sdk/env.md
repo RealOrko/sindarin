@@ -176,6 +176,5 @@ fn getHomeDirectory(): str =>
 
 ## See Also
 
-- [Environment (Built-in)](../language/ENVIRONMENT.md) - Built-in Environment type
 - [SDK Overview](readme.md) - All SDK modules
 - SDK source: `sdk/env.sn`

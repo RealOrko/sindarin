@@ -240,5 +240,4 @@ fn main(): void =>
 
 - [UUID](uuid.md) - UUID generation (uses random internally)
 - [SDK Overview](readme.md) - All SDK modules
-- [Types](../language/TYPES.md) - Primitive and built-in types
-- [Arrays](../language/ARRAYS.md) - Array operations
+- [Arrays](../arrays.md) - Array operations

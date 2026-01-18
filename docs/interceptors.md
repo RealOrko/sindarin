@@ -412,6 +412,5 @@ Total intercepted calls: 2
 
 ## See Also
 
-- [TYPES.md](TYPES.md) - The `any` type for dynamic typing
-- [LAMBDAS.md](LAMBDAS.md) - Lambda expressions used in interceptor handlers
-- [MEMORY.md](MEMORY.md) - Memory management in interceptors
+- [Lambdas](lambdas.md) - Lambda expressions used in interceptor handlers
+- [Memory](memory.md) - Memory management in interceptors

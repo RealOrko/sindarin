@@ -423,6 +423,5 @@ var sentence: str = parts.join(" and ") // "apple and banana and cherry"
 
 ## See Also
 
-- [TYPES.md](TYPES.md) - Data types including `str` and `char`
-- [ARRAYS.md](ARRAYS.md) - Array operations including string arrays
-- [FILE_IO.md](FILE_IO.md) - File I/O for reading and writing text files
+- [Arrays](arrays.md) - Array operations including string arrays
+- [SDK I/O documentation](sdk/io/readme.md) - File I/O for reading and writing text files

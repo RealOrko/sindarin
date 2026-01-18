@@ -199,7 +199,7 @@ fn bad() private: NamedPoint =>
     return p  // COMPILE ERROR: struct contains heap data (str)
 ```
 
-See [MEMORY.md](MEMORY.md) for more details on arena memory management.
+See [Memory](memory.md) for more details on arena memory management.
 
 ## Operators
 
@@ -237,7 +237,7 @@ native fn allocate_points(count: int): *Point =>
     return malloc(count * sizeof(Point)) as *Point
 ```
 
-See [TYPES.md](TYPES.md#sizeof-operator) for complete `sizeof` documentation including primitive types and arrays.
+The `sizeof` operator works on both types and variables, returning the size in bytes.
 
 ### Equality (`==` and `!=`)
 
@@ -379,7 +379,7 @@ native fn example(cfg: *Config): void =>
     var timeout: int = cfg.timeout  // Automatic dereference (like cfg->timeout in C)
 ```
 
-See [INTEROP.md](INTEROP.md) for more details on C interoperability.
+See [Interop](interop.md) for more details on C interoperability.
 
 ## Practical Examples
 
@@ -515,7 +515,6 @@ All struct fields are publicly accessible. There are no access modifiers.
 
 ## See Also
 
-- [TYPES.md](TYPES.md) - Primitive and built-in types
-- [MEMORY.md](MEMORY.md) - Arena memory management
-- [INTEROP.md](INTEROP.md) - C interoperability
-- [ARRAYS.md](ARRAYS.md) - Array operations
+- [Memory](memory.md) - Arena memory management
+- [Interop](interop.md) - C interoperability
+- [Arrays](arrays.md) - Array operations

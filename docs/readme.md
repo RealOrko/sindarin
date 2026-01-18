@@ -290,11 +290,11 @@ var original: int[] = {1, 2, 3}
 var copy: int[] as val = original  // Independent copy
 ```
 
-See [MEMORY.md](MEMORY.md) for full documentation.
+See [Memory](memory.md) for full documentation.
 
 ## Compilation
 
-See [BUILDING.md](BUILDING.md) for instructions on building the compiler from source.
+See [Building](building.md) for instructions on building the compiler from source.
 
 ```bash
 # Compile to executable
@@ -342,22 +342,19 @@ Note: The default runtime objects are compiled with GCC's LTO. To use a differen
 
 ## Documentation Index
 
-- [BUILDING.md](BUILDING.md) - Build instructions for Linux, macOS, Windows
-- [TYPES.md](TYPES.md) - Primitive and built-in types
-- [STRINGS.md](STRINGS.md) - String methods and interpolation
-- [ARRAYS.md](ARRAYS.md) - Array operations and slicing
-- [STRUCTS.md](STRUCTS.md) - Struct declarations and C interop
-- [LAMBDAS.md](LAMBDAS.md) - Lambda expressions and closures
-- [FILE_IO.md](FILE_IO.md) - TextFile and BinaryFile operations
-- [NETWORK_IO.md](NETWORK_IO.md) - TCP and UDP networking
-- [DATE.md](DATE.md) - Calendar date operations
-- [TIME.md](TIME.md) - Date and time operations
-- [RANDOM.md](RANDOM.md) - Random number generation
-- [UUID.md](UUID.md) - Universally unique identifiers
-- [ENVIRONMENT.md](ENVIRONMENT.md) - Environment variables
-- [MEMORY.md](MEMORY.md) - Arena memory management
-- [THREADING.md](THREADING.md) - Threading with `&` spawn and `!` sync
-- [PROCESSES.md](PROCESSES.md) - Process execution and output capture
-- [NAMESPACES.md](NAMESPACES.md) - Namespaced imports for collision resolution
-- [INTEROP.md](INTEROP.md) - C interoperability and native functions
-- [INTERCEPTORS.md](INTERCEPTORS.md) - Function interception for debugging and mocking
+### Core Language
+- [Building](building.md) - Build instructions for Linux, macOS, Windows
+- [Strings](strings.md) - String methods and interpolation
+- [Arrays](arrays.md) - Array operations and slicing
+- [Structs](structs.md) - Struct declarations and C interop
+- [Lambdas](lambdas.md) - Lambda expressions and closures
+- [Memory](memory.md) - Arena memory management
+
+### Advanced Features
+- [Threading](threading.md) - Threading with `&` spawn and `!` sync
+- [Namespaces](namespaces.md) - Namespaced imports for collision resolution
+- [Interop](interop.md) - C interoperability and native functions
+- [Interceptors](interceptors.md) - Function interception for debugging and mocking
+
+### SDK Modules
+See the [SDK documentation](sdk/readme.md) for built-in modules including Date, Time, File I/O, Networking, Random, UUID, Environment, and Process operations.

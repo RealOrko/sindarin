@@ -857,6 +857,6 @@ The following features are fully supported:
 
 ## See Also
 
-- [MEMORY.md](MEMORY.md) - Arena memory management, `as ref`, `as val`, `shared`, `private`
-- [FILE_IO.md](FILE_IO.md) - File I/O with threading examples
-- [ARRAYS.md](ARRAYS.md) - Array operations and frozen semantics
+- [Memory](memory.md) - Arena memory management, `as ref`, `as val`, `shared`, `private`
+- [Arrays](arrays.md) - Array operations and frozen semantics
+- [SDK I/O documentation](sdk/io/readme.md) - File I/O operations

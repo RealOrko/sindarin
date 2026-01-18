@@ -200,4 +200,3 @@ if id.version() == 7 =>
 - [Random](random.md) - Random number generation
 - [Time](time.md) - Time type operations
 - [SDK Overview](readme.md) - All SDK modules
-- [Types](../language/TYPES.md) - Primitive and built-in types

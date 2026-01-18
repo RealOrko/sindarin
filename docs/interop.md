@@ -816,7 +816,7 @@ native fn process_array(arr: int[]): void =>
     var total_bytes: int = arr.length * sizeof(int)
 ```
 
-See [TYPES.md](TYPES.md#sizeof-operator) for complete `sizeof` documentation.
+The `sizeof` operator returns the size in bytes of any type or variable.
 
 ---
 
@@ -914,9 +914,8 @@ This restriction ensures native structs maintain C-compatible memory layout and 
 
 ## See Also
 
-- [TYPES.md](TYPES.md) - Primitive and built-in types (includes interop types)
-- [STRUCTS.md](STRUCTS.md) - Struct declarations and native struct interop
-- [MEMORY.md](MEMORY.md) - Arena memory management
-- [ARRAYS.md](ARRAYS.md) - Array types and byte arrays
-- [LAMBDAS.md](LAMBDAS.md) - Lambda expressions (regular vs native)
-- [FILE_IO.md](FILE_IO.md) - Built-in file I/O (example of runtime integration)
+- [Structs](structs.md) - Struct declarations and native struct interop
+- [Memory](memory.md) - Arena memory management
+- [Arrays](arrays.md) - Array types and byte arrays
+- [Lambdas](lambdas.md) - Lambda expressions (regular vs native)
+- [SDK I/O documentation](sdk/io/readme.md) - File I/O operations

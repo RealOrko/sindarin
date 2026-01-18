@@ -274,5 +274,5 @@ client.writeLine($"Echo: {line}")
 
 ## See Also
 
-- [Language Reference](../language/) - Core language documentation
+- [Language Overview](../readme.md) - Core language documentation
 - SDK source code: `sdk/` directory
