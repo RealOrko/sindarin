@@ -1,0 +1,119 @@
+# ==============================================================================
+# test_path.sn - Tests for SDK Path Type
+# ==============================================================================
+# Tests the SnPath struct and its methods.
+# ==============================================================================
+
+import "../../../sdk/io/path"
+
+fn test_directory(): void =>
+    print("test_directory: ")
+
+    # Unix-style paths
+    assert(SnPath.directory("/home/user/file.txt") == "/home/user", "Unix directory")
+    assert(SnPath.directory("/file.txt") == "/", "Root directory")
+    assert(SnPath.directory("file.txt") == ".", "No directory")
+    assert(SnPath.directory("a/b/c") == "a/b", "Relative directory")
+    assert(SnPath.directory("") == ".", "Empty path")
+
+    print("PASS\n")
+
+fn test_filename(): void =>
+    print("test_filename: ")
+
+    assert(SnPath.filename("/home/user/file.txt") == "file.txt", "Unix filename")
+    assert(SnPath.filename("/file.txt") == "file.txt", "Root filename")
+    assert(SnPath.filename("file.txt") == "file.txt", "No directory")
+    assert(SnPath.filename("a/b/c") == "c", "Relative filename")
+    assert(SnPath.filename("") == "", "Empty path")
+
+    print("PASS\n")
+
+fn test_extension(): void =>
+    print("test_extension: ")
+
+    assert(SnPath.extension("/home/user/file.txt") == "txt", "Simple extension")
+    assert(SnPath.extension("file.tar.gz") == "gz", "Multiple dots")
+    assert(SnPath.extension("file") == "", "No extension")
+    assert(SnPath.extension(".bashrc") == "", "Hidden file")
+    assert(SnPath.extension("a/b/.gitignore") == "", "Hidden file in path")
+    assert(SnPath.extension("") == "", "Empty path")
+
+    print("PASS\n")
+
+fn test_join(): void =>
+    print("test_join: ")
+
+    # Basic joins
+    assert(SnPath.join("/home", "user") == "/home/user", "Basic join")
+    assert(SnPath.join("/home/", "user") == "/home/user", "Join with trailing slash")
+    assert(SnPath.join("", "user") == "user", "Join with empty first")
+    assert(SnPath.join("/home", "") == "/home/", "Join with empty second")
+
+    # Join three
+    assert(SnPath.join3("/home", "user", "file.txt") == "/home/user/file.txt", "Join three")
+
+    print("PASS\n")
+
+fn test_absolute(): void =>
+    print("test_absolute: ")
+
+    # Absolute paths should return themselves (mostly)
+    var abs: str = SnPath.absolute("/tmp")
+    assert(abs.startsWith("/"), "Absolute should start with /")
+
+    # Relative paths should become absolute
+    var rel: str = SnPath.absolute(".")
+    assert(rel.startsWith("/"), "Relative should become absolute")
+
+    print("PASS\n")
+
+fn test_exists(): void =>
+    print("test_exists: ")
+
+    # /tmp should exist
+    assert(SnPath.exists("/tmp"), "/tmp should exist")
+
+    # Random path should not exist
+    assert(!SnPath.exists("/nonexistent_path_12345"), "Nonexistent should not exist")
+
+    print("PASS\n")
+
+fn test_is_file(): void =>
+    print("test_is_file: ")
+
+    # Create a test file
+    var testPath: str = "/tmp/sdk_path_test_file.txt"
+    # We can't use SnTextFile here because we're testing Path independently
+    # So we'll use a known file that should exist on Linux
+
+    # /etc/passwd should be a file on most Linux systems
+    # But let's just test that directories aren't files
+    assert(!SnPath.isFile("/tmp"), "/tmp should not be a file")
+
+    print("PASS\n")
+
+fn test_is_directory(): void =>
+    print("test_is_directory: ")
+
+    # /tmp should be a directory
+    assert(SnPath.isDirectory("/tmp"), "/tmp should be a directory")
+
+    # A nonexistent path should not be a directory
+    assert(!SnPath.isDirectory("/nonexistent_path_12345"), "Nonexistent should not be directory")
+
+    print("PASS\n")
+
+fn main(): void =>
+    print("=== SDK Path Tests ===\n\n")
+
+    test_directory()
+    test_filename()
+    test_extension()
+    test_join()
+    test_absolute()
+    test_exists()
+    test_is_file()
+    test_is_directory()
+
+    print("\nAll Path tests passed!\n")

@@ -57,5 +57,6 @@ Instance methods:
 
 ## See Also
 
-- [TIME.md](TIME.md) - Time operations (SDK-based)
+- [Time](time.md) - Time operations
+- [SDK Overview](readme.md) - All SDK modules
 - SDK source: `sdk/date.sn`

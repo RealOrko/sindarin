@@ -238,5 +238,7 @@ fn main(): void =>
 
 ## See Also
 
-- [TYPES.md](TYPES.md) - Primitive and built-in types
-- [ARRAYS.md](ARRAYS.md) - Array operations
+- [UUID](uuid.md) - UUID generation (uses random internally)
+- [SDK Overview](readme.md) - All SDK modules
+- [Types](../language/TYPES.md) - Primitive and built-in types
+- [Arrays](../language/ARRAYS.md) - Array operations

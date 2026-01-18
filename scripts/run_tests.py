@@ -145,7 +145,7 @@ TEST_CONFIGS = {
         'tests/exploratory/errors', '*.sn', True, 'Exploratory Error Tests'
     ),
     'sdk': TestConfig(
-        'tests/sdk', 'test_*.sn', False, 'SDK Tests'
+        'tests/sdk', '**/test_*.sn', False, 'SDK Tests'
     ),
 }
 
@@ -221,7 +221,7 @@ class TestRunner:
 
         # Find test files
         pattern = os.path.join(config.test_dir, config.pattern)
-        test_files = sorted(glob.glob(pattern))
+        test_files = sorted(glob.glob(pattern, recursive=True))
 
         if not test_files:
             print(f"No test files found matching: {pattern}")
@@ -234,7 +234,9 @@ class TestRunner:
         exe_ext = get_exe_extension()
 
         for test_file in test_files:
-            test_name = os.path.splitext(os.path.basename(test_file))[0]
+            # Get relative path from test_dir to show subfolder structure
+            rel_path = os.path.relpath(test_file, config.test_dir)
+            test_name = os.path.splitext(rel_path)[0]
 
             # Check if test is excluded
             if test_name in self.excluded_tests:
@@ -245,7 +247,9 @@ class TestRunner:
             # Paths for expected output and panic markers
             expected_file = test_file.replace('.sn', '.expected')
             panic_file = test_file.replace('.sn', '.panic')
-            exe_file = os.path.join(self.temp_dir, f"{test_name}{exe_ext}")
+            # Use basename for exe to avoid path issues in temp dir
+            exe_basename = os.path.basename(test_file).replace('.sn', '')
+            exe_file = os.path.join(self.temp_dir, f"{exe_basename}{exe_ext}")
 
             print(f"  {test_name:45} ", end='', flush=True)
 

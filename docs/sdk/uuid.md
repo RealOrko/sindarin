@@ -197,6 +197,7 @@ if id.version() == 7 =>
 
 ## See Also
 
-- [TYPES.md](TYPES.md) - Primitive and built-in types
-- [RANDOM.md](RANDOM.md) - Random number generation
-- [TIME.md](TIME.md) - Time type operations
+- [Random](random.md) - Random number generation
+- [Time](time.md) - Time type operations
+- [SDK Overview](readme.md) - All SDK modules
+- [Types](../language/TYPES.md) - Primitive and built-in types

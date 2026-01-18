@@ -55,5 +55,6 @@ Instance methods:
 
 ## See Also
 
-- [DATE.md](DATE.md) - Calendar date operations (SDK-based)
+- [Date](date.md) - Calendar date operations
+- [SDK Overview](readme.md) - All SDK modules
 - SDK source: `sdk/time.sn`
