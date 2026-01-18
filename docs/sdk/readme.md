@@ -9,6 +9,7 @@ The Sindarin SDK provides a collection of modules that extend the language's cap
 | [Date](date.md) | `import "sdk/date"` | Calendar date operations |
 | [Time](time.md) | `import "sdk/time"` | Time and duration operations |
 | [Environment](env.md) | `import "sdk/env"` | Environment variable access |
+| [Process](process.md) | `import "sdk/process"` | Process execution and output capture |
 | [Random](random.md) | `import "sdk/random"` | Random number generation |
 | [UUID](uuid.md) | `import "sdk/uuid"` | UUID generation and parsing |
 | [I/O](io/readme.md) | `import "sdk/io/..."` | File and directory operations |
@@ -20,6 +21,7 @@ The Sindarin SDK provides a collection of modules that extend the language's cap
 import "sdk/date"
 import "sdk/time"
 import "sdk/env"
+import "sdk/process"
 import "sdk/random"
 import "sdk/uuid"
 import "sdk/io/textfile"
@@ -35,6 +37,10 @@ fn main(): int =>
   // Environment variables
   var user: str = SnEnvironment.getOr("USER", "unknown")
   print($"User: {user}\n")
+
+  // Run external command
+  var p: SnProcess = SnProcess.run("pwd")
+  print($"Current dir: {p.stdout()}")
 
   // Random values
   var dice: int = Random.int(1, 6)
@@ -75,6 +81,7 @@ SDK types use the `Sn` prefix to distinguish them from built-in types:
 | `SnDate` | Calendar date |
 | `SnTime` | Timestamp |
 | `SnEnvironment` | Environment variables |
+| `SnProcess` | Process execution |
 | `SnTextFile` | Text file handle |
 | `SnBinaryFile` | Binary file handle |
 | `SnPath` | Path utilities |
@@ -184,6 +191,22 @@ if SnEnvironment.has("DEBUG") =>
 ```
 
 [Full documentation →](env.md)
+
+### Process
+
+Execute external commands and capture their output.
+
+```sindarin
+import "sdk/process"
+
+var p: SnProcess = SnProcess.runArgs("ls", {"-la"})
+if p.success() =>
+    print(p.stdout())
+else =>
+    print($"Failed: {p.stderr()}")
+```
+
+[Full documentation →](process.md)
 
 ### Random
 

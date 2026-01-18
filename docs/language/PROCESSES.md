@@ -1,5 +1,7 @@
 # Process Execution in Sindarin
 
+> **Note:** An SDK-based alternative `SnProcess` is available via `import "sdk/process"`. See [SDK Process documentation](../sdk/process.md) for the SDK version.
+
 Sindarin provides the `Process` type for spawning external processes and capturing their output. Processes can run synchronously or asynchronously using the same `&` spawn and `!` sync operators as threads.
 
 ## Running Commands
