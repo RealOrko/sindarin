@@ -71,29 +71,14 @@ native fn fmin(x: double, y: double): double
 # Mathematical Constants
 # ==============================================================================
 
-fn pi(): double =>
-    return 3.14159265358979323846
-
-fn e(): double =>
-    return 2.71828182845904523536
-
-fn tau(): double =>
-    return 6.28318530717958647692
-
-fn phi(): double =>
-    return 1.61803398874989484820
-
-fn sqrt2(): double =>
-    return 1.41421356237309504880
-
-fn sqrt3(): double =>
-    return 1.73205080756887729352
-
-fn ln2(): double =>
-    return 0.69314718055994530942
-
-fn ln10(): double =>
-    return 2.30258509299404568402
+fn pi(): double => 3.14159265358979323846
+fn e(): double => 2.71828182845904523536
+fn tau(): double => 6.28318530717958647692
+fn phi(): double => 1.61803398874989484820
+fn sqrt2(): double => 1.41421356237309504880
+fn sqrt3(): double => 1.73205080756887729352
+fn ln2(): double => 0.69314718055994530942
+fn ln10(): double => 2.30258509299404568402
 
 # ==============================================================================
 # Integer Helper Functions
@@ -411,29 +396,14 @@ native fn fminF(x: float, y: float): float
 # Mathematical Constants (float)
 # ==============================================================================
 
-fn piF(): float =>
-    return 3.14159265
-
-fn eF(): float =>
-    return 2.71828182
-
-fn tauF(): float =>
-    return 6.28318530
-
-fn phiF(): float =>
-    return 1.61803398
-
-fn sqrt2F(): float =>
-    return 1.41421356
-
-fn sqrt3F(): float =>
-    return 1.73205080
-
-fn ln2F(): float =>
-    return 0.69314718
-
-fn ln10F(): float =>
-    return 2.30258509
+fn piF(): float => 3.14159265
+fn eF(): float => 2.71828182
+fn tauF(): float => 6.28318530
+fn phiF(): float => 1.61803398
+fn sqrt2F(): float => 1.41421356
+fn sqrt3F(): float => 1.73205080
+fn ln2F(): float => 0.69314718
+fn ln10F(): float => 2.30258509
 
 # ==============================================================================
 # Float Helper Functions

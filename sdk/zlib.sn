@@ -1,10 +1,10 @@
 # ==============================================================================
-# sdk/compression.sn - Compression Library for Sindarin
+# sdk/zlib.sn - Zlib Compression Library for Sindarin
 # ==============================================================================
 # Provides zlib compression/decompression bindings and high-level wrappers.
 #
 # Usage:
-#   import "sdk/compression" as zlib
+#   import "sdk/zlib"
 #
 #   // High-level API (recommended)
 #   var compressed: byte[] = zlib.compress_data(data)
