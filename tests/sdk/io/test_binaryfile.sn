@@ -9,7 +9,7 @@ import "../../../sdk/io/binaryfile"
 fn test_static_write_and_read(): void =>
     print("test_static_write_and_read: ")
 
-    var testPath: str = "/tmp/sdk_binaryfile_test1.bin"
+    var testPath: str = "sdk_binaryfile_test1.bin"
     var data: byte[] = {72, 101, 108, 108, 111}  # "Hello"
 
     # Write content
@@ -33,7 +33,7 @@ fn test_static_write_and_read(): void =>
 fn test_exists(): void =>
     print("test_exists: ")
 
-    var testPath: str = "/tmp/sdk_binaryfile_test2.bin"
+    var testPath: str = "sdk_binaryfile_test2.bin"
 
     # File should not exist yet
     assert(!SnBinaryFile.exists(testPath), "File should not exist initially")
@@ -56,7 +56,7 @@ fn test_exists(): void =>
 fn test_instance_read_write(): void =>
     print("test_instance_read_write: ")
 
-    var testPath: str = "/tmp/sdk_binaryfile_test3.bin"
+    var testPath: str = "sdk_binaryfile_test3.bin"
 
     # Open file and write
     var f: SnBinaryFile = SnBinaryFile.open(testPath)
@@ -91,7 +91,7 @@ fn test_instance_read_write(): void =>
 fn test_read_remaining(): void =>
     print("test_read_remaining: ")
 
-    var testPath: str = "/tmp/sdk_binaryfile_test4.bin"
+    var testPath: str = "sdk_binaryfile_test4.bin"
     var data: byte[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     SnBinaryFile.writeAll(testPath, data)
 
@@ -116,7 +116,7 @@ fn test_read_remaining(): void =>
 fn test_position_and_seek(): void =>
     print("test_position_and_seek: ")
 
-    var testPath: str = "/tmp/sdk_binaryfile_test5.bin"
+    var testPath: str = "sdk_binaryfile_test5.bin"
     var data: byte[] = {65, 66, 67, 68, 69, 70, 71, 72, 73, 74}
     SnBinaryFile.writeAll(testPath, data)
 
@@ -154,7 +154,7 @@ fn test_position_and_seek(): void =>
 fn test_eof_and_has_bytes(): void =>
     print("test_eof_and_has_bytes: ")
 
-    var testPath: str = "/tmp/sdk_binaryfile_test6.bin"
+    var testPath: str = "sdk_binaryfile_test6.bin"
     var data: byte[] = {1, 2}
     SnBinaryFile.writeAll(testPath, data)
 
@@ -177,9 +177,9 @@ fn test_eof_and_has_bytes(): void =>
 fn test_copy_and_move(): void =>
     print("test_copy_and_move: ")
 
-    var srcPath: str = "/tmp/sdk_binaryfile_test_src.bin"
-    var dstPath: str = "/tmp/sdk_binaryfile_test_dst.bin"
-    var movePath: str = "/tmp/sdk_binaryfile_test_moved.bin"
+    var srcPath: str = "sdk_binaryfile_test_src.bin"
+    var dstPath: str = "sdk_binaryfile_test_dst.bin"
+    var movePath: str = "sdk_binaryfile_test_moved.bin"
 
     var data: byte[] = {100, 200, 255, 0, 50}
     SnBinaryFile.writeAll(srcPath, data)
@@ -206,7 +206,7 @@ fn test_copy_and_move(): void =>
 fn test_properties(): void =>
     print("test_properties: ")
 
-    var testPath: str = "/tmp/sdk_binaryfile_test7.bin"
+    var testPath: str = "sdk_binaryfile_test7.bin"
     var data: byte[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
     SnBinaryFile.writeAll(testPath, data)
 

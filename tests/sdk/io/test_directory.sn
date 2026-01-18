@@ -11,7 +11,7 @@ import "../../../sdk/io/path"
 fn test_create_and_delete(): void =>
     print("test_create_and_delete: ")
 
-    var testDir: str = "/tmp/sdk_dir_test1"
+    var testDir: str = "sdk_dir_test1"
 
     # Create directory
     SnDirectory.create(testDir)
@@ -27,7 +27,7 @@ fn test_create_and_delete(): void =>
 fn test_create_nested(): void =>
     print("test_create_nested: ")
 
-    var testDir: str = "/tmp/sdk_dir_test2/nested/deep"
+    var testDir: str = "sdk_dir_test2/nested/deep"
 
     # Create nested directory (should create parents)
     SnDirectory.create(testDir)
@@ -35,15 +35,15 @@ fn test_create_nested(): void =>
 
     # Clean up
     SnDirectory.delete(testDir)
-    SnDirectory.delete("/tmp/sdk_dir_test2/nested")
-    SnDirectory.delete("/tmp/sdk_dir_test2")
+    SnDirectory.delete("sdk_dir_test2/nested")
+    SnDirectory.delete("sdk_dir_test2")
 
     print("PASS\n")
 
 fn test_list(): void =>
     print("test_list: ")
 
-    var testDir: str = "/tmp/sdk_dir_test3"
+    var testDir: str = "sdk_dir_test3"
     SnDirectory.create(testDir)
 
     # Create some files
@@ -83,7 +83,7 @@ fn test_list(): void =>
 fn test_list_recursive(): void =>
     print("test_list_recursive: ")
 
-    var testDir: str = "/tmp/sdk_dir_test4"
+    var testDir: str = "sdk_dir_test4"
     SnDirectory.create(testDir)
     SnDirectory.create(testDir + "/subdir")
 
@@ -120,7 +120,7 @@ fn test_list_recursive(): void =>
 fn test_delete_recursive(): void =>
     print("test_delete_recursive: ")
 
-    var testDir: str = "/tmp/sdk_dir_test5"
+    var testDir: str = "sdk_dir_test5"
     SnDirectory.create(testDir + "/a/b/c")
 
     # Create files at various levels

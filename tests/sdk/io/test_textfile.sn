@@ -9,7 +9,7 @@ import "../../../sdk/io/textfile"
 fn test_static_write_and_read(): void =>
     print("test_static_write_and_read: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test1.txt"
+    var testPath: str = "sdk_textfile_test1.txt"
     var content: str = "Hello, World!\nLine 2\nLine 3"
 
     # Write content
@@ -28,7 +28,7 @@ fn test_static_write_and_read(): void =>
 fn test_exists(): void =>
     print("test_exists: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test2.txt"
+    var testPath: str = "sdk_textfile_test2.txt"
 
     # File should not exist yet
     assert(!SnTextFile.exists(testPath), "File should not exist initially")
@@ -50,7 +50,7 @@ fn test_exists(): void =>
 fn test_instance_read_write(): void =>
     print("test_instance_read_write: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test3.txt"
+    var testPath: str = "sdk_textfile_test3.txt"
 
     # Open file and write
     var f: SnTextFile = SnTextFile.open(testPath)
@@ -78,7 +78,7 @@ fn test_instance_read_write(): void =>
 fn test_read_lines(): void =>
     print("test_read_lines: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test4.txt"
+    var testPath: str = "sdk_textfile_test4.txt"
     SnTextFile.writeAll(testPath, "Alpha\nBeta\nGamma")
 
     var f: SnTextFile = SnTextFile.open(testPath)
@@ -97,7 +97,7 @@ fn test_read_lines(): void =>
 fn test_read_word(): void =>
     print("test_read_word: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test5.txt"
+    var testPath: str = "sdk_textfile_test5.txt"
     SnTextFile.writeAll(testPath, "one two  three\nfour")
 
     var f: SnTextFile = SnTextFile.open(testPath)
@@ -119,7 +119,7 @@ fn test_read_word(): void =>
 fn test_position_and_seek(): void =>
     print("test_position_and_seek: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test6.txt"
+    var testPath: str = "sdk_textfile_test6.txt"
     SnTextFile.writeAll(testPath, "ABCDEFGHIJ")
 
     var f: SnTextFile = SnTextFile.open(testPath)
@@ -152,7 +152,7 @@ fn test_position_and_seek(): void =>
 fn test_eof_and_has_chars(): void =>
     print("test_eof_and_has_chars: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test7.txt"
+    var testPath: str = "sdk_textfile_test7.txt"
     SnTextFile.writeAll(testPath, "AB")
 
     var f: SnTextFile = SnTextFile.open(testPath)
@@ -174,9 +174,9 @@ fn test_eof_and_has_chars(): void =>
 fn test_copy_and_move(): void =>
     print("test_copy_and_move: ")
 
-    var srcPath: str = "/tmp/sdk_textfile_test_src.txt"
-    var dstPath: str = "/tmp/sdk_textfile_test_dst.txt"
-    var movePath: str = "/tmp/sdk_textfile_test_moved.txt"
+    var srcPath: str = "sdk_textfile_test_src.txt"
+    var dstPath: str = "sdk_textfile_test_dst.txt"
+    var movePath: str = "sdk_textfile_test_moved.txt"
 
     SnTextFile.writeAll(srcPath, "Copy test content")
 
@@ -201,7 +201,7 @@ fn test_copy_and_move(): void =>
 fn test_properties(): void =>
     print("test_properties: ")
 
-    var testPath: str = "/tmp/sdk_textfile_test8.txt"
+    var testPath: str = "sdk_textfile_test8.txt"
     SnTextFile.writeAll(testPath, "1234567890")  # 10 bytes
 
     var f: SnTextFile = SnTextFile.open(testPath)
