@@ -27,7 +27,8 @@ typedef enum {
     RT_ANY_BOOL,
     RT_ANY_BYTE,
     RT_ANY_ARRAY,
-    RT_ANY_FUNCTION
+    RT_ANY_FUNCTION,
+    RT_ANY_STRUCT       /* Boxed struct value */
 } RtAnyTag;
 
 /* The any type - a tagged union */
@@ -70,6 +71,7 @@ RtAny rt_box_bool(bool value);
 RtAny rt_box_byte(uint8_t value);
 RtAny rt_box_array(void *arr, RtAnyTag element_tag);
 RtAny rt_box_function(void *fn);
+RtAny rt_box_struct(RtArena *arena, void *struct_data, size_t struct_size, int struct_type_id);
 
 /* ============================================================================
  * Unboxing Functions - Convert any to concrete types (panic on type mismatch)
@@ -88,6 +90,7 @@ bool rt_unbox_bool(RtAny value);
 uint8_t rt_unbox_byte(RtAny value);
 void *rt_unbox_array(RtAny value);
 void *rt_unbox_function(RtAny value);
+void *rt_unbox_struct(RtAny value, int expected_type_id);
 
 /* ============================================================================
  * Type Checking Functions
@@ -108,6 +111,7 @@ bool rt_any_is_bool(RtAny value);
 bool rt_any_is_byte(RtAny value);
 bool rt_any_is_array(RtAny value);
 bool rt_any_is_function(RtAny value);
+bool rt_any_is_struct_type(RtAny value, int expected_type_id);
 
 /* Get type tag */
 RtAnyTag rt_any_get_tag(RtAny value);

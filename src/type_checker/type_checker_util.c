@@ -101,7 +101,7 @@ bool is_printable_type(Type *type)
                            type->kind == TYPE_FLOAT || type->kind == TYPE_CHAR ||
                            type->kind == TYPE_STRING || type->kind == TYPE_BOOL ||
                            type->kind == TYPE_BYTE || type->kind == TYPE_ARRAY ||
-                           type->kind == TYPE_ANY);
+                           type->kind == TYPE_ANY || type->kind == TYPE_STRUCT);
     DEBUG_VERBOSE("Checking if type is printable: %s", result ? "true" : "false");
     return result;
 }

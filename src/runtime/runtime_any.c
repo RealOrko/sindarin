@@ -121,6 +121,18 @@ RtAny rt_box_function(void *fn) {
     return result;
 }
 
+RtAny rt_box_struct(RtArena *arena, void *struct_data, size_t struct_size, int struct_type_id) {
+    RtAny result;
+    result.tag = RT_ANY_STRUCT;
+    /* Allocate space in the arena and copy struct data */
+    void *copy = rt_arena_alloc(arena, struct_size);
+    memcpy(copy, struct_data, struct_size);
+    result.value.obj = copy;
+    /* Store struct type ID in element_tag (repurposed for structs) */
+    result.element_tag = (RtAnyTag)struct_type_id;
+    return result;
+}
+
 /* ============================================================================
  * Unboxing Functions
  * ============================================================================ */
@@ -222,6 +234,20 @@ void *rt_unbox_function(RtAny value) {
     return value.value.fn;
 }
 
+void *rt_unbox_struct(RtAny value, int expected_type_id) {
+    if (value.tag != RT_ANY_STRUCT) {
+        rt_any_type_error("struct", value);
+    }
+    /* Check struct type ID matches */
+    int actual_type_id = (int)value.element_tag;
+    if (actual_type_id != expected_type_id) {
+        fprintf(stderr, "Type error: struct type mismatch (expected type id %d, got %d)\n",
+                expected_type_id, actual_type_id);
+        exit(1);
+    }
+    return value.value.obj;
+}
+
 /* ============================================================================
  * Type Checking Functions
  * ============================================================================ */
@@ -240,6 +266,15 @@ bool rt_any_is_bool(RtAny value) { return value.tag == RT_ANY_BOOL; }
 bool rt_any_is_byte(RtAny value) { return value.tag == RT_ANY_BYTE; }
 bool rt_any_is_array(RtAny value) { return value.tag == RT_ANY_ARRAY; }
 bool rt_any_is_function(RtAny value) { return value.tag == RT_ANY_FUNCTION; }
+
+bool rt_any_is_struct_type(RtAny value, int expected_type_id) {
+    if (value.tag != RT_ANY_STRUCT) {
+        return false;
+    }
+    /* Check if the struct type ID matches */
+    int actual_type_id = (int)value.element_tag;
+    return actual_type_id == expected_type_id;
+}
 
 RtAnyTag rt_any_get_tag(RtAny value) {
     return value.tag;
@@ -261,6 +296,7 @@ const char *rt_any_tag_name(RtAnyTag tag) {
         case RT_ANY_BYTE: return "byte";
         case RT_ANY_ARRAY: return "array";
         case RT_ANY_FUNCTION: return "function";
+        case RT_ANY_STRUCT: return "struct";
         default: return "unknown";
     }
 }
@@ -333,6 +369,12 @@ bool rt_any_equals(RtAny a, RtAny b) {
         }
         case RT_ANY_FUNCTION:
             return a.value.fn == b.value.fn;
+        case RT_ANY_STRUCT:
+            /* For structs, compare type ID and pointer (identity comparison) */
+            if (a.element_tag != b.element_tag) {
+                return false;  /* Different struct types */
+            }
+            return a.value.obj == b.value.obj;
         default:
             return false;
     }
@@ -392,6 +434,8 @@ char *rt_any_to_string(RtArena *arena, RtAny value) {
             return rt_arena_strdup(arena, buffer);
         case RT_ANY_FUNCTION:
             return rt_arena_strdup(arena, "[function]");
+        case RT_ANY_STRUCT:
+            return rt_arena_strdup(arena, "[struct]");
         default:
             return rt_arena_strdup(arena, "[unknown]");
     }
@@ -437,6 +481,11 @@ RtAny rt_any_promote(RtArena *target_arena, RtAny value) {
             
         /* Object types - shallow copy for now */
         case RT_ANY_FUNCTION:
+            break;
+
+        case RT_ANY_STRUCT:
+            /* Structs are arena-allocated; for now shallow copy pointer.
+             * Full deep copy would require storing struct size metadata. */
             break;
 
         default:

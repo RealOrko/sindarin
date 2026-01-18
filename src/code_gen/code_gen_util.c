@@ -372,6 +372,33 @@ const char *get_default_value(Type *type)
  * Any Type Boxing/Unboxing Helpers
  * ============================================================================ */
 
+/**
+ * Generate a consistent type ID for a struct type.
+ * Uses a simple hash of the struct name to generate a unique integer.
+ * This allows runtime type checking via `a is StructType` syntax.
+ */
+int get_struct_type_id(Type *struct_type)
+{
+    if (struct_type == NULL || struct_type->kind != TYPE_STRUCT)
+    {
+        return 0;
+    }
+    const char *name = struct_type->as.struct_type.name;
+    if (name == NULL)
+    {
+        return 0;
+    }
+    /* Simple djb2 hash function */
+    unsigned long hash = 5381;
+    int c;
+    while ((c = *name++))
+    {
+        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
+    }
+    /* Ensure positive int result */
+    return (int)(hash & 0x7FFFFFFF);
+}
+
 const char *get_boxing_function(Type *type)
 {
     DEBUG_VERBOSE("Entering get_boxing_function");
@@ -405,6 +432,8 @@ const char *get_boxing_function(Type *type)
         return "rt_box_array";
     case TYPE_FUNCTION:
         return "rt_box_function";
+    case TYPE_STRUCT:
+        return "rt_box_struct";
     case TYPE_NIL:
     case TYPE_VOID:
         return "rt_box_nil";
@@ -448,6 +477,8 @@ const char *get_unboxing_function(Type *type)
         return "rt_unbox_array";
     case TYPE_FUNCTION:
         return "rt_unbox_function";
+    case TYPE_STRUCT:
+        return "rt_unbox_struct";
     default:
         return NULL;
     }
@@ -484,6 +515,8 @@ const char *get_element_type_tag(Type *element_type)
         return "RT_ANY_BYTE";
     case TYPE_ARRAY:
         return "RT_ANY_ARRAY";
+    case TYPE_STRUCT:
+        return "RT_ANY_STRUCT";
     case TYPE_ANY:
         return "RT_ANY_NIL";  /* any[] - element types vary */
     default:
@@ -519,6 +552,15 @@ char *code_gen_box_value(CodeGen *gen, const char *value_str, Type *value_type)
         return arena_sprintf(gen->arena, "%s(%s, %s)", box_func, value_str, elem_tag);
     }
 
+    /* Structs need arena, address, size, and type ID */
+    if (value_type->kind == TYPE_STRUCT)
+    {
+        int type_id = get_struct_type_id(value_type);
+        const char *struct_name = get_c_type(gen->arena, value_type);
+        return arena_sprintf(gen->arena, "rt_box_struct(%s, &(%s), sizeof(%s), %d)",
+                             ARENA_VAR(gen), value_str, struct_name, type_id);
+    }
+
     return arena_sprintf(gen->arena, "%s(%s)", box_func, value_str);
 }
 
@@ -548,6 +590,15 @@ char *code_gen_unbox_value(CodeGen *gen, const char *any_str, Type *target_type)
     {
         const char *c_type = get_c_type(gen->arena, target_type);
         return arena_sprintf(gen->arena, "(%s)%s(%s)", c_type, unbox_func, any_str);
+    }
+
+    /* Structs need a cast and dereference (unbox returns void*) */
+    if (target_type->kind == TYPE_STRUCT)
+    {
+        int type_id = get_struct_type_id(target_type);
+        const char *struct_name = get_c_type(gen->arena, target_type);
+        return arena_sprintf(gen->arena, "(*((%s *)rt_unbox_struct(%s, %d)))",
+                             struct_name, any_str, type_id);
     }
 
     return arena_sprintf(gen->arena, "%s(%s)", unbox_func, any_str);

@@ -406,6 +406,7 @@ static const char *get_type_tag_constant(TypeKind kind)
         case TYPE_BYTE: return "RT_ANY_BYTE";
         case TYPE_ARRAY: return "RT_ANY_ARRAY";
         case TYPE_FUNCTION: return "RT_ANY_FUNCTION";
+        case TYPE_STRUCT: return "RT_ANY_STRUCT";
         case TYPE_ANY: return "RT_ANY_NIL";  /* any has no fixed tag */
         default: return "RT_ANY_NIL";
     }
@@ -493,6 +494,14 @@ static char *code_gen_is_expression(CodeGen *gen, Expr *expr)
         const char *elem_tag = get_type_tag_constant(elem_type->kind);
         return arena_sprintf(gen->arena, "((%s).tag == %s && (%s).element_tag == %s)",
                              operand_code, type_tag, operand_code, elem_tag);
+    }
+
+    /* For struct types, use the struct type ID for runtime type checking */
+    if (is_expr->check_type->kind == TYPE_STRUCT)
+    {
+        int type_id = get_struct_type_id(is_expr->check_type);
+        return arena_sprintf(gen->arena, "rt_any_is_struct_type(%s, %d)",
+                             operand_code, type_id);
     }
 
     return arena_sprintf(gen->arena, "((%s).tag == %s)", operand_code, type_tag);

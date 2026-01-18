@@ -27,6 +27,7 @@ const char *get_rt_result_type(Type *type);
 const char *get_boxing_function(Type *type);
 const char *get_unboxing_function(Type *type);
 const char *get_element_type_tag(Type *element_type);
+int get_struct_type_id(Type *struct_type);
 char *code_gen_box_value(CodeGen *gen, const char *value_str, Type *value_type);
 char *code_gen_unbox_value(CodeGen *gen, const char *any_str, Type *target_type);
 
