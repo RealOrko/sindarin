@@ -6,10 +6,11 @@
 # ==============================================================================
 
 import "../../sdk/process"
+import "../../sdk/env"
 
 # Check if running on Windows by looking for COMSPEC environment variable
 fn isWindows(): bool =>
-    var comspec: str = Environment.get("COMSPEC", "")
+    var comspec: str = SnEnvironment.getOr("COMSPEC", "")
     return comspec.length > 0
 
 fn test_run_simple(): void =>
