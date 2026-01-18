@@ -450,51 +450,6 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
         }
     }
 
-    /* Process static methods - process execution */
-    if (token_equals(type_name, "Process"))
-    {
-        if (token_equals(method_name, "run"))
-        {
-            /* Process.run(cmd: str): Process
-             * Process.run(cmd: str, args: str[]): Process */
-            if (call->arg_count == 0 || call->arg_count > 2)
-            {
-                type_error(&method_name, "Process.run requires 1 or 2 arguments (cmd, optional args)");
-                return NULL;
-            }
-            /* First argument must be a string (command) */
-            Type *cmd_type = call->arguments[0]->expr_type;
-            if (cmd_type == NULL || cmd_type->kind != TYPE_STRING)
-            {
-                type_error(&method_name, "Process.run requires a string command as first argument");
-                return NULL;
-            }
-            /* Second argument (if present) must be a string array (args) */
-            if (call->arg_count == 2)
-            {
-                Type *args_type = call->arguments[1]->expr_type;
-                /* Allow str[] (TYPE_STRING) or empty array {} (TYPE_NIL) */
-                if (args_type == NULL || args_type->kind != TYPE_ARRAY ||
-                    args_type->as.array.element_type == NULL ||
-                    (args_type->as.array.element_type->kind != TYPE_STRING &&
-                     args_type->as.array.element_type->kind != TYPE_NIL))
-                {
-                    type_error(&method_name, "Process.run requires a str[] as second argument");
-                    return NULL;
-                }
-            }
-            return ast_create_primitive_type(table->arena, TYPE_PROCESS);
-        }
-        else
-        {
-            char msg[128];
-            snprintf(msg, sizeof(msg), "Unknown Process static method '%.*s'",
-                     method_name.length, method_name.start);
-            type_error(&method_name, msg);
-            return NULL;
-        }
-    }
-
     /* Interceptor static methods - function interception for debugging/mocking */
     if (token_equals(type_name, "Interceptor"))
     {
@@ -770,47 +725,5 @@ Type *type_check_static_method_call(Expr *expr, SymbolTable *table)
     }
 
     type_error(&type_name, "Unknown static type");
-    return NULL;
-}
-
-/* ============================================================================
- * Process Instance Method Type Checking
- * ============================================================================ */
-
-Type *type_check_process_method(Expr *expr, Type *object_type, Token member_name, SymbolTable *table)
-{
-    (void)expr; /* Reserved for future use */
-
-    /* Only handle Process types */
-    if (object_type->kind != TYPE_PROCESS)
-    {
-        return NULL;
-    }
-
-    const char *name = member_name.start;
-    int len = member_name.length;
-
-    /* Process.exitCode property - returns int */
-    if (len == 8 && strncmp(name, "exitCode", 8) == 0)
-    {
-        DEBUG_VERBOSE("Returning INT type for Process.exitCode");
-        return ast_create_primitive_type(table->arena, TYPE_INT);
-    }
-
-    /* Process.stdout property - returns str */
-    if (len == 6 && strncmp(name, "stdout", 6) == 0)
-    {
-        DEBUG_VERBOSE("Returning STRING type for Process.stdout");
-        return ast_create_primitive_type(table->arena, TYPE_STRING);
-    }
-
-    /* Process.stderr property - returns str */
-    if (len == 6 && strncmp(name, "stderr", 6) == 0)
-    {
-        DEBUG_VERBOSE("Returning STRING type for Process.stderr");
-        return ast_create_primitive_type(table->arena, TYPE_STRING);
-    }
-
-    /* Unknown property/method */
     return NULL;
 }

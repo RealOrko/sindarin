@@ -45,7 +45,6 @@ const char *type_name(Type *type)
         case TYPE_FUNCTION:    return "function";
         case TYPE_TEXT_FILE:   return "TextFile";
         case TYPE_BINARY_FILE: return "BinaryFile";
-        case TYPE_PROCESS:      return "Process";
         case TYPE_POINTER:      return "pointer";
         default:                return "unknown";
     }
@@ -270,8 +269,7 @@ static bool struct_has_only_primitives(Type *struct_type)
 
         /* Built-in reference types - heap allocated */
         if (field_type->kind == TYPE_TEXT_FILE ||
-            field_type->kind == TYPE_BINARY_FILE ||
-            field_type->kind == TYPE_PROCESS)
+            field_type->kind == TYPE_BINARY_FILE)
         {
             DEBUG_VERBOSE("Struct field '%s' is built-in reference type - cannot escape private",
                           field->name ? field->name : "unknown");
@@ -376,9 +374,6 @@ static const char *find_blocking_struct_field(Type *struct_type)
             case TYPE_BINARY_FILE:
                 type_desc = "file handle";
                 break;
-            case TYPE_PROCESS:
-                type_desc = "process handle";
-                break;
             case TYPE_OPAQUE:
                 type_desc = "opaque type";
                 break;
@@ -439,8 +434,6 @@ const char *get_private_escape_block_reason(Type *type)
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
             return "file handle is a heap resource";
-        case TYPE_PROCESS:
-            return "process handle is a heap resource";
         case TYPE_OPAQUE:
             return "opaque type references external C memory";
         case TYPE_ANY:
@@ -949,7 +942,6 @@ bool is_c_compatible_type(Type *type)
         case TYPE_ANY:
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
-        case TYPE_PROCESS:
         default:
             return false;
     }
@@ -986,7 +978,6 @@ bool is_valid_field_type(Type *type, SymbolTable *table)
         /* Built-in reference types - always valid */
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
-        case TYPE_PROCESS:
         case TYPE_ANY:
             return true;
 
@@ -1416,7 +1407,6 @@ size_t get_type_alignment(Type *type)
         case TYPE_OPAQUE:
         case TYPE_TEXT_FILE:
         case TYPE_BINARY_FILE:
-        case TYPE_PROCESS:
         case TYPE_FUNCTION:
             return 8;
 

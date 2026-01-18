@@ -77,7 +77,6 @@ int get_type_size(Type *type)
     /* Built-in object types are pointers */
     case TYPE_TEXT_FILE:
     case TYPE_BINARY_FILE:
-    case TYPE_PROCESS:
         DEBUG_VERBOSE("Returning size 8 for built-in object type");
         return 8;
 

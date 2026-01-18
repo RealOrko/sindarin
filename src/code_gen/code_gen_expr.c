@@ -127,22 +127,6 @@ char *code_gen_member_expression(CodeGen *gen, Expr *expr)
         return arena_sprintf(gen->arena, "rt_str_length(%s)", object_str);
     }
 
-    /* Process properties - direct struct member access */
-    // Handle Process.exitCode
-    if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "exitCode") == 0) {
-        return arena_sprintf(gen->arena, "(%s)->exit_code", object_str);
-    }
-
-    // Handle Process.stdout
-    if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "stdout") == 0) {
-        return arena_sprintf(gen->arena, "(%s)->stdout_data", object_str);
-    }
-
-    // Handle Process.stderr
-    if (object_type->kind == TYPE_PROCESS && strcmp(member_name_str, "stderr") == 0) {
-        return arena_sprintf(gen->arena, "(%s)->stderr_data", object_str);
-    }
-
     /* Handle struct field access - generates object.field */
     if (object_type->kind == TYPE_STRUCT) {
         return arena_sprintf(gen->arena, "%s.%s", object_str, member_name_str);
@@ -424,7 +408,6 @@ static const char *get_type_tag_constant(TypeKind kind)
         case TYPE_FUNCTION: return "RT_ANY_FUNCTION";
         case TYPE_TEXT_FILE: return "RT_ANY_TEXT_FILE";
         case TYPE_BINARY_FILE: return "RT_ANY_BINARY_FILE";
-        case TYPE_PROCESS: return "RT_ANY_PROCESS";
         case TYPE_ANY: return "RT_ANY_NIL";  /* any has no fixed tag */
         default: return "RT_ANY_NIL";
     }

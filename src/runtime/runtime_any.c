@@ -154,14 +154,6 @@ RtAny rt_box_time(void *time) {
     return result;
 }
 
-RtAny rt_box_process(void *process) {
-    RtAny result;
-    result.tag = RT_ANY_PROCESS;
-    result.value.obj = process;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
 /* ============================================================================
  * Unboxing Functions
  * ============================================================================ */
@@ -292,13 +284,6 @@ void *rt_unbox_time(RtAny value) {
     return value.value.obj;
 }
 
-void *rt_unbox_process(RtAny value) {
-    if (value.tag != RT_ANY_PROCESS) {
-        rt_any_type_error("Process", value);
-    }
-    return value.value.obj;
-}
-
 /* ============================================================================
  * Type Checking Functions
  * ============================================================================ */
@@ -342,7 +327,6 @@ const char *rt_any_tag_name(RtAnyTag tag) {
         case RT_ANY_BINARY_FILE: return "BinaryFile";
         case RT_ANY_DATE: return "Date";
         case RT_ANY_TIME: return "Time";
-        case RT_ANY_PROCESS: return "Process";
         default: return "unknown";
     }
 }
@@ -420,7 +404,6 @@ bool rt_any_equals(RtAny a, RtAny b) {
         case RT_ANY_BINARY_FILE:
         case RT_ANY_DATE:
         case RT_ANY_TIME:
-        case RT_ANY_PROCESS:
             return a.value.obj == b.value.obj;
         default:
             return false;
@@ -489,8 +472,6 @@ char *rt_any_to_string(RtArena *arena, RtAny value) {
             return rt_arena_strdup(arena, "[Date]");
         case RT_ANY_TIME:
             return rt_arena_strdup(arena, "[Time]");
-        case RT_ANY_PROCESS:
-            return rt_arena_strdup(arena, "[Process]");
         default:
             return rt_arena_strdup(arena, "[unknown]");
     }
@@ -540,7 +521,6 @@ RtAny rt_any_promote(RtArena *target_arena, RtAny value) {
         case RT_ANY_BINARY_FILE:
         case RT_ANY_DATE:
         case RT_ANY_TIME:
-        case RT_ANY_PROCESS:
             break;
 
         default:

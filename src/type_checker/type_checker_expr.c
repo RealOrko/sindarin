@@ -661,17 +661,6 @@ static Type *type_check_member(Expr *expr, SymbolTable *table)
         /* Fall through to error handling if not a valid string method */
     }
 
-    /* Try Process property type checking */
-    if (object_type->kind == TYPE_PROCESS)
-    {
-        Type *result = type_check_process_method(expr, object_type, expr->as.member.member_name, table);
-        if (result != NULL)
-        {
-            return result;
-        }
-        /* Fall through to error handling if not a valid Process property */
-    }
-
     /* Handle struct field access and methods via EXPR_MEMBER */
     if (object_type->kind == TYPE_STRUCT)
     {

@@ -204,8 +204,7 @@ typedef enum {
     RT_TYPE_TEXT_FILE,          /* TextFile */
     RT_TYPE_BINARY_FILE,        /* BinaryFile */
     RT_TYPE_DATE,               /* Date */
-    RT_TYPE_TIME,               /* Time */
-    RT_TYPE_PROCESS             /* Process */
+    RT_TYPE_TIME                /* Time */
 } RtResultType;
 
 /* ============================================================================

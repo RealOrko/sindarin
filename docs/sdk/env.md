@@ -1,6 +1,6 @@
 # Environment in Sindarin
 
-The built-in `Environment` type provides access to environment variables. For an SDK alternative, use the `SnEnvironment` type.
+The SDK `SnEnvironment` type provides access to environment variables.
 
 ## SDK Alternative
 

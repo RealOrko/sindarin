@@ -32,8 +32,7 @@ typedef enum {
     RT_ANY_TEXT_FILE,
     RT_ANY_BINARY_FILE,
     RT_ANY_DATE,
-    RT_ANY_TIME,
-    RT_ANY_PROCESS
+    RT_ANY_TIME
 } RtAnyTag;
 
 /* The any type - a tagged union */

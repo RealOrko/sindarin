@@ -177,7 +177,6 @@ RUNTIME_MODULE_SRCS := \
     runtime/runtime_date.c \
     runtime/runtime_time.c \
     runtime/runtime_thread.c \
-    runtime/runtime_process.c \
     runtime/runtime_any.c \
     runtime/runtime_intercept.c
 
@@ -205,7 +204,6 @@ RUNTIME_HEADERS := \
     runtime/runtime_date.h \
     runtime/runtime_time.h \
     runtime/runtime_thread.h \
-    runtime/runtime_process.h \
     runtime/runtime_any.h \
     runtime/runtime_intercept.h
 
@@ -311,7 +309,6 @@ TEST_COMPILER_OBJS := $(filter-out $(BIN_DIR)/main.o, \
 RUNTIME_OBJ_NAMES := runtime.o runtime_arena.o runtime_string.o runtime_array.o \
     runtime_text_file.o runtime_binary_file.o runtime_io.o runtime_byte.o \
     runtime_path.o runtime_date.o runtime_time.o runtime_thread.o \
-    runtime_process.o \
     runtime_any.o runtime_intercept.o
 
 TEST_RUNTIME_GCC   := $(addprefix $(BIN_DIR)/, $(RUNTIME_OBJ_NAMES))

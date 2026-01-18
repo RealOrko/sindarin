@@ -45,7 +45,6 @@ typedef enum
     TYPE_ANY,
     TYPE_TEXT_FILE,
     TYPE_BINARY_FILE,
-    TYPE_PROCESS,
     TYPE_POINTER,
     TYPE_OPAQUE,
     TYPE_STRUCT

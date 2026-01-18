@@ -150,8 +150,6 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "RtTextFile *");
     case TYPE_BINARY_FILE:
         return arena_strdup(arena, "RtBinaryFile *");
-    case TYPE_PROCESS:
-        return arena_strdup(arena, "RtProcess *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally
@@ -418,8 +416,6 @@ const char *get_boxing_function(Type *type)
         return "rt_box_text_file";
     case TYPE_BINARY_FILE:
         return "rt_box_binary_file";
-    case TYPE_PROCESS:
-        return "rt_box_process";
     case TYPE_NIL:
     case TYPE_VOID:
         return "rt_box_nil";
@@ -467,8 +463,6 @@ const char *get_unboxing_function(Type *type)
         return "rt_unbox_text_file";
     case TYPE_BINARY_FILE:
         return "rt_unbox_binary_file";
-    case TYPE_PROCESS:
-        return "rt_unbox_process";
     default:
         return NULL;
     }

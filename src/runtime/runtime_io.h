@@ -76,4 +76,18 @@ void rt_print_err(const char *text);
 /* Print text with newline to stderr (alias for rt_stderr_write_line) */
 void rt_print_err_ln(const char *text);
 
+/* ============================================================================
+ * Program Control Functions
+ * ============================================================================ */
+
+/* Exit the program with the specified exit code.
+ * This is a wrapper around the C exit() function for Sindarin programs.
+ */
+void rt_exit(int code);
+
+/* Assert that a condition is true.
+ * If the condition is false, writes the message to stderr and exits with code 1.
+ */
+void rt_assert(int condition, const char *message);
+
 #endif /* RUNTIME_IO_H */

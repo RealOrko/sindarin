@@ -268,11 +268,6 @@ Type *parser_type(Parser *parser)
             parser_advance(parser);
             type = ast_create_primitive_type(parser->arena, TYPE_BINARY_FILE);
         }
-        else if (id.length == 7 && strncmp(id.start, "Process", 7) == 0)
-        {
-            parser_advance(parser);
-            type = ast_create_primitive_type(parser->arena, TYPE_PROCESS);
-        }
         else
         {
             /* Check if this is a type alias (opaque type) */
@@ -387,7 +382,6 @@ static const char *static_type_names[] = {
     "Stdin",
     "Stdout",
     "Stderr",
-    "Process",
     "Interceptor",
     NULL
 };

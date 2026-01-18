@@ -150,3 +150,23 @@ void rt_print_err(const char *text) {
 void rt_print_err_ln(const char *text) {
     rt_stderr_write_line(text);
 }
+
+/* ============================================================================
+ * Program Control Functions
+ * ============================================================================ */
+
+/* Exit the program with the specified exit code. */
+void rt_exit(int code)
+{
+    exit(code);
+}
+
+/* Assert that a condition is true. */
+void rt_assert(int condition, const char *message)
+{
+    if (!condition)
+    {
+        fprintf(stderr, "%s\n", message);
+        exit(1);
+    }
+}
