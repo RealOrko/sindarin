@@ -200,11 +200,7 @@ typedef enum {
     RT_TYPE_ARRAY_BOOL,         /* bool[] */
     RT_TYPE_ARRAY_BYTE,         /* byte[] */
     RT_TYPE_ARRAY_CHAR,         /* char[] */
-    RT_TYPE_ARRAY_STRING,       /* str[] */
-    RT_TYPE_TEXT_FILE,          /* TextFile */
-    RT_TYPE_BINARY_FILE,        /* BinaryFile */
-    RT_TYPE_DATE,               /* Date */
-    RT_TYPE_TIME                /* Time */
+    RT_TYPE_ARRAY_STRING        /* str[] */
 } RtResultType;
 
 /* ============================================================================
@@ -218,7 +214,6 @@ typedef enum {
  * - Primitives (int, long, double, bool, byte, char): copied by value
  * - Strings: promoted using rt_arena_promote_string
  * - Arrays: cloned using appropriate rt_array_clone_* function
- * - Files: promoted using rt_text_file_promote or rt_binary_file_promote
  */
 void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
                                 void *value, RtResultType type);

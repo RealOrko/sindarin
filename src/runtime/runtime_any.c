@@ -121,39 +121,6 @@ RtAny rt_box_function(void *fn) {
     return result;
 }
 
-/* Box object types */
-RtAny rt_box_text_file(void *file) {
-    RtAny result;
-    result.tag = RT_ANY_TEXT_FILE;
-    result.value.obj = file;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
-RtAny rt_box_binary_file(void *file) {
-    RtAny result;
-    result.tag = RT_ANY_BINARY_FILE;
-    result.value.obj = file;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
-RtAny rt_box_date(void *date) {
-    RtAny result;
-    result.tag = RT_ANY_DATE;
-    result.value.obj = date;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
-RtAny rt_box_time(void *time) {
-    RtAny result;
-    result.tag = RT_ANY_TIME;
-    result.value.obj = time;
-    result.element_tag = RT_ANY_NIL;
-    return result;
-}
-
 /* ============================================================================
  * Unboxing Functions
  * ============================================================================ */
@@ -255,35 +222,6 @@ void *rt_unbox_function(RtAny value) {
     return value.value.fn;
 }
 
-/* Unbox object types */
-void *rt_unbox_text_file(RtAny value) {
-    if (value.tag != RT_ANY_TEXT_FILE) {
-        rt_any_type_error("TextFile", value);
-    }
-    return value.value.obj;
-}
-
-void *rt_unbox_binary_file(RtAny value) {
-    if (value.tag != RT_ANY_BINARY_FILE) {
-        rt_any_type_error("BinaryFile", value);
-    }
-    return value.value.obj;
-}
-
-void *rt_unbox_date(RtAny value) {
-    if (value.tag != RT_ANY_DATE) {
-        rt_any_type_error("Date", value);
-    }
-    return value.value.obj;
-}
-
-void *rt_unbox_time(RtAny value) {
-    if (value.tag != RT_ANY_TIME) {
-        rt_any_type_error("Time", value);
-    }
-    return value.value.obj;
-}
-
 /* ============================================================================
  * Type Checking Functions
  * ============================================================================ */
@@ -323,10 +261,6 @@ const char *rt_any_tag_name(RtAnyTag tag) {
         case RT_ANY_BYTE: return "byte";
         case RT_ANY_ARRAY: return "array";
         case RT_ANY_FUNCTION: return "function";
-        case RT_ANY_TEXT_FILE: return "TextFile";
-        case RT_ANY_BINARY_FILE: return "BinaryFile";
-        case RT_ANY_DATE: return "Date";
-        case RT_ANY_TIME: return "Time";
         default: return "unknown";
     }
 }
@@ -399,12 +333,6 @@ bool rt_any_equals(RtAny a, RtAny b) {
         }
         case RT_ANY_FUNCTION:
             return a.value.fn == b.value.fn;
-        /* Object types - compare by pointer */
-        case RT_ANY_TEXT_FILE:
-        case RT_ANY_BINARY_FILE:
-        case RT_ANY_DATE:
-        case RT_ANY_TIME:
-            return a.value.obj == b.value.obj;
         default:
             return false;
     }
@@ -464,14 +392,6 @@ char *rt_any_to_string(RtArena *arena, RtAny value) {
             return rt_arena_strdup(arena, buffer);
         case RT_ANY_FUNCTION:
             return rt_arena_strdup(arena, "[function]");
-        case RT_ANY_TEXT_FILE:
-            return rt_arena_strdup(arena, "[TextFile]");
-        case RT_ANY_BINARY_FILE:
-            return rt_arena_strdup(arena, "[BinaryFile]");
-        case RT_ANY_DATE:
-            return rt_arena_strdup(arena, "[Date]");
-        case RT_ANY_TIME:
-            return rt_arena_strdup(arena, "[Time]");
         default:
             return rt_arena_strdup(arena, "[unknown]");
     }
@@ -517,10 +437,6 @@ RtAny rt_any_promote(RtArena *target_arena, RtAny value) {
             
         /* Object types - shallow copy for now */
         case RT_ANY_FUNCTION:
-        case RT_ANY_TEXT_FILE:
-        case RT_ANY_BINARY_FILE:
-        case RT_ANY_DATE:
-        case RT_ANY_TIME:
             break;
 
         default:

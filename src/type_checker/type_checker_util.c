@@ -43,8 +43,6 @@ const char *type_name(Type *type)
         case TYPE_ANY:         return "any";
         case TYPE_ARRAY:       return "array";
         case TYPE_FUNCTION:    return "function";
-        case TYPE_TEXT_FILE:   return "TextFile";
-        case TYPE_BINARY_FILE: return "BinaryFile";
         case TYPE_POINTER:      return "pointer";
         default:                return "unknown";
     }
@@ -153,9 +151,7 @@ bool is_reference_type(Type *type)
     if (type == NULL) return false;
     bool result = type->kind == TYPE_STRING ||
                   type->kind == TYPE_ARRAY ||
-                  type->kind == TYPE_FUNCTION ||
-                  type->kind == TYPE_TEXT_FILE ||
-                  type->kind == TYPE_BINARY_FILE;
+                  type->kind == TYPE_FUNCTION;
     DEBUG_VERBOSE("Checking if type is reference: %s", result ? "true" : "false");
     return result;
 }
@@ -267,15 +263,6 @@ static bool struct_has_only_primitives(Type *struct_type)
             return false;
         }
 
-        /* Built-in reference types - heap allocated */
-        if (field_type->kind == TYPE_TEXT_FILE ||
-            field_type->kind == TYPE_BINARY_FILE)
-        {
-            DEBUG_VERBOSE("Struct field '%s' is built-in reference type - cannot escape private",
-                          field->name ? field->name : "unknown");
-            return false;
-        }
-
         /* Opaque types - external C pointers */
         if (field_type->kind == TYPE_OPAQUE)
         {
@@ -370,10 +357,6 @@ static const char *find_blocking_struct_field(Type *struct_type)
             case TYPE_FUNCTION:
                 type_desc = "function (closure)";
                 break;
-            case TYPE_TEXT_FILE:
-            case TYPE_BINARY_FILE:
-                type_desc = "file handle";
-                break;
             case TYPE_OPAQUE:
                 type_desc = "opaque type";
                 break;
@@ -431,9 +414,6 @@ const char *get_private_escape_block_reason(Type *type)
             return "pointer type references external memory";
         case TYPE_FUNCTION:
             return "function type (closure) contains heap references";
-        case TYPE_TEXT_FILE:
-        case TYPE_BINARY_FILE:
-            return "file handle is a heap resource";
         case TYPE_OPAQUE:
             return "opaque type references external C memory";
         case TYPE_ANY:
@@ -940,8 +920,6 @@ bool is_c_compatible_type(Type *type)
         case TYPE_ARRAY:   /* Sindarin arrays have metadata (length, etc.) */
         case TYPE_NIL:
         case TYPE_ANY:
-        case TYPE_TEXT_FILE:
-        case TYPE_BINARY_FILE:
         default:
             return false;
     }
@@ -976,8 +954,6 @@ bool is_valid_field_type(Type *type, SymbolTable *table)
             return true;
 
         /* Built-in reference types - always valid */
-        case TYPE_TEXT_FILE:
-        case TYPE_BINARY_FILE:
         case TYPE_ANY:
             return true;
 
@@ -1405,8 +1381,6 @@ size_t get_type_alignment(Type *type)
         case TYPE_STRING:
         case TYPE_ARRAY:
         case TYPE_OPAQUE:
-        case TYPE_TEXT_FILE:
-        case TYPE_BINARY_FILE:
         case TYPE_FUNCTION:
             return 8;
 

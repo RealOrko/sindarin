@@ -805,11 +805,6 @@ void *rt_thread_promote_result(RtArena *dest, RtArena *src_arena,
             return rt_array_clone_string(dest, arr);
         }
 
-        /* File handle types - now handled by SDK, return NULL */
-        case RT_TYPE_TEXT_FILE:
-        case RT_TYPE_BINARY_FILE:
-            return NULL;
-
         default:
             fprintf(stderr, "rt_thread_promote_result: unknown type %d\n", type);
             return NULL;

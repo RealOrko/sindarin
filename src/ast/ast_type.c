@@ -35,8 +35,6 @@ Type *ast_clone_type(Arena *arena, Type *type)
     case TYPE_VOID:
     case TYPE_NIL:
     case TYPE_ANY:
-    case TYPE_TEXT_FILE:
-    case TYPE_BINARY_FILE:
         break;
 
     case TYPE_OPAQUE:
@@ -423,10 +421,6 @@ const char *ast_type_to_string(Arena *arena, Type *type)
         return arena_strdup(arena, "nil");
     case TYPE_ANY:
         return arena_strdup(arena, "any");
-    case TYPE_TEXT_FILE:
-        return arena_strdup(arena, "TextFile");
-    case TYPE_BINARY_FILE:
-        return arena_strdup(arena, "BinaryFile");
 
     case TYPE_ARRAY:
     {

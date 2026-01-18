@@ -27,12 +27,7 @@ typedef enum {
     RT_ANY_BOOL,
     RT_ANY_BYTE,
     RT_ANY_ARRAY,
-    RT_ANY_FUNCTION,
-    /* Built-in object types */
-    RT_ANY_TEXT_FILE,
-    RT_ANY_BINARY_FILE,
-    RT_ANY_DATE,
-    RT_ANY_TIME
+    RT_ANY_FUNCTION
 } RtAnyTag;
 
 /* The any type - a tagged union */
@@ -76,16 +71,6 @@ RtAny rt_box_byte(uint8_t value);
 RtAny rt_box_array(void *arr, RtAnyTag element_tag);
 RtAny rt_box_function(void *fn);
 
-/* Box object types */
-RtAny rt_box_text_file(void *file);
-RtAny rt_box_binary_file(void *file);
-RtAny rt_box_date(void *date);
-RtAny rt_box_time(void *time);
-RtAny rt_box_process(void *process);
-RtAny rt_box_tcp_listener(void *listener);
-RtAny rt_box_tcp_stream(void *stream);
-RtAny rt_box_udp_socket(void *socket);
-
 /* ============================================================================
  * Unboxing Functions - Convert any to concrete types (panic on type mismatch)
  * ============================================================================ */
@@ -103,16 +88,6 @@ bool rt_unbox_bool(RtAny value);
 uint8_t rt_unbox_byte(RtAny value);
 void *rt_unbox_array(RtAny value);
 void *rt_unbox_function(RtAny value);
-
-/* Unbox object types */
-void *rt_unbox_text_file(RtAny value);
-void *rt_unbox_binary_file(RtAny value);
-void *rt_unbox_date(RtAny value);
-void *rt_unbox_time(RtAny value);
-void *rt_unbox_process(RtAny value);
-void *rt_unbox_tcp_listener(RtAny value);
-void *rt_unbox_tcp_stream(RtAny value);
-void *rt_unbox_udp_socket(RtAny value);
 
 /* ============================================================================
  * Type Checking Functions

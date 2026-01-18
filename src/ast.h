@@ -43,8 +43,6 @@ typedef enum
     TYPE_FUNCTION,
     TYPE_NIL,
     TYPE_ANY,
-    TYPE_TEXT_FILE,
-    TYPE_BINARY_FILE,
     TYPE_POINTER,
     TYPE_OPAQUE,
     TYPE_STRUCT

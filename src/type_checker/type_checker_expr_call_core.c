@@ -247,8 +247,8 @@ Type *type_check_call_expression(Expr *expr, SymbolTable *table)
 /* ============================================================================
  * Static Method Call Type Checking
  * ============================================================================
- * Handles type checking for static method calls like TextFile.open(),
- * BinaryFile.readAll(), Time.now(), Path.join(), Directory.list(), etc.
+ * Handles type checking for static method calls like Stdin.readLine(),
+ * Stdout.write(), Interceptor.register(), and user-defined struct static methods.
  * ============================================================================ */
 
 Type *type_check_static_method_call(Expr *expr, SymbolTable *table)

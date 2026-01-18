@@ -146,10 +146,6 @@ const char *get_c_type(Arena *arena, Type *type)
         return arena_strdup(arena, "void *");
     case TYPE_ANY:
         return arena_strdup(arena, "RtAny");
-    case TYPE_TEXT_FILE:
-        return arena_strdup(arena, "RtTextFile *");
-    case TYPE_BINARY_FILE:
-        return arena_strdup(arena, "RtBinaryFile *");
     case TYPE_ARRAY:
     {
         // For bool arrays, use int* since runtime stores bools as int internally
@@ -252,8 +248,6 @@ const char *get_rt_to_string_func(TypeKind kind)
     case TYPE_ANY:
     case TYPE_ARRAY:
     case TYPE_FUNCTION:
-    case TYPE_TEXT_FILE:
-    case TYPE_BINARY_FILE:
     case TYPE_POINTER:
         return "rt_to_string_pointer";
     default:
@@ -354,8 +348,7 @@ const char *get_rt_to_string_func_for_type(Type *type)
 const char *get_default_value(Type *type)
 {
     DEBUG_VERBOSE("Entering get_default_value");
-    if (type->kind == TYPE_STRING || type->kind == TYPE_ARRAY ||
-        type->kind == TYPE_TEXT_FILE || type->kind == TYPE_BINARY_FILE)
+    if (type->kind == TYPE_STRING || type->kind == TYPE_ARRAY)
     {
         return "NULL";
     }
@@ -412,10 +405,6 @@ const char *get_boxing_function(Type *type)
         return "rt_box_array";
     case TYPE_FUNCTION:
         return "rt_box_function";
-    case TYPE_TEXT_FILE:
-        return "rt_box_text_file";
-    case TYPE_BINARY_FILE:
-        return "rt_box_binary_file";
     case TYPE_NIL:
     case TYPE_VOID:
         return "rt_box_nil";
@@ -459,10 +448,6 @@ const char *get_unboxing_function(Type *type)
         return "rt_unbox_array";
     case TYPE_FUNCTION:
         return "rt_unbox_function";
-    case TYPE_TEXT_FILE:
-        return "rt_unbox_text_file";
-    case TYPE_BINARY_FILE:
-        return "rt_unbox_binary_file";
     default:
         return NULL;
     }

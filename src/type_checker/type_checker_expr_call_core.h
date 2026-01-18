@@ -18,7 +18,7 @@
  * - Built-in functions (len)
  * - User-defined function calls
  * - Method calls on objects
- * - Static method calls (e.g., TextFile.open)
+ * - Static method calls (e.g., Stdin.readLine)
  */
 Type *type_check_call_expression(Expr *expr, SymbolTable *table);
 
@@ -29,8 +29,7 @@ bool is_builtin_name(Expr *callee, const char *name);
 bool token_equals(Token tok, const char *str);
 
 /* Static method type checking for built-in types
- * Handles: TextFile, BinaryFile, Stdin, Stdout, Stderr, Bytes,
- *          Path, Directory, Environment
+ * Handles: Stdin, Stdout, Stderr, Interceptor, and user-defined struct static methods
  */
 Type *type_check_static_method_call(Expr *expr, SymbolTable *table);
 

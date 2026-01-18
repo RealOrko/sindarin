@@ -256,19 +256,7 @@ Type *parser_type(Parser *parser)
     }
     else if (parser_check(parser, TOKEN_IDENTIFIER))
     {
-        /* Check for file types: TextFile, BinaryFile */
         Token id = parser->current;
-        if (id.length == 8 && strncmp(id.start, "TextFile", 8) == 0)
-        {
-            parser_advance(parser);
-            type = ast_create_primitive_type(parser->arena, TYPE_TEXT_FILE);
-        }
-        else if (id.length == 10 && strncmp(id.start, "BinaryFile", 10) == 0)
-        {
-            parser_advance(parser);
-            type = ast_create_primitive_type(parser->arena, TYPE_BINARY_FILE);
-        }
-        else
         {
             /* Check if this is a type alias (opaque type) */
             Symbol *type_symbol = symbol_table_lookup_type(parser->symbol_table, id);
@@ -374,8 +362,6 @@ ParsedType parser_type_with_size(Parser *parser)
 
 /* List of known static type names that support static method calls */
 static const char *static_type_names[] = {
-    "TextFile",
-    "BinaryFile",
     "Path",
     "Directory",
     "Bytes",

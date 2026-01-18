@@ -74,12 +74,6 @@ int get_type_size(Type *type)
         DEBUG_VERBOSE("Returning computed struct size: %zu", type->as.struct_type.size);
         return (int)type->as.struct_type.size;
 
-    /* Built-in object types are pointers */
-    case TYPE_TEXT_FILE:
-    case TYPE_BINARY_FILE:
-        DEBUG_VERBOSE("Returning size 8 for built-in object type");
-        return 8;
-
     /* Function types are pointers */
     case TYPE_FUNCTION:
         DEBUG_VERBOSE("Returning size 8 for function");

@@ -88,26 +88,6 @@ char *code_gen_static_call_expression(CodeGen *gen, Expr *expr)
         }
     }
 
-    /* Process static methods */
-    if (codegen_token_equals(type_name, "Process"))
-    {
-        if (codegen_token_equals(method_name, "run"))
-        {
-            if (call->arg_count == 1)
-            {
-                /* Process.run(cmd) -> rt_process_run(arena, cmd) */
-                return arena_sprintf(gen->arena, "rt_process_run(%s, %s)",
-                                     ARENA_VAR(gen), arg0);
-            }
-            else if (call->arg_count == 2)
-            {
-                /* Process.run(cmd, args) -> rt_process_run_with_args(arena, cmd, args) */
-                return arena_sprintf(gen->arena, "rt_process_run_with_args(%s, %s, %s)",
-                                     ARENA_VAR(gen), arg0, arg1);
-            }
-        }
-    }
-
     /* Interceptor static methods */
     if (codegen_token_equals(type_name, "Interceptor"))
     {
