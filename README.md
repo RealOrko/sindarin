@@ -1,5 +1,7 @@
 # Sindarin (Sn) Programming Language
 
+THIS PROJECT HAS MOVED TO: https://github.com/SindarinSDK/sindarin-compiler/blob/main/README.md
+
 **Sindarin** is a statically-typed procedural programming language that compiles to C. It features clean arrow-based syntax, powerful string interpolation, and built-in array operations.
 
 ```
