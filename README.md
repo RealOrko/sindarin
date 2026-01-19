@@ -188,29 +188,36 @@ See `src/` for compiler implementation details.
 
 ## Testing
 
+The unified Python test runner works on all platforms (Linux, macOS, Windows):
+
 ```bash
-bin/tests                              # Unit tests
-./scripts/run_tests.sh integration     # Integration tests
-./scripts/run_tests.sh explore         # Exploratory tests
+python scripts/run_tests.py unit              # Unit tests
+python scripts/run_tests.py integration       # Integration tests
+python scripts/run_tests.py explore           # Exploratory tests
+python scripts/run_tests.py sdk               # SDK tests
+python scripts/run_tests.py all               # All test suites
 ```
 
-On Windows, use the PowerShell test runner:
-
-```powershell
-.\scripts\run_integration_test.ps1 -TestType integration -All
-.\scripts\run_integration_test.ps1 -TestType explore -All
-```
+Options:
+- `-j N` / `--parallel N` - Run tests with N parallel workers (default: CPU count)
+- `-v` / `--verbose` - Show detailed output on failures
+- `--exclude TESTS` - Comma-separated list of tests to skip
 
 ## Project Structure
 
 ```
 ├── src/           # Compiler source code
-├── tests/         # Unit, integration, and exploratory tests
+├── sdk/           # SDK modules (date, time, io, net, etc.)
+├── tests/         # Unit, integration, exploratory, and SDK tests
 ├── samples/       # Example .sn programs
-├── docs/          # Documentation
+├── docs/          # Language and SDK documentation
+├── scripts/       # Build and test scripts
+├── packaging/     # Platform packages (deb, rpm, homebrew, etc.)
 ├── benchmark/     # Performance benchmarks
-├── bin/           # Compiled outputs (sn, tests, runtime)
+├── bin/           # Compiled outputs (sn, tests)
 ├── build/         # CMake build directory
+├── cmake/         # CMake modules
+├── vcpkg/         # vcpkg dependencies
 └── CMakeLists.txt # CMake build configuration
 ```
 
